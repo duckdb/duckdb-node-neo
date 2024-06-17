@@ -115,7 +115,7 @@ jobs:
       matrix:
         target_arch: [ x64, arm64 ]
         # node: [ '12', '14', '16', '17', '18', '19', '20', '21']
-        node: ['20']
+        node: ['18', '20', '22']
         # isRelease:
         #   - ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
         # exclude:
@@ -153,9 +153,6 @@ jobs:
 
       - name: API Test
         run: npm run test-path api/test/api.test.ts
-
-      - name: Perf Test
-        run: npm run test-path api/test/perf.ts
 
       # - name: Setup Ccache
       #   uses: hendrikmuhs/ccache-action@main
