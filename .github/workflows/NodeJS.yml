@@ -76,7 +76,7 @@ jobs:
   #         fetch-depth: 0
 
       - name: Install Python dependencies
-        run: pip install pycparser
+        run: pip install pycparser pycparserext
 
       - name: Install NPM dependencies & build Node bindings
         run: npm i
