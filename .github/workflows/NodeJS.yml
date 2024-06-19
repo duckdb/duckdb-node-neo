@@ -74,6 +74,8 @@ jobs:
   #       with:
   #         fetch-depth: 0
 
+      - run: pip install pycparser
+
       - name: NPM Install
         run: npm i
 
