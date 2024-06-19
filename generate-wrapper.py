@@ -5,6 +5,7 @@ import tempfile
 import urllib.request
 import os
 import zipfile
+import platform
 
 # those functions return promises asynchronously since they may block and/or do IO
 async_functions = [
@@ -208,12 +209,31 @@ def create_func_defs(filename):
     v.visit(ast)
     return v.cpp_result, v.types_result
 
+def get_release_zip_url():
+    system = platform.system()
+    if system == "Linux":
+        machine = platform.machine()
+        if machine == "aarch64":
+            return "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-linux-aarch64.zip"
+        elif machine == "amd64":
+            return "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-linux-amd64.zip"
+        else:
+            raise "Unsupported machine: " + machine
+    elif system == "Darwin":
+        return "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-osx-universal.zip"
+    elif system == "Windows":
+        return "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-windows-amd64.zip"
+    else:
+        raise "Unsupported system: " + system
 
 if __name__ == "__main__":
 
     with tempfile.TemporaryDirectory() as tmp:
         zip_path = os.path.join(tmp, "libduckdb.zip")
-        urllib.request.urlretrieve("https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-osx-universal.zip", zip_path)
+        release_zip_url = get_release_zip_url()
+        print("Downloading " + release_zip_url)
+        urllib.request.urlretrieve(release_zip_url, zip_path)
+        print("Extracting zip")
         zip = zipfile.ZipFile(zip_path)
         zip.extract("libduckdb.dylib", tmp)
         shutil.copy(os.path.join(tmp, "libduckdb.dylib"), "lib/binding/libduckdb")
@@ -221,9 +241,11 @@ if __name__ == "__main__":
         zip.extract("duckdb.h", "src")
         zip.extract("duckdb.h", tmp)
 
+        print("Preprocessing duckdb.h")
         os.system("sed -i -e 's/#include <stdlib.h>/#include <stddef.h>/' %s" % os.path.join(tmp, "duckdb.h")) # until 0.10.0 has been released
         os.system("gcc -DDUCKDB_NO_EXTENSION_FUNCTIONS -DDUCKDB_API_NO_DEPRECATED -E -D__builtin_va_list=int -D'__attribute__(x)=' %s > %s" % (os.path.join(tmp, "duckdb.h"), os.path.join(tmp, "duckdb-preprocessed.h")))
 
+        print("Generating C code and TypeScript definitions")
         cpp_result, types_result = create_func_defs(os.path.join(tmp, "duckdb-preprocessed.h"))
 
         out = open('src/duckdb_node_generated.cpp', 'wb')
