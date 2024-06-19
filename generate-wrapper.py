@@ -222,7 +222,7 @@ if __name__ == "__main__":
         zip.extract("duckdb.h", tmp)
 
         os.system("sed -i -e 's/#include <stdlib.h>/#include <stddef.h>/' %s" % os.path.join(tmp, "duckdb.h")) # until 0.10.0 has been released
-        os.system("gcc -DDUCKDB_NO_EXTENSION_FUNCTIONS -DDUCKDB_API_NO_DEPRECATED -E -D__builtin_va_list=int %s > %s" % (os.path.join(tmp, "duckdb.h"), os.path.join(tmp, "duckdb-preprocessed.h")))
+        os.system("gcc -DDUCKDB_NO_EXTENSION_FUNCTIONS -DDUCKDB_API_NO_DEPRECATED -E -D__builtin_va_list=int -D'__attribute__(x)' %s > %s" % (os.path.join(tmp, "duckdb.h"), os.path.join(tmp, "duckdb-preprocessed.h")))
 
         cpp_result, types_result = create_func_defs(os.path.join(tmp, "duckdb-preprocessed.h"))
 
