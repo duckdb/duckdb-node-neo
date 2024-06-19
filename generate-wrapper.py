@@ -218,13 +218,13 @@ def get_release_zip_url():
         elif machine == "amd64":
             return "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-linux-amd64.zip"
         else:
-            raise "Unsupported machine: " + machine
+            raise Exception("Unsupported machine: " + machine)
     elif system == "Darwin":
         return "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-osx-universal.zip"
     elif system == "Windows":
         return "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-windows-amd64.zip"
     else:
-        raise "Unsupported system: " + system
+        raise Exception("Unsupported system: " + system)
 
 if __name__ == "__main__":
 
