@@ -70,15 +70,13 @@ jobs:
   #           target_arch: arm64
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-  #       with:
-  #         fetch-depth: 0
-
       - name: Install Python dependencies
         run: pip install pycparser
 
-      - name: Install NPM dependencies & build Node bindings
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install NPM dependencies & Build Node bindings
         run: npm i
 
   #     - name: Update apt
@@ -114,7 +112,7 @@ jobs:
   #       run: ./scripts/node_build.sh ${{ matrix.node }}
 
   osx-nodejs:
-    if: false # temporarily disabled while testing
+    # if: false # temporarily disabled while testing
     # if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.repository != 'duckdb/duckdb-node'
     name: node.js OSX
     runs-on: macos-latest
@@ -148,16 +146,13 @@ jobs:
       # TARGET_ARCH: ${{ matrix.target_arch }}
       # DUCKDB_NODE_BUILD_CACHE: 0
     steps:
-      - uses: actions/checkout@v3
-        # with:
-        #   fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v4
 
-      # Default Python (3.12) doesn't have support for distutils
-      - uses: actions/setup-python@v4
-        # with:
-        #   python-version: '3.11'
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: NPM Install
+      - name: Install NPM dependencies & Build Node bindings
         run: npm i
 
       - name: API Test
@@ -185,9 +180,9 @@ jobs:
       #   shell: bash
       #   run: ./scripts/node_build.sh ${{ matrix.node }}
 
-  # win-nodejs:
-  #   name: node.js Windows
-  #   runs-on: windows-latest
+  win-nodejs:
+    name: node.js Windows
+    runs-on: windows-latest
   #   needs: linux-nodejs
   #   continue-on-error: ${{ matrix.node != '18' && matrix.node != '20' && matrix.node != '21' }}
   #   env:
@@ -214,14 +209,18 @@ jobs:
   #         - isRelease: false
   #           node: 20
 
-  #   steps:
-  #     - uses: actions/setup-python@v4
-  #       with:
-  #         python-version: '3.8'
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v4
 
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install NPM dependencies & Build Node bindings
+        run: npm i
+
+      - name: API Test
+        run: npm run test-path api/test/api.test.ts
 
   #     - name: Setup Node
   #       uses: actions/setup-node@v3
