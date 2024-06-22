@@ -226,17 +226,32 @@ def get_release_zip_url():
     else:
         raise Exception("Unsupported system: " + system)
 
+def get_lib_file_name():
+    system = platform.system()
+    if system == "Linux":
+        return "libduckdb.so"
+    elif system == "Darwin":
+        return "libduckdb.dylib"
+    elif system == "Windows":
+        return "duckdb.dll"
+    else:
+        raise Exception("Unsupported system: " + system)
+
 if __name__ == "__main__":
 
     with tempfile.TemporaryDirectory() as tmp:
         zip_path = os.path.join(tmp, "libduckdb.zip")
         release_zip_url = get_release_zip_url()
+
         print("Downloading " + release_zip_url)
         urllib.request.urlretrieve(release_zip_url, zip_path)
+        
         print("Extracting zip")
         zip = zipfile.ZipFile(zip_path)
-        zip.extract("libduckdb.dylib", tmp)
-        shutil.copy(os.path.join(tmp, "libduckdb.dylib"), "lib/binding/libduckdb")
+
+        lib_file_name = get_lib_file_name()
+        zip.extract(lib_file_name, tmp)
+        shutil.copy(os.path.join(tmp, lib_file_name), "lib/binding/libduckdb")
 
         zip.extract("duckdb.h", "src")
         zip.extract("duckdb.h", tmp)
