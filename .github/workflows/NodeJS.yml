@@ -70,6 +70,9 @@ jobs:
   #           target_arch: arm64
 
     steps:
+      - name: Setup Python
+        uses: actions/setup-python@v4
+
       - name: Install Python dependencies
         run: pip install pycparser
 
@@ -78,6 +81,9 @@ jobs:
 
       - name: Install NPM dependencies & Build Node bindings
         run: npm i
+
+      - name: Test High-Level API
+        run: npm run test-path api/test/api.test.ts
 
   #     - name: Update apt
   #       shell: bash
@@ -149,13 +155,16 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
 
+      - name: Install Python dependencies
+        run: pip install pycparser
+
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Install NPM dependencies & Build Node bindings
         run: npm i
 
-      - name: API Test
+      - name: Test High-Level API
         run: npm run test-path api/test/api.test.ts
 
       # - name: Setup Ccache
@@ -213,13 +222,16 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
 
+      - name: Install Python dependencies
+        run: pip install pycparser
+
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Install NPM dependencies & Build Node bindings
         run: npm i
 
-      - name: API Test
+      - name: Test High-Level API
         run: npm run test-path api/test/api.test.ts
 
   #     - name: Setup Node
