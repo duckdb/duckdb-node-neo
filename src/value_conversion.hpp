@@ -17,7 +17,7 @@ struct StringLiteral {
 
 typedef uint8_t data_t;
 
-static inline Napi::Value GetValue(const Napi::CallbackInfo &info, size_t offset) {
+static Napi::Value GetValue(const Napi::CallbackInfo &info, size_t offset) {
 	Napi::Env env = info.Env();
 
 	if (info.Length() < offset) {
@@ -76,137 +76,137 @@ public:
 	template <class T, typename fake = void>
 	static Napi::Value ToJS(Napi::Env &env, T val) {
 		// static_assert(false, "Unimplemented value conversion to JS");
-		throw "Unimplemented value conversion to JS";
+		throw std::logic_error("Unimplemented value conversion to JS");
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, duckdb_state val) {
 		return Napi::Number::New(env, (uint8_t)val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, duckdb_result_type val) {
 		return Napi::Number::New(env, (uint8_t)val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, duckdb_pending_state val) {
 		return Napi::Number::New(env, (uint8_t)val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, duckdb_type val) {
 		return Napi::Number::New(env, (uint8_t)val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, duckdb_data_chunk val) {
 		return PointerHolder<duckdb_data_chunk>::NewAndSet(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, duckdb_query_progress_type val) {
 		return PointerHolder<duckdb_query_progress_type>::NewAndSet(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, duckdb_value val) {
 		return PointerHolder<duckdb_value>::NewAndSet(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, duckdb_vector val) {
 		return PointerHolder<duckdb_vector>::NewAndSet(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, duckdb_logical_type val) {
 		return PointerHolder<duckdb_logical_type>::NewAndSet(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, void *val) {
 		return PointerHolder<void *>::NewAndSet(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, uint64_t *val) {
 		return PointerHolder<uint64_t *>::NewAndSet(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, duckdb_string val) {
 		auto ret = Napi::String::New(env, val.data, val.size);
 		duckdb_free(val.data);
 		return ret;
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, const char *val) {
 		return Napi::String::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, char *val) {
 		return Napi::String::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, int32_t val) {
 		return Napi::Number::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, uint32_t val) {
 		return Napi::Number::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, idx_t val) {
 		return Napi::Number::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, bool val) {
 		return Napi::Boolean::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, double val) {
 		return Napi::Number::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, size_t val) {
 		return Napi::Number::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, int8_t val) {
 		return Napi::Number::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, int16_t val) {
 		return Napi::Number::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, int64_t val) {
 		return Napi::Number::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, uint8_t val) {
 		return Napi::Number::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, uint16_t val) {
 		return Napi::Number::New(env, val);
 	}
 
-	template <typename fake>
+	template <>
 	Napi::Value ToJS(Napi::Env &env, float val) {
 		return Napi::Number::New(env, val);
 	}
@@ -214,220 +214,220 @@ public:
 	template <class T, typename fake = void>
 	static T FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		// static_assert(false, "Unimplemented value conversion from JS");
-		throw "Unimplemented value conversion to JS";
+		throw std::logic_error("Unimplemented value conversion from JS");
 	}
 
-	template <class T, typename fake>
+	template <>
 	std::string FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::String>();
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_database *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_database>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_database FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_database *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_query_progress_type *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_query_progress_type>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_query_progress_type FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_query_progress_type *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_connection *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_connection>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_connection FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_connection *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_config *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_config>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_config FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_config *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_result *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_result>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_result FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_result *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_prepared_statement *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_prepared_statement>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_prepared_statement FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_prepared_statement *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_appender *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_appender>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_appender FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_appender *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_data_chunk *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_data_chunk>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_data_chunk FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_data_chunk *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_vector *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_vector>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_vector FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_vector *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_pending_result *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_pending_result>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	const char **FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return &(PointerHolder<out_string_wrapper>::FromInfo(info, offset)->ptr);
 	}
 
-	template <class T, typename fake>
+	template <>
 	char **FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return (char **)&(PointerHolder<out_string_wrapper>::FromInfo(info, offset)->ptr);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_pending_result FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_pending_result *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_pending_state FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return (duckdb_pending_state)GetValue(info, offset).As<Napi::Number>().Int32Value();
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_type FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return (duckdb_type)GetValue(info, offset).As<Napi::Number>().Int32Value();
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_logical_type FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_logical_type *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_logical_type *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_logical_type>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_value FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *FromJS<duckdb_value *>(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	duckdb_value *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return PointerHolder<duckdb_value>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	void *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *PointerHolder<void *>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	const void *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *PointerHolder<const void *>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	uint64_t *FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return *PointerHolder<uint64_t *>::FromInfo(info, offset);
 	}
 
-	template <class T, typename fake>
+	template <>
 	idx_t FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::Number>().Int64Value();
 	}
 
-	template <class T, typename fake>
+	template <>
 	size_t FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::Number>().Int64Value();
 	}
 
-	template <class T, typename fake>
+	template <>
 	int64_t FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::Number>().Int64Value();
 	}
 
-	template <class T, typename fake>
+	template <>
 	int32_t FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::Number>().Int32Value();
 	}
 
-	template <class T, typename fake>
+	template <>
 	uint32_t FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::Number>().Int32Value();
 	}
 
-	template <class T, typename fake>
+	template <>
 	int16_t FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::Number>().Int32Value();
 	}
 
-	template <class T, typename fake>
+	template <>
 	uint16_t FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::Number>().Int32Value();
 	}
 
-	template <class T, typename fake>
+	template <>
 	float FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::Number>().FloatValue();
 	}
 
-	template <class T, typename fake>
+	template <>
 	double FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::Number>().DoubleValue();
 	}
 
-	template <class T, typename fake>
+	template <>
 	int8_t FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::Number>().Int32Value();
 	}
 
-	template <class T, typename fake>
+	template <>
 	bool FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 		return GetValue(info, offset).As<Napi::Boolean>().Value();
 	}
