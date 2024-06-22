@@ -215,7 +215,7 @@ def get_release_zip_url():
         machine = platform.machine()
         if machine == "aarch64":
             return "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-linux-aarch64.zip"
-        elif machine == "amd64":
+        elif machine == "amd64" or machine == "x86_64":
             return "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-linux-amd64.zip"
         else:
             raise Exception("Unsupported machine: " + machine)
