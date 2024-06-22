@@ -29,7 +29,8 @@
             "cflags_cc": [
                 "-frtti", 
                 "-fexceptions", 
-                "-Wno-redundant-move"
+                "-Wno-redundant-move",
+                "-std=c++20"
             ], 
             "cflags_cc!": [
                 "-fno-rrti", 
