@@ -1,8 +1,8 @@
 {
-  "name": "duckdb",
+  "name": "duckdb-neo",
   "main": "./lib/duckdb.js",
   "version": "0.1.0",
-  "description": "DuckDB low-level node.js API",
+  "description": "DuckDB Node API",
   "gypfile": true,
   "dependencies": {
     "@mapbox/node-pre-gyp": "^1.0.0",
