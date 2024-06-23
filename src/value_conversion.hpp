@@ -183,10 +183,12 @@ Napi::Value ValueConversion::ToJS(Napi::Env &env, double val) {
 	return Napi::Number::New(env, val);
 }
 
+#ifndef __linux__
 template <>
 Napi::Value ValueConversion::ToJS(Napi::Env &env, size_t val) {
 	return Napi::Number::New(env, val);
 }
+#endif
 
 template <>
 Napi::Value ValueConversion::ToJS(Napi::Env &env, int8_t val) {
@@ -383,15 +385,17 @@ uint64_t *ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) 
 	return *PointerHolder<uint64_t *>::FromInfo(info, offset);
 }
 
-template <>
-idx_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
-	return GetValue(info, offset).As<Napi::Number>().Int64Value();
-}
+// template <>
+// idx_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
+// 	return GetValue(info, offset).As<Napi::Number>().Int64Value();
+// }
 
+#ifndef __linux__
 template <>
 size_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 	return GetValue(info, offset).As<Napi::Number>().Int64Value();
 }
+#endif
 
 template <>
 int64_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
@@ -416,6 +420,11 @@ int16_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 template <>
 uint16_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 	return GetValue(info, offset).As<Napi::Number>().Int32Value();
+}
+
+template <>
+uint64_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
+	return GetValue(info, offset).As<Napi::Number>().Int64Value();
 }
 
 template <>
