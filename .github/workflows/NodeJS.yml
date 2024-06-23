@@ -83,7 +83,7 @@ jobs:
         run: npm i
 
       - name: Test High-Level API
-        run: npm run test-path api/test/api.test.ts
+        run: npm run test
 
   #     - name: Update apt
   #       shell: bash
@@ -165,7 +165,7 @@ jobs:
         run: npm i
 
       - name: Test High-Level API
-        run: npm run test-path api/test/api.test.ts
+        run: npm run test
 
       # - name: Setup Ccache
       #   uses: hendrikmuhs/ccache-action@main
@@ -232,7 +232,7 @@ jobs:
         run: npm i
 
       - name: Test High-Level API
-        run: npm run test-path api/test/api.test.ts
+        run: npm run test
 
   #     - name: Setup Node
   #       uses: actions/setup-node@v3
