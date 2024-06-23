@@ -168,10 +168,10 @@ Napi::Value ValueConversion::ToJS(Napi::Env &env, uint32_t val) {
 	return Napi::Number::New(env, val);
 }
 
-// template <>
-// Napi::Value ValueConversion::ToJS(Napi::Env &env, idx_t val) {
-// 	return Napi::Number::New(env, val);
-// }
+template <>
+Napi::Value ValueConversion::ToJS(Napi::Env &env, idx_t val) {
+	return Napi::Number::New(env, val);
+}
 
 template <>
 Napi::Value ValueConversion::ToJS(Napi::Env &env, bool val) {
@@ -215,10 +215,10 @@ Napi::Value ValueConversion::ToJS(Napi::Env &env, uint16_t val) {
 	return Napi::Number::New(env, val);
 }
 
-template <>
-Napi::Value ValueConversion::ToJS(Napi::Env &env, uint64_t val) {
-	return Napi::Number::New(env, val);
-}
+// template <>
+// Napi::Value ValueConversion::ToJS(Napi::Env &env, uint64_t val) {
+// 	return Napi::Number::New(env, val);
+// }
 
 template <>
 Napi::Value ValueConversion::ToJS(Napi::Env &env, float val) {
@@ -385,10 +385,10 @@ uint64_t *ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) 
 	return *PointerHolder<uint64_t *>::FromInfo(info, offset);
 }
 
-// template <>
-// idx_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
-// 	return GetValue(info, offset).As<Napi::Number>().Int64Value();
-// }
+template <>
+idx_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
+	return GetValue(info, offset).As<Napi::Number>().Int64Value();
+}
 
 #ifndef __linux__
 template <>
@@ -422,10 +422,10 @@ uint16_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 	return GetValue(info, offset).As<Napi::Number>().Int32Value();
 }
 
-template <>
-uint64_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
-	return GetValue(info, offset).As<Napi::Number>().Int64Value();
-}
+// template <>
+// uint64_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
+// 	return GetValue(info, offset).As<Napi::Number>().Int64Value();
+// }
 
 template <>
 float ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
