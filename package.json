@@ -1,7 +1,7 @@
 {
   "name": "duckdb",
   "main": "./lib/duckdb.js",
-  "version": "0.0.2-dev5.0",
+  "version": "0.1.0",
   "description": "DuckDB low-level node.js API",
   "gypfile": true,
   "dependencies": {
@@ -16,14 +16,12 @@
   },
   "scripts": {
     "install": "node-pre-gyp install --fallback-to-build",
-    "xpretest": "node test/support/createdb.js",
     "test": "mocha -R spec --timeout 480000 --expose-gc",
-    "test-path": "mocha -R spec --timeout 480000 --expose-gc --exclude 'test/*.ts'",
+    "test:perf": "mocha -R spec --timeout 480000 --expose-gc api/test/perf.ts",
     "pack": "node-pre-gyp package"
   },
   "directories": {
-    "lib": "lib",
-    "test": "test"
+    "lib": "lib"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
@@ -44,7 +42,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/duckdb/duckdb-node.git"
+    "url": "git+https://github.com/duckdb/duckdb-node-neo.git"
   },
   "ts-node": {
     "require": [
@@ -59,7 +57,7 @@
   "author": "Hannes Mühleisen",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/duckdb/duckdb-node/issues"
+    "url": "https://github.com/duckdb/duckdb-node-neo/issues"
   },
   "homepage": "https://www.duckdb.org"
 }
