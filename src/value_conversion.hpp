@@ -168,10 +168,10 @@ Napi::Value ValueConversion::ToJS(Napi::Env &env, uint32_t val) {
 	return Napi::Number::New(env, val);
 }
 
-template <>
-Napi::Value ValueConversion::ToJS(Napi::Env &env, idx_t val) {
-	return Napi::Number::New(env, val);
-}
+// template <>
+// Napi::Value ValueConversion::ToJS(Napi::Env &env, idx_t val) {
+// 	return Napi::Number::New(env, val);
+// }
 
 template <>
 Napi::Value ValueConversion::ToJS(Napi::Env &env, bool val) {
@@ -210,6 +210,11 @@ Napi::Value ValueConversion::ToJS(Napi::Env &env, uint8_t val) {
 
 template <>
 Napi::Value ValueConversion::ToJS(Napi::Env &env, uint16_t val) {
+	return Napi::Number::New(env, val);
+}
+
+template <>
+Napi::Value ValueConversion::ToJS(Napi::Env &env, uint64_t val) {
 	return Napi::Number::New(env, val);
 }
 
