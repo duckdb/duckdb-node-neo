@@ -238,8 +238,6 @@ def get_lib_file_name():
         raise Exception("Unsupported system: " + system)
 
 if __name__ == "__main__":
-    # dir_path = os.path.dirname(os.path.realpath(__file__))
-
     with tempfile.TemporaryDirectory() as zip_tmp:
         zip_path = os.path.join(zip_tmp, "libduckdb.zip")
         
@@ -262,7 +260,7 @@ if __name__ == "__main__":
             target_lib_file_path = os.path.join("lib", "binding", "libduckdb")
 
             print("Copying lib to " + target_lib_file_path)
-            shutil.copy(extracted_lib_file_path, target_lib_file_path)
+            shutil.copyfile(extracted_lib_file_path, target_lib_file_path)
 
             print("Extracting duckdb.h to src")
             zip.extract("duckdb.h", "src")
