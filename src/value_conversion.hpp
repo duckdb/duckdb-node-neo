@@ -183,10 +183,10 @@ Napi::Value ValueConversion::ToJS(Napi::Env &env, double val) {
 	return Napi::Number::New(env, val);
 }
 
-// template <>
-// Napi::Value ValueConversion::ToJS(Napi::Env &env, size_t val) {
-// 	return Napi::Number::New(env, val);
-// }
+template <>
+Napi::Value ValueConversion::ToJS(Napi::Env &env, size_t val) {
+	return Napi::Number::New(env, val);
+}
 
 template <>
 Napi::Value ValueConversion::ToJS(Napi::Env &env, int8_t val) {
@@ -383,10 +383,10 @@ idx_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
 	return GetValue(info, offset).As<Napi::Number>().Int64Value();
 }
 
-// template <>
-// size_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
-// 	return GetValue(info, offset).As<Napi::Number>().Int64Value();
-// }
+template <>
+size_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
+	return GetValue(info, offset).As<Napi::Number>().Int64Value();
+}
 
 template <>
 int64_t ValueConversion::FromJS(const Napi::CallbackInfo &info, idx_t offset) {
