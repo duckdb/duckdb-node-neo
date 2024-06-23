@@ -257,9 +257,11 @@ if __name__ == "__main__":
             zip.extract(lib_file_name, ext_tmp)
 
             extracted_lib_file_path = os.path.join(ext_tmp, lib_file_name)
-            target_lib_file_path = os.path.join("lib", "binding", "libduckdb")
+            target_lib_dir = os.path.join("lib", "binding")
+            target_lib_file_path = os.path.join(target_lib_dir, "libduckdb")
 
             print("Copying lib to " + target_lib_file_path)
+            os.makedirs(target_lib_dir, exist_ok=True)
             shutil.copyfile(extracted_lib_file_path, target_lib_file_path)
 
             print("Extracting duckdb.h to src")
