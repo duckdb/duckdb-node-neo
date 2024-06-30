@@ -4,7 +4,7 @@ import urllib.request
 import zipfile
 
 output_dir = sys.argv[1]
-zip_url = sys.argv[2]
+zip_url = "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-windows-amd64.zip"
 
 print("output_dir: " + output_dir)
 print("zip_url: " + zip_url)
