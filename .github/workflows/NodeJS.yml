@@ -106,16 +106,16 @@ jobs:
   #       run: ./scripts/node_build.sh ${{ matrix.node }}
 
   osx-nodejs:
-    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.repository != 'duckdb/duckdb-node'
+    # if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.repository != 'duckdb/duckdb-node'
     name: node.js OSX
     runs-on: macos-latest
     # needs: linux-nodejs
     # continue-on-error: ${{ matrix.node != '18' && matrix.node != '20' && matrix.node != '21' }}
-    strategy:
-      matrix:
-        target_arch: [ x64, arm64 ]
+    # strategy:
+      # matrix:
+        # target_arch: [ x64, arm64 ]
         # node: [ '12', '14', '16', '17', '18', '19', '20', '21']
-        node: ['18', '20', '22']
+        # node: ['18', '20', '22']
         # isRelease:
         #   - ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
         # exclude:
@@ -135,24 +135,35 @@ jobs:
         #     node: 14
         # these older versions of NodeJS don't have M1 support
 
-    env:
-      TARGET_ARCH: ${{ matrix.target_arch }}
+    # env:
+      # TARGET_ARCH: ${{ matrix.target_arch }}
       # DUCKDB_NODE_BUILD_CACHE: 0
     steps:
       - uses: actions/checkout@v3
+        sparse-checkout: alt
         # with:
         #   fetch-depth: 0
 
       # Default Python (3.12) doesn't have support for distutils
-      - uses: actions/setup-python@v4
+      # - uses: actions/setup-python@v4
         # with:
         #   python-version: '3.11'
 
-      - name: NPM Install
+      - name: Bindings (Install, Configure, and Build)
+        working-directory: alt/bindings
         run: npm i
+      
+      - name: Test (Install)
+        working-directory: alt/test
+        run: npm i
+      
+      - name: Test (Run)
+        working-directory: alt/test
+        run: npm run test
+        
 
-      - name: API Test
-        run: npm run test-path api/test/api.test.ts
+      # - name: API Test
+      #   run: npm run test-path api/test/api.test.ts
 
       # - name: Setup Ccache
       #   uses: hendrikmuhs/ccache-action@main
