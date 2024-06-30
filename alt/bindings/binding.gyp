@@ -3,12 +3,29 @@
     {
       'target_name': 'fetch_libduckdb',
       'type': 'none',
+      'conditions': [
+        ['OS=="linux"', {
+          'variables': {
+            'zip_url': 'https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-linux-amd64.zip',
+          },
+        }],
+        ['OS=="mac"', {
+          'variables': {
+            'zip_url': 'https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-osx-universal.zip',
+          },
+        }],
+        ['OS=="win"', {
+          'variables': {
+            'zip_url': 'https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-windows-amd64.zip',
+          },
+        }],
+      ],
       'actions': [
         {
           'action_name': 'run_fetch_libduckdb_script',
           'message': 'Running fetch libduckdb script',
           'inputs': [],
-          'action': ['python3', '<(module_root_dir)/scripts/fetch_libduckdb.py', '<(OS)', '<(module_root_dir)/libduckdb'],
+          'action': ['python3', '<(module_root_dir)/scripts/fetch_libduckdb.py', '<(OS)', '<(module_root_dir)/libduckdb', '<(zip_url)'],
           'outputs': ['<(module_root_dir)/libduckdb/libduckdb.zip'],
         },
       ],

@@ -9,24 +9,31 @@ libduckdb_zip_url_for_os = {
   "win": "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-windows-amd64.zip",
 }
 
-libduckdb_file_names_for_os = {
-  "linux": ["duckdb.h", "libduckdb.so"],
-  "mac": ["duckdb.h", "libduckdb.dylib"],
-  "win": ["duckdb.h", "libduckdb.lib", "libduckdb.dll"],
-}
+# libduckdb_file_names_for_os = {
+#   "linux": ["duckdb.h", "libduckdb.so"],
+#   "mac": ["duckdb.h", "libduckdb.dylib"],
+#   "win": ["duckdb.h", "libduckdb.lib", "libduckdb.dll"],
+# }
 
 os_name = sys.argv[1]
 output_dir = sys.argv[2]
+zip_url = sys.argv[3]
+
+print("os_name: " + os_name)
+print("output_dir: " + output_dir)
+print("zip_url: " + zip_url)
 
 libduckdb_zip_url = libduckdb_zip_url_for_os[os_name]
-libduckdb_file_names = libduckdb_file_names_for_os[os_name]
+# libduckdb_file_names = libduckdb_file_names_for_os[os_name]
 
 libduckdb_zip_path = os.path.join(output_dir, "libduckdb.zip")
 print("fetching: " + libduckdb_zip_url)
 urllib.request.urlretrieve(libduckdb_zip_url, libduckdb_zip_path)
 
 zip = zipfile.ZipFile(libduckdb_zip_path)
+print("extracting: " + zip.namelist())
+zip.extractall(output_dir)
 
-for file_name in libduckdb_file_names:
-  print("extracting: " + file_name)
-  zip.extract(file_name, output_dir)
+# for file_name in libduckdb_file_names:
+#   print("extracting: " + file_name)
+#   zip.extract(file_name, output_dir)
