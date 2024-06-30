@@ -140,9 +140,8 @@ jobs:
       # DUCKDB_NODE_BUILD_CACHE: 0
     steps:
       - uses: actions/checkout@v3
-        sparse-checkout: alt
-        # with:
-        #   fetch-depth: 0
+        with:
+          sparse-checkout: alt
 
       # Default Python (3.12) doesn't have support for distutils
       # - uses: actions/setup-python@v4
