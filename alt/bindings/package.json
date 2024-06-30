@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "scripts": {
+    "configure": "node-gyp configure",
+    "build": "node-gyp build",
+    "clean": "npm run clean:downloads && npm run clean:gyp && npm run clean:package",
+    "clean:downloads": "rimraf downloads",
+    "clean:gyp": "node-gyp clean",
+    "clean:package": "rimraf package/lib"
+  },
+  "dependencies": {
+    "node-addon-api": "^8.0.0",
+    "node-gyp": "^10.1.0",
+    "rimraf": "^5.0.7"
+  }
+}
