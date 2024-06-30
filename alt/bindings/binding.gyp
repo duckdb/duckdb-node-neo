@@ -6,39 +6,27 @@
       'conditions': [
         ['OS=="linux"', {
           'variables': {
-            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb.py',
-            'script_args': [
-              '<(module_root_dir)/libduckdb',
-              'https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-linux-amd64.zip',
-            ],
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux.py',
           },
         }],
         ['OS=="mac"', {
           'variables': {
-            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb.py',
-            'script_args': [
-              '<(module_root_dir)/libduckdb',
-              'https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-osx-universal.zip',
-            ],
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_mac.py',
           },
         }],
         ['OS=="win"', {
           'variables': {
             'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_win.py',
-            'script_args': [
-              '<(module_root_dir)/libduckdb',
-              # zip url is hard-coded into fetch_libduckdb_win.py to work around file path issues on Windows
-            ],
           },
         }],
       ],
       'actions': [
         {
           'action_name': 'run_fetch_libduckdb_script',
-          'message': 'Running fetch libduckdb script',
+          'message': 'Fetching and extracting libduckdb',
           'inputs': [],
-          'action': ['python3', '<(script_path)', '<@(script_args)'],
-          'outputs': ['<(module_root_dir)/libduckdb/libduckdb.zip'],
+          'action': ['python3', '<(script_path)'],
+          'outputs': ['<(module_root_dir)/libduckdb'],
         },
       ],
     },

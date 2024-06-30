@@ -1,11 +1,10 @@
 from fetch_libduckdb import fetch_libduckdb
 
-zip_url = "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-windows-amd64.zip"
+zip_url = "https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-linux-amd64.zip"
 output_dir = "libduckdb"
 files = [
   "duckdb.h",
-  "duckdb.lib",
-  "duckdb.dll",
+  "libduckdb.so",
 ]
 
 fetch_libduckdb(zip_url, output_dir, files)

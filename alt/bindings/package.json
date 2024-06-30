@@ -3,9 +3,9 @@
   "scripts": {
     "configure": "node-gyp configure",
     "build": "node-gyp build",
-    "clean": "npm run clean:downloads && npm run clean:gyp && npm run clean:package",
-    "clean:downloads": "rimraf downloads",
+    "clean": "npm run clean:gyp && npm run clean:libduckdb && npm run clean:package",
     "clean:gyp": "node-gyp clean",
+    "clean:libduckdb": "rimraf libduckdb",
     "clean:package": "rimraf package/lib"
   },
   "dependencies": {
