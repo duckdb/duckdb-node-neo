@@ -50,7 +50,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
-              'destination': 'package/lib',
+              'destination': '<(module_root_dir)/package/lib',
             },
           ],
         }],
@@ -69,7 +69,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.dylib'],
-              'destination': 'package/lib',
+              'destination': '<(module_root_dir)/package/lib',
             },
           ],
         }],
@@ -82,7 +82,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.dll'],
-              'destination': 'package/lib',
+              'destination': '<(module_root_dir)/package/lib',
             },
           ],
         }],
@@ -95,7 +95,7 @@
       'copies': [
         {
           'files': ['<(module_root_dir)/build/Release/duckdb.node'],
-          'destination': 'package/lib',
+          'destination': '<(module_root_dir)/package/lib',
         },
       ],
     }
