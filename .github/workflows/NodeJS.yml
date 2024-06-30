@@ -198,9 +198,9 @@ jobs:
       #   shell: bash
       #   run: ./scripts/node_build.sh ${{ matrix.node }}
 
-  # win-nodejs:
-  #   name: node.js Windows
-  #   runs-on: windows-latest
+  win-nodejs:
+    name: node.js Windows
+    runs-on: windows-latest
   #   needs: linux-nodejs
   #   continue-on-error: ${{ matrix.node != '18' && matrix.node != '20' && matrix.node != '21' }}
   #   env:
@@ -227,12 +227,27 @@ jobs:
   #         - isRelease: false
   #           node: 20
 
-  #   steps:
+    steps:
   #     - uses: actions/setup-python@v4
   #       with:
   #         python-version: '3.8'
 
-  #     - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: alt
+      
+      - name: Bindings (Install, Configure, and Build)
+        working-directory: alt/bindings
+        run: npm i
+      
+      - name: Test (Install)
+        working-directory: alt/test
+        run: npm i
+      
+      - name: Test (Run)
+        working-directory: alt/test
+        run: npm run test
+
   #       with:
   #         fetch-depth: 0
 

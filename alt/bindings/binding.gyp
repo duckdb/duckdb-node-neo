@@ -55,7 +55,20 @@
               'destination': 'package/lib',
             },
           ],
-        }]
+        }],
+        ['OS=="win"', {
+          'link_settings': {
+            'libraries': [
+              '<(module_root_dir)/libduckdb/libduckdb.lib',
+            ],
+          },
+          'copies': [
+            {
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.dll'],
+              'destination': 'package/lib',
+            },
+          ],
+        }],
       ]
     },
     {
