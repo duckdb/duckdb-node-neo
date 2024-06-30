@@ -22,6 +22,21 @@
       'sources': ['src/duckdb_node_bindings.cpp'],
       'include_dirs': ['<(module_root_dir)/libduckdb'],
       'conditions': [
+        ['OS=="linux"', {
+          'link_settings': {
+            'libraries': [
+              '-lduckdb',
+              '-L<(module_root_dir)/libduckdb',
+              '-Wl,-rpath,\'$$ORIGIN\'',
+            ],
+          },
+          'copies': [
+            {
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
+              'destination': 'package/lib',
+            },
+          ],
+        }],
         ['OS=="mac"', {
           'cflags+': ['-fvisibility=hidden'],
           'xcode_settings': {

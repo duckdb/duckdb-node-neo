@@ -22,9 +22,11 @@ libduckdb_zip_url = libduckdb_zip_url_for_os[os_name]
 libduckdb_file_names = libduckdb_file_names_for_os[os_name]
 
 libduckdb_zip_path = os.path.join(output_dir, "libduckdb.zip")
+print("fetching: " + libduckdb_zip_url)
 urllib.request.urlretrieve(libduckdb_zip_url, libduckdb_zip_path)
 
 zip = zipfile.ZipFile(libduckdb_zip_path)
 
 for file_name in libduckdb_file_names:
+  print("extracting: " + file_name)
   zip.extract(file_name, output_dir)
