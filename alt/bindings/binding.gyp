@@ -6,17 +6,17 @@
       'conditions': [
         ['OS=="linux"', {
           'variables': {
-            'zip_url': 'https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-linux-amd64.zip',
+            'zip_url': '"https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-linux-amd64.zip"',
           },
         }],
         ['OS=="mac"', {
           'variables': {
-            'zip_url': 'https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-osx-universal.zip',
+            'zip_url': '"https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-osx-universal.zip"',
           },
         }],
         ['OS=="win"', {
           'variables': {
-            'zip_url': 'https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-windows-amd64.zip',
+            'zip_url': '"https://github.com/duckdb/duckdb/releases/download/v1.0.0/libduckdb-windows-amd64.zip"',
           },
         }],
       ],

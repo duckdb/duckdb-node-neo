@@ -31,7 +31,7 @@ print("fetching: " + libduckdb_zip_url)
 urllib.request.urlretrieve(libduckdb_zip_url, libduckdb_zip_path)
 
 zip = zipfile.ZipFile(libduckdb_zip_path)
-print("extracting: " + zip.namelist())
+print("extracting: " + ", ".join(zip.namelist()))
 zip.extractall(output_dir)
 
 # for file_name in libduckdb_file_names:
