@@ -76,12 +76,12 @@
         ['OS=="win"', {
           'link_settings': {
             'libraries': [
-              '<(module_root_dir)/libduckdb/libduckdb.lib',
+              '<(module_root_dir)/libduckdb/duckdb.lib',
             ],
           },
           'copies': [
             {
-              'files': ['<(module_root_dir)/libduckdb/libduckdb.dll'],
+              'files': ['<(module_root_dir)/libduckdb/duckdb.dll'],
               'destination': '<(module_root_dir)/package/lib',
             },
           ],
