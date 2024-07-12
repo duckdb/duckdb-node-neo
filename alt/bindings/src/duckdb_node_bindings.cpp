@@ -9,16 +9,11 @@ public:
 
   DuckDBNodeAddon(Napi::Env env, Napi::Object exports) {
     DefineAddon(exports, {
-      InstanceMethod("hello", &DuckDBNodeAddon::hello),
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version)
     });
   }
 
 private:
-
-  Napi::Value hello(const Napi::CallbackInfo& info) {
-    return Napi::String::New(info.Env(), "Greetings from DuckDBNodeAddon!");
-  }
 
   Napi::Value library_version(const Napi::CallbackInfo& info) {
     return Napi::String::New(info.Env(), duckdb_library_version());

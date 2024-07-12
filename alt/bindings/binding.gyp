@@ -86,10 +86,10 @@
             },
           ],
         }],
-      ]
+      ],
     },
     {
-      'target_name': 'copy_duckdb',
+      'target_name': 'copy_duckdb_node',
       'type': 'none',
       'dependencies': ['duckdb'],
       'copies': [
@@ -98,6 +98,16 @@
           'destination': '<(module_root_dir)/package/lib',
         },
       ],
-    }
-  ]
+    },
+    {
+      'target_name': 'copy_duckdb_d_ts',
+      'type': 'none',
+      'copies': [
+        {
+          'files': ['<(module_root_dir)/src/duckdb.d.ts'],
+          'destination': '<(module_root_dir)/package',
+        },
+      ],
+    },
+  ],
 }
