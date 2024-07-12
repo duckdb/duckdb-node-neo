@@ -45,6 +45,11 @@ export enum StatementType {
 	MULTI = 27,
 }
 
+export enum State {
+	Success = 0,
+	Error = 1,
+}
+
 export enum Type {
   INVALID = 0,
 	BOOLEAN = 1,
@@ -335,81 +340,81 @@ export function parameter_name(prepared_statement: PreparedStatement, index: num
 export function param_type(prepared_statement: PreparedStatement, index: number): Type;
 
 // duckdb_state duckdb_clear_bindings(duckdb_prepared_statement prepared_statement)
-export function clear_bindings(prepared_statement: PreparedStatement): void;
+export function clear_bindings(prepared_statement: PreparedStatement): State;
 
 // duckdb_statement_type duckdb_prepared_statement_type(duckdb_prepared_statement statement)
 export function prepared_statement_type(prepared_statement: PreparedStatement): StatementType;
 
 // duckdb_state duckdb_bind_value(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_value val)
-export function bind_value(prepared_statement: PreparedStatement, index: number, value: Value): void;
+export function bind_value(prepared_statement: PreparedStatement, index: number, value: Value): State;
 
 // duckdb_state duckdb_bind_parameter_index(duckdb_prepared_statement prepared_statement, idx_t *param_idx_out, const char *name)
 export function bind_parameter_index(prepared_statement: PreparedStatement, name: string): number;
 
 // duckdb_state duckdb_bind_boolean(duckdb_prepared_statement prepared_statement, idx_t param_idx, bool val)
-export function bind_boolean(prepared_statement: PreparedStatement, index: number, bool: boolean): void;
+export function bind_boolean(prepared_statement: PreparedStatement, index: number, bool: boolean): State;
 
 // duckdb_state duckdb_bind_int8(duckdb_prepared_statement prepared_statement, idx_t param_idx, int8_t val)
-export function bind_int8(prepared_statement: PreparedStatement, index: number, int8: number): void;
+export function bind_int8(prepared_statement: PreparedStatement, index: number, int8: number): State;
 
 // duckdb_state duckdb_bind_int16(duckdb_prepared_statement prepared_statement, idx_t param_idx, int16_t val)
-export function bind_int16(prepared_statement: PreparedStatement, index: number, int16: number): void;
+export function bind_int16(prepared_statement: PreparedStatement, index: number, int16: number): State;
 
 // duckdb_state duckdb_bind_int32(duckdb_prepared_statement prepared_statement, idx_t param_idx, int32_t val)
-export function bind_int32(prepared_statement: PreparedStatement, index: number, int32: number): void;
+export function bind_int32(prepared_statement: PreparedStatement, index: number, int32: number): State;
 
 // duckdb_state duckdb_bind_int64(duckdb_prepared_statement prepared_statement, idx_t param_idx, int64_t val)
-export function bind_int64(prepared_statement: PreparedStatement, index: number, int64: bigint): void;
+export function bind_int64(prepared_statement: PreparedStatement, index: number, int64: bigint): State;
 
 // duckdb_state duckdb_bind_hugeint(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_hugeint val)
-export function bind_hugeint(prepared_statement: PreparedStatement, index: number, hugeint: bigint): void;
+export function bind_hugeint(prepared_statement: PreparedStatement, index: number, hugeint: bigint): State;
 
 // duckdb_state duckdb_bind_uhugeint(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_uhugeint val)
-export function bind_uhugeint(prepared_statement: PreparedStatement, index: number, uhugeint: bigint): void;
+export function bind_uhugeint(prepared_statement: PreparedStatement, index: number, uhugeint: bigint): State;
 
 // duckdb_state duckdb_bind_decimal(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_decimal val)
-export function bind_decimal(prepared_statement: PreparedStatement, index: number, decimal: Decimal): void;
+export function bind_decimal(prepared_statement: PreparedStatement, index: number, decimal: Decimal): State;
 
 // duckdb_state duckdb_bind_uint8(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint8_t val)
-export function bind_uint8(prepared_statement: PreparedStatement, index: number, uint8: number): void;
+export function bind_uint8(prepared_statement: PreparedStatement, index: number, uint8: number): State;
 
 // duckdb_state duckdb_bind_uint16(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint16_t val)
-export function bind_uint16(prepared_statement: PreparedStatement, index: number, uint16: number): void;
+export function bind_uint16(prepared_statement: PreparedStatement, index: number, uint16: number): State;
 
 // duckdb_state duckdb_bind_uint32(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint32_t val)
-export function bind_uint32(prepared_statement: PreparedStatement, index: number, uint32: number): void;
+export function bind_uint32(prepared_statement: PreparedStatement, index: number, uint32: number): State;
 
 // duckdb_state duckdb_bind_uint64(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint64_t val)
-export function bind_uint64(prepared_statement: PreparedStatement, index: number, uint64: bigint): void;
+export function bind_uint64(prepared_statement: PreparedStatement, index: number, uint64: bigint): State;
 
 // duckdb_state duckdb_bind_float(duckdb_prepared_statement prepared_statement, idx_t param_idx, float val)
-export function bind_float(prepared_statement: PreparedStatement, index: number, float: number): void;
+export function bind_float(prepared_statement: PreparedStatement, index: number, float: number): State;
 
 // duckdb_state duckdb_bind_double(duckdb_prepared_statement prepared_statement, idx_t param_idx, double val)
-export function bind_double(prepared_statement: PreparedStatement, index: number, double: number): void;
+export function bind_double(prepared_statement: PreparedStatement, index: number, double: number): State;
 
 // duckdb_state duckdb_bind_date(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_date val)
-export function bind_date(prepared_statement: PreparedStatement, index: number, date: Date_): void;
+export function bind_date(prepared_statement: PreparedStatement, index: number, date: Date_): State;
 
 // duckdb_state duckdb_bind_time(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_time val)
-export function bind_time(prepared_statement: PreparedStatement, index: number, time: Time): void;
+export function bind_time(prepared_statement: PreparedStatement, index: number, time: Time): State;
 
 // duckdb_state duckdb_bind_timestamp(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_timestamp val)
-export function bind_timestamp(prepared_statement: PreparedStatement, index: number, timestamp: Timestamp): void;
+export function bind_timestamp(prepared_statement: PreparedStatement, index: number, timestamp: Timestamp): State;
 
 // duckdb_state duckdb_bind_interval(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_interval val)
-export function bind_interval(prepared_statement: PreparedStatement, index: number, interval: Interval): void;
+export function bind_interval(prepared_statement: PreparedStatement, index: number, interval: Interval): State;
 
 // duckdb_state duckdb_bind_varchar(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val)
-export function bind_varchar(prepared_statement: PreparedStatement, index: number, varchar: string): void;
+export function bind_varchar(prepared_statement: PreparedStatement, index: number, varchar: string): State;
 
 // duckdb_state duckdb_bind_varchar_length(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val, idx_t length)
 
 // duckdb_state duckdb_bind_blob(duckdb_prepared_statement prepared_statement, idx_t param_idx, const void *data, idx_t length)
-export function bind_blob(prepared_statement: PreparedStatement, index: number, data: Uint8Array): void;
+export function bind_blob(prepared_statement: PreparedStatement, index: number, data: Uint8Array): State;
 
 // duckdb_state duckdb_bind_null(duckdb_prepared_statement prepared_statement, idx_t param_idx)
-export function bind_null(prepared_statement: PreparedStatement, index: number): void;
+export function bind_null(prepared_statement: PreparedStatement, index: number): State;
 
 // duckdb_state duckdb_execute_prepared(duckdb_prepared_statement prepared_statement, duckdb_result *out_result)
 export function execute_prepared(prepared_statement: PreparedStatement): Promise<Result>;
@@ -602,10 +607,10 @@ export function list_vector_get_child(vector: Vector): Vector;
 export function list_vector_get_size(vector: Vector): number;
 
 // duckdb_state duckdb_list_vector_set_size(duckdb_vector vector, idx_t size)
-export function list_vector_set_size(vector: Vector, size: number): void;
+export function list_vector_set_size(vector: Vector, size: number): State;
 
 // duckdb_state duckdb_list_vector_reserve(duckdb_vector vector, idx_t required_capacity)
-export function list_vector_reserve(vector: Vector, required_capacity: number): void;
+export function list_vector_reserve(vector: Vector, required_capacity: number): State;
 
 // duckdb_vector duckdb_struct_vector_get_child(duckdb_vector vector, idx_t index)
 export function struct_vector_get_child(vector: Vector, index: number): Vector;
@@ -638,84 +643,84 @@ export function appender_column_type(appender: Appender, column_index: number): 
 export function appender_error(appender: Appender): string;
 
 // duckdb_state duckdb_appender_flush(duckdb_appender appender)
-export function appender_flush(appender: Appender): void;
+export function appender_flush(appender: Appender): State;
 
 // duckdb_state duckdb_appender_close(duckdb_appender appender)
-export function appender_close(appender: Appender): void;
+export function appender_close(appender: Appender): State;
 
 // duckdb_state duckdb_appender_destroy(duckdb_appender *appender)
-export function appender_destroy(appender: Appender): void;
+export function appender_destroy(appender: Appender): State;
 
 // duckdb_state duckdb_appender_begin_row(duckdb_appender appender)
-export function appender_begin_row(appender: Appender): void;
+export function appender_begin_row(appender: Appender): State;
 
 // duckdb_state duckdb_appender_end_row(duckdb_appender appender)
-export function appender_end_row(appender: Appender): void;
+export function appender_end_row(appender: Appender): State;
 
 // duckdb_state duckdb_append_bool(duckdb_appender appender, bool value)
-export function append_bool(appender: Appender, bool: boolean): void;
+export function append_bool(appender: Appender, bool: boolean): State;
 
 // duckdb_state duckdb_append_int8(duckdb_appender appender, int8_t value)
-export function append_int8(appender: Appender, int8: number): void;
+export function append_int8(appender: Appender, int8: number): State;
 
 // duckdb_state duckdb_append_int16(duckdb_appender appender, int16_t value)
-export function append_int16(appender: Appender, int16: number): void;
+export function append_int16(appender: Appender, int16: number): State;
 
 // duckdb_state duckdb_append_int32(duckdb_appender appender, int32_t value)
-export function append_int32(appender: Appender, int32: number): void;
+export function append_int32(appender: Appender, int32: number): State;
 
 // duckdb_state duckdb_append_int64(duckdb_appender appender, int64_t value)
-export function append_int64(appender: Appender, int64: bigint): void;
+export function append_int64(appender: Appender, int64: bigint): State;
 
 // duckdb_state duckdb_append_hugeint(duckdb_appender appender, duckdb_hugeint value)
-export function append_hugeint(appender: Appender, hugeint: bigint): void;
+export function append_hugeint(appender: Appender, hugeint: bigint): State;
 
 // duckdb_state duckdb_append_uint8(duckdb_appender appender, uint8_t value)
-export function append_uint8(appender: Appender, uint8: number): void;
+export function append_uint8(appender: Appender, uint8: number): State;
 
 // duckdb_state duckdb_append_uint16(duckdb_appender appender, uint16_t value)
-export function append_uint16(appender: Appender, uint16: number): void;
+export function append_uint16(appender: Appender, uint16: number): State;
 
 // duckdb_state duckdb_append_uint32(duckdb_appender appender, uint32_t value)
-export function append_uint32(appender: Appender, uint32: number): void;
+export function append_uint32(appender: Appender, uint32: number): State;
 
 // duckdb_state duckdb_append_uint64(duckdb_appender appender, uint64_t value)
-export function append_uint64(appender: Appender, uint64: bigint): void;
+export function append_uint64(appender: Appender, uint64: bigint): State;
 
 // duckdb_state duckdb_append_uhugeint(duckdb_appender appender, duckdb_uhugeint value)
-export function append_uhugeint(appender: Appender, uhugeint: bigint): void;
+export function append_uhugeint(appender: Appender, uhugeint: bigint): State;
 
 // duckdb_state duckdb_append_float(duckdb_appender appender, float value)
-export function append_float(appender: Appender, float: number): void;
+export function append_float(appender: Appender, float: number): State;
 
 // duckdb_state duckdb_append_double(duckdb_appender appender, double value)
-export function append_double(appender: Appender, double: number): void;
+export function append_double(appender: Appender, double: number): State;
 
 // duckdb_state duckdb_append_date(duckdb_appender appender, duckdb_date value)
-export function append_date(appender: Appender, date: Date_): void;
+export function append_date(appender: Appender, date: Date_): State;
 
 // duckdb_state duckdb_append_time(duckdb_appender appender, duckdb_time value)
-export function append_time(appender: Appender, time: Time): void;
+export function append_time(appender: Appender, time: Time): State;
 
 // duckdb_state duckdb_append_timestamp(duckdb_appender appender, duckdb_timestamp value)
-export function append_timestamp(appender: Appender, timestamp: Timestamp): void;
+export function append_timestamp(appender: Appender, timestamp: Timestamp): State;
 
 // duckdb_state duckdb_append_interval(duckdb_appender appender, duckdb_interval value)
-export function append_interval(appender: Appender, interval: Interval): void;
+export function append_interval(appender: Appender, interval: Interval): State;
 
 // duckdb_state duckdb_append_varchar(duckdb_appender appender, const char *val)
-export function append_varchar(appender: Appender, varchar: string): void;
+export function append_varchar(appender: Appender, varchar: string): State;
 
 // duckdb_state duckdb_append_varchar_length(duckdb_appender appender, const char *val, idx_t length)
 
 // duckdb_state duckdb_append_blob(duckdb_appender appender, const void *data, idx_t length)
-export function append_blob(appender: Appender, data: Uint8Array): void;
+export function append_blob(appender: Appender, data: Uint8Array): State;
 
 // duckdb_state duckdb_append_null(duckdb_appender appender)
-export function append_null(appender: Appender): void;
+export function append_null(appender: Appender): State;
 
 // duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk)
-export function append_data_chunk(appender: Appender, chunk: DataChunk): void;
+export function append_data_chunk(appender: Appender, chunk: DataChunk): State;
 
 // duckdb_data_chunk duckdb_fetch_chunk(duckdb_result result)
 export function fetch_chunk(result: Result): Promise<DataChunk>;
