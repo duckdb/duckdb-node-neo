@@ -1,3 +1,4 @@
 libduckdb
 package/lib/*
+package/duckdb.d.ts
 __pycache__
