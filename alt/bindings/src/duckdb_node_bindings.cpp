@@ -3,12 +3,76 @@
 
 #include "duckdb.h"
 
+// generated using: uuidgen | sed -r -e 's/-//g' -e 's/(.{16})(.*)/0x\1, 0x\2/'
+static const napi_type_tag DatabaseTypeTag = {
+  0x835A8533653C40D1, 0x83B3BE2B233BA8F3
+};
+
+class PromiseWorker : public Napi::AsyncWorker {
+
+public:
+
+  PromiseWorker(Napi::Env env) : AsyncWorker(env), deferred_(Napi::Promise::Deferred::New(env)) {
+  }
+
+  Napi::Promise Promise() {
+    return deferred_.Promise();
+  }
+
+protected:
+
+  virtual Napi::Value Result() = 0;
+
+  void OnOK() override {
+		deferred_.Resolve(Result());
+	}
+
+	void OnError(const Napi::Error &e) override {
+		deferred_.Reject(e.Value());
+	}
+
+private:
+
+	Napi::Promise::Deferred deferred_;
+
+};
+
+class OpenWorker : public PromiseWorker {
+
+public:
+
+  OpenWorker(Napi::Env env, std::string path) : PromiseWorker(env), path_(path) {
+  }
+
+protected:
+
+  void Execute() override {
+    if (duckdb_open(path_.c_str(), &database_)) {
+      SetError("Failed to open");
+    }
+  }
+
+  Napi::Value Result() override {
+    auto result = Napi::External<duckdb_database>::New(Env(), &database_);
+    result.TypeTag(&DatabaseTypeTag);
+    return result;
+  }
+
+private:
+
+  std::string path_;
+  duckdb_database database_;
+
+};
+
 class DuckDBNodeAddon : public Napi::Addon<DuckDBNodeAddon> {
 
 public:
 
   DuckDBNodeAddon(Napi::Env env, Napi::Object exports) {
     DefineAddon(exports, {
+      InstanceMethod("open", &DuckDBNodeAddon::open),
+
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
       InstanceMethod("config_count", &DuckDBNodeAddon::config_count),
       InstanceMethod("get_config_flag", &DuckDBNodeAddon::get_config_flag),
@@ -18,6 +82,14 @@ public:
 private:
 
   // duckdb_state duckdb_open(const char *path, duckdb_database *out_database)
+  Napi::Value open(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    std::string path = info[0].As<Napi::String>();
+    auto worker = new OpenWorker(env, path);
+    worker->Queue();
+    return worker->Promise();
+  }
+
   // duckdb_state duckdb_open_ext(const char *path, duckdb_database *out_database, duckdb_config config, char **out_error)
   // void duckdb_close(duckdb_database *database)
   // duckdb_state duckdb_connect(duckdb_database database, duckdb_connection *out_connection)
@@ -40,7 +112,7 @@ private:
   // duckdb_state duckdb_get_config_flag(size_t index, const char **out_name, const char **out_description)
   Napi::Value get_config_flag(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto index = info[0].ToNumber().Uint32Value();
+    auto index = info[0].As<Napi::Number>().Uint32Value();
     const char *name;
     const char *description;
     if (duckdb_get_config_flag(index, &name, &description)) {
