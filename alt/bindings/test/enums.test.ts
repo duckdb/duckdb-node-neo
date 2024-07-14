@@ -1,0 +1,40 @@
+import duckdb from 'duckdb';
+import { expect, suite, test } from 'vitest';
+
+suite('enums', () => {
+  test('Type', () => {
+    expect(duckdb.Type.BOOLEAN).toBe(1);
+    expect(duckdb.Type.TINYINT).toBe(2);
+    expect(duckdb.Type.SMALLINT).toBe(3);
+    expect(duckdb.Type.INTEGER).toBe(4);
+    expect(duckdb.Type.BIGINT).toBe(5);
+    expect(duckdb.Type.UTINYINT).toBe(6);
+    expect(duckdb.Type.USMALLINT).toBe(7);
+    expect(duckdb.Type. UINTEGER).toBe(8);
+    expect(duckdb.Type.UBIGINT).toBe(9);
+    expect(duckdb.Type. FLOAT).toBe(10);
+    expect(duckdb.Type.DOUBLE).toBe(11);
+    expect(duckdb.Type.TIMESTAMP).toBe(12);
+    expect(duckdb.Type.DATE).toBe(13);
+    expect(duckdb.Type.TIME).toBe(14);
+    expect(duckdb.Type.INTERVAL).toBe(15);
+    expect(duckdb.Type.HUGEINT).toBe(16);
+    expect(duckdb.Type.UHUGEINT).toBe(32);
+    expect(duckdb.Type.VARCHAR).toBe(17);
+    expect(duckdb.Type.BLOB).toBe(18);
+    expect(duckdb.Type. DECIMAL).toBe(19);
+    expect(duckdb.Type.TIMESTAMP_S).toBe(20);
+    expect(duckdb.Type.TIMESTAMP_MS).toBe(21);
+    expect(duckdb.Type.TIMESTAMP_NS).toBe(22);
+    expect(duckdb.Type.ENUM).toBe(23);
+    expect(duckdb.Type.LIST).toBe(24);
+    expect(duckdb.Type.STRUCT).toBe(25);
+    expect(duckdb.Type.MAP).toBe(26);
+    expect(duckdb.Type.ARRAY).toBe(33);
+    expect(duckdb.Type.UUID).toBe(27);
+    expect(duckdb.Type.UNION).toBe(28);
+    expect(duckdb.Type.BIT).toBe(29);
+    expect(duckdb.Type.TIME_TZ).toBe(30);
+    expect(duckdb.Type.TIMESTAMP_TZ).toBe(31);
+  });
+});

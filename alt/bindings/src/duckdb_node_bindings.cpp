@@ -113,6 +113,30 @@ private:
 
 };
 
+class CloseWorker : public PromiseWorker {
+
+public:
+
+  CloseWorker(Napi::Env env, duckdb_database database)
+    : PromiseWorker(env), database_(database) {
+  }
+
+protected:
+
+  void Execute() override {
+    duckdb_close(&database_);
+  }
+
+  Napi::Value Result() override {
+    return Env().Undefined();
+  }
+
+private:
+
+  duckdb_database database_;
+
+};
+
 class ConnectWorker : public PromiseWorker {
 
 public:
@@ -220,6 +244,8 @@ public:
 
       InstanceMethod("open", &DuckDBNodeAddon::open),
 
+      InstanceMethod("close", &DuckDBNodeAddon::close),
+
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
 
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
@@ -238,6 +264,7 @@ public:
 private:
 
   // duckdb_state duckdb_open(const char *path, duckdb_database *out_database)
+  // function open(path: string): Promise<Database>
   Napi::Value open(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     std::string path = info[0].As<Napi::String>();
@@ -247,9 +274,19 @@ private:
   }
 
   // duckdb_state duckdb_open_ext(const char *path, duckdb_database *out_database, duckdb_config config, char **out_error)
+
   // void duckdb_close(duckdb_database *database)
+  // function close(database: Database): Promise<void>
+  Napi::Value close(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto database = GetDatabaseFromExternal(env, info[0]);
+    auto worker = new CloseWorker(env, database);
+    worker->Queue();
+    return worker->Promise();
+  }
 
   // duckdb_state duckdb_connect(duckdb_database database, duckdb_connection *out_connection)
+  // function connect(database: Database): Promise<Connection>
   Napi::Value connect(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto database = GetDatabaseFromExternal(env, info[0]);
@@ -259,10 +296,13 @@ private:
   }
 
   // void duckdb_interrupt(duckdb_connection connection)
+
   // duckdb_query_progress_type duckdb_query_progress(duckdb_connection connection)
+
   // void duckdb_disconnect(duckdb_connection *connection)
 
   // const char *duckdb_library_version()
+  // function library_version(): string
   Napi::Value library_version(const Napi::CallbackInfo& info) {
     return Napi::String::New(info.Env(), duckdb_library_version());
   }
@@ -270,11 +310,13 @@ private:
   // duckdb_state duckdb_create_config(duckdb_config *out_config)
 
   // size_t duckdb_config_count()
+  // function config_count(): number
   Napi::Value config_count(const Napi::CallbackInfo& info) {
     return Napi::Number::New(info.Env(), duckdb_config_count());
   }
 
   // duckdb_state duckdb_get_config_flag(size_t index, const char **out_name, const char **out_description)
+  // function get_config_flag(index: number): ConfigFlag
   Napi::Value get_config_flag(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto index = info[0].As<Napi::Number>().Uint32Value();
@@ -290,9 +332,11 @@ private:
   }
 
   // duckdb_state duckdb_set_config(duckdb_config config, const char *name, const char *option)
+
   // void duckdb_destroy_config(duckdb_config *config)
 
   // duckdb_state duckdb_query(duckdb_connection connection, const char *query, duckdb_result *out_result)
+  // function query(connection: Connection, query: string): Promise<Result>
   Napi::Value query(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto connection = GetConnectionFromExternal(env, info[0]);
@@ -306,6 +350,7 @@ private:
   // void duckdb_destroy_result(duckdb_result *result)
 
   // const char *duckdb_column_name(duckdb_result *result, idx_t col)
+  // function column_name(result: Result, column_index: number): string
   Napi::Value column_name(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto result_ptr = GetResultFromExternal(env, info[0]);
@@ -315,6 +360,7 @@ private:
   }
 
   // duckdb_type duckdb_column_type(duckdb_result *result, idx_t col)
+  // function column_type(result: Result, column_index: number): Type
   Napi::Value column_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto result_ptr = GetResultFromExternal(env, info[0]);
@@ -324,9 +370,11 @@ private:
   }
 
   // duckdb_statement_type duckdb_result_statement_type(duckdb_result result)
+
   // duckdb_logical_type duckdb_column_logical_type(duckdb_result *result, idx_t col)
 
   // idx_t duckdb_column_count(duckdb_result *result)
+  // function column_count(result: Result): number
   Napi::Value column_count(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto result_ptr = GetResultFromExternal(env, info[0]);

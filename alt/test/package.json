@@ -1,9 +1,0 @@
-{
-  "private": true,
-  "dependencies": {
-    "duckdb": "../bindings/package"
-  },
-  "scripts": {
-    "test": "node test.mjs"
-  }
-}
