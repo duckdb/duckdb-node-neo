@@ -3,10 +3,59 @@
 
 #include "duckdb.h"
 
-// generated using: uuidgen | sed -r -e 's/-//g' -e 's/(.{16})(.*)/0x\1, 0x\2/'
+template<typename T>
+Napi::External<T> CreateExternal(Napi::Env env, const napi_type_tag &type_tag, T *data) {
+  auto external = Napi::External<T>::New(env, data);
+  external.TypeTag(&type_tag);
+  return external;
+}
+
+template<typename T>
+T* GetDataFromExternal(Napi::Env env, const napi_type_tag &type_tag, Napi::Value value, const char *error_message) {
+  auto external = value.As<Napi::External<T>>();
+  if (!external.CheckTypeTag(&type_tag)) {
+    throw Napi::Error::New(env, error_message);
+  }
+  return external.Data();
+}
+
+// The following type tags are generated using: uuidgen | sed -r -e 's/-//g' -e 's/(.{16})(.*)/0x\1, 0x\2/'
+
+static const napi_type_tag ConnectionTypeTag = {
+  0x922B9BF54AB04DFC, 0x8A258578D371DB71
+};
+
+Napi::External<_duckdb_connection> CreateExternalForConnection(Napi::Env env, duckdb_connection connection) {
+  return CreateExternal<_duckdb_connection>(env, ConnectionTypeTag, connection);
+}
+
+duckdb_connection GetConnectionFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_connection>(env, ConnectionTypeTag, value, "Invalid connection argument");
+}
+
 static const napi_type_tag DatabaseTypeTag = {
   0x835A8533653C40D1, 0x83B3BE2B233BA8F3
 };
+
+Napi::External<_duckdb_database> CreateExternalForDatabase(Napi::Env env, duckdb_database database) {
+  return CreateExternal<_duckdb_database>(env, DatabaseTypeTag, database);
+}
+
+duckdb_database GetDatabaseFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_database>(env, DatabaseTypeTag, value, "Invalid database argument");
+}
+
+static const napi_type_tag ResultTypeTag = {
+  0x08F7FE3AE12345E5, 0x8733310DC29372D9
+};
+
+Napi::External<duckdb_result> CreateExternalForResult(Napi::Env env, duckdb_result *result_ptr) {
+  return CreateExternal<duckdb_result>(env, ResultTypeTag, result_ptr);
+}
+
+duckdb_result *GetResultFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<duckdb_result>(env, ResultTypeTag, value, "Invalid result argument");
+}
 
 class PromiseWorker : public Napi::AsyncWorker {
 
@@ -41,7 +90,8 @@ class OpenWorker : public PromiseWorker {
 
 public:
 
-  OpenWorker(Napi::Env env, std::string path) : PromiseWorker(env), path_(path) {
+  OpenWorker(Napi::Env env, std::string path)
+    : PromiseWorker(env), path_(path) {
   }
 
 protected:
@@ -53,9 +103,7 @@ protected:
   }
 
   Napi::Value Result() override {
-    auto result = Napi::External<duckdb_database>::New(Env(), &database_);
-    result.TypeTag(&DatabaseTypeTag);
-    return result;
+    return CreateExternalForDatabase(Env(), database_);
   }
 
 private:
@@ -65,17 +113,125 @@ private:
 
 };
 
+class ConnectWorker : public PromiseWorker {
+
+public:
+
+  ConnectWorker(Napi::Env env, duckdb_database database)
+    : PromiseWorker(env), database_(database) {
+  }
+
+protected:
+
+  void Execute() override {
+    if (duckdb_connect(database_, &connection_)) {
+      SetError("Failed to connect");
+    }
+  }
+
+  Napi::Value Result() override {
+    return CreateExternalForConnection(Env(), connection_);
+  }
+
+private:
+
+  duckdb_database database_;
+  duckdb_connection connection_;
+
+};
+
+class QueryWorker : public PromiseWorker {
+
+public:
+
+  QueryWorker(Napi::Env env, duckdb_connection connection, std::string query)
+    : PromiseWorker(env), connection_(connection), query_(query) {
+  }
+
+protected:
+
+  void Execute() override {
+    result_ptr_ = reinterpret_cast<duckdb_result*>(duckdb_malloc(sizeof(duckdb_result)));
+    if (duckdb_query(connection_, query_.c_str(), result_ptr_)) {
+      duckdb_free(result_ptr_);
+      result_ptr_ = nullptr;
+      SetError("Failed to query");
+    }
+  }
+
+  Napi::Value Result() override {
+    return CreateExternalForResult(Env(), result_ptr_);
+  }
+
+private:
+
+  duckdb_connection connection_;
+  std::string query_;
+  duckdb_result *result_ptr_;
+
+};
+
+Napi::Object CreateTypeEnum(Napi::Env env) {
+  auto typeEnum = Napi::Object::New(env);
+  typeEnum.Set("INVALID", 0);
+	typeEnum.Set("BOOLEAN", 1);
+	typeEnum.Set("TINYINT", 2);
+	typeEnum.Set("SMALLINT", 3);
+	typeEnum.Set("INTEGER", 4);
+	typeEnum.Set("BIGINT", 5);
+	typeEnum.Set("UTINYINT", 6);
+	typeEnum.Set("USMALLINT", 7);
+	typeEnum.Set("UINTEGER", 8);
+	typeEnum.Set("UBIGINT", 9);
+	typeEnum.Set("FLOAT", 10);
+	typeEnum.Set("DOUBLE", 11);
+	typeEnum.Set("TIMESTAMP", 12);
+	typeEnum.Set("DATE", 13);
+	typeEnum.Set("TIME", 14);
+	typeEnum.Set("INTERVAL", 15);
+	typeEnum.Set("HUGEINT", 16);
+	typeEnum.Set("UHUGEINT", 32);
+	typeEnum.Set("VARCHAR", 17);
+	typeEnum.Set("BLOB", 18);
+	typeEnum.Set("DECIMAL", 19);
+	typeEnum.Set("TIMESTAMP_S", 20);
+	typeEnum.Set("TIMESTAMP_MS", 21);
+	typeEnum.Set("TIMESTAMP_NS", 22);
+	typeEnum.Set("ENUM", 23);
+	typeEnum.Set("LIST", 24);
+	typeEnum.Set("STRUCT", 25);
+	typeEnum.Set("MAP", 26);
+	typeEnum.Set("ARRAY", 33);
+	typeEnum.Set("UUID", 27);
+	typeEnum.Set("UNION", 28);
+	typeEnum.Set("BIT", 29);
+	typeEnum.Set("TIME_TZ", 30);
+	typeEnum.Set("TIMESTAMP_TZ", 31);
+  return typeEnum;
+}
+
 class DuckDBNodeAddon : public Napi::Addon<DuckDBNodeAddon> {
 
 public:
 
   DuckDBNodeAddon(Napi::Env env, Napi::Object exports) {
     DefineAddon(exports, {
+      InstanceValue("Type", CreateTypeEnum(env)),
+
       InstanceMethod("open", &DuckDBNodeAddon::open),
+
+      InstanceMethod("connect", &DuckDBNodeAddon::connect),
 
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
       InstanceMethod("config_count", &DuckDBNodeAddon::config_count),
       InstanceMethod("get_config_flag", &DuckDBNodeAddon::get_config_flag),
+
+      InstanceMethod("query", &DuckDBNodeAddon::query),
+
+      InstanceMethod("column_name", &DuckDBNodeAddon::column_name),
+      InstanceMethod("column_type", &DuckDBNodeAddon::column_type),
+
+      InstanceMethod("column_count", &DuckDBNodeAddon::column_count),
     });
   }
 
@@ -92,7 +248,16 @@ private:
 
   // duckdb_state duckdb_open_ext(const char *path, duckdb_database *out_database, duckdb_config config, char **out_error)
   // void duckdb_close(duckdb_database *database)
+
   // duckdb_state duckdb_connect(duckdb_database database, duckdb_connection *out_connection)
+  Napi::Value connect(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto database = GetDatabaseFromExternal(env, info[0]);
+    auto worker = new ConnectWorker(env, database);
+    worker->Queue();
+    return worker->Promise();
+  }
+
   // void duckdb_interrupt(duckdb_connection connection)
   // duckdb_query_progress_type duckdb_query_progress(duckdb_connection connection)
   // void duckdb_disconnect(duckdb_connection *connection)
@@ -126,13 +291,49 @@ private:
 
   // duckdb_state duckdb_set_config(duckdb_config config, const char *name, const char *option)
   // void duckdb_destroy_config(duckdb_config *config)
+
   // duckdb_state duckdb_query(duckdb_connection connection, const char *query, duckdb_result *out_result)
+  Napi::Value query(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    std::string query = info[1].As<Napi::String>();
+    auto worker = new QueryWorker(env, connection, query);
+    worker->Queue();
+    return worker->Promise();
+  }
+
+
   // void duckdb_destroy_result(duckdb_result *result)
+
   // const char *duckdb_column_name(duckdb_result *result, idx_t col)
+  Napi::Value column_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto column_index = info[1].As<Napi::Number>().Uint32Value();
+    auto column_name = duckdb_column_name(result_ptr, column_index);
+    return Napi::String::New(env, column_name);
+  }
+
   // duckdb_type duckdb_column_type(duckdb_result *result, idx_t col)
+  Napi::Value column_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto column_index = info[1].As<Napi::Number>().Uint32Value();
+    auto column_type = duckdb_column_type(result_ptr, column_index);
+    return Napi::Number::New(env, column_type);
+  }
+
   // duckdb_statement_type duckdb_result_statement_type(duckdb_result result)
   // duckdb_logical_type duckdb_column_logical_type(duckdb_result *result, idx_t col)
+
   // idx_t duckdb_column_count(duckdb_result *result)
+  Napi::Value column_count(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto column_count = duckdb_column_count(result_ptr);
+    return Napi::Number::New(env, column_count);
+  }
+
   // idx_t duckdb_rows_changed(duckdb_result *result)
   // const char *duckdb_result_error(duckdb_result *result)
   // duckdb_result_type duckdb_result_return_type(duckdb_result result)

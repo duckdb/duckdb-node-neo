@@ -147,42 +147,54 @@ export interface TimestampParts {
 	time: TimeParts;
 }
 
-export class Vector {
+export interface Vector {
+	__duckdb_type: 'duckdb_vector';
 }
 
 // Types (explicit destroy)
 
-export class Appender {
+export interface Appender {
+	__duckdb_type: 'duckdb_appender';
 }
 
-export class Config {
+export interface Config {
+	__duckdb_type: 'duckdb_config';
 }
 
-export class Connection {
+export interface Connection {
+	__duckdb_type: 'duckdb_connection';
 }
 
-export class Database {
+export interface Database {
+	__duckdb_type: 'duckdb_database';
 }
 
-export class DataChunk {
+export interface DataChunk {
+	__duckdb_type: 'duckdb_data_chunk';
 }
 
-export class ExtractedStatements {
+export interface ExtractedStatements {
+	__duckdb_type: 'duckdb_extracted_statements';
 }
 
-export class LogicalType {
+export interface LogicalType {
+	__duckdb_type: 'duckdb_logical_type';
 }
 
-export class PendingResult {
+export interface PendingResult {
+	__duckdb_type: 'duckdb_pending_result';
 }
 
-export class PreparedStatement {
+export interface PreparedStatement {
+	__duckdb_type: 'duckdb_config';
 }
 
-export class Result {
+export interface Result {
+	__duckdb_type: 'duckdb_result';
 }
 
-export class Value {
+export interface Value {
+	__duckdb_type: 'duckdb_value';
 }
 
 // Types (TypeScript only)
