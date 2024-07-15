@@ -12,4 +12,10 @@ suite('config', () => {
   test('get_config_flag out of bounds', () => {
     expect(() => duckdb.get_config_flag(-1)).toThrowError(/^Config option not found$/);
   });
+  test('create, set, and destroy', () => {
+    const config = duckdb.create_config()
+    expect(config).toBeTruthy();
+    duckdb.set_config(config, 'custom_user_agent', 'my_user_agent');
+    duckdb.destroy_config(config);
+  });
 });

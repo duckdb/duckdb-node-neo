@@ -21,6 +21,18 @@ T* GetDataFromExternal(Napi::Env env, const napi_type_tag &type_tag, Napi::Value
 
 // The following type tags are generated using: uuidgen | sed -r -e 's/-//g' -e 's/(.{16})(.*)/0x\1, 0x\2/'
 
+static const napi_type_tag ConfigTypeTag = {
+  0x5963FBB9648B4D2A, 0xB41ADE86056218D1
+};
+
+Napi::External<_duckdb_config> CreateExternalForConfig(Napi::Env env, duckdb_config config) {
+  return CreateExternal<_duckdb_config>(env, ConfigTypeTag, config);
+}
+
+duckdb_config GetConfigFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_config>(env, ConfigTypeTag, value, "Invalid config argument");
+}
+
 static const napi_type_tag ConnectionTypeTag = {
   0x922B9BF54AB04DFC, 0x8A258578D371DB71
 };
@@ -249,8 +261,11 @@ public:
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
 
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
+      InstanceMethod("create_config", &DuckDBNodeAddon::create_config),
       InstanceMethod("config_count", &DuckDBNodeAddon::config_count),
       InstanceMethod("get_config_flag", &DuckDBNodeAddon::get_config_flag),
+      InstanceMethod("set_config", &DuckDBNodeAddon::set_config),
+      InstanceMethod("destroy_config", &DuckDBNodeAddon::destroy_config),
 
       InstanceMethod("query", &DuckDBNodeAddon::query),
 
@@ -308,6 +323,15 @@ private:
   }
 
   // duckdb_state duckdb_create_config(duckdb_config *out_config)
+  // function create_config(): Config
+  Napi::Value create_config(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    duckdb_config config;
+    if (duckdb_create_config(&config)) {
+      throw Napi::Error::New(env, "Failed to create config");
+    }
+    return CreateExternalForConfig(env, config);
+  }
 
   // size_t duckdb_config_count()
   // function config_count(): number
@@ -332,8 +356,26 @@ private:
   }
 
   // duckdb_state duckdb_set_config(duckdb_config config, const char *name, const char *option)
+  // function set_config(config: Config, name: string, option: string): void
+  Napi::Value set_config(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto config = GetConfigFromExternal(env, info[0]);
+    std::string name = info[1].As<Napi::String>();
+    std::string option = info[2].As<Napi::String>();
+    if (duckdb_set_config(config, name.c_str(), option.c_str())) {
+      throw Napi::Error::New(env, "Failed to set config");
+    }
+    return env.Undefined();
+  }
 
   // void duckdb_destroy_config(duckdb_config *config)
+  // function destroy_config(config: Config): void
+  Napi::Value destroy_config(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto config = GetConfigFromExternal(env, info[0]);
+    duckdb_destroy_config(&config);
+    return env.Undefined();
+  }
 
   // duckdb_state duckdb_query(duckdb_connection connection, const char *query, duckdb_result *out_result)
   // function query(connection: Connection, query: string): Promise<Result>
