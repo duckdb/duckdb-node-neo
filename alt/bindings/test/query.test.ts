@@ -8,9 +8,13 @@ suite('query', () => {
       const con = await duckdb.connect(db);
       try {
         const res = await duckdb.query(con, 'select 17 as seventeen');
-        expect(duckdb.column_count(res)).toBe(1);
-        expect(duckdb.column_name(res, 0)).toBe('seventeen');
-        expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.INTEGER);
+        try {
+          expect(duckdb.column_count(res)).toBe(1);
+          expect(duckdb.column_name(res, 0)).toBe('seventeen');
+          expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.INTEGER);
+        } finally {
+          duckdb.destroy_result(res);
+        }
       } finally {
         await duckdb.disconnect(con);
       }
@@ -24,11 +28,15 @@ suite('query', () => {
       const con = await duckdb.connect(db);
       try {
         const res = await duckdb.query(con, 'from test_all_types()');
-        expect(duckdb.column_count(res)).toBe(53);
-        expect(duckdb.column_name(res, 0)).toBe('bool');
-        expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.BOOLEAN);
-        expect(duckdb.column_name(res, 52)).toBe('list_of_fixed_int_array');
-        expect(duckdb.column_type(res, 52)).toBe(duckdb.Type.LIST);
+        try {
+          expect(duckdb.column_count(res)).toBe(53);
+          expect(duckdb.column_name(res, 0)).toBe('bool');
+          expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.BOOLEAN);
+          expect(duckdb.column_name(res, 52)).toBe('list_of_fixed_int_array');
+          expect(duckdb.column_type(res, 52)).toBe(duckdb.Type.LIST);
+        } finally {
+          duckdb.destroy_result(res);
+        }
       } finally {
         await duckdb.disconnect(con);
       }

@@ -309,7 +309,7 @@ public:
       InstanceMethod("destroy_config", &DuckDBNodeAddon::destroy_config),
 
       InstanceMethod("query", &DuckDBNodeAddon::query),
-
+      InstanceMethod("destroy_result", &DuckDBNodeAddon::destroy_result),
       InstanceMethod("column_name", &DuckDBNodeAddon::column_name),
       InstanceMethod("column_type", &DuckDBNodeAddon::column_type),
 
@@ -448,6 +448,13 @@ private:
 
 
   // void duckdb_destroy_result(duckdb_result *result)
+  // function destroy_result(result: Result): void
+  Napi::Value destroy_result(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    duckdb_destroy_result(result_ptr);
+    return env.Undefined();
+  }
 
   // const char *duckdb_column_name(duckdb_result *result, idx_t col)
   // function column_name(result: Result, column_index: number): string
