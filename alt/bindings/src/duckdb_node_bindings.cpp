@@ -230,9 +230,9 @@ protected:
   void Execute() override {
     result_ptr_ = reinterpret_cast<duckdb_result*>(duckdb_malloc(sizeof(duckdb_result)));
     if (duckdb_query(connection_, query_.c_str(), result_ptr_)) {
+      SetError(duckdb_result_error(result_ptr_));
       duckdb_free(result_ptr_);
       result_ptr_ = nullptr;
-      SetError("Failed to query");
     }
   }
 
@@ -248,42 +248,80 @@ private:
 
 };
 
+void DefineEnumMember(Napi::Object enumObj, const char *key, uint32_t value) {
+  enumObj.Set(key, value);
+  enumObj.Set(value, key);
+}
+
+Napi::Object CreateStatementTypeEnum(Napi::Env env) {
+  auto statementTypeEnum = Napi::Object::New(env);
+  DefineEnumMember(statementTypeEnum, "INVALID", 0);
+	DefineEnumMember(statementTypeEnum, "SELECT", 1);
+	DefineEnumMember(statementTypeEnum, "INSERT", 2);
+	DefineEnumMember(statementTypeEnum, "UPDATE", 3);
+	DefineEnumMember(statementTypeEnum, "EXPLAIN", 4);
+	DefineEnumMember(statementTypeEnum, "DELETE", 5);
+	DefineEnumMember(statementTypeEnum, "PREPARE", 6);
+	DefineEnumMember(statementTypeEnum, "CREATE", 7);
+	DefineEnumMember(statementTypeEnum, "EXECUTE", 8);
+	DefineEnumMember(statementTypeEnum, "ALTER", 9);
+	DefineEnumMember(statementTypeEnum, "TRANSACTION", 10);
+	DefineEnumMember(statementTypeEnum, "COPY", 11);
+	DefineEnumMember(statementTypeEnum, "ANALYZE", 12);
+	DefineEnumMember(statementTypeEnum, "VARIABLE_SET", 13);
+	DefineEnumMember(statementTypeEnum, "CREATE_FUNC", 14);
+	DefineEnumMember(statementTypeEnum, "DROP", 15);
+	DefineEnumMember(statementTypeEnum, "EXPORT", 16);
+	DefineEnumMember(statementTypeEnum, "PRAGMA", 17);
+	DefineEnumMember(statementTypeEnum, "VACUUM", 18);
+	DefineEnumMember(statementTypeEnum, "CALL", 19);
+	DefineEnumMember(statementTypeEnum, "SET", 20);
+	DefineEnumMember(statementTypeEnum, "LOAD", 21);
+	DefineEnumMember(statementTypeEnum, "RELATION", 22);
+	DefineEnumMember(statementTypeEnum, "EXTENSION", 23);
+	DefineEnumMember(statementTypeEnum, "LOGICAL_PLAN", 24);
+	DefineEnumMember(statementTypeEnum, "ATTACH", 25);
+	DefineEnumMember(statementTypeEnum, "DETACH", 26);
+	DefineEnumMember(statementTypeEnum, "MULTI", 27);
+  return statementTypeEnum;
+}
+
 Napi::Object CreateTypeEnum(Napi::Env env) {
   auto typeEnum = Napi::Object::New(env);
-  typeEnum.Set("INVALID", 0);
-	typeEnum.Set("BOOLEAN", 1);
-	typeEnum.Set("TINYINT", 2);
-	typeEnum.Set("SMALLINT", 3);
-	typeEnum.Set("INTEGER", 4);
-	typeEnum.Set("BIGINT", 5);
-	typeEnum.Set("UTINYINT", 6);
-	typeEnum.Set("USMALLINT", 7);
-	typeEnum.Set("UINTEGER", 8);
-	typeEnum.Set("UBIGINT", 9);
-	typeEnum.Set("FLOAT", 10);
-	typeEnum.Set("DOUBLE", 11);
-	typeEnum.Set("TIMESTAMP", 12);
-	typeEnum.Set("DATE", 13);
-	typeEnum.Set("TIME", 14);
-	typeEnum.Set("INTERVAL", 15);
-	typeEnum.Set("HUGEINT", 16);
-	typeEnum.Set("UHUGEINT", 32);
-	typeEnum.Set("VARCHAR", 17);
-	typeEnum.Set("BLOB", 18);
-	typeEnum.Set("DECIMAL", 19);
-	typeEnum.Set("TIMESTAMP_S", 20);
-	typeEnum.Set("TIMESTAMP_MS", 21);
-	typeEnum.Set("TIMESTAMP_NS", 22);
-	typeEnum.Set("ENUM", 23);
-	typeEnum.Set("LIST", 24);
-	typeEnum.Set("STRUCT", 25);
-	typeEnum.Set("MAP", 26);
-	typeEnum.Set("ARRAY", 33);
-	typeEnum.Set("UUID", 27);
-	typeEnum.Set("UNION", 28);
-	typeEnum.Set("BIT", 29);
-	typeEnum.Set("TIME_TZ", 30);
-	typeEnum.Set("TIMESTAMP_TZ", 31);
+  DefineEnumMember(typeEnum, "INVALID", 0);
+	DefineEnumMember(typeEnum, "BOOLEAN", 1);
+	DefineEnumMember(typeEnum, "TINYINT", 2);
+	DefineEnumMember(typeEnum, "SMALLINT", 3);
+	DefineEnumMember(typeEnum, "INTEGER", 4);
+	DefineEnumMember(typeEnum, "BIGINT", 5);
+	DefineEnumMember(typeEnum, "UTINYINT", 6);
+	DefineEnumMember(typeEnum, "USMALLINT", 7);
+	DefineEnumMember(typeEnum, "UINTEGER", 8);
+	DefineEnumMember(typeEnum, "UBIGINT", 9);
+	DefineEnumMember(typeEnum, "FLOAT", 10);
+	DefineEnumMember(typeEnum, "DOUBLE", 11);
+	DefineEnumMember(typeEnum, "TIMESTAMP", 12);
+	DefineEnumMember(typeEnum, "DATE", 13);
+	DefineEnumMember(typeEnum, "TIME", 14);
+	DefineEnumMember(typeEnum, "INTERVAL", 15);
+	DefineEnumMember(typeEnum, "HUGEINT", 16);
+	DefineEnumMember(typeEnum, "UHUGEINT", 32);
+	DefineEnumMember(typeEnum, "VARCHAR", 17);
+	DefineEnumMember(typeEnum, "BLOB", 18);
+	DefineEnumMember(typeEnum, "DECIMAL", 19);
+	DefineEnumMember(typeEnum, "TIMESTAMP_S", 20);
+	DefineEnumMember(typeEnum, "TIMESTAMP_MS", 21);
+	DefineEnumMember(typeEnum, "TIMESTAMP_NS", 22);
+	DefineEnumMember(typeEnum, "ENUM", 23);
+	DefineEnumMember(typeEnum, "LIST", 24);
+	DefineEnumMember(typeEnum, "STRUCT", 25);
+	DefineEnumMember(typeEnum, "MAP", 26);
+	DefineEnumMember(typeEnum, "ARRAY", 33);
+	DefineEnumMember(typeEnum, "UUID", 27);
+	DefineEnumMember(typeEnum, "UNION", 28);
+	DefineEnumMember(typeEnum, "BIT", 29);
+	DefineEnumMember(typeEnum, "TIME_TZ", 30);
+	DefineEnumMember(typeEnum, "TIMESTAMP_TZ", 31);
   return typeEnum;
 }
 
@@ -293,6 +331,7 @@ public:
 
   DuckDBNodeAddon(Napi::Env env, Napi::Object exports) {
     DefineAddon(exports, {
+      InstanceValue("StatementType", CreateStatementTypeEnum(env)),
       InstanceValue("Type", CreateTypeEnum(env)),
 
       InstanceMethod("open", &DuckDBNodeAddon::open),
@@ -312,6 +351,7 @@ public:
       InstanceMethod("destroy_result", &DuckDBNodeAddon::destroy_result),
       InstanceMethod("column_name", &DuckDBNodeAddon::column_name),
       InstanceMethod("column_type", &DuckDBNodeAddon::column_type),
+      InstanceMethod("result_statement_type", &DuckDBNodeAddon::result_statement_type),
 
       InstanceMethod("column_count", &DuckDBNodeAddon::column_count),
     });
@@ -339,6 +379,7 @@ private:
   }
 
   // duckdb_state duckdb_open_ext(const char *path, duckdb_database *out_database, duckdb_config config, char **out_error)
+  // consolidated into open
 
   // void duckdb_close(duckdb_database *database)
   // function close(database: Database): Promise<void>
@@ -477,6 +518,13 @@ private:
   }
 
   // duckdb_statement_type duckdb_result_statement_type(duckdb_result result)
+  // function result_statement_type(result: Result): StatementType
+  Napi::Value result_statement_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto statement_type = duckdb_result_statement_type(*result_ptr);
+    return Napi::Number::New(env, statement_type);
+  }
 
   // duckdb_logical_type duckdb_column_logical_type(duckdb_result *result, idx_t col)
 
@@ -490,12 +538,23 @@ private:
   }
 
   // idx_t duckdb_rows_changed(duckdb_result *result)
+
   // const char *duckdb_result_error(duckdb_result *result)
+  // query rejects promise with error
+
   // duckdb_result_type duckdb_result_return_type(duckdb_result result)
+
   // void *duckdb_malloc(size_t size)
+  // not exposed; only used internally
+
   // void duckdb_free(void *ptr)
+  // not exposed; only used internally
+
   // idx_t duckdb_vector_size()
+
   // bool duckdb_string_is_inlined(duckdb_string_t string)
+  // not exposed
+
   // duckdb_date_struct duckdb_from_date(duckdb_date date)
   // duckdb_date duckdb_to_date(duckdb_date_struct date)
   // bool duckdb_is_finite_date(duckdb_date date)
