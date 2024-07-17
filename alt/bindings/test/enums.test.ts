@@ -2,6 +2,17 @@ import duckdb from 'duckdb';
 import { expect, suite, test } from 'vitest';
 
 suite('enums', () => {
+  test('ResultType', () => {
+    expect(duckdb.ResultType.INVALID).toBe(0);
+    expect(duckdb.ResultType.CHANGED_ROWS).toBe(1);
+    expect(duckdb.ResultType.NOTHING).toBe(2);
+    expect(duckdb.ResultType.QUERY_RESULT).toBe(3);
+
+    expect(duckdb.ResultType[duckdb.ResultType.INVALID]).toBe('INVALID');
+    expect(duckdb.ResultType[duckdb.ResultType.CHANGED_ROWS]).toBe('CHANGED_ROWS');
+    expect(duckdb.ResultType[duckdb.ResultType.NOTHING]).toBe('NOTHING');
+    expect(duckdb.ResultType[duckdb.ResultType.QUERY_RESULT]).toBe('QUERY_RESULT');
+  });
   test('StatementType', () => {
     expect(duckdb.StatementType.INVALID).toBe(0);
     expect(duckdb.StatementType.SELECT).toBe(1);

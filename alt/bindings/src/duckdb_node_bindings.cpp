@@ -253,6 +253,15 @@ void DefineEnumMember(Napi::Object enumObj, const char *key, uint32_t value) {
   enumObj.Set(value, key);
 }
 
+Napi::Object CreateResultTypeEnum(Napi::Env env) {
+  auto resultTypeEnum = Napi::Object::New(env);
+  DefineEnumMember(resultTypeEnum, "INVALID", 0);
+  DefineEnumMember(resultTypeEnum, "CHANGED_ROWS", 1);
+  DefineEnumMember(resultTypeEnum, "NOTHING", 2);
+  DefineEnumMember(resultTypeEnum, "QUERY_RESULT", 3);
+  return resultTypeEnum;
+}
+
 Napi::Object CreateStatementTypeEnum(Napi::Env env) {
   auto statementTypeEnum = Napi::Object::New(env);
   DefineEnumMember(statementTypeEnum, "INVALID", 0);
@@ -331,6 +340,7 @@ public:
 
   DuckDBNodeAddon(Napi::Env env, Napi::Object exports) {
     DefineAddon(exports, {
+      InstanceValue("ResultType", CreateResultTypeEnum(env)),
       InstanceValue("StatementType", CreateStatementTypeEnum(env)),
       InstanceValue("Type", CreateTypeEnum(env)),
 
@@ -354,6 +364,8 @@ public:
       InstanceMethod("result_statement_type", &DuckDBNodeAddon::result_statement_type),
 
       InstanceMethod("column_count", &DuckDBNodeAddon::column_count),
+
+      InstanceMethod("result_return_type", &DuckDBNodeAddon::result_return_type),
     });
   }
 
@@ -543,6 +555,13 @@ private:
   // query rejects promise with error
 
   // duckdb_result_type duckdb_result_return_type(duckdb_result result)
+  // function result_return_type(result: Result): ResultType
+  Napi::Value result_return_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto result_type = duckdb_result_return_type(*result_ptr);
+    return Napi::Number::New(env, result_type);
+  }
 
   // void *duckdb_malloc(size_t size)
   // not exposed; only used internally

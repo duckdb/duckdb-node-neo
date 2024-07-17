@@ -10,6 +10,7 @@ suite('query', () => {
         const res = await duckdb.query(con, 'select 17 as seventeen');
         try {
           expect(duckdb.result_statement_type(res)).toBe(duckdb.StatementType.SELECT);
+          expect(duckdb.result_return_type(res)).toBe(duckdb.ResultType.QUERY_RESULT);
           expect(duckdb.column_count(res)).toBe(1);
           expect(duckdb.column_name(res, 0)).toBe('seventeen');
           expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.INTEGER);
@@ -44,6 +45,7 @@ suite('query', () => {
         const res = await duckdb.query(con, 'from test_all_types()');
         try {
           expect(duckdb.result_statement_type(res)).toBe(duckdb.StatementType.SELECT);
+          expect(duckdb.result_return_type(res)).toBe(duckdb.ResultType.QUERY_RESULT);
           expect(duckdb.column_count(res)).toBe(53);
           expect(duckdb.column_name(res, 0)).toBe('bool');
           expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.BOOLEAN);
