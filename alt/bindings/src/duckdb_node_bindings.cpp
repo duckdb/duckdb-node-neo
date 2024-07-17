@@ -364,7 +364,7 @@ public:
       InstanceMethod("result_statement_type", &DuckDBNodeAddon::result_statement_type),
 
       InstanceMethod("column_count", &DuckDBNodeAddon::column_count),
-
+      InstanceMethod("rows_changed", &DuckDBNodeAddon::rows_changed),
       InstanceMethod("result_return_type", &DuckDBNodeAddon::result_return_type),
     });
   }
@@ -550,6 +550,13 @@ private:
   }
 
   // idx_t duckdb_rows_changed(duckdb_result *result)
+  // function rows_changed(result: Result): number
+  Napi::Value rows_changed(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto rows_changed = duckdb_rows_changed(result_ptr);
+    return Napi::Number::New(env, rows_changed);
+  }
 
   // const char *duckdb_result_error(duckdb_result *result)
   // query rejects promise with error
