@@ -513,6 +513,7 @@ private:
     auto env = info.Env();
     auto result_ptr = GetResultFromExternal(env, info[0]);
     duckdb_destroy_result(result_ptr);
+    duckdb_free(result_ptr);
     return env.Undefined();
   }
 
