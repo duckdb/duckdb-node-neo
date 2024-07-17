@@ -193,6 +193,30 @@ private:
 
 };
 
+class DisconnectWorker : public PromiseWorker {
+
+public:
+
+  DisconnectWorker(Napi::Env env, duckdb_connection connection)
+    : PromiseWorker(env), connection_(connection) {
+  }
+
+protected:
+
+  void Execute() override {
+    duckdb_disconnect(&connection_);
+  }
+
+  Napi::Value Result() override {
+    return Env().Undefined();
+  }
+
+private:
+
+  duckdb_connection connection_;
+
+};
+
 class QueryWorker : public PromiseWorker {
 
 public:
@@ -273,8 +297,9 @@ public:
 
       InstanceMethod("open", &DuckDBNodeAddon::open),
       InstanceMethod("close", &DuckDBNodeAddon::close),
-
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
+
+      InstanceMethod("disconnect", &DuckDBNodeAddon::disconnect),
 
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
       InstanceMethod("create_config", &DuckDBNodeAddon::create_config),
@@ -340,6 +365,14 @@ private:
   // duckdb_query_progress_type duckdb_query_progress(duckdb_connection connection)
 
   // void duckdb_disconnect(duckdb_connection *connection)
+  // function disconnect(connection: Connection): Promise<void>
+  Napi::Value disconnect(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto worker = new DisconnectWorker(env, connection);
+    worker->Queue();
+    return worker->Promise();
+  }
 
   // const char *duckdb_library_version()
   // function library_version(): string
