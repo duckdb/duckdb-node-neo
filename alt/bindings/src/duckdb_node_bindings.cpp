@@ -1,6 +1,8 @@
 #define NODE_ADDON_API_DISABLE_DEPRECATED
 #include "napi.h"
 
+#include <optional>
+
 #include "duckdb.h"
 
 template<typename T>
@@ -750,7 +752,7 @@ private:
   // duckdb_state duckdb_append_blob(duckdb_appender appender, const void *data, idx_t length)
   // duckdb_state duckdb_append_null(duckdb_appender appender)
   // duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk)
-  
+
   // duckdb_data_chunk duckdb_fetch_chunk(duckdb_result result)
 
 };
