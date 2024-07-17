@@ -211,7 +211,7 @@ export interface ConfigFlag {
 export function open(path?: string, config?: Config): Promise<Database>;
 
 // duckdb_state duckdb_open_ext(const char *path, duckdb_database *out_database, duckdb_config config, char **out_error)
-// consolidated into open
+// not exposed: consolidated into open
 
 // void duckdb_close(duckdb_database *database)
 export function close(database: Database): Promise<void>;
@@ -271,22 +271,22 @@ export function column_count(result: Result): number;
 export function rows_changed(result: Result): number;
 
 // const char *duckdb_result_error(duckdb_result *result)
-// query rejects promise with error
+// not exposed: query rejects promise with error
 
 // duckdb_result_type duckdb_result_return_type(duckdb_result result)
 export function result_return_type(result: Result): ResultType;
 
 // void *duckdb_malloc(size_t size)
-// not exposed; only used internally
+// not exposed: only used internally
 
 // void duckdb_free(void *ptr)
-// not exposed; only user internally
+// not exposed: only user internally
 
 // idx_t duckdb_vector_size()
 export function vector_size(): number;
 
 // bool duckdb_string_is_inlined(duckdb_string_t string)
-// not exposed
+// not exposed: handled internally
 
 // duckdb_date_struct duckdb_from_date(duckdb_date date)
 export function from_date(date: Date_): DateParts;

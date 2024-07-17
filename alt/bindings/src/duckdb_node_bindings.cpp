@@ -347,7 +347,8 @@ public:
       InstanceMethod("open", &DuckDBNodeAddon::open),
       InstanceMethod("close", &DuckDBNodeAddon::close),
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
-
+      // TODO: interrupt
+      // TODO: query_progress
       InstanceMethod("disconnect", &DuckDBNodeAddon::disconnect),
 
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
@@ -362,10 +363,12 @@ public:
       InstanceMethod("column_name", &DuckDBNodeAddon::column_name),
       InstanceMethod("column_type", &DuckDBNodeAddon::column_type),
       InstanceMethod("result_statement_type", &DuckDBNodeAddon::result_statement_type),
-
+      // TODO: column_logical_type
       InstanceMethod("column_count", &DuckDBNodeAddon::column_count),
       InstanceMethod("rows_changed", &DuckDBNodeAddon::rows_changed),
       InstanceMethod("result_return_type", &DuckDBNodeAddon::result_return_type),
+
+      InstanceMethod("vector_size", &DuckDBNodeAddon::vector_size),
     });
   }
 
@@ -391,7 +394,7 @@ private:
   }
 
   // duckdb_state duckdb_open_ext(const char *path, duckdb_database *out_database, duckdb_config config, char **out_error)
-  // consolidated into open
+  // not exposed: consolidated into open
 
   // void duckdb_close(duckdb_database *database)
   // function close(database: Database): Promise<void>
@@ -414,8 +417,10 @@ private:
   }
 
   // void duckdb_interrupt(duckdb_connection connection)
+  // TODO
 
   // duckdb_query_progress_type duckdb_query_progress(duckdb_connection connection)
+  // TODO
 
   // void duckdb_disconnect(duckdb_connection *connection)
   // function disconnect(connection: Connection): Promise<void>
@@ -539,6 +544,7 @@ private:
   }
 
   // duckdb_logical_type duckdb_column_logical_type(duckdb_result *result, idx_t col)
+  // TODO
 
   // idx_t duckdb_column_count(duckdb_result *result)
   // function column_count(result: Result): number
@@ -559,7 +565,7 @@ private:
   }
 
   // const char *duckdb_result_error(duckdb_result *result)
-  // query rejects promise with error
+  // not exposed: query rejects promise with error
 
   // duckdb_result_type duckdb_result_return_type(duckdb_result result)
   // function result_return_type(result: Result): ResultType
@@ -571,15 +577,19 @@ private:
   }
 
   // void *duckdb_malloc(size_t size)
-  // not exposed; only used internally
+  // not exposed: only used internally
 
   // void duckdb_free(void *ptr)
-  // not exposed; only used internally
+  // not exposed: only used internally
 
   // idx_t duckdb_vector_size()
+  // function vector_size(): number
+  Napi::Value vector_size(const Napi::CallbackInfo& info) {
+    return Napi::Number::New(info.Env(), duckdb_vector_size());
+  }
 
   // bool duckdb_string_is_inlined(duckdb_string_t string)
-  // not exposed
+  // not exposed: handled internally
 
   // duckdb_date_struct duckdb_from_date(duckdb_date date)
   // duckdb_date duckdb_to_date(duckdb_date_struct date)
@@ -597,6 +607,7 @@ private:
   // duckdb_uhugeint duckdb_double_to_uhugeint(double val)
   // duckdb_decimal duckdb_double_to_decimal(double val, uint8_t width, uint8_t scale)
   // double duckdb_decimal_to_double(duckdb_decimal val)
+
   // duckdb_state duckdb_prepare(duckdb_connection connection, const char *query, duckdb_prepared_statement *out_prepared_statement)
   // void duckdb_destroy_prepare(duckdb_prepared_statement *prepared_statement)
   // const char *duckdb_prepare_error(duckdb_prepared_statement prepared_statement)
@@ -630,10 +641,12 @@ private:
   // duckdb_state duckdb_bind_blob(duckdb_prepared_statement prepared_statement, idx_t param_idx, const void *data, idx_t length)
   // duckdb_state duckdb_bind_null(duckdb_prepared_statement prepared_statement, idx_t param_idx)
   // duckdb_state duckdb_execute_prepared(duckdb_prepared_statement prepared_statement, duckdb_result *out_result)
+
   // idx_t duckdb_extract_statements(duckdb_connection connection, const char *query, duckdb_extracted_statements *out_extracted_statements)
   // duckdb_state duckdb_prepare_extracted_statement(duckdb_connection connection, duckdb_extracted_statements extracted_statements, idx_t index, duckdb_prepared_statement *out_prepared_statement)
   // const char *duckdb_extract_statements_error(duckdb_extracted_statements extracted_statements)
   // void duckdb_destroy_extracted(duckdb_extracted_statements *extracted_statements)
+
   // duckdb_state duckdb_pending_prepared(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result)
   // void duckdb_destroy_pending(duckdb_pending_result *pending_result)
   // const char *duckdb_pending_error(duckdb_pending_result pending_result)
@@ -641,6 +654,7 @@ private:
   // duckdb_pending_state duckdb_pending_execute_check_state(duckdb_pending_result pending_result)
   // duckdb_state duckdb_execute_pending(duckdb_pending_result pending_result, duckdb_result *out_result)
   // bool duckdb_pending_execution_is_finished(duckdb_pending_state pending_state)
+
   // void duckdb_destroy_value(duckdb_value *value)
   // duckdb_value duckdb_create_varchar(const char *text)
   // duckdb_value duckdb_create_varchar_length(const char *text, idx_t length)
@@ -650,6 +664,7 @@ private:
   // duckdb_value duckdb_create_array_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count)
   // char *duckdb_get_varchar(duckdb_value value)
   // int64_t duckdb_get_int64(duckdb_value value)
+
   // duckdb_logical_type duckdb_create_logical_type(duckdb_type type)
   // char *duckdb_logical_type_get_alias(duckdb_logical_type type)
   // duckdb_logical_type duckdb_create_list_type(duckdb_logical_type type)
@@ -678,6 +693,7 @@ private:
   // char *duckdb_union_type_member_name(duckdb_logical_type type, idx_t index)
   // duckdb_logical_type duckdb_union_type_member_type(duckdb_logical_type type, idx_t index)
   // void duckdb_destroy_logical_type(duckdb_logical_type *type)
+
   // duckdb_data_chunk duckdb_create_data_chunk(duckdb_logical_type *types, idx_t column_count)
   // void duckdb_destroy_data_chunk(duckdb_data_chunk *chunk)
   // void duckdb_data_chunk_reset(duckdb_data_chunk chunk)
@@ -685,6 +701,7 @@ private:
   // duckdb_vector duckdb_data_chunk_get_vector(duckdb_data_chunk chunk, idx_t col_idx)
   // idx_t duckdb_data_chunk_get_size(duckdb_data_chunk chunk)
   // void duckdb_data_chunk_set_size(duckdb_data_chunk chunk, idx_t size)
+
   // duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector)
   // void *duckdb_vector_get_data(duckdb_vector vector)
   // uint64_t *duckdb_vector_get_validity(duckdb_vector vector)
@@ -701,6 +718,7 @@ private:
   // void duckdb_validity_set_row_validity(uint64_t *validity, idx_t row, bool valid)
   // void duckdb_validity_set_row_invalid(uint64_t *validity, idx_t row)
   // void duckdb_validity_set_row_valid(uint64_t *validity, idx_t row)
+
   // duckdb_state duckdb_appender_create(duckdb_connection connection, const char *schema, const char *table, duckdb_appender *out_appender)
   // idx_t duckdb_appender_column_count(duckdb_appender appender)
   // duckdb_logical_type duckdb_appender_column_type(duckdb_appender appender, idx_t col_idx)
@@ -732,6 +750,7 @@ private:
   // duckdb_state duckdb_append_blob(duckdb_appender appender, const void *data, idx_t length)
   // duckdb_state duckdb_append_null(duckdb_appender appender)
   // duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk)
+  
   // duckdb_data_chunk duckdb_fetch_chunk(duckdb_result result)
 
 };
