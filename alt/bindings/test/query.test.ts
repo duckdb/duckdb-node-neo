@@ -15,6 +15,12 @@ suite('query', () => {
           expect(duckdb.column_count(res)).toBe(1);
           expect(duckdb.column_name(res, 0)).toBe('seventeen');
           expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.INTEGER);
+          const chunk = await duckdb.fetch_chunk(res);
+          try {
+            expect(chunk).toBeTruthy();
+          } finally {
+            duckdb.destroy_data_chunk(chunk);
+          }
         } finally {
           duckdb.destroy_result(res);
         }

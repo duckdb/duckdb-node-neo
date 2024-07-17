@@ -59,6 +59,18 @@ duckdb_database GetDatabaseFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_database>(env, DatabaseTypeTag, value, "Invalid database argument");
 }
 
+static const napi_type_tag DataChunkTypeTag = {
+  0x2C7537AB063A4296, 0xB1E70F08B0BBD1A3
+};
+
+Napi::External<_duckdb_data_chunk> CreateExternalForDataChunk(Napi::Env env, duckdb_data_chunk chunk) {
+  return CreateExternal<_duckdb_data_chunk>(env, DataChunkTypeTag, chunk);
+}
+
+duckdb_data_chunk GetDataChunkFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_data_chunk>(env, DataChunkTypeTag, value, "Invalid data chunk argument");
+}
+
 static const napi_type_tag ResultTypeTag = {
   0x08F7FE3AE12345E5, 0x8733310DC29372D9
 };
@@ -250,6 +262,31 @@ private:
 
 };
 
+class FetchWorker : public PromiseWorker {
+
+public:
+
+  FetchWorker(Napi::Env env, duckdb_result *result_ptr)
+    : PromiseWorker(env), result_ptr_(result_ptr) {
+  }
+
+protected:
+
+  void Execute() override {
+    data_chunk_ = duckdb_fetch_chunk(*result_ptr_);
+  }
+
+  Napi::Value Result() override {
+    return CreateExternalForDataChunk(Env(), data_chunk_);
+  }
+
+private:
+
+  duckdb_result *result_ptr_;
+  duckdb_data_chunk data_chunk_;
+
+};
+
 void DefineEnumMember(Napi::Object enumObj, const char *key, uint32_t value) {
   enumObj.Set(key, value);
   enumObj.Set(value, key);
@@ -371,6 +408,10 @@ public:
       InstanceMethod("result_return_type", &DuckDBNodeAddon::result_return_type),
 
       InstanceMethod("vector_size", &DuckDBNodeAddon::vector_size),
+
+      InstanceMethod("destroy_data_chunk", &DuckDBNodeAddon::destroy_data_chunk),
+
+      InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
     });
   }
 
@@ -513,7 +554,7 @@ private:
     auto env = info.Env();
     auto result_ptr = GetResultFromExternal(env, info[0]);
     duckdb_destroy_result(result_ptr);
-    duckdb_free(result_ptr);
+    duckdb_free(result_ptr); // memory for duckdb_result struct is malloc'd in QueryWorker
     return env.Undefined();
   }
 
@@ -698,7 +739,16 @@ private:
   // void duckdb_destroy_logical_type(duckdb_logical_type *type)
 
   // duckdb_data_chunk duckdb_create_data_chunk(duckdb_logical_type *types, idx_t column_count)
+
   // void duckdb_destroy_data_chunk(duckdb_data_chunk *chunk)
+  // function destroy_data_chunk(chunk: DataChunk): void
+  Napi::Value destroy_data_chunk(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto chunk = GetDataChunkFromExternal(env, info[0]);
+    duckdb_destroy_data_chunk(&chunk);
+    return env.Undefined();
+  }
+
   // void duckdb_data_chunk_reset(duckdb_data_chunk chunk)
   // idx_t duckdb_data_chunk_get_column_count(duckdb_data_chunk chunk)
   // duckdb_vector duckdb_data_chunk_get_vector(duckdb_data_chunk chunk, idx_t col_idx)
@@ -755,6 +805,15 @@ private:
   // duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk)
 
   // duckdb_data_chunk duckdb_fetch_chunk(duckdb_result result)
+  // function fetch_chunk(result: Result): Promise<DataChunk>
+  Napi::Value fetch_chunk(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto worker = new FetchWorker(env, result_ptr);
+    worker->Queue();
+    return worker->Promise();
+  }
+
 
 };
 
