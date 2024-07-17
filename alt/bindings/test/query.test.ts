@@ -3,7 +3,7 @@ import { expect, suite, test } from 'vitest';
 
 suite('query', () => {
   test('basic select', async () => {
-    const db = await duckdb.open(':memory:');
+    const db = await duckdb.open();
     try {
       const con = await duckdb.connect(db);
       const res = await duckdb.query(con, 'select 17 as seventeen');
@@ -15,7 +15,7 @@ suite('query', () => {
     }
   });
   test('test_all_types()', async () => {
-    const db = await duckdb.open(':memory:');
+    const db = await duckdb.open();
     try {
       const con = await duckdb.connect(db);
       const res = await duckdb.query(con, 'from test_all_types()');

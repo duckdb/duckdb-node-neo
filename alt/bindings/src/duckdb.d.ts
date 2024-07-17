@@ -208,10 +208,9 @@ export interface ConfigFlag {
 // Functions
 
 // duckdb_state duckdb_open(const char *path, duckdb_database *out_database)
-export function open(path: string): Promise<Database>;
+export function open(path?: string, config?: Config): Promise<Database>;
 
 // duckdb_state duckdb_open_ext(const char *path, duckdb_database *out_database, duckdb_config config, char **out_error)
-export function open_ext(path: string, config: Config): Promise<Database>;
 
 // void duckdb_close(duckdb_database *database)
 export function close(database: Database): Promise<void>;

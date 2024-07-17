@@ -102,15 +102,31 @@ class OpenWorker : public PromiseWorker {
 
 public:
 
-  OpenWorker(Napi::Env env, std::string path)
-    : PromiseWorker(env), path_(path) {
+  OpenWorker(Napi::Env env, std::optional<std::string> path, duckdb_config config)
+    : PromiseWorker(env), path_(path), config_(config) {
   }
 
 protected:
 
   void Execute() override {
-    if (duckdb_open(path_.c_str(), &database_)) {
-      SetError("Failed to open");
+    const char *path = nullptr;
+    if (path_) {
+      path = path_->c_str();
+    }
+    if (config_ != nullptr) {
+      char *error = nullptr;
+      if (duckdb_open_ext(path, &database_, config_, &error)) {
+        if (error != nullptr) {
+          SetError(error);
+          duckdb_free(error);
+        } else {
+          SetError("Failed to open");
+        }
+      }
+    } else {
+      if (duckdb_open(path, &database_)) {
+        SetError("Failed to open");
+      }
     }
   }
 
@@ -120,7 +136,8 @@ protected:
 
 private:
 
-  std::string path_;
+  std::optional<std::string> path_;
+  duckdb_config config_;
   duckdb_database database_;
 
 };
@@ -255,7 +272,6 @@ public:
       InstanceValue("Type", CreateTypeEnum(env)),
 
       InstanceMethod("open", &DuckDBNodeAddon::open),
-
       InstanceMethod("close", &DuckDBNodeAddon::close),
 
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
@@ -282,8 +298,17 @@ private:
   // function open(path: string): Promise<Database>
   Napi::Value open(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    std::string path = info[0].As<Napi::String>();
-    auto worker = new OpenWorker(env, path);
+    auto pathValue = info[0];
+    auto configValue = info[1];
+    std::optional<std::string> path = std::nullopt;
+    if (!pathValue.IsUndefined()) {
+      path = pathValue.As<Napi::String>();
+    }
+    duckdb_config config = nullptr;
+    if (!configValue.IsUndefined()) {
+      config = GetConfigFromExternal(env, configValue);
+    }
+    auto worker = new OpenWorker(env, path, config);
     worker->Queue();
     return worker->Promise();
   }
