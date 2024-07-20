@@ -72,6 +72,18 @@ duckdb_data_chunk GetDataChunkFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_data_chunk>(env, DataChunkTypeTag, value, "Invalid data chunk argument");
 }
 
+static const napi_type_tag LogicalTypeTypeTag = {
+  0x78AF202191ED4A23, 0x8093715369592A2B
+};
+
+Napi::External<_duckdb_logical_type> CreateExternalForLogicalType(Napi::Env env, duckdb_logical_type logical_type) {
+  return CreateExternal<_duckdb_logical_type>(env, LogicalTypeTypeTag, logical_type);
+}
+
+duckdb_logical_type GetLogicalTypeFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_logical_type>(env, LogicalTypeTypeTag, value, "Invalid logical type argument");
+}
+
 static const napi_type_tag ResultTypeTag = {
   0x08F7FE3AE12345E5, 0x8733310DC29372D9
 };
@@ -422,6 +434,24 @@ public:
 
       InstanceMethod("vector_size", &DuckDBNodeAddon::vector_size),
 
+      InstanceMethod("create_logical_type", &DuckDBNodeAddon::create_logical_type),
+      InstanceMethod("logical_type_get_alias", &DuckDBNodeAddon::logical_type_get_alias),
+      InstanceMethod("create_list_type", &DuckDBNodeAddon::create_list_type),
+      // TODO: duckdb_create_array_type
+      // TODO: duckdb_create_map_type
+      // TODO: duckdb_create_union_type
+      // TODO: duckdb_create_struct_type
+      // TODO: duckdb_create_enum_type
+      InstanceMethod("create_decimal_type", &DuckDBNodeAddon::create_decimal_type),
+      InstanceMethod("get_type_id", &DuckDBNodeAddon::get_type_id),
+      InstanceMethod("decimal_width", &DuckDBNodeAddon::decimal_width),
+      InstanceMethod("decimal_scale", &DuckDBNodeAddon::decimal_scale),
+      InstanceMethod("decimal_internal_type", &DuckDBNodeAddon::decimal_internal_type),
+      // TODO: ...
+      InstanceMethod("list_type_child_type", &DuckDBNodeAddon::list_type_child_type),
+      // TODO: ...
+      InstanceMethod("destroy_logical_type", &DuckDBNodeAddon::destroy_logical_type),
+
       // TODO: duckdb_create_data_chunk
       InstanceMethod("destroy_data_chunk", &DuckDBNodeAddon::destroy_data_chunk),
       // TODO: data_chunk_reset
@@ -745,22 +775,102 @@ private:
   // int64_t duckdb_get_int64(duckdb_value value)
 
   // duckdb_logical_type duckdb_create_logical_type(duckdb_type type)
+  // function create_logical_type(type: Type): LogicalType
+  Napi::Value create_logical_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto type = static_cast<duckdb_type>(info[0].As<Napi::Number>().Uint32Value());
+    auto logical_type = duckdb_create_logical_type(type);
+    return CreateExternalForLogicalType(env, logical_type);
+  }
+
   // char *duckdb_logical_type_get_alias(duckdb_logical_type type)
+  // function logical_type_get_alias(logical_type: LogicalType): string | null
+  Napi::Value logical_type_get_alias(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto alias = duckdb_logical_type_get_alias(logical_type);
+    if (!alias) {
+      return env.Null();
+    }
+    auto str = Napi::String::New(env, alias); 
+    duckdb_free(alias);
+    return str;
+  }
+
   // duckdb_logical_type duckdb_create_list_type(duckdb_logical_type type)
+  // function create_list_type(logical_type: LogicalType): LogicalType
+  Napi::Value create_list_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto child_logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto list_logical_type = duckdb_create_list_type(child_logical_type);
+    return CreateExternalForLogicalType(env, list_logical_type);
+  }
+
   // duckdb_logical_type duckdb_create_array_type(duckdb_logical_type type, idx_t array_size)
   // duckdb_logical_type duckdb_create_map_type(duckdb_logical_type key_type, duckdb_logical_type value_type)
   // duckdb_logical_type duckdb_create_union_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count)
   // duckdb_logical_type duckdb_create_struct_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count)
   // duckdb_logical_type duckdb_create_enum_type(const char **member_names, idx_t member_count)
+
   // duckdb_logical_type duckdb_create_decimal_type(uint8_t width, uint8_t scale)
+  // function create_decimal_type(width: number, scale: number): LogicalType
+  Napi::Value create_decimal_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto width = info[0].As<Napi::Number>().Uint32Value();
+    auto scale = info[1].As<Napi::Number>().Uint32Value();
+    auto logical_type = duckdb_create_decimal_type(width, scale);
+    return CreateExternalForLogicalType(env, logical_type);
+  }
+
   // duckdb_type duckdb_get_type_id(duckdb_logical_type type)
+  // function get_type_id(logical_type: LogicalType): Type
+  Napi::Value get_type_id(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto type = duckdb_get_type_id(logical_type);
+    return Napi::Number::New(env, type);
+  }
+
   // uint8_t duckdb_decimal_width(duckdb_logical_type type)
+  // function decimal_width(logical_type: LogicalType): number
+  Napi::Value decimal_width(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto width = duckdb_decimal_width(logical_type);
+    return Napi::Number::New(env, width);
+  }
+
   // uint8_t duckdb_decimal_scale(duckdb_logical_type type)
+  // function decimal_scale(logical_type: LogicalType): number
+  Napi::Value decimal_scale(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto width = duckdb_decimal_scale(logical_type);
+    return Napi::Number::New(env, width);
+  }
+
   // duckdb_type duckdb_decimal_internal_type(duckdb_logical_type type)
+  // function decimal_internal_type(logical_type: LogicalType): Type
+  Napi::Value decimal_internal_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto type = duckdb_decimal_internal_type(logical_type);
+    return Napi::Number::New(env, type);
+  }
+
   // duckdb_type duckdb_enum_internal_type(duckdb_logical_type type)
   // uint32_t duckdb_enum_dictionary_size(duckdb_logical_type type)
   // char *duckdb_enum_dictionary_value(duckdb_logical_type type, idx_t index)
+
   // duckdb_logical_type duckdb_list_type_child_type(duckdb_logical_type type)
+  // function list_type_child_type(logical_type: LogicalType): LogicalType
+  Napi::Value list_type_child_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto list_logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto child_logical_type = duckdb_list_type_child_type(list_logical_type);
+    return CreateExternalForLogicalType(env, child_logical_type);
+  }
+
   // duckdb_logical_type duckdb_array_type_child_type(duckdb_logical_type type)
   // idx_t duckdb_array_type_array_size(duckdb_logical_type type)
   // duckdb_logical_type duckdb_map_type_key_type(duckdb_logical_type type)
@@ -771,7 +881,15 @@ private:
   // idx_t duckdb_union_type_member_count(duckdb_logical_type type)
   // char *duckdb_union_type_member_name(duckdb_logical_type type, idx_t index)
   // duckdb_logical_type duckdb_union_type_member_type(duckdb_logical_type type, idx_t index)
+
   // void duckdb_destroy_logical_type(duckdb_logical_type *type)
+  // function destroy_logical_type(logical_type: LogicalType): void
+  Napi::Value destroy_logical_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    duckdb_destroy_logical_type(&logical_type);
+    return env.Undefined();
+  }
 
   // duckdb_data_chunk duckdb_create_data_chunk(duckdb_logical_type *types, idx_t column_count)
   // TODO

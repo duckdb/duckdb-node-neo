@@ -497,7 +497,7 @@ export function get_int64(value: Value): bigint;
 export function create_logical_type(type: Type): LogicalType;
 
 // char *duckdb_logical_type_get_alias(duckdb_logical_type type)
-export function logical_type_get_alias(logical_type: LogicalType): string;
+export function logical_type_get_alias(logical_type: LogicalType): string | null;
 
 // duckdb_logical_type duckdb_create_list_type(duckdb_logical_type type)
 export function create_list_type(logical_type: LogicalType): LogicalType;
