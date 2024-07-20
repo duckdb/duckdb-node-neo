@@ -17,7 +17,13 @@ suite('query', () => {
           expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.INTEGER);
           const chunk = await duckdb.fetch_chunk(res);
           try {
-            expect(chunk).toBeTruthy();
+            expect(duckdb.data_chunk_get_column_count(chunk)).toBe(1);
+            expect(duckdb.data_chunk_get_size(chunk)).toBe(1);
+            const vector = duckdb.data_chunk_get_vector(chunk, 0);
+            const data = duckdb.vector_get_data(vector, 4);
+            const dv = new DataView(data.buffer);
+            const value = dv.getInt32(0, true);
+            expect(value).toBe(17);
           } finally {
             duckdb.destroy_data_chunk(chunk);
           }
@@ -58,6 +64,20 @@ suite('query', () => {
           expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.BOOLEAN);
           expect(duckdb.column_name(res, 52)).toBe('list_of_fixed_int_array');
           expect(duckdb.column_type(res, 52)).toBe(duckdb.Type.LIST);
+          const chunk = await duckdb.fetch_chunk(res);
+          try {
+            expect(duckdb.data_chunk_get_column_count(chunk)).toBe(53);
+            expect(duckdb.data_chunk_get_size(chunk)).toBe(3);
+            const vector = duckdb.data_chunk_get_vector(chunk, 0);
+            const data = duckdb.vector_get_data(vector, 3);
+            const dv = new DataView(data.buffer);
+            const value0 = dv.getUint8(0) !== 0;
+            expect(value0).toBe(false);
+            const value1 = dv.getUint8(1) !== 0;
+            expect(value1).toBe(true);
+          } finally {
+            duckdb.destroy_data_chunk(chunk);
+          }
         } finally {
           duckdb.destroy_result(res);
         }
@@ -81,6 +101,13 @@ suite('query', () => {
           expect(duckdb.column_count(res)).toBe(1);
           expect(duckdb.column_name(res, 0)).toBe('Count');
           expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.BIGINT);
+          const chunk = await duckdb.fetch_chunk(res);
+          try {
+            expect(duckdb.data_chunk_get_column_count(chunk)).toBe(0);
+            expect(duckdb.data_chunk_get_size(chunk)).toBe(0);
+          } finally {
+            duckdb.destroy_data_chunk(chunk);
+          }
         } finally {
           duckdb.destroy_result(res);
         }
@@ -92,6 +119,18 @@ suite('query', () => {
           expect(duckdb.column_count(res2)).toBe(1);
           expect(duckdb.column_name(res2, 0)).toBe('Count');
           expect(duckdb.column_type(res2, 0)).toBe(duckdb.Type.BIGINT);
+          const chunk = await duckdb.fetch_chunk(res2);
+          try {
+            expect(duckdb.data_chunk_get_column_count(chunk)).toBe(1);
+            expect(duckdb.data_chunk_get_size(chunk)).toBe(1);
+            const vector = duckdb.data_chunk_get_vector(chunk, 0);
+            const data = duckdb.vector_get_data(vector, 8);
+            const dv = new DataView(data.buffer);
+            const value = dv.getBigInt64(0, true);
+            expect(value).toBe(17n);
+          } finally {
+            duckdb.destroy_data_chunk(chunk);
+          }
         } finally {
           duckdb.destroy_result(res2);
         }

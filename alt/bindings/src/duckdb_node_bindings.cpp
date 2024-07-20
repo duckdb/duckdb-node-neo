@@ -1,4 +1,5 @@
 #define NODE_ADDON_API_DISABLE_DEPRECATED
+#define NODE_API_NO_EXTERNAL_BUFFERS_ALLOWED
 #include "napi.h"
 
 #include <optional>
@@ -81,6 +82,18 @@ Napi::External<duckdb_result> CreateExternalForResult(Napi::Env env, duckdb_resu
 
 duckdb_result *GetResultFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<duckdb_result>(env, ResultTypeTag, value, "Invalid result argument");
+}
+
+static const napi_type_tag VectorTypeTag = {
+  0x9FE56DE8E3124D07, 0x9ABF31145EDE1C9E
+};
+
+Napi::External<_duckdb_vector> CreateExternalForVector(Napi::Env env, duckdb_vector vector) {
+  return CreateExternal<_duckdb_vector>(env, VectorTypeTag, vector);
+}
+
+duckdb_vector GetVectorFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_vector>(env, VectorTypeTag, value, "Invalid vector argument");
 }
 
 class PromiseWorker : public Napi::AsyncWorker {
@@ -410,6 +423,13 @@ public:
       InstanceMethod("vector_size", &DuckDBNodeAddon::vector_size),
 
       InstanceMethod("destroy_data_chunk", &DuckDBNodeAddon::destroy_data_chunk),
+      // TODO: data_chunk_reset
+      InstanceMethod("data_chunk_get_column_count", &DuckDBNodeAddon::data_chunk_get_column_count),
+      InstanceMethod("data_chunk_get_vector", &DuckDBNodeAddon::data_chunk_get_vector),
+      InstanceMethod("data_chunk_get_size", &DuckDBNodeAddon::data_chunk_get_size),
+      // TODO: data_chunk_set_size
+
+      InstanceMethod("vector_get_data", &DuckDBNodeAddon::vector_get_data),
 
       InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
     });
@@ -739,6 +759,7 @@ private:
   // void duckdb_destroy_logical_type(duckdb_logical_type *type)
 
   // duckdb_data_chunk duckdb_create_data_chunk(duckdb_logical_type *types, idx_t column_count)
+  // TODO
 
   // void duckdb_destroy_data_chunk(duckdb_data_chunk *chunk)
   // function destroy_data_chunk(chunk: DataChunk): void
@@ -750,14 +771,54 @@ private:
   }
 
   // void duckdb_data_chunk_reset(duckdb_data_chunk chunk)
+  // TODO
+
   // idx_t duckdb_data_chunk_get_column_count(duckdb_data_chunk chunk)
+  // function data_chunk_get_column_count(chunk: DataChunk): number
+  Napi::Value data_chunk_get_column_count(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto chunk = GetDataChunkFromExternal(env, info[0]);
+    auto column_count = duckdb_data_chunk_get_column_count(chunk);
+    return Napi::Number::New(env, column_count);
+  }
+
   // duckdb_vector duckdb_data_chunk_get_vector(duckdb_data_chunk chunk, idx_t col_idx)
+  // function data_chunk_get_vector(chunk: DataChunk, column_index: number): Vector
+  Napi::Value data_chunk_get_vector(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto chunk = GetDataChunkFromExternal(env, info[0]);
+    auto column_index = info[1].As<Napi::Number>().Uint32Value();
+    auto vector = duckdb_data_chunk_get_vector(chunk, column_index);
+    return CreateExternalForVector(env, vector);
+  }
+
   // idx_t duckdb_data_chunk_get_size(duckdb_data_chunk chunk)
+  // function data_chunk_get_size(chunk: DataChunk): number
+  Napi::Value data_chunk_get_size(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto chunk = GetDataChunkFromExternal(env, info[0]);
+    auto size = duckdb_data_chunk_get_size(chunk);
+    return Napi::Number::New(env, size);
+  }
+
   // void duckdb_data_chunk_set_size(duckdb_data_chunk chunk, idx_t size)
+  // TODO
 
   // duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector)
+  // TODO
+
   // void *duckdb_vector_get_data(duckdb_vector vector)
+  // function vector_get_data(vector: Vector, length: number): Buffer
+  Napi::Value vector_get_data(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto byteCount = info[1].As<Napi::Number>().Uint32Value();
+    auto data = duckdb_vector_get_data(vector);
+    return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(data), byteCount);
+  }
+
   // uint64_t *duckdb_vector_get_validity(duckdb_vector vector)
+
   // void duckdb_vector_ensure_validity_writable(duckdb_vector vector)
   // void duckdb_vector_assign_string_element(duckdb_vector vector, idx_t index, const char *str)
   // void duckdb_vector_assign_string_element_len(duckdb_vector vector, idx_t index, const char *str, idx_t str_len)

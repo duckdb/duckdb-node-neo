@@ -602,7 +602,7 @@ export function data_chunk_set_size(chunk: DataChunk, size: number): void;
 export function vector_get_column_type(vector: Vector): LogicalType;
 
 // void *duckdb_vector_get_data(duckdb_vector vector)
-export function vector_get_data(vector: Vector): Uint8Array;
+export function vector_get_data(vector: Vector, byteCount: number): Buffer;
 
 // uint64_t *duckdb_vector_get_validity(duckdb_vector vector)
 export function vector_get_validity(vector: Vector): BigUint64Array;
