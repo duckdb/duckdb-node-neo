@@ -422,6 +422,7 @@ public:
 
       InstanceMethod("vector_size", &DuckDBNodeAddon::vector_size),
 
+      // TODO: duckdb_create_data_chunk
       InstanceMethod("destroy_data_chunk", &DuckDBNodeAddon::destroy_data_chunk),
       // TODO: data_chunk_reset
       InstanceMethod("data_chunk_get_column_count", &DuckDBNodeAddon::data_chunk_get_column_count),
@@ -429,8 +430,21 @@ public:
       InstanceMethod("data_chunk_get_size", &DuckDBNodeAddon::data_chunk_get_size),
       // TODO: data_chunk_set_size
 
+      // TODO: duckdb_vector_get_column_type
       InstanceMethod("vector_get_data", &DuckDBNodeAddon::vector_get_data),
       InstanceMethod("vector_get_validity", &DuckDBNodeAddon::vector_get_validity),
+      // TODO: duckdb_vector_ensure_validity_writable
+      // TODO: duckdb_vector_assign_string_element
+      InstanceMethod("list_vector_get_child", &DuckDBNodeAddon::list_vector_get_child),
+      InstanceMethod("list_vector_get_size", &DuckDBNodeAddon::list_vector_get_size),
+      // TODO: duckdb_list_vector_set_size
+      // TODO: duckdb_list_vector_reserve
+      InstanceMethod("struct_vector_get_child", &DuckDBNodeAddon::struct_vector_get_child),
+      InstanceMethod("array_vector_get_child", &DuckDBNodeAddon::array_vector_get_child),
+      InstanceMethod("validity_row_is_valid", &DuckDBNodeAddon::validity_row_is_valid),
+      // TODO: duckdb_validity_set_row_validity
+      // TODO: duckdb_validity_set_row_invalid
+      // TODO: duckdb_validity_set_row_valid
 
       InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
     });
@@ -829,18 +843,72 @@ private:
   }
 
   // void duckdb_vector_ensure_validity_writable(duckdb_vector vector)
+  // TODO
+
   // void duckdb_vector_assign_string_element(duckdb_vector vector, idx_t index, const char *str)
+  // TODO
+  
   // void duckdb_vector_assign_string_element_len(duckdb_vector vector, idx_t index, const char *str, idx_t str_len)
+  // not exposed: JS string includes length
+
   // duckdb_vector duckdb_list_vector_get_child(duckdb_vector vector)
+  // function list_vector_get_child(vector: Vector): Vector
+  Napi::Value list_vector_get_child(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto child = duckdb_list_vector_get_child(vector);
+    return CreateExternalForVector(env, child);
+  }
+
   // idx_t duckdb_list_vector_get_size(duckdb_vector vector)
+  // function list_vector_get_size(vector: Vector): number
+  Napi::Value list_vector_get_size(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto size = duckdb_list_vector_get_size(vector);
+    return Napi::Number::New(env, size);
+  }
+
   // duckdb_state duckdb_list_vector_set_size(duckdb_vector vector, idx_t size)
   // duckdb_state duckdb_list_vector_reserve(duckdb_vector vector, idx_t required_capacity)
+
   // duckdb_vector duckdb_struct_vector_get_child(duckdb_vector vector, idx_t index)
+  // function struct_vector_get_child(vector: Vector, index: number): Vector
+  Napi::Value struct_vector_get_child(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto child = duckdb_struct_vector_get_child(vector, index);
+    return CreateExternalForVector(env, child);
+  }
+
   // duckdb_vector duckdb_array_vector_get_child(duckdb_vector vector)
+  // function array_vector_get_child(vector: Vector): Vector
+  Napi::Value array_vector_get_child(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto child = duckdb_array_vector_get_child(vector);
+    return CreateExternalForVector(env, child);
+  }
+
   // bool duckdb_validity_row_is_valid(uint64_t *validity, idx_t row)
+  // function validity_row_is_valid(validity: Buffer, row_index: number): boolean
+  Napi::Value validity_row_is_valid(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto validity = reinterpret_cast<uint64_t*>(info[0].As<Napi::Buffer<uint8_t>>().Data());
+    auto row_index = info[1].As<Napi::Number>().Uint32Value();
+    auto valid = duckdb_validity_row_is_valid(validity, row_index);
+    return Napi::Boolean::New(env, valid);
+  }
+
   // void duckdb_validity_set_row_validity(uint64_t *validity, idx_t row, bool valid)
+  // TODO
+
   // void duckdb_validity_set_row_invalid(uint64_t *validity, idx_t row)
+  // TODO
+
   // void duckdb_validity_set_row_valid(uint64_t *validity, idx_t row)
+  // TODO
 
   // duckdb_state duckdb_appender_create(duckdb_connection connection, const char *schema, const char *table, duckdb_appender *out_appender)
   // idx_t duckdb_appender_column_count(duckdb_appender appender)

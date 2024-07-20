@@ -634,16 +634,16 @@ export function struct_vector_get_child(vector: Vector, index: number): Vector;
 export function array_vector_get_child(vector: Vector): Vector;
 
 // bool duckdb_validity_row_is_valid(uint64_t *validity, idx_t row)
-export function validity_row_is_valid(validity: BigUint64Array, row_index: number): boolean;
+export function validity_row_is_valid(validity: Buffer, row_index: number): boolean;
 
 // void duckdb_validity_set_row_validity(uint64_t *validity, idx_t row, bool valid)
-export function validity_set_row_validity(validity: BigUint64Array, row_index: number, valid: boolean): void;
+export function validity_set_row_validity(validity: Buffer, row_index: number, valid: boolean): void;
 
 // void duckdb_validity_set_row_invalid(uint64_t *validity, idx_t row)
-export function validity_set_row_invalid(validity: BigUint64Array, row_index: number): void;
+export function validity_set_row_invalid(validity: Buffer, row_index: number): void;
 
 // void duckdb_validity_set_row_valid(uint64_t *validity, idx_t row)
-export function validity_set_row_valid(validity: BigUint64Array, row_index: number): void;
+export function validity_set_row_valid(validity: Buffer, row_index: number): void;
 
 // duckdb_state duckdb_appender_create(duckdb_connection connection, const char *schema, const char *table, duckdb_appender *out_appender)
 export function appender_create(connection: Connection, schema: string, table: string): Appender;
