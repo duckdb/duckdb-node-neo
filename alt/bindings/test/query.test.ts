@@ -1,6 +1,10 @@
 import duckdb from 'duckdb';
 import { expect, suite, test } from 'vitest';
 
+function isValid(validity: BigUint64Array, bit: number): boolean {
+  return (validity[Math.floor(bit / 64)] & (1n << BigInt(bit % 64))) !== 0n;
+}
+
 suite('query', () => {
   test('basic select', async () => {
     const db = await duckdb.open();
@@ -22,6 +26,9 @@ suite('query', () => {
             const vector = duckdb.data_chunk_get_vector(chunk, 0);
             const data = duckdb.vector_get_data(vector, 4);
             const dv = new DataView(data.buffer);
+            const validityBytes = duckdb.vector_get_validity(vector, 8);
+            const validity = new BigUint64Array(validityBytes.buffer, 0, 1);
+            expect(isValid(validity, 0)).toBe(true);
             const value = dv.getInt32(0, true);
             expect(value).toBe(17);
           } finally {
@@ -71,10 +78,15 @@ suite('query', () => {
             const vector = duckdb.data_chunk_get_vector(chunk, 0);
             const data = duckdb.vector_get_data(vector, 3);
             const dv = new DataView(data.buffer);
+            const validityBytes = duckdb.vector_get_validity(vector, 8);
+            const validity = new BigUint64Array(validityBytes.buffer, 0, 1);
+            expect(isValid(validity, 0)).toBe(true);
             const value0 = dv.getUint8(0) !== 0;
             expect(value0).toBe(false);
+            expect(isValid(validity, 1)).toBe(true);
             const value1 = dv.getUint8(1) !== 0;
             expect(value1).toBe(true);
+            expect(isValid(validity, 2)).toBe(false);
           } finally {
             duckdb.destroy_data_chunk(chunk);
           }
@@ -126,6 +138,9 @@ suite('query', () => {
             const vector = duckdb.data_chunk_get_vector(chunk, 0);
             const data = duckdb.vector_get_data(vector, 8);
             const dv = new DataView(data.buffer);
+            const validityBytes = duckdb.vector_get_validity(vector, 8);
+            const validity = new BigUint64Array(validityBytes.buffer, 0, 1);
+            expect(isValid(validity, 0)).toBe(true);
             const value = dv.getBigInt64(0, true);
             expect(value).toBe(17n);
           } finally {

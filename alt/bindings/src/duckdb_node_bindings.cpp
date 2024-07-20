@@ -430,6 +430,7 @@ public:
       // TODO: data_chunk_set_size
 
       InstanceMethod("vector_get_data", &DuckDBNodeAddon::vector_get_data),
+      InstanceMethod("vector_get_validity", &DuckDBNodeAddon::vector_get_validity),
 
       InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
     });
@@ -813,11 +814,19 @@ private:
     auto env = info.Env();
     auto vector = GetVectorFromExternal(env, info[0]);
     auto byteCount = info[1].As<Napi::Number>().Uint32Value();
-    auto data = duckdb_vector_get_data(vector);
+    void *data = duckdb_vector_get_data(vector);
     return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(data), byteCount);
   }
 
   // uint64_t *duckdb_vector_get_validity(duckdb_vector vector)
+  // function vector_get_validity(vector: Vector, byteCount: number): Buffer
+  Napi::Value vector_get_validity(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto byteCount = info[1].As<Napi::Number>().Uint32Value();
+    uint64_t *data = duckdb_vector_get_validity(vector);
+    return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(data), byteCount);
+  }
 
   // void duckdb_vector_ensure_validity_writable(duckdb_vector vector)
   // void duckdb_vector_assign_string_element(duckdb_vector vector, idx_t index, const char *str)
