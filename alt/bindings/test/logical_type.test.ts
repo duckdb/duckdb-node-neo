@@ -11,6 +11,27 @@ suite('logical_type', () => {
       duckdb.destroy_logical_type(int_type);
     }
   });
+  test('array', () => {
+    const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    try {
+      const array_type = duckdb.create_array_type(int_type, 3);
+      try {
+        expect(duckdb.get_type_id(array_type)).toBe(duckdb.Type.ARRAY);
+        expect(duckdb.logical_type_get_alias(array_type)).toBeNull();
+        expect(duckdb.array_type_array_size(array_type)).toBe(3);
+        const child_type = duckdb.array_type_child_type(array_type);
+        try {
+          expect(duckdb.get_type_id(child_type)).toBe(duckdb.Type.INTEGER);
+        } finally {
+          duckdb.destroy_logical_type(child_type);
+        }
+      } finally {
+        duckdb.destroy_logical_type(array_type);
+      }
+    } finally {
+      duckdb.destroy_logical_type(int_type);
+    }
+  });
   test('decimal (SMALLINT)', () => {
     const decimal_type = duckdb.create_decimal_type(4, 1);
     try {
@@ -59,6 +80,45 @@ suite('logical_type', () => {
       duckdb.destroy_logical_type(decimal_type);
     }
   });
+  test('enum (small)', () => {
+    const enum_type = duckdb.create_enum_type(['DUCK_DUCK_ENUM', 'GOOSE']);
+    try {
+      expect(duckdb.get_type_id(enum_type)).toBe(duckdb.Type.ENUM);
+      expect(duckdb.logical_type_get_alias(enum_type)).toBeNull();
+      expect(duckdb.enum_internal_type(enum_type)).toBe(duckdb.Type.UTINYINT);
+      expect(duckdb.enum_dictionary_size(enum_type)).toBe(2);
+      expect(duckdb.enum_dictionary_value(enum_type, 0)).toBe('DUCK_DUCK_ENUM');
+      expect(duckdb.enum_dictionary_value(enum_type, 1)).toBe('GOOSE');
+    } finally {
+      duckdb.destroy_logical_type(enum_type);
+    }
+  });
+  test('enum (medium)', () => {
+    const enum_type = duckdb.create_enum_type(Array.from({ length: 300 }).map((_, i) => `enum_${i}`));
+    try {
+      expect(duckdb.get_type_id(enum_type)).toBe(duckdb.Type.ENUM);
+      expect(duckdb.logical_type_get_alias(enum_type)).toBeNull();
+      expect(duckdb.enum_internal_type(enum_type)).toBe(duckdb.Type.USMALLINT);
+      expect(duckdb.enum_dictionary_size(enum_type)).toBe(300);
+      expect(duckdb.enum_dictionary_value(enum_type, 0)).toBe('enum_0');
+      expect(duckdb.enum_dictionary_value(enum_type, 299)).toBe('enum_299');
+    } finally {
+      duckdb.destroy_logical_type(enum_type);
+    }
+  });
+  test('enum (large)', () => {
+    const enum_type = duckdb.create_enum_type(Array.from({ length: 70000 }).map((_, i) => `enum_${i}`));
+    try {
+      expect(duckdb.get_type_id(enum_type)).toBe(duckdb.Type.ENUM);
+      expect(duckdb.logical_type_get_alias(enum_type)).toBeNull();
+      expect(duckdb.enum_internal_type(enum_type)).toBe(duckdb.Type.UINTEGER);
+      expect(duckdb.enum_dictionary_size(enum_type)).toBe(70000);
+      expect(duckdb.enum_dictionary_value(enum_type, 0)).toBe('enum_0');
+      expect(duckdb.enum_dictionary_value(enum_type, 69999)).toBe('enum_69999');
+    } finally {
+      duckdb.destroy_logical_type(enum_type);
+    }
+  });
   test('list', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
     try {
@@ -77,6 +137,34 @@ suite('logical_type', () => {
       }
     } finally {
       duckdb.destroy_logical_type(int_type);
+    }
+  });
+  test('map', () => {
+    const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
+    const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    try {
+      const map_type = duckdb.create_map_type(varchar_type, int_type);
+      try {
+        expect(duckdb.get_type_id(map_type)).toBe(duckdb.Type.MAP);
+        expect(duckdb.logical_type_get_alias(map_type)).toBeNull();
+        const key_type = duckdb.map_type_key_type(map_type);
+        try {
+          expect(duckdb.get_type_id(key_type)).toBe(duckdb.Type.VARCHAR);
+        } finally {
+          duckdb.destroy_logical_type(key_type);
+        }
+        const value_type = duckdb.map_type_value_type(map_type);
+        try {
+          expect(duckdb.get_type_id(value_type)).toBe(duckdb.Type.INTEGER);
+        } finally {
+          duckdb.destroy_logical_type(value_type);
+        }
+      } finally {
+        duckdb.destroy_logical_type(map_type);
+      }
+    } finally {
+      duckdb.destroy_logical_type(int_type);
+      duckdb.destroy_logical_type(varchar_type);
     }
   });
 });
