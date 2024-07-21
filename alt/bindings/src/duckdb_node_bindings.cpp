@@ -4,6 +4,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "duckdb.h"
 
@@ -849,13 +850,13 @@ private:
     auto env = info.Env();
     auto member_names_array = info[0].As<Napi::Array>();
     auto member_count = member_names_array.Length();
-    std::string member_names_strings[member_count]; // keep references to the std::string objects so they don't get freed before we're done
-    const char *member_names[member_count];
+    std::vector<std::string> member_names_strings(member_count);
+    std::vector<const char *> member_names(member_count);
     for (uint32_t i = 0; i < member_count; i++) {
       member_names_strings[i] = member_names_array.Get(i).As<Napi::String>();
       member_names[i] = member_names_strings[i].c_str();
     }
-    auto enum_logical_type = duckdb_create_enum_type(member_names, member_count);
+    auto enum_logical_type = duckdb_create_enum_type(member_names.data(), member_count);
     return CreateExternalForLogicalType(env, enum_logical_type);
   }
 
