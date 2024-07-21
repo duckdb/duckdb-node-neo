@@ -3,6 +3,7 @@
 #include "napi.h"
 
 #include <optional>
+#include <string>
 
 #include "duckdb.h"
 
