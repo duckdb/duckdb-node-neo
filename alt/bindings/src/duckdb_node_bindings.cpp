@@ -477,6 +477,8 @@ public:
       // TODO: duckdb_validity_set_row_valid
 
       InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
+
+      InstanceMethod("get_data_from_pointer", &DuckDBNodeAddon::get_data_from_pointer),
     });
   }
 
@@ -941,23 +943,23 @@ private:
   // TODO
 
   // void *duckdb_vector_get_data(duckdb_vector vector)
-  // function vector_get_data(vector: Vector, length: number): Buffer
+  // function vector_get_data(vector: Vector, byte_count: number): Uint8Array
   Napi::Value vector_get_data(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto vector = GetVectorFromExternal(env, info[0]);
-    auto byteCount = info[1].As<Napi::Number>().Uint32Value();
+    auto byte_count = info[1].As<Napi::Number>().Uint32Value();
     void *data = duckdb_vector_get_data(vector);
-    return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(data), byteCount);
+    return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(data), byte_count);
   }
 
   // uint64_t *duckdb_vector_get_validity(duckdb_vector vector)
-  // function vector_get_validity(vector: Vector, byteCount: number): Buffer
+  // function vector_get_validity(vector: Vector, byte_count: number): Uint8Array
   Napi::Value vector_get_validity(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto vector = GetVectorFromExternal(env, info[0]);
-    auto byteCount = info[1].As<Napi::Number>().Uint32Value();
+    auto byte_count = info[1].As<Napi::Number>().Uint32Value();
     uint64_t *data = duckdb_vector_get_validity(vector);
-    return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(data), byteCount);
+    return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(data), byte_count);
   }
 
   // void duckdb_vector_ensure_validity_writable(duckdb_vector vector)
@@ -1010,10 +1012,10 @@ private:
   }
 
   // bool duckdb_validity_row_is_valid(uint64_t *validity, idx_t row)
-  // function validity_row_is_valid(validity: Buffer, row_index: number): boolean
+  // function validity_row_is_valid(validity: Uint8Array, row_index: number): boolean
   Napi::Value validity_row_is_valid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto validity = reinterpret_cast<uint64_t*>(info[0].As<Napi::Buffer<uint8_t>>().Data());
+    auto validity = reinterpret_cast<uint64_t*>(info[0].As<Napi::Uint8Array>().Data());
     auto row_index = info[1].As<Napi::Number>().Uint32Value();
     auto valid = duckdb_validity_row_is_valid(validity, row_index);
     return Napi::Boolean::New(env, valid);
@@ -1070,6 +1072,17 @@ private:
     return worker->Promise();
   }
 
+  // ADDED
+  // function get_data_from_pointer(array_buffer: ArrayBuffer, pointer_offset: number, byte_count: number): Uint8Array
+  Napi::Value get_data_from_pointer(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto data = reinterpret_cast<uint8_t*>(info[0].As<Napi::ArrayBuffer>().Data());
+    auto pointer_offset = info[1].As<Napi::Number>().Uint32Value();
+    auto byte_count = info[2].As<Napi::Number>().Uint32Value();
+    auto pointer_pointer = reinterpret_cast<uint8_t**>(data + pointer_offset);
+    auto pointer = *pointer_pointer;
+    return Napi::Buffer<uint8_t>::NewOrCopy(env, pointer, byte_count);
+  }
 
 };
 

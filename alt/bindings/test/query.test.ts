@@ -5,9 +5,32 @@ function isValid(validity: BigUint64Array, bit: number): boolean {
   return (validity[Math.floor(bit / 64)] & (1n << BigInt(bit % 64))) !== 0n;
 }
 
-function expectValidity(validity_bytes: Buffer, validity: BigUint64Array, bit: number, expected: boolean) {
+function expectValidity(validity_bytes: Uint8Array, validity: BigUint64Array, bit: number, expected: boolean) {
   expect(duckdb.validity_row_is_valid(validity_bytes, bit)).toBe(expected);
   expect(isValid(validity, bit)).toBe(expected);
+}
+
+/**
+ * Gets the bytes either in or referenced by a `duckdb_string_t`
+ * that is at `string_byte_offset` of the given `DataView`.
+ */
+function getStringBytes(dv: DataView, string_byte_offset: number): Uint8Array {
+  const length_in_bytes = dv.getUint32(string_byte_offset, true);
+  if (length_in_bytes <= 12) {
+    return new Uint8Array(dv.buffer, dv.byteOffset + string_byte_offset + 4, length_in_bytes);
+  } else {
+    return duckdb.get_data_from_pointer(dv.buffer, dv.byteOffset + string_byte_offset + 8, length_in_bytes);
+  }
+}
+
+const decoder = new TextDecoder();
+
+/**
+ * Gets the UTF-8 string either in or referenced by a `duckdb_string_t`
+ * that is at `string_byte_offset` of the given `DataView`.
+ */
+function getVarchar(dv: DataView, string_byte_offset: number): string {
+  return decoder.decode(getStringBytes(dv, string_byte_offset));
 }
 
 suite('query', () => {
@@ -74,8 +97,14 @@ suite('query', () => {
           expect(duckdb.column_count(res)).toBe(53);
           expect(duckdb.column_name(res, 0)).toBe('bool');
           expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.BOOLEAN);
+          expect(duckdb.column_name(res, 27)).toBe('varchar');
+          expect(duckdb.column_type(res, 27)).toBe(duckdb.Type.VARCHAR);
           expect(duckdb.column_name(res, 33)).toBe('int_array');
           expect(duckdb.column_type(res, 33)).toBe(duckdb.Type.LIST);
+          expect(duckdb.column_name(res, 40)).toBe('struct');
+          expect(duckdb.column_type(res, 40)).toBe(duckdb.Type.STRUCT);
+          expect(duckdb.column_name(res, 45)).toBe('fixed_int_array');
+          expect(duckdb.column_type(res, 45)).toBe(duckdb.Type.ARRAY);
           expect(duckdb.column_name(res, 52)).toBe('list_of_fixed_int_array');
           expect(duckdb.column_type(res, 52)).toBe(duckdb.Type.LIST);
           const chunk = await duckdb.fetch_chunk(res);
@@ -99,6 +128,21 @@ suite('query', () => {
             expect(bool_value1).toBe(true);
 
             expectValidity(bool_validity_bytes, bool_validity, 2, false);
+
+            // varchar
+            const varchar_vector = duckdb.data_chunk_get_vector(chunk, 27);
+            const varchar_validity_bytes = duckdb.vector_get_validity(varchar_vector, 8);
+            const varchar_validity = new BigUint64Array(varchar_validity_bytes.buffer, 0, 1);
+            const varchar_data = duckdb.vector_get_data(varchar_vector, 3*16);
+            const varchar_dv = new DataView(varchar_data.buffer);
+
+            expectValidity(varchar_validity_bytes, varchar_validity, 0, true);
+            expect(getVarchar(varchar_dv, 0*16)).toBe('🦆🦆🦆🦆🦆🦆');
+
+            expectValidity(varchar_validity_bytes, varchar_validity, 1, true);
+            expect(getVarchar(varchar_dv, 1*16)).toBe('goo\0se');
+
+            expectValidity(varchar_validity_bytes, varchar_validity, 2, false);
 
             // int_array
             const int_array_vector = duckdb.data_chunk_get_vector(chunk, 33);
@@ -168,7 +212,7 @@ suite('query', () => {
             expect(struct_child0_dv.getInt32(1*4, true)).toBe(42);
             expectValidity(struct_child1_validity_bytes, struct_child1_validity, 1, true);
             expect(struct_child1_dv.getInt32(1*16, true)).toBe(24);
-            // TODO: validate string contents
+            expect(getVarchar(struct_child1_dv, 1*16)).toBe('🦆🦆🦆🦆🦆🦆');
 
             expectValidity(struct_validity_bytes, struct_validity, 2, false);
             expectValidity(struct_child0_validity_bytes, struct_child0_validity, 2, false);

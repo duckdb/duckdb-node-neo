@@ -602,10 +602,10 @@ export function data_chunk_set_size(chunk: DataChunk, size: number): void;
 export function vector_get_column_type(vector: Vector): LogicalType;
 
 // void *duckdb_vector_get_data(duckdb_vector vector)
-export function vector_get_data(vector: Vector, byteCount: number): Buffer;
+export function vector_get_data(vector: Vector, byte_count: number): Uint8Array;
 
 // uint64_t *duckdb_vector_get_validity(duckdb_vector vector)
-export function vector_get_validity(vector: Vector, byteCount: number): Buffer;
+export function vector_get_validity(vector: Vector, byte_cunt: number): Uint8Array;
 
 // void duckdb_vector_ensure_validity_writable(duckdb_vector vector)
 export function vector_ensure_validity_writable(vector: Vector): void;
@@ -634,16 +634,16 @@ export function struct_vector_get_child(vector: Vector, index: number): Vector;
 export function array_vector_get_child(vector: Vector): Vector;
 
 // bool duckdb_validity_row_is_valid(uint64_t *validity, idx_t row)
-export function validity_row_is_valid(validity: Buffer, row_index: number): boolean;
+export function validity_row_is_valid(validity: Uint8Array, row_index: number): boolean;
 
 // void duckdb_validity_set_row_validity(uint64_t *validity, idx_t row, bool valid)
-export function validity_set_row_validity(validity: Buffer, row_index: number, valid: boolean): void;
+export function validity_set_row_validity(validity: Uint8Array, row_index: number, valid: boolean): void;
 
 // void duckdb_validity_set_row_invalid(uint64_t *validity, idx_t row)
-export function validity_set_row_invalid(validity: Buffer, row_index: number): void;
+export function validity_set_row_invalid(validity: Uint8Array, row_index: number): void;
 
 // void duckdb_validity_set_row_valid(uint64_t *validity, idx_t row)
-export function validity_set_row_valid(validity: Buffer, row_index: number): void;
+export function validity_set_row_valid(validity: Uint8Array, row_index: number): void;
 
 // duckdb_state duckdb_appender_create(duckdb_connection connection, const char *schema, const char *table, duckdb_appender *out_appender)
 export function appender_create(connection: Connection, schema: string, table: string): Appender;
@@ -739,3 +739,11 @@ export function append_data_chunk(appender: Appender, chunk: DataChunk): State;
 
 // duckdb_data_chunk duckdb_fetch_chunk(duckdb_result result)
 export function fetch_chunk(result: Result): Promise<DataChunk>;
+
+// ADDED
+/** 
+ * Read a pointer from `array_buffer` at `pointer_offset`, then read and return `byte_count` bytes from that pointer.
+ * 
+ * Used to read from `duckdb_string_t`s with non-inlined data that are embedded in VARCHAR, BLOB, and BIT vectors.
+ */
+export function get_data_from_pointer(array_buffer: ArrayBuffer, pointer_offset: number, byte_count: number): Uint8Array;
