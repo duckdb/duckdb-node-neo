@@ -167,4 +167,35 @@ suite('logical_type', () => {
       duckdb.destroy_logical_type(varchar_type);
     }
   });
+  test('union', () => {
+    const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
+    const smallint_type = duckdb.create_logical_type(duckdb.Type.SMALLINT);
+    try {
+      const union_type = duckdb.create_union_type([varchar_type, smallint_type], ['name', 'age']);
+      try {
+        expect(duckdb.get_type_id(union_type)).toBe(duckdb.Type.UNION);
+        expect(duckdb.logical_type_get_alias(union_type)).toBeNull();
+        expect(duckdb.union_type_member_count(union_type)).toBe(2);
+        expect(duckdb.union_type_member_name(union_type, 0)).toBe('name');
+        expect(duckdb.union_type_member_name(union_type, 1)).toBe('age');
+        const member_type_0 = duckdb.union_type_member_type(union_type, 0);
+        try {
+          expect(duckdb.get_type_id(member_type_0)).toBe(duckdb.Type.VARCHAR);
+        } finally {
+          duckdb.destroy_logical_type(member_type_0);
+        }
+        const member_type_1 = duckdb.union_type_member_type(union_type, 1);
+        try {
+          expect(duckdb.get_type_id(member_type_1)).toBe(duckdb.Type.SMALLINT);
+        } finally {
+          duckdb.destroy_logical_type(member_type_1);
+        }
+      } finally {
+        duckdb.destroy_logical_type(union_type);
+      }
+    } finally {
+      duckdb.destroy_logical_type(smallint_type);
+      duckdb.destroy_logical_type(varchar_type);
+    }
+  });
 });

@@ -441,7 +441,7 @@ public:
       InstanceMethod("create_list_type", &DuckDBNodeAddon::create_list_type),
       InstanceMethod("create_array_type", &DuckDBNodeAddon::create_array_type),
       InstanceMethod("create_map_type", &DuckDBNodeAddon::create_map_type),
-      // TODO: duckdb_create_union_type
+      InstanceMethod("create_union_type", &DuckDBNodeAddon::create_union_type),
       // TODO: duckdb_create_struct_type
       InstanceMethod("create_enum_type", &DuckDBNodeAddon::create_enum_type),
       InstanceMethod("create_decimal_type", &DuckDBNodeAddon::create_decimal_type),
@@ -458,6 +458,9 @@ public:
       InstanceMethod("map_type_key_type", &DuckDBNodeAddon::map_type_key_type),
       InstanceMethod("map_type_value_type", &DuckDBNodeAddon::map_type_value_type),
       // TODO: ...
+      InstanceMethod("union_type_member_count", &DuckDBNodeAddon::union_type_member_count),
+      InstanceMethod("union_type_member_name", &DuckDBNodeAddon::union_type_member_name),
+      InstanceMethod("union_type_member_type", &DuckDBNodeAddon::union_type_member_type),
       InstanceMethod("destroy_logical_type", &DuckDBNodeAddon::destroy_logical_type),
 
       // TODO: duckdb_create_data_chunk
@@ -838,7 +841,24 @@ private:
 
   // duckdb_logical_type duckdb_create_union_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count)
   // function create_union_type(member_types: LogicalType[], member_names: string[]): LogicalType
-
+  Napi::Value create_union_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto member_types_array = info[0].As<Napi::Array>();
+    auto member_names_array = info[1].As<Napi::Array>();
+    auto member_types_count = member_types_array.Length();
+    auto member_names_count = member_names_array.Length();
+    auto member_count = member_types_count < member_names_count ? member_types_count : member_names_count;
+    std::vector<duckdb_logical_type> member_types(member_count);
+    std::vector<std::string> member_names_strings(member_count);
+    std::vector<const char *> member_names(member_count);
+    for (uint32_t i = 0; i < member_count; i++) {
+      member_types[i] = GetLogicalTypeFromExternal(env, member_types_array.Get(i));
+      member_names_strings[i] = member_names_array.Get(i).As<Napi::String>();
+      member_names[i] = member_names_strings[i].c_str();
+    }
+    auto union_logical_type = duckdb_create_union_type(member_types.data(), member_names.data(), member_count);
+    return CreateExternalForLogicalType(env, union_logical_type);
+  }
 
   // duckdb_logical_type duckdb_create_struct_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count)
   // function create_struct_type(member_types: LogicalType[], member_names: string[]): LogicalType
@@ -982,9 +1002,35 @@ private:
   // idx_t duckdb_struct_type_child_count(duckdb_logical_type type)
   // char *duckdb_struct_type_child_name(duckdb_logical_type type, idx_t index)
   // duckdb_logical_type duckdb_struct_type_child_type(duckdb_logical_type type, idx_t index)
+
   // idx_t duckdb_union_type_member_count(duckdb_logical_type type)
+  // function union_type_member_count(logical_type: LogicalType): number
+  Napi::Value union_type_member_count(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto union_logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto member_count = duckdb_union_type_member_count(union_logical_type);
+    return Napi::Number::New(env, member_count);
+  }
+
   // char *duckdb_union_type_member_name(duckdb_logical_type type, idx_t index)
+  // function union_type_member_name(logical_type: LogicalType, index: number): string
+  Napi::Value union_type_member_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto union_logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto member_name = duckdb_union_type_member_name(union_logical_type, index);
+    return Napi::String::New(env, member_name);
+  }
+
   // duckdb_logical_type duckdb_union_type_member_type(duckdb_logical_type type, idx_t index)
+  // function union_type_member_type(logical_type: LogicalType, index: number): LogicalType
+  Napi::Value union_type_member_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto union_logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto member_logical_type = duckdb_union_type_member_type(union_logical_type, index);
+    return CreateExternalForLogicalType(env, member_logical_type);
+  }
 
   // void duckdb_destroy_logical_type(duckdb_logical_type *type)
   // function destroy_logical_type(logical_type: LogicalType): void
