@@ -436,6 +436,26 @@ public:
 
       InstanceMethod("vector_size", &DuckDBNodeAddon::vector_size),
 
+      // TODO: from_date
+      // TODO: ...
+      // TODO: decimal_to_double
+
+      // TODO: prepare
+      // TODO: ...
+      // TODO: execute_prepared
+      
+      // TODO: extract_statements
+      // TODO: ...
+      // TODO: destroy_extracted
+
+      // TODO: pending_prepared
+      // TODO: ...
+      // TODO: pending_execution_is_finished
+
+      // TODO: destroy_value
+      // TODO: ...
+      // TODO: get_int64
+
       InstanceMethod("create_logical_type", &DuckDBNodeAddon::create_logical_type),
       InstanceMethod("logical_type_get_alias", &DuckDBNodeAddon::logical_type_get_alias),
       InstanceMethod("create_list_type", &DuckDBNodeAddon::create_list_type),
@@ -465,7 +485,7 @@ public:
       InstanceMethod("union_type_member_type", &DuckDBNodeAddon::union_type_member_type),
       InstanceMethod("destroy_logical_type", &DuckDBNodeAddon::destroy_logical_type),
 
-      // TODO: duckdb_create_data_chunk
+      // TODO: create_data_chunk
       InstanceMethod("destroy_data_chunk", &DuckDBNodeAddon::destroy_data_chunk),
       // TODO: data_chunk_reset
       InstanceMethod("data_chunk_get_column_count", &DuckDBNodeAddon::data_chunk_get_column_count),
@@ -473,21 +493,25 @@ public:
       InstanceMethod("data_chunk_get_size", &DuckDBNodeAddon::data_chunk_get_size),
       // TODO: data_chunk_set_size
 
-      // TODO: duckdb_vector_get_column_type
+      // TODO: vector_get_column_type
       InstanceMethod("vector_get_data", &DuckDBNodeAddon::vector_get_data),
       InstanceMethod("vector_get_validity", &DuckDBNodeAddon::vector_get_validity),
-      // TODO: duckdb_vector_ensure_validity_writable
-      // TODO: duckdb_vector_assign_string_element
+      // TODO: vector_ensure_validity_writable
+      // TODO: vector_assign_string_element
       InstanceMethod("list_vector_get_child", &DuckDBNodeAddon::list_vector_get_child),
       InstanceMethod("list_vector_get_size", &DuckDBNodeAddon::list_vector_get_size),
-      // TODO: duckdb_list_vector_set_size
-      // TODO: duckdb_list_vector_reserve
+      // TODO: list_vector_set_size
+      // TODO: list_vector_reserve
       InstanceMethod("struct_vector_get_child", &DuckDBNodeAddon::struct_vector_get_child),
       InstanceMethod("array_vector_get_child", &DuckDBNodeAddon::array_vector_get_child),
       InstanceMethod("validity_row_is_valid", &DuckDBNodeAddon::validity_row_is_valid),
-      // TODO: duckdb_validity_set_row_validity
-      // TODO: duckdb_validity_set_row_invalid
-      // TODO: duckdb_validity_set_row_valid
+      // TODO: validity_set_row_validity
+      // TODO: validity_set_row_invalid
+      // TODO: validity_set_row_valid
+
+      // TODO: appender_create
+      // TODO: ...
+      // TODO: append_data_chunk
 
       InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
 
