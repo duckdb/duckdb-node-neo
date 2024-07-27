@@ -47,6 +47,12 @@ suite('query', () => {
           expect(duckdb.column_count(res)).toBe(1);
           expect(duckdb.column_name(res, 0)).toBe('seventeen');
           expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.INTEGER);
+          const col_0_logical_type = duckdb.column_logical_type(res, 0);
+          try {
+            expect(duckdb.get_type_id(col_0_logical_type)).toBe(duckdb.Type.INTEGER);
+          } finally {
+            duckdb.destroy_logical_type(col_0_logical_type);
+          }
           const chunk = await duckdb.fetch_chunk(res);
           try {
             expect(duckdb.data_chunk_get_column_count(chunk)).toBe(1);
@@ -95,18 +101,102 @@ suite('query', () => {
           expect(duckdb.result_statement_type(res)).toBe(duckdb.StatementType.SELECT);
           expect(duckdb.result_return_type(res)).toBe(duckdb.ResultType.QUERY_RESULT);
           expect(duckdb.column_count(res)).toBe(53);
+
           expect(duckdb.column_name(res, 0)).toBe('bool');
           expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.BOOLEAN);
+          const col_0_logical_type = duckdb.column_logical_type(res, 0);
+          try {
+            expect(duckdb.get_type_id(col_0_logical_type)).toBe(duckdb.Type.BOOLEAN);
+          } finally {
+            duckdb.destroy_logical_type(col_0_logical_type);
+          }
+
           expect(duckdb.column_name(res, 27)).toBe('varchar');
           expect(duckdb.column_type(res, 27)).toBe(duckdb.Type.VARCHAR);
+          const col_27_logical_type = duckdb.column_logical_type(res, 27);
+          try {
+            expect(duckdb.get_type_id(col_27_logical_type)).toBe(duckdb.Type.VARCHAR);
+          } finally {
+            duckdb.destroy_logical_type(col_27_logical_type);
+          }
+
           expect(duckdb.column_name(res, 33)).toBe('int_array');
           expect(duckdb.column_type(res, 33)).toBe(duckdb.Type.LIST);
+          const col_33_logical_type = duckdb.column_logical_type(res, 33);
+          try {
+            expect(duckdb.get_type_id(col_33_logical_type)).toBe(duckdb.Type.LIST);
+            const child_type = duckdb.list_type_child_type(col_33_logical_type);
+            try {
+              expect(duckdb.get_type_id(child_type)).toBe(duckdb.Type.INTEGER);
+            } finally {
+              duckdb.destroy_logical_type(child_type);
+            }
+          } finally {
+            duckdb.destroy_logical_type(col_33_logical_type);
+          }
+
           expect(duckdb.column_name(res, 40)).toBe('struct');
           expect(duckdb.column_type(res, 40)).toBe(duckdb.Type.STRUCT);
+          const col_40_logical_type = duckdb.column_logical_type(res, 40);
+          try {
+            expect(duckdb.get_type_id(col_40_logical_type)).toBe(duckdb.Type.STRUCT);
+            expect(duckdb.struct_type_child_count(col_40_logical_type)).toBe(2);
+            expect(duckdb.struct_type_child_name(col_40_logical_type, 0)).toBe('a');
+            expect(duckdb.struct_type_child_name(col_40_logical_type, 1)).toBe('b');
+            const member_type_0 = duckdb.struct_type_child_type(col_40_logical_type, 0);
+            try {
+              expect(duckdb.get_type_id(member_type_0)).toBe(duckdb.Type.INTEGER);
+            } finally {
+              duckdb.destroy_logical_type(member_type_0);
+            }
+            const member_type_1 = duckdb.struct_type_child_type(col_40_logical_type, 1);
+            try {
+              expect(duckdb.get_type_id(member_type_1)).toBe(duckdb.Type.VARCHAR);
+            } finally {
+              duckdb.destroy_logical_type(member_type_1);
+            }
+          } finally {
+            duckdb.destroy_logical_type(col_40_logical_type);
+          }
+
           expect(duckdb.column_name(res, 45)).toBe('fixed_int_array');
           expect(duckdb.column_type(res, 45)).toBe(duckdb.Type.ARRAY);
+          const col_45_logical_type = duckdb.column_logical_type(res, 45);
+          try {
+            expect(duckdb.get_type_id(col_45_logical_type)).toBe(duckdb.Type.ARRAY);
+            expect(duckdb.array_type_array_size(col_45_logical_type)).toBe(3);
+            const child_type = duckdb.array_type_child_type(col_45_logical_type);
+            try {
+              expect(duckdb.get_type_id(child_type)).toBe(duckdb.Type.INTEGER);
+            } finally {
+              duckdb.destroy_logical_type(child_type);
+            }
+          } finally {
+            duckdb.destroy_logical_type(col_45_logical_type);
+          }
+
           expect(duckdb.column_name(res, 52)).toBe('list_of_fixed_int_array');
           expect(duckdb.column_type(res, 52)).toBe(duckdb.Type.LIST);
+          const col_52_logical_type = duckdb.column_logical_type(res, 52);
+          try {
+            expect(duckdb.get_type_id(col_52_logical_type)).toBe(duckdb.Type.LIST);
+            const child_type = duckdb.list_type_child_type(col_52_logical_type);
+            try {
+              expect(duckdb.get_type_id(child_type)).toBe(duckdb.Type.ARRAY);
+              expect(duckdb.array_type_array_size(child_type)).toBe(3);
+              const array_child_type = duckdb.array_type_child_type(child_type);
+              try {
+                expect(duckdb.get_type_id(array_child_type)).toBe(duckdb.Type.INTEGER);
+              } finally {
+                duckdb.destroy_logical_type(array_child_type);
+              }
+            } finally {
+              duckdb.destroy_logical_type(child_type);
+            }
+          } finally {
+            duckdb.destroy_logical_type(col_52_logical_type);
+          }
+
           const chunk = await duckdb.fetch_chunk(res);
           try {
             expect(duckdb.data_chunk_get_column_count(chunk)).toBe(53);

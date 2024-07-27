@@ -429,7 +429,7 @@ public:
       InstanceMethod("column_name", &DuckDBNodeAddon::column_name),
       InstanceMethod("column_type", &DuckDBNodeAddon::column_type),
       InstanceMethod("result_statement_type", &DuckDBNodeAddon::result_statement_type),
-      // TODO: column_logical_type
+      InstanceMethod("column_logical_type", &DuckDBNodeAddon::column_logical_type),
       InstanceMethod("column_count", &DuckDBNodeAddon::column_count),
       InstanceMethod("rows_changed", &DuckDBNodeAddon::rows_changed),
       InstanceMethod("result_return_type", &DuckDBNodeAddon::result_return_type),
@@ -668,7 +668,14 @@ private:
   }
 
   // duckdb_logical_type duckdb_column_logical_type(duckdb_result *result, idx_t col)
-  // TODO
+  // function column_logical_type(result: Result, column_index: number): LogicalType
+  Napi::Value column_logical_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto column_index = info[1].As<Napi::Number>().Uint32Value();
+    auto column_logical_type = duckdb_column_logical_type(result_ptr, column_index);
+    return CreateExternalForLogicalType(env, column_logical_type);
+  }
 
   // idx_t duckdb_column_count(duckdb_result *result)
   // function column_count(result: Result): number
