@@ -86,6 +86,18 @@ duckdb_logical_type GetLogicalTypeFromExternal(Napi::Env env, Napi::Value value)
   return GetDataFromExternal<_duckdb_logical_type>(env, LogicalTypeTypeTag, value, "Invalid logical type argument");
 }
 
+static const napi_type_tag PreparedStatementTypeTag = {
+  0xA8B03DAD16D34416, 0x9735A7E1F2A1240C
+};
+
+Napi::External<_duckdb_prepared_statement> CreateExternalForPreparedStatement(Napi::Env env, duckdb_prepared_statement prepared_statement) {
+  return CreateExternal<_duckdb_prepared_statement>(env, PreparedStatementTypeTag, prepared_statement);
+}
+
+duckdb_prepared_statement GetPreparedStatementFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_prepared_statement>(env, PreparedStatementTypeTag, value, "Invalid prepared statement argument");
+}
+
 static const napi_type_tag ResultTypeTag = {
   0x08F7FE3AE12345E5, 0x8733310DC29372D9
 };
@@ -272,6 +284,7 @@ protected:
     result_ptr_ = reinterpret_cast<duckdb_result*>(duckdb_malloc(sizeof(duckdb_result)));
     if (duckdb_query(connection_, query_.c_str(), result_ptr_)) {
       SetError(duckdb_result_error(result_ptr_));
+      duckdb_destroy_result(result_ptr_);
       duckdb_free(result_ptr_);
       result_ptr_ = nullptr;
     }
@@ -286,6 +299,35 @@ private:
   duckdb_connection connection_;
   std::string query_;
   duckdb_result *result_ptr_;
+
+};
+
+class PrepareWorker : public PromiseWorker {
+
+public:
+
+  PrepareWorker(Napi::Env env, duckdb_connection connection, std::string query)
+    : PromiseWorker(env), connection_(connection), query_(query) {
+  }
+
+protected:
+
+  void Execute() override {
+    if (duckdb_prepare(connection_, query_.c_str(), &prepared_statement_)) {
+      SetError(duckdb_prepare_error(prepared_statement_));
+      duckdb_destroy_prepare(&prepared_statement_);
+    }
+  }
+
+  Napi::Value Result() override {
+    return CreateExternalForPreparedStatement(Env(), prepared_statement_);
+  }
+
+private:
+
+  duckdb_connection connection_;
+  std::string query_;
+  duckdb_prepared_statement prepared_statement_;
 
 };
 
@@ -406,6 +448,8 @@ public:
 
   DuckDBNodeAddon(Napi::Env env, Napi::Object exports) {
     DefineAddon(exports, {
+      InstanceValue("sizeof_bool", Napi::Number::New(env, sizeof(bool))),
+
       InstanceValue("ResultType", CreateResultTypeEnum(env)),
       InstanceValue("StatementType", CreateStatementTypeEnum(env)),
       InstanceValue("Type", CreateTypeEnum(env)),
@@ -440,7 +484,8 @@ public:
       // TODO: ...
       // TODO: decimal_to_double
 
-      // TODO: prepare
+      InstanceMethod("prepare", &DuckDBNodeAddon::prepare),
+      InstanceMethod("destroy_prepare", &DuckDBNodeAddon::destroy_prepare),
       // TODO: ...
       // TODO: execute_prepared
       
@@ -493,7 +538,7 @@ public:
       InstanceMethod("data_chunk_get_size", &DuckDBNodeAddon::data_chunk_get_size),
       // TODO: data_chunk_set_size
 
-      // TODO: vector_get_column_type
+      InstanceMethod("vector_get_column_type", &DuckDBNodeAddon::vector_get_column_type),
       InstanceMethod("vector_get_data", &DuckDBNodeAddon::vector_get_data),
       InstanceMethod("vector_get_validity", &DuckDBNodeAddon::vector_get_validity),
       // TODO: vector_ensure_validity_writable
@@ -764,7 +809,25 @@ private:
   // double duckdb_decimal_to_double(duckdb_decimal val)
 
   // duckdb_state duckdb_prepare(duckdb_connection connection, const char *query, duckdb_prepared_statement *out_prepared_statement)
+  // function prepare(connection: Connection, query: string): Promise<PreparedStatement>
+  Napi::Value prepare(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    std::string query = info[1].As<Napi::String>();
+    auto worker = new PrepareWorker(env, connection, query);
+    worker->Queue();
+    return worker->Promise();
+  }
+
   // void duckdb_destroy_prepare(duckdb_prepared_statement *prepared_statement)
+  // function destroy_prepare(prepared_statement: PreparedStatement): void
+  Napi::Value destroy_prepare(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    duckdb_destroy_prepare(&prepared_statement);
+    return env.Undefined();
+  }
+
   // const char *duckdb_prepare_error(duckdb_prepared_statement prepared_statement)
   // idx_t duckdb_nparams(duckdb_prepared_statement prepared_statement)
   // const char *duckdb_parameter_name(duckdb_prepared_statement prepared_statement, idx_t index)
@@ -873,7 +936,7 @@ private:
   }
 
   // duckdb_logical_type duckdb_create_union_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count)
-  // function create_union_type(member_types: LogicalType[], member_names: string[]): LogicalType
+  // function create_union_type(member_types: readonly LogicalType[], member_names: readonly string[]): LogicalType
   Napi::Value create_union_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto member_types_array = info[0].As<Napi::Array>();
@@ -894,7 +957,7 @@ private:
   }
 
   // duckdb_logical_type duckdb_create_struct_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count)
-  // function create_struct_type(member_types: LogicalType[], member_names: string[]): LogicalType
+  // function create_struct_type(member_types: readonly LogicalType[], member_names: readonly string[]): LogicalType
   Napi::Value create_struct_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto member_types_array = info[0].As<Napi::Array>();
@@ -915,7 +978,7 @@ private:
   }
 
   // duckdb_logical_type duckdb_create_enum_type(const char **member_names, idx_t member_count)
-  // function create_enum_type(member_names: string[]): LogicalType
+  // function create_enum_type(member_names: readonly string[]): LogicalType
   Napi::Value create_enum_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto member_names_array = info[0].As<Napi::Array>();
@@ -1163,7 +1226,13 @@ private:
   // TODO
 
   // duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector)
-  // TODO
+  // function vector_get_column_type(vector: Vector): LogicalType
+  Napi::Value vector_get_column_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto logical_type = duckdb_vector_get_column_type(vector);
+    return CreateExternalForLogicalType(env, logical_type);
+  }
 
   // void *duckdb_vector_get_data(duckdb_vector vector)
   // function vector_get_data(vector: Vector, byte_count: number): Uint8Array

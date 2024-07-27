@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "tsc -b src test",
+    "build:src": "tsc -b src",
+    "build:test": "tsc -b test",
+    "clean": "rimraf out",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "duckdb": "../bindings/package",
+    "rimraf": "^5.0.7",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.2"
+  }
+}

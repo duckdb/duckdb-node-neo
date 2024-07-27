@@ -1,5 +1,7 @@
 // Enums
 
+export const sizeof_bool: number;
+
 export enum PendingState {
 	RESULT_READY = 0,
 	RESULT_NOT_READY = 1,
@@ -202,6 +204,11 @@ export interface Value {
 export interface ConfigFlag {
   name: string;
   description: string;
+}
+
+export interface ExtractedStatementsAndCount {
+	extracted_statements: ExtractedStatements;
+	statement_count: number;
 }
 
 
@@ -435,7 +442,7 @@ export function bind_null(prepared_statement: PreparedStatement, index: number):
 export function execute_prepared(prepared_statement: PreparedStatement): Promise<Result>;
 
 // idx_t duckdb_extract_statements(duckdb_connection connection, const char *query, duckdb_extracted_statements *out_extracted_statements)
-export function extract_statements(connection: Connection, query: string): Promise<ExtractedStatements>;
+export function extract_statements(connection: Connection, query: string): Promise<ExtractedStatementsAndCount>;
 
 // duckdb_state duckdb_prepare_extracted_statement(duckdb_connection connection, duckdb_extracted_statements extracted_statements, idx_t index, duckdb_prepared_statement *out_prepared_statement)
 export function prepare_extracted_statement(connection: Connection, extracted_statements: ExtractedStatements, index: number): Promise<PreparedStatement>;
@@ -479,13 +486,13 @@ export function create_varchar(text: string): Value;
 export function create_int64(int64: number): Value;
 
 // duckdb_value duckdb_create_struct_value(duckdb_logical_type type, duckdb_value *values)
-export function create_struct_value(logical_type: LogicalType, values: Value[]): Value;
+export function create_struct_value(logical_type: LogicalType, values: readonly Value[]): Value;
 
 // duckdb_value duckdb_create_list_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count)
-export function create_list_value(logical_type: LogicalType, values: Value[]): Value;
+export function create_list_value(logical_type: LogicalType, values: readonly Value[]): Value;
 
 // duckdb_value duckdb_create_array_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count)
-export function create_array_value(logical_type: LogicalType, values: Value[]): Value;
+export function create_array_value(logical_type: LogicalType, values: readonly Value[]): Value;
 
 // char *duckdb_get_varchar(duckdb_value value)
 export function get_varchar(value: Value): string;
@@ -509,13 +516,13 @@ export function create_array_type(logical_type: LogicalType, array_size: number)
 export function create_map_type(key_type: LogicalType, value_type: LogicalType): LogicalType;
 
 // duckdb_logical_type duckdb_create_union_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count)
-export function create_union_type(member_types: LogicalType[], member_names: string[]): LogicalType;
+export function create_union_type(member_types: readonly LogicalType[], member_names: readonly string[]): LogicalType;
 
 // duckdb_logical_type duckdb_create_struct_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count)
-export function create_struct_type(member_types: LogicalType[], member_names: string[]): LogicalType;
+export function create_struct_type(member_types: readonly LogicalType[], member_names: readonly string[]): LogicalType;
 
 // duckdb_logical_type duckdb_create_enum_type(const char **member_names, idx_t member_count)
-export function create_enum_type(member_names: string[]): LogicalType;
+export function create_enum_type(member_names: readonly string[]): LogicalType;
 
 // duckdb_logical_type duckdb_create_decimal_type(uint8_t width, uint8_t scale)
 export function create_decimal_type(width: number, scale: number): LogicalType;
@@ -578,7 +585,7 @@ export function union_type_member_type(logical_type: LogicalType, index: number)
 export function destroy_logical_type(logical_type: LogicalType): void;
 
 // duckdb_data_chunk duckdb_create_data_chunk(duckdb_logical_type *types, idx_t column_count)
-export function create_data_chunk(logical_types: LogicalType[]): DataChunk;
+export function create_data_chunk(logical_types: readonly LogicalType[]): DataChunk;
 
 // void duckdb_destroy_data_chunk(duckdb_data_chunk *chunk)
 export function destroy_data_chunk(chunk: DataChunk): void;

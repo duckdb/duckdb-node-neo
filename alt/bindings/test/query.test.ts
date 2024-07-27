@@ -58,6 +58,8 @@ suite('query', () => {
             expect(duckdb.data_chunk_get_column_count(chunk)).toBe(1);
             expect(duckdb.data_chunk_get_size(chunk)).toBe(1);
             const vector = duckdb.data_chunk_get_vector(chunk, 0);
+            const logical_type = duckdb.vector_get_column_type(vector);
+            expect(duckdb.get_type_id(logical_type)).toBe(duckdb.Type.INTEGER);
             const validityBytes = duckdb.vector_get_validity(vector, 8);
             const validity = new BigUint64Array(validityBytes.buffer, 0, 1);
             const data = duckdb.vector_get_data(vector, 4);

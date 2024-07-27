@@ -1,0 +1,15 @@
+import duckdb from 'duckdb';
+
+export class DuckDBAppender {
+  private readonly appender: duckdb.Appender;
+  constructor(appender: duckdb.Appender) {
+    this.appender = appender;
+  }
+  public async dispose() {
+    duckdb.appender_destroy(this.appender);
+  }
+  public async flush() {
+    duckdb.appender_flush(this.appender);
+  }
+  // TODO
+}
