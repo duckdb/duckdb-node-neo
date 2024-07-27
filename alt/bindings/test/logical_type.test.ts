@@ -167,6 +167,37 @@ suite('logical_type', () => {
       duckdb.destroy_logical_type(varchar_type);
     }
   });
+  test('struct', () => {
+    const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
+    try {
+      const struct_type = duckdb.create_struct_type([int_type, varchar_type], ['a', 'b']);
+      try {
+        expect(duckdb.get_type_id(struct_type)).toBe(duckdb.Type.STRUCT);
+        expect(duckdb.logical_type_get_alias(struct_type)).toBeNull();
+        expect(duckdb.struct_type_child_count(struct_type)).toBe(2);
+        expect(duckdb.struct_type_child_name(struct_type, 0)).toBe('a');
+        expect(duckdb.struct_type_child_name(struct_type, 1)).toBe('b');
+        const member_type_0 = duckdb.struct_type_child_type(struct_type, 0);
+        try {
+          expect(duckdb.get_type_id(member_type_0)).toBe(duckdb.Type.INTEGER);
+        } finally {
+          duckdb.destroy_logical_type(member_type_0);
+        }
+        const member_type_1 = duckdb.struct_type_child_type(struct_type, 1);
+        try {
+          expect(duckdb.get_type_id(member_type_1)).toBe(duckdb.Type.VARCHAR);
+        } finally {
+          duckdb.destroy_logical_type(member_type_1);
+        }
+      } finally {
+        duckdb.destroy_logical_type(struct_type);
+      }
+    } finally {
+      duckdb.destroy_logical_type(varchar_type);
+      duckdb.destroy_logical_type(int_type);
+    }
+  });
   test('union', () => {
     const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
     const smallint_type = duckdb.create_logical_type(duckdb.Type.SMALLINT);
