@@ -21,10 +21,22 @@ jobs:
       
       - name: Bindings - Install, Configure, and Build
         working-directory: alt/bindings
-        run: npm i
+        run: npm install
       
       - name: Bindings - Test
         working-directory: alt/bindings
+        run: npm test
+      
+      - name: API - Install
+        working-directory: alt/api
+        run: npm install
+      
+      - name: API - Build
+        working-directory: alt/api
+        run: npm run build
+      
+      - name: API - Test
+        working-directory: alt/api
         run: npm test
 
   osx-nodejs:
@@ -37,10 +49,22 @@ jobs:
 
       - name: Bindings - Install, Configure, and Build
         working-directory: alt/bindings
-        run: npm i
+        run: npm install
       
       - name: Bindings - Test
         working-directory: alt/bindings
+        run: npm test
+      
+      - name: API - Install
+        working-directory: alt/api
+        run: npm install
+      
+      - name: API - Build
+        working-directory: alt/api
+        run: npm run build
+      
+      - name: API - Test
+        working-directory: alt/api
         run: npm test
 
   win-nodejs:
@@ -53,8 +77,20 @@ jobs:
       
       - name: Bindings - Install, Configure, and Build
         working-directory: alt/bindings
-        run: npm i
+        run: npm install
       
       - name: Bindings - Test
         working-directory: alt/bindings
+        run: npm test
+      
+      - name: API - Install
+        working-directory: alt/api
+        run: npm install
+      
+      - name: API - Build
+        working-directory: alt/api
+        run: npm run build
+      
+      - name: API - Test
+        working-directory: alt/api
         run: npm test
