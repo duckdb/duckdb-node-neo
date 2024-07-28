@@ -374,7 +374,7 @@ export function bind_value(prepared_statement: PreparedStatement, index: number,
 export function bind_parameter_index(prepared_statement: PreparedStatement, name: string): number;
 
 // duckdb_state duckdb_bind_boolean(duckdb_prepared_statement prepared_statement, idx_t param_idx, bool val)
-export function bind_boolean(prepared_statement: PreparedStatement, index: number, bool: boolean): State;
+export function bind_boolean(prepared_statement: PreparedStatement, index: number, bool: boolean): void;
 
 // duckdb_state duckdb_bind_int8(duckdb_prepared_statement prepared_statement, idx_t param_idx, int8_t val)
 export function bind_int8(prepared_statement: PreparedStatement, index: number, int8: number): State;
@@ -383,7 +383,7 @@ export function bind_int8(prepared_statement: PreparedStatement, index: number, 
 export function bind_int16(prepared_statement: PreparedStatement, index: number, int16: number): State;
 
 // duckdb_state duckdb_bind_int32(duckdb_prepared_statement prepared_statement, idx_t param_idx, int32_t val)
-export function bind_int32(prepared_statement: PreparedStatement, index: number, int32: number): State;
+export function bind_int32(prepared_statement: PreparedStatement, index: number, int32: number): void;
 
 // duckdb_state duckdb_bind_int64(duckdb_prepared_statement prepared_statement, idx_t param_idx, int64_t val)
 export function bind_int64(prepared_statement: PreparedStatement, index: number, int64: bigint): State;
@@ -428,7 +428,7 @@ export function bind_timestamp(prepared_statement: PreparedStatement, index: num
 export function bind_interval(prepared_statement: PreparedStatement, index: number, interval: Interval): State;
 
 // duckdb_state duckdb_bind_varchar(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val)
-export function bind_varchar(prepared_statement: PreparedStatement, index: number, varchar: string): State;
+export function bind_varchar(prepared_statement: PreparedStatement, index: number, varchar: string): void;
 
 // duckdb_state duckdb_bind_varchar_length(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val, idx_t length)
 
@@ -436,7 +436,7 @@ export function bind_varchar(prepared_statement: PreparedStatement, index: numbe
 export function bind_blob(prepared_statement: PreparedStatement, index: number, data: Uint8Array): State;
 
 // duckdb_state duckdb_bind_null(duckdb_prepared_statement prepared_statement, idx_t param_idx)
-export function bind_null(prepared_statement: PreparedStatement, index: number): State;
+export function bind_null(prepared_statement: PreparedStatement, index: number): void;
 
 // duckdb_state duckdb_execute_prepared(duckdb_prepared_statement prepared_statement, duckdb_result *out_result)
 export function execute_prepared(prepared_statement: PreparedStatement): Promise<Result>;

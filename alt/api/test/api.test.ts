@@ -300,7 +300,7 @@ describe('api', () => {
       instance.dispose();
     }
   });
-  test.skip('should support running prepared statements', async () => {
+  test('should support running prepared statements', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare('select $num as a, $str as b, $bool as c, $null as d');
       try {

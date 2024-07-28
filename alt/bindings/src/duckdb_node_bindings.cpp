@@ -331,6 +331,37 @@ private:
 
 };
 
+class ExecutePreparedWorker : public PromiseWorker {
+
+public:
+
+  ExecutePreparedWorker(Napi::Env env, duckdb_prepared_statement prepared_statement)
+    : PromiseWorker(env), prepared_statement_(prepared_statement) {
+  }
+
+protected:
+
+  void Execute() override {
+    result_ptr_ = reinterpret_cast<duckdb_result*>(duckdb_malloc(sizeof(duckdb_result)));
+    if (duckdb_execute_prepared(prepared_statement_, result_ptr_)) {
+      SetError(duckdb_result_error(result_ptr_));
+      duckdb_destroy_result(result_ptr_);
+      duckdb_free(result_ptr_);
+      result_ptr_ = nullptr;
+    }
+  }
+
+  Napi::Value Result() override {
+    return CreateExternalForResult(Env(), result_ptr_);
+  }
+
+private:
+
+  duckdb_prepared_statement prepared_statement_;
+  duckdb_result *result_ptr_;
+
+};
+
 class FetchWorker : public PromiseWorker {
 
 public:
@@ -486,8 +517,17 @@ public:
 
       InstanceMethod("prepare", &DuckDBNodeAddon::prepare),
       InstanceMethod("destroy_prepare", &DuckDBNodeAddon::destroy_prepare),
+      InstanceMethod("nparams", &DuckDBNodeAddon::nparams),
+      InstanceMethod("parameter_name", &DuckDBNodeAddon::parameter_name),
       // TODO: ...
-      // TODO: execute_prepared
+      InstanceMethod("bind_boolean", &DuckDBNodeAddon::bind_boolean),
+      // TODO: ...
+      InstanceMethod("bind_int32", &DuckDBNodeAddon::bind_int32),
+      // TODO: ...
+      InstanceMethod("bind_varchar", &DuckDBNodeAddon::bind_varchar),
+      // TODO: ...
+      InstanceMethod("bind_null", &DuckDBNodeAddon::bind_null),
+      InstanceMethod("execute_prepared", &DuckDBNodeAddon::execute_prepared),
       
       // TODO: extract_statements
       // TODO: ...
@@ -765,7 +805,7 @@ private:
   }
 
   // const char *duckdb_result_error(duckdb_result *result)
-  // not exposed: query rejects promise with error
+  // not exposed: used internally
 
   // duckdb_result_type duckdb_result_return_type(duckdb_result result)
   // function result_return_type(result: Result): ResultType
@@ -829,17 +869,62 @@ private:
   }
 
   // const char *duckdb_prepare_error(duckdb_prepared_statement prepared_statement)
+  // not exposed: used internally
+
   // idx_t duckdb_nparams(duckdb_prepared_statement prepared_statement)
+  // function nparams(prepared_statement: PreparedStatement): number
+  Napi::Value nparams(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto nparams = duckdb_nparams(prepared_statement);
+    return Napi::Number::New(env, nparams);
+  }
+
   // const char *duckdb_parameter_name(duckdb_prepared_statement prepared_statement, idx_t index)
+  // function parameter_name(prepared_statement: PreparedStatement, index: number): string
+  Napi::Value parameter_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto parameter_name = duckdb_parameter_name(prepared_statement, index);
+    return Napi::String::New(env, parameter_name);
+  }
+
   // duckdb_type duckdb_param_type(duckdb_prepared_statement prepared_statement, idx_t param_idx)
   // duckdb_state duckdb_clear_bindings(duckdb_prepared_statement prepared_statement)
   // duckdb_statement_type duckdb_prepared_statement_type(duckdb_prepared_statement statement)
   // duckdb_state duckdb_bind_value(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_value val)
   // duckdb_state duckdb_bind_parameter_index(duckdb_prepared_statement prepared_statement, idx_t *param_idx_out, const char *name)
+
   // duckdb_state duckdb_bind_boolean(duckdb_prepared_statement prepared_statement, idx_t param_idx, bool val)
+  // function bind_boolean(prepared_statement: PreparedStatement, index: number, bool: boolean): void
+  Napi::Value bind_boolean(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = info[2].As<Napi::Boolean>();
+    if (duckdb_bind_boolean(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind boolean");
+    }
+    return env.Undefined();
+  }
+
   // duckdb_state duckdb_bind_int8(duckdb_prepared_statement prepared_statement, idx_t param_idx, int8_t val)
   // duckdb_state duckdb_bind_int16(duckdb_prepared_statement prepared_statement, idx_t param_idx, int16_t val)
+
   // duckdb_state duckdb_bind_int32(duckdb_prepared_statement prepared_statement, idx_t param_idx, int32_t val)
+  // function bind_int32(prepared_statement: PreparedStatement, index: number, int32: number): void
+  Napi::Value bind_int32(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = info[2].As<Napi::Number>().Int32Value();
+    if (duckdb_bind_int32(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind int32");
+    }
+    return env.Undefined();
+  }
+
   // duckdb_state duckdb_bind_int64(duckdb_prepared_statement prepared_statement, idx_t param_idx, int64_t val)
   // duckdb_state duckdb_bind_hugeint(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_hugeint val)
   // duckdb_state duckdb_bind_uhugeint(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_uhugeint val)
@@ -854,11 +939,47 @@ private:
   // duckdb_state duckdb_bind_time(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_time val)
   // duckdb_state duckdb_bind_timestamp(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_timestamp val)
   // duckdb_state duckdb_bind_interval(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_interval val)
+
   // duckdb_state duckdb_bind_varchar(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val)
+  // function bind_varchar(prepared_statement: PreparedStatement, index: number, varchar: string): void
+  Napi::Value bind_varchar(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    std::string value = info[2].As<Napi::String>();
+    if (duckdb_bind_varchar(prepared_statement, index, value.c_str())) {
+      throw Napi::Error::New(env, "Failed to bind varchar");
+    }
+    return env.Undefined();
+  }
+
   // duckdb_state duckdb_bind_varchar_length(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val, idx_t length)
+  // not exposed: JS string includes length
+
   // duckdb_state duckdb_bind_blob(duckdb_prepared_statement prepared_statement, idx_t param_idx, const void *data, idx_t length)
+
   // duckdb_state duckdb_bind_null(duckdb_prepared_statement prepared_statement, idx_t param_idx)
+  // function bind_null(prepared_statement: PreparedStatement, index: number): void
+  Napi::Value bind_null(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    if (duckdb_bind_null(prepared_statement, index)) {
+      throw Napi::Error::New(env, "Failed to bind null");
+    }
+    return env.Undefined();
+  }
+
   // duckdb_state duckdb_execute_prepared(duckdb_prepared_statement prepared_statement, duckdb_result *out_result)
+  // function execute_prepared(prepared_statement: PreparedStatement): Promise<Result>
+  Napi::Value execute_prepared(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto worker = new ExecutePreparedWorker(env, prepared_statement);
+    worker->Queue();
+    return worker->Promise();
+  }
+
 
   // idx_t duckdb_extract_statements(duckdb_connection connection, const char *query, duckdb_extracted_statements *out_extracted_statements)
   // duckdb_state duckdb_prepare_extracted_statement(duckdb_connection connection, duckdb_extracted_statements extracted_statements, idx_t index, duckdb_prepared_statement *out_prepared_statement)

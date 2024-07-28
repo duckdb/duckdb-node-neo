@@ -33,11 +33,7 @@ export class DuckDBPreparedStatement {
   // TODO: is duckdb_bind_value useful?
   // TODO: get parameter index from name (duckdb_bind_parameter_index)
   public bindBoolean(parameterIndex: number, value: boolean) {
-    throwOnFailure(
-      duckdb.bind_boolean(this.prepared_statement, parameterIndex, value),
-      'Failed to bind boolean parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_boolean(this.prepared_statement, parameterIndex, value);
   }
   public bindTinyInt(parameterIndex: number, value: number) {
     throwOnFailure(
@@ -54,11 +50,7 @@ export class DuckDBPreparedStatement {
     );
   }
   public bindInteger(parameterIndex: number, value: number) {
-    throwOnFailure(
-      duckdb.bind_int32(this.prepared_statement, parameterIndex, value),
-      'Failed to bind integer parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_int32(this.prepared_statement, parameterIndex, value);
   }
   public bindBigInt(parameterIndex: number, value: bigint) {
     throwOnFailure(
@@ -117,11 +109,7 @@ export class DuckDBPreparedStatement {
   // TODO: bind TIMESTAMPS_S/_MS/_NS?
   // TODO: bind INTERVAL
   public bindVarchar(parameterIndex: number, value: string) {
-    throwOnFailure(
-      duckdb.bind_varchar(this.prepared_statement, parameterIndex, value),
-      'Failed to bind varchar parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_varchar(this.prepared_statement, parameterIndex, value);
   }
   // TODO: bind BLOB
   // TODO: bind ENUM?
@@ -129,11 +117,7 @@ export class DuckDBPreparedStatement {
   // TODO: bind UUID?
   // TODO: bind BIT?
   public bindNull(parameterIndex: number) {
-    throwOnFailure(
-      duckdb.bind_null(this.prepared_statement, parameterIndex),
-      'Failed to bind null parameter',
-      () => `index: ${parameterIndex}`
-    );
+    duckdb.bind_null(this.prepared_statement, parameterIndex);
   }
   public async run(): Promise<DuckDBResult> {
     return new DuckDBResult(
