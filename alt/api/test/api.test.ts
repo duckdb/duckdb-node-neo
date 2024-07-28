@@ -379,7 +379,7 @@ describe('api', () => {
       }
     });
   });
-  test.skip('should support streaming results from prepared statements', async () => {
+  test('should support streaming results from prepared statements', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare('from range(10000)');
       try {
