@@ -340,7 +340,7 @@ describe('api', () => {
       }
     });
   });
-  test.skip('should support starting prepared statements and running them incrementally', async () => {
+  test('should support starting prepared statements and running them incrementally', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare('select int from test_all_types()');
       try {

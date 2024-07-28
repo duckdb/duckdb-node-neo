@@ -86,6 +86,18 @@ duckdb_logical_type GetLogicalTypeFromExternal(Napi::Env env, Napi::Value value)
   return GetDataFromExternal<_duckdb_logical_type>(env, LogicalTypeTypeTag, value, "Invalid logical type argument");
 }
 
+static const napi_type_tag PendingResultTypeTag = {
+  0x257E88ECE8294FEC, 0xB64963BBBD1DBB41
+};
+
+Napi::External<_duckdb_pending_result> CreateExternalForPendingResult(Napi::Env env, duckdb_pending_result pending_result) {
+  return CreateExternal<_duckdb_pending_result>(env, PendingResultTypeTag, pending_result);
+}
+
+duckdb_pending_result GetPendingResultFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_pending_result>(env, PendingResultTypeTag, value, "Invalid pending result argument");
+}
+
 static const napi_type_tag PreparedStatementTypeTag = {
   0xA8B03DAD16D34416, 0x9735A7E1F2A1240C
 };
@@ -362,6 +374,37 @@ private:
 
 };
 
+class ExecutePendingWorker : public PromiseWorker {
+
+public:
+
+  ExecutePendingWorker(Napi::Env env, duckdb_pending_result pending_result)
+    : PromiseWorker(env), pending_result_(pending_result) {
+  }
+
+protected:
+
+  void Execute() override {
+    result_ptr_ = reinterpret_cast<duckdb_result*>(duckdb_malloc(sizeof(duckdb_result)));
+    if (duckdb_execute_pending(pending_result_, result_ptr_)) {
+      SetError(duckdb_result_error(result_ptr_));
+      duckdb_destroy_result(result_ptr_);
+      duckdb_free(result_ptr_);
+      result_ptr_ = nullptr;
+    }
+  }
+
+  Napi::Value Result() override {
+    return CreateExternalForResult(Env(), result_ptr_);
+  }
+
+private:
+
+  duckdb_pending_result pending_result_;
+  duckdb_result *result_ptr_;
+
+};
+
 class FetchWorker : public PromiseWorker {
 
 public:
@@ -390,6 +433,15 @@ private:
 void DefineEnumMember(Napi::Object enumObj, const char *key, uint32_t value) {
   enumObj.Set(key, value);
   enumObj.Set(value, key);
+}
+
+Napi::Object CreatePendingStateEnum(Napi::Env env) {
+  auto pendingStateEnum = Napi::Object::New(env);
+  DefineEnumMember(pendingStateEnum, "RESULT_READY", 0);
+  DefineEnumMember(pendingStateEnum, "RESULT_NOT_READY", 1);
+  DefineEnumMember(pendingStateEnum, "ERROR", 2);
+  DefineEnumMember(pendingStateEnum, "NO_TASKS_AVAILABLE", 3);
+  return pendingStateEnum;
 }
 
 Napi::Object CreateResultTypeEnum(Napi::Env env) {
@@ -481,6 +533,7 @@ public:
     DefineAddon(exports, {
       InstanceValue("sizeof_bool", Napi::Number::New(env, sizeof(bool))),
 
+      InstanceValue("PendingState", CreatePendingStateEnum(env)),
       InstanceValue("ResultType", CreateResultTypeEnum(env)),
       InstanceValue("StatementType", CreateStatementTypeEnum(env)),
       InstanceValue("Type", CreateTypeEnum(env)),
@@ -533,8 +586,12 @@ public:
       // TODO: ...
       // TODO: destroy_extracted
 
-      // TODO: pending_prepared
+      InstanceMethod("pending_prepared", &DuckDBNodeAddon::pending_prepared),
+      InstanceMethod("destroy_pending", &DuckDBNodeAddon::destroy_pending),
+      InstanceMethod("pending_error", &DuckDBNodeAddon::pending_error),
+      InstanceMethod("pending_execute_task", &DuckDBNodeAddon::pending_execute_task),
       // TODO: ...
+      InstanceMethod("execute_pending", &DuckDBNodeAddon::execute_pending),
       // TODO: pending_execution_is_finished
 
       // TODO: destroy_value
@@ -987,11 +1044,58 @@ private:
   // void duckdb_destroy_extracted(duckdb_extracted_statements *extracted_statements)
 
   // duckdb_state duckdb_pending_prepared(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result)
+  // function pending_prepared(prepared_statement: PreparedStatement): PendingResult
+  Napi::Value pending_prepared(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    duckdb_pending_result pending_result;
+    if (duckdb_pending_prepared(prepared_statement, &pending_result)) {
+      auto error = duckdb_pending_error(pending_result);
+      duckdb_destroy_pending(&pending_result);
+      throw Napi::Error::New(env, error);
+    }
+    return CreateExternalForPendingResult(env, pending_result);
+  }
+
   // void duckdb_destroy_pending(duckdb_pending_result *pending_result)
+  // function destroy_pending(pending_result: PendingResult): void
+  Napi::Value destroy_pending(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto pending_result = GetPendingResultFromExternal(env, info[0]);
+    duckdb_destroy_pending(&pending_result);
+    return env.Undefined();
+  }
+
   // const char *duckdb_pending_error(duckdb_pending_result pending_result)
+  // function pending_error(pending_result: PendingResult): string
+  Napi::Value pending_error(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto pending_result = GetPendingResultFromExternal(env, info[0]);
+    auto error = duckdb_pending_error(pending_result);
+    return Napi::String::New(env, error);
+  }
+
   // duckdb_pending_state duckdb_pending_execute_task(duckdb_pending_result pending_result)
+  // function pending_execute_task(pending_result: PendingResult): PendingState
+  Napi::Value pending_execute_task(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto pending_result = GetPendingResultFromExternal(env, info[0]);
+    auto pending_state = duckdb_pending_execute_task(pending_result);
+    return Napi::Number::New(env, pending_state);
+  }
+
   // duckdb_pending_state duckdb_pending_execute_check_state(duckdb_pending_result pending_result)
+
   // duckdb_state duckdb_execute_pending(duckdb_pending_result pending_result, duckdb_result *out_result)
+  // function execute_pending(pending_result: PendingResult): Promise<Result>
+  Napi::Value execute_pending(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto pending_result = GetPendingResultFromExternal(env, info[0]);
+    auto worker = new ExecutePendingWorker(env, pending_result);
+    worker->Queue();
+    return worker->Promise();
+  }
+
   // bool duckdb_pending_execution_is_finished(duckdb_pending_state pending_state)
 
   // void duckdb_destroy_value(duckdb_value *value)
