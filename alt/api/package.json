@@ -9,9 +9,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "duckdb": "../bindings/package",
-    "rimraf": "^5.0.7",
-    "typescript": "^5.5.3",
-    "vitest": "^2.0.2"
+    "duckdb": "../bindings/package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.12",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.4"
   }
 }
