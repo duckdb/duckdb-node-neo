@@ -1,0 +1,9 @@
+{
+  "name": "@duckdb/node-bindings-darwin-arm64",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ]
+}

@@ -1,4 +1,4 @@
-import duckdb from 'duckdb';
+import duckdb from '@duckdb/node-bindings';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBTypeId } from './DuckDBTypeId';

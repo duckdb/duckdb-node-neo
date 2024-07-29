@@ -1,4 +1,4 @@
-import duckdb from 'duckdb';
+import duckdb from '@duckdb/node-bindings';
 import { DuckDBConnection } from './DuckDBConnection';
 
 export class DuckDBInstance {

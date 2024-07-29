@@ -1,4 +1,4 @@
-import duckdb from 'duckdb';
+import duckdb from '@duckdb/node-bindings';
 import { expect, suite, test } from 'vitest';
 
 suite('open', () => {
