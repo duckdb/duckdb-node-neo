@@ -1,0 +1,9 @@
+{
+  "name": "@duckdb/node-bindings-linux-x64",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ]
+}

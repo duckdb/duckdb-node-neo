@@ -1,5 +1,0 @@
-{
-  "name": "duckdb",
-  "main": "./duckdb.js",
-  "types": "./duckdb.d.ts"
-}

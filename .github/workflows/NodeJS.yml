@@ -19,25 +19,29 @@ jobs:
         with:
           sparse-checkout: alt
       
-      - name: Bindings - Install, Configure, and Build
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
+      - name: Workspace - Install
+        working-directory: alt
+        run: pnpm install
+
+      - name: Bindings - Build
         working-directory: alt/bindings
-        run: npm install
+        run: pnpm run build
       
       - name: Bindings - Test
         working-directory: alt/bindings
-        run: npm test
-      
-      - name: API - Install
-        working-directory: alt/api
-        run: npm install
+        run: pnpm test
       
       - name: API - Build
         working-directory: alt/api
-        run: npm run build
+        run: pnpm run build
       
       - name: API - Test
         working-directory: alt/api
-        run: npm test
+        run: pnpm test
 
   osx-nodejs:
     name: Mac OS X
@@ -46,26 +50,30 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: alt
+      
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
 
-      - name: Bindings - Install, Configure, and Build
+      - name: Workspace - Install
+        working-directory: alt
+        run: pnpm install
+
+      - name: Bindings - Build
         working-directory: alt/bindings
-        run: npm install
+        run: pnpm run build
       
       - name: Bindings - Test
         working-directory: alt/bindings
-        run: npm test
-      
-      - name: API - Install
-        working-directory: alt/api
-        run: npm install
+        run: pnpm test
       
       - name: API - Build
         working-directory: alt/api
-        run: npm run build
+        run: pnpm run build
       
       - name: API - Test
         working-directory: alt/api
-        run: npm test
+        run: pnpm test
 
   win-nodejs:
     name: Windows
@@ -75,22 +83,26 @@ jobs:
         with:
           sparse-checkout: alt
       
-      - name: Bindings - Install, Configure, and Build
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
+      - name: Workspace - Install
+        working-directory: alt
+        run: pnpm install
+
+      - name: Bindings - Build
         working-directory: alt/bindings
-        run: npm install
+        run: pnpm run build
       
       - name: Bindings - Test
         working-directory: alt/bindings
-        run: npm test
-      
-      - name: API - Install
-        working-directory: alt/api
-        run: npm install
+        run: pnpm test
       
       - name: API - Build
         working-directory: alt/api
-        run: npm run build
+        run: pnpm run build
       
       - name: API - Test
         working-directory: alt/api
-        run: npm test
+        run: pnpm test

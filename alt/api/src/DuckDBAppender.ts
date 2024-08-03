@@ -1,4 +1,4 @@
-import duckdb from 'duckdb';
+import duckdb from '@duckdb/node-bindings';
 
 export class DuckDBAppender {
   private readonly appender: duckdb.Appender;

@@ -50,7 +50,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
-              'destination': '<(module_root_dir)/package/lib',
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
             },
           ],
         }],
@@ -69,7 +69,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.dylib'],
-              'destination': '<(module_root_dir)/package/lib',
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-darwin-arm64',
             },
           ],
         }],
@@ -82,7 +82,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/duckdb.dll'],
-              'destination': '<(module_root_dir)/package/lib',
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-win32-x64',
             },
           ],
         }],
@@ -92,22 +92,42 @@
       'target_name': 'copy_duckdb_node',
       'type': 'none',
       'dependencies': ['duckdb'],
-      'copies': [
-        {
-          'files': ['<(module_root_dir)/build/Release/duckdb.node'],
-          'destination': '<(module_root_dir)/package/lib',
-        },
+      'conditions': [
+        ['OS=="linux"', {
+          'copies': [
+            {
+              'files': ['<(module_root_dir)/build/Release/duckdb.node'],
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
+            },
+          ],
+        }],
+        ['OS=="mac"', {
+          'copies': [
+            {
+              'files': ['<(module_root_dir)/build/Release/duckdb.node'],
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-darwin-arm64',
+            },
+          ],
+        }],
+        ['OS=="win"', {
+          'copies': [
+            {
+              'files': ['<(module_root_dir)/build/Release/duckdb.node'],
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-win32-x64',
+            },
+          ],
+        }],
       ],
     },
-    {
-      'target_name': 'copy_duckdb_d_ts',
-      'type': 'none',
-      'copies': [
-        {
-          'files': ['<(module_root_dir)/src/duckdb.d.ts'],
-          'destination': '<(module_root_dir)/package',
-        },
-      ],
-    },
+    # {
+    #   'target_name': 'copy_duckdb_d_ts',
+    #   'type': 'none',
+    #   'copies': [
+    #     {
+    #       'files': ['<(module_root_dir)/src/duckdb.d.ts'],
+    #       'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings',
+    #     },
+    #   ],
+    # },
   ],
 }

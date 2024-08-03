@@ -9,7 +9,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "duckdb": "../bindings/package"
+    "@duckdb/node-bindings": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",

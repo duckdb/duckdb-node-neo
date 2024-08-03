@@ -1,4 +1,4 @@
-import duckdb from 'duckdb';
+import duckdb from '@duckdb/node-bindings';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBType } from './DuckDBType';
