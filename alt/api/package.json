@@ -4,7 +4,7 @@
     "build": "tsc -b src test",
     "build:src": "tsc -b src",
     "build:test": "tsc -b test",
-    "clean": "rimraf out",
+    "clean": "rimraf pkgs/@duckdb/node-api/lib",
     "test": "vitest run",
     "test:watch": "vitest"
   },

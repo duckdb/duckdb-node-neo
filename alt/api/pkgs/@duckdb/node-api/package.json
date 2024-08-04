@@ -1,0 +1,10 @@
+{
+  "name": "@jraymakers/duckdb-node-api",
+  "version": "0.0.1",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jraymakers/duckdb-node-packages.git"
+  }
+}
