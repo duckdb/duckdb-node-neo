@@ -7,5 +7,9 @@
     "@duckdb-node-neo/node-bindings-darwin-arm64": "workspace:*",
     "@duckdb-node-neo/node-bindings-linux-x64": "workspace:*",
     "@duckdb-node-neo/node-bindings-win32-x64": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/duckdb/duckdb-node-neo.git"
   }
 }
