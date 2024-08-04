@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@duckdb-node-neo/node-bindings';
 import { expect, suite, test } from 'vitest';
 
 suite('functions', () => {

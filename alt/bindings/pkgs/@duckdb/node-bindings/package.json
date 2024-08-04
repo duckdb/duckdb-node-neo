@@ -1,11 +1,11 @@
 {
-  "name": "@duckdb/node-bindings",
+  "name": "@duckdb-node-neo/node-bindings",
   "version": "0.0.1",
   "main": "./duckdb.js",
   "types": "./duckdb.d.ts",
   "optionalDependencies": {
-    "@duckdb/node-bindings-darwin-arm64": "workspace:*",
-    "@duckdb/node-bindings-linux-x64": "workspace:*",
-    "@duckdb/node-bindings-win32-x64": "workspace:*"
+    "@duckdb-node-neo/node-bindings-darwin-arm64": "workspace:*",
+    "@duckdb-node-neo/node-bindings-linux-x64": "workspace:*",
+    "@duckdb-node-neo/node-bindings-win32-x64": "workspace:*"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@duckdb/node-bindings-darwin-arm64",
+  "name": "@duckdb-node-neo/node-bindings-darwin-arm64",
   "version": "0.0.1",
   "os": [
     "darwin"

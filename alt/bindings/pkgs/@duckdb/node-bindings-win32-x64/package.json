@@ -1,5 +1,5 @@
 {
-  "name": "@duckdb/node-bindings-win32-x64",
+  "name": "@duckdb-node-neo/node-bindings-win32-x64",
   "version": "0.0.1",
   "os": [
     "win32"

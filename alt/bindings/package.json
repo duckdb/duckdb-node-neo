@@ -12,7 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@duckdb/node-bindings": "workspace:*",
+    "@duckdb-node-neo/node-bindings": "workspace:*",
     "node-addon-api": "^8.0.0",
     "node-gyp": "^10.1.0",
     "rimraf": "^5.0.7",
