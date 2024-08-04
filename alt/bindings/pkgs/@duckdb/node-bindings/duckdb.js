@@ -1,1 +1,1 @@
-module.exports = require(`@duckdb/node-bindings-${process.platform}-${process.arch}/duckdb.node`);
+module.exports = require(`@jraymakers/duckdb-node-bindings-${process.platform}-${process.arch}/duckdb.node`);

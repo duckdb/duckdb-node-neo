@@ -1,5 +1,5 @@
 {
-  "name": "@duckdb/node-bindings-linux-x64",
+  "name": "@jraymakers/duckdb-node-bindings-linux-x64",
   "version": "0.0.1",
   "os": [
     "linux"
@@ -9,6 +9,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/duckdb/duckdb-node-neo.git"
+    "url": "https://github.com/jraymakers/duckdb-node-packages.git"
   }
 }

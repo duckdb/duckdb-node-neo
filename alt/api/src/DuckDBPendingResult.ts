@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@jraymakers/duckdb-node-bindings';
 import { DuckDBResult } from './DuckDBResult';
 
 // Values match similar enum in C API.

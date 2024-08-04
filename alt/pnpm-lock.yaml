@@ -10,7 +10,7 @@ importers:
 
   api:
     dependencies:
-      '@duckdb/node-bindings':
+      '@jraymakers/duckdb-node-bindings':
         specifier: workspace:*
         version: link:../bindings/pkgs/@duckdb/node-bindings
     devDependencies:
@@ -29,7 +29,7 @@ importers:
 
   bindings:
     dependencies:
-      '@duckdb/node-bindings':
+      '@jraymakers/duckdb-node-bindings':
         specifier: workspace:*
         version: link:pkgs/@duckdb/node-bindings
       node-addon-api:
@@ -50,13 +50,13 @@ importers:
 
   bindings/pkgs/@duckdb/node-bindings:
     optionalDependencies:
-      '@duckdb/node-bindings-darwin-arm64':
+      '@jraymakers/duckdb-node-bindings-darwin-arm64':
         specifier: workspace:*
         version: link:../node-bindings-darwin-arm64
-      '@duckdb/node-bindings-linux-x64':
+      '@jraymakers/duckdb-node-bindings-linux-x64':
         specifier: workspace:*
         version: link:../node-bindings-linux-x64
-      '@duckdb/node-bindings-win32-x64':
+      '@jraymakers/duckdb-node-bindings-win32-x64':
         specifier: workspace:*
         version: link:../node-bindings-win32-x64
 

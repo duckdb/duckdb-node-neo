@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@jraymakers/duckdb-node-bindings';
 import { DuckDBAppender } from './DuckDBAppender';
 import { DuckDBExtractedStatements } from './DuckDBExtractedStatements';
 import { DuckDBInstance } from './DuckDBInstance';
