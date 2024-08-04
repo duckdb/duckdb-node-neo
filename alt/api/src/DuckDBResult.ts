@@ -1,4 +1,4 @@
-import duckdb from '@duckdb-node-neo/node-bindings';
+import duckdb from '@duckdb/node-bindings';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBType } from './DuckDBType';

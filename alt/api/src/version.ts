@@ -1,4 +1,4 @@
-import duckdb from '@duckdb-node-neo/node-bindings';
+import duckdb from '@duckdb/node-bindings';
 
 export function version(): string {
   return duckdb.library_version();
