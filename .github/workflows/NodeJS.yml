@@ -108,7 +108,7 @@ jobs:
 
       - name: Publish - API
         if: ${{ inputs.publish_api }}
-        working-directory: alt/bindings/pkgs/@duckdb/node-api
+        working-directory: alt/api/pkgs/@duckdb/node-api
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }}
 
   macos:
