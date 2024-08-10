@@ -1,5 +1,5 @@
 import os from 'os';
-import duckdb from '@jraymakers/duckdb-node-bindings';
+import duckdb from '@duckdb/node-bindings';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import {
   DuckDBArrayType,

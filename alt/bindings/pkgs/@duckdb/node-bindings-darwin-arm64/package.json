@@ -1,6 +1,6 @@
 {
-  "name": "@jraymakers/duckdb-node-bindings-darwin-arm64",
-  "version": "0.0.1",
+  "name": "@duckdb/node-bindings-darwin-arm64",
+  "version": "0.0.2",
   "os": [
     "darwin"
   ],
@@ -9,6 +9,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/jraymakers/duckdb-node-packages.git"
+    "url": "https://github.com/duckdb/duckdb-node-neo.git"
   }
 }

@@ -9,7 +9,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@jraymakers/duckdb-node-bindings": "workspace:*"
+    "@duckdb/node-bindings": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",
