@@ -18,7 +18,7 @@ Remember to copy the token value and save it somewhere safe.
 ```
 {
   "dependencies": {
-    "@duckdb/node-api": "^0.0.2"
+    "@duckdb/node-api": "*"
   }
 }
 ```
