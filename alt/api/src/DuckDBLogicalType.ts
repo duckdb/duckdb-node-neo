@@ -1,4 +1,4 @@
-import duckdb from '@duckdb-node-neo/duckdb-node-bindings';
+import duckdb from '@duckdb/node-bindings';
 import {
   DuckDBArrayType,
   DuckDBBigIntType,

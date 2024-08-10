@@ -1,10 +1,10 @@
 {
-  "name": "@duckdb-node-neo/duckdb-node-api",
+  "name": "@duckdb/node-api",
   "version": "0.0.1",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "dependencies": {
-    "@duckdb-node-neo/duckdb-node-bindings": "workspace:*"
+    "@duckdb/node-bindings": "workspace:*"
   },
   "repository": {
     "type": "git",
