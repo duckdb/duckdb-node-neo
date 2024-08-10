@@ -1,12 +1,12 @@
 {
-  "name": "@jraymakers/duckdb-node-bindings",
+  "name": "@duckdb-node-neo/duckdb-node-bindings",
   "version": "0.0.1",
   "main": "./duckdb.js",
   "types": "./duckdb.d.ts",
   "optionalDependencies": {
-    "@jraymakers/duckdb-node-bindings-darwin-arm64": "workspace:*",
-    "@jraymakers/duckdb-node-bindings-linux-x64": "workspace:*",
-    "@jraymakers/duckdb-node-bindings-win32-x64": "workspace:*"
+    "@duckdb-node-neo/duckdb-node-bindings-darwin-arm64": "workspace:*",
+    "@duckdb-node-neo/duckdb-node-bindings-linux-x64": "workspace:*",
+    "@duckdb-node-neo/duckdb-node-bindings-win32-x64": "workspace:*"
   },
   "repository": {
     "type": "git",

@@ -1,4 +1,4 @@
-import duckdb from '@jraymakers/duckdb-node-bindings';
+import duckdb from '@duckdb-node-neo/duckdb-node-bindings';
 import { DuckDBPreparedStatement } from './DuckDBPreparedStatement';
 
 export class DuckDBExtractedStatements {

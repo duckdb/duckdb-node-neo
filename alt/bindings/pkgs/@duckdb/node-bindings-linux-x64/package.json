@@ -1,5 +1,5 @@
 {
-  "name": "@jraymakers/duckdb-node-bindings-linux-x64",
+  "name": "@duckdb-node-neo/duckdb-node-bindings-linux-x64",
   "version": "0.0.1",
   "os": [
     "linux"

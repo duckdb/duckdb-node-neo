@@ -1,10 +1,10 @@
 {
-  "name": "@jraymakers/duckdb-node-api",
-  "version": "0.0.2",
+  "name": "@duckdb-node-neo/duckdb-node-api",
+  "version": "0.0.1",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "dependencies": {
-    "@jraymakers/duckdb-node-bindings": "workspace:*"
+    "@duckdb-node-neo/duckdb-node-bindings": "workspace:*"
   },
   "repository": {
     "type": "git",
