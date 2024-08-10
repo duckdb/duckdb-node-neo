@@ -10,6 +10,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jraymakers/duckdb-node-packages.git"
+    "url": "https://github.com/duckdb/duckdb-node-neo.git"
   }
 }
