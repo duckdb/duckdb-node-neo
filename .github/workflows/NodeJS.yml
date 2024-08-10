@@ -3,6 +3,22 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      linux:
+        description: 'Linux'
+        type: boolean
+        required: true
+        default: false
+      macos:
+        description: 'Mac OS'
+        type: boolean
+        required: true
+        default: false
+      windows:
+        description: 'Windows'
+        type: boolean
+        required: true
+        default: false
   repository_dispatch:
 
 concurrency:
@@ -11,9 +27,10 @@ concurrency:
 
 jobs:
 
-  linux-nodejs:
+  linux:
     name: Linux
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,9 +60,10 @@ jobs:
         working-directory: alt/api
         run: pnpm test
 
-  osx-nodejs:
+  macos:
     name: Mac OS X
     runs-on: macos-latest
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,9 +93,10 @@ jobs:
         working-directory: alt/api
         run: pnpm test
 
-  win-nodejs:
+  windows:
     name: Windows
     runs-on: windows-latest
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.window }}
     steps:
       - uses: actions/checkout@v4
         with:
