@@ -71,13 +71,15 @@ jobs:
         run: pnpm test
       
       - name: Publish - Config Auth Token
+        if: ${{ inputs.publish_linux_x64 }}
         run: pnpm config set '//npm.pkg.github.com/:_authToken' "${NPM_AUTH_TOKEN}"
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Publish - Bindings - Linux x64
+        if: ${{ inputs.publish_linux_x64 }}
         working-directory: alt/bindings/pkgs/@duckdb/node-bindings-linux-x64
-        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }}
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }}
 
   macos:
     name: Mac OS X
