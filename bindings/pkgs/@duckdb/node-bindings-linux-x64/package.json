@@ -1,0 +1,14 @@
+{
+  "name": "@duckdb/node-bindings-linux-x64",
+  "version": "0.0.4",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/duckdb/duckdb-node-neo.git"
+  }
+}

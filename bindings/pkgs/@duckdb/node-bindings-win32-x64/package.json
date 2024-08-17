@@ -1,0 +1,14 @@
+{
+  "name": "@duckdb/node-bindings-win32-x64",
+  "version": "0.0.4",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/duckdb/duckdb-node-neo.git"
+  }
+}

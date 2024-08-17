@@ -1,4 +1,4 @@
-import assert from 'assert';
+import { assert, describe, test } from 'vitest';
 import {
   DuckDBArrayType,
   DuckDBArrayVector,
@@ -272,15 +272,15 @@ function bigints(start: bigint, end: bigint) {
 }
 
 describe('api', () => {
-  it('should expose version', () => {
+  test('should expose version', () => {
     const ver = version();
     assert.ok(ver.startsWith('v'), `version starts with 'v'`);
   });
-  it('should expose configuration option descriptions', () => {
+  test('should expose configuration option descriptions', () => {
     const descriptions = configurationOptionDescriptions();
     assert.ok(descriptions['memory_limit'], `descriptions has 'memory_limit'`);
   });
-  it('should support creating, connecting, running a basic query, and reading results', async () => {
+  test('should support creating, connecting, running a basic query, and reading results', async () => {
     const instance = await DuckDBInstance.create();
     const connection = await instance.connect();
     const result = await connection.run('select 42 as num');
@@ -300,7 +300,7 @@ describe('api', () => {
       instance.dispose();
     }
   });
-  it('should support running prepared statements', async () => {
+  test('should support running prepared statements', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare('select $num as a, $str as b, $bool as c, $null as d');
       try {
@@ -340,7 +340,7 @@ describe('api', () => {
       }
     });
   });
-  it('should support starting prepared statements and running them incrementally', async () => {
+  test('should support starting prepared statements and running them incrementally', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare('select int from test_all_types()');
       try {
@@ -379,7 +379,7 @@ describe('api', () => {
       }
     });
   });
-  it('should support streaming results from prepared statements', async () => {
+  test('should support streaming results from prepared statements', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare('from range(10000)');
       try {
@@ -425,7 +425,7 @@ describe('api', () => {
       }
     });
   });
-  it('should support all data types', async () => {
+  test('should support all data types', async () => {
     await withConnection(async (connection) => {
       const result = await connection.run('from test_all_types(use_large_enum=true)');
       try {
@@ -628,6 +628,7 @@ describe('api', () => {
           assertNestedValues<DuckDBVector<DuckDBVector<number>>, DuckDBListVector<DuckDBVector<number>>>(chunk, 39, DuckDBListVector, [
             (v, n) => {
               assert.ok(v, `${n} unexpectedly null`);
+              if (!v) return;
               assert.strictEqual(v.itemCount, 0, `${n} not empty`);
             },
             (v, n) => assertNestedVectorValues(v, [
@@ -649,6 +650,7 @@ describe('api', () => {
             (entries, n) => assert.deepStrictEqual(entries, [{ name: 'a', value: null }, { name: 'b', value: null }], n),
             (entries, n) => {
               assert.ok(entries, `${n} unexpectedly null`);
+              if (!entries) return;
               assert.strictEqual(entries.length, 2, n);
               assert.strictEqual(entries[0].name, 'a', n);
               assert.ok(isVectorType(entries[0].value, DuckDBIntegerVector));
@@ -737,6 +739,7 @@ describe('api', () => {
           assertNestedValues<readonly DuckDBStructEntry[], DuckDBStructVector>(chunk, 50, DuckDBStructVector, [
             (entries, n) => {
               assert.ok(entries, `${n} unexpectedly null`);
+              if (!entries) return;
               assert.strictEqual(entries.length, 2, n);
               assert.strictEqual(entries[0].name, 'a', n);
               assert.ok(isVectorType(entries[0].value, DuckDBIntegerVector));
@@ -747,6 +750,7 @@ describe('api', () => {
             },
             (entries, n) => {
               assert.ok(entries, `${n} unexpectedly null`);
+              if (!entries) return;
               assert.strictEqual(entries.length, 2, n);
               assert.strictEqual(entries[0].name, 'a', n);
               assert.ok(isVectorType(entries[0].value, DuckDBIntegerVector));

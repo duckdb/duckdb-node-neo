@@ -28,10 +28,10 @@ export enum DuckDBTypeId {
   LIST = 24,
   STRUCT = 25,
   MAP = 26,
+  ARRAY = 33,
   UUID = 27,
   UNION = 28,
   BIT = 29,
   TIME_TZ = 30,
   TIMESTAMP_TZ = 31,
-  ARRAY = 33,
 }

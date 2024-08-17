@@ -1,0 +1,4 @@
+packages:
+  - './*'
+  - 'api/pkgs/@duckdb/*'
+  - 'bindings/pkgs/@duckdb/*'

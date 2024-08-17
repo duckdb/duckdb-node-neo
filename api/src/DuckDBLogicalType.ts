@@ -1,4 +1,4 @@
-import * as ddb from '../..';
+import duckdb from '@duckdb/node-bindings';
 import {
   DuckDBArrayType,
   DuckDBBigIntType,
@@ -38,65 +38,103 @@ import {
 import { DuckDBTypeId } from './DuckDBTypeId';
 
 export class DuckDBLogicalType {
-  readonly logical_type: ddb.duckdb_logical_type;
-  protected constructor(logical_type: ddb.duckdb_logical_type) {
+  readonly logical_type: duckdb.LogicalType;
+  protected constructor(logical_type: duckdb.LogicalType) {
     this.logical_type = logical_type;
   }
-  static consumeAsType(logical_type: ddb.duckdb_logical_type): DuckDBType {
+  static consumeAsType(logical_type: duckdb.LogicalType): DuckDBType {
     const logicalType = DuckDBLogicalType.create(logical_type);
     const type = logicalType.asType();
     logicalType.dispose();
     return type;
   }
-  static create(logical_type: ddb.duckdb_logical_type): DuckDBLogicalType {
-    switch (ddb.duckdb_get_type_id(logical_type)) {
-      case ddb.duckdb_type.DUCKDB_TYPE_DECIMAL:
+  static create(logical_type: duckdb.LogicalType): DuckDBLogicalType {
+    switch (duckdb.get_type_id(logical_type)) {
+      case duckdb.Type.DECIMAL:
         return new DuckDBDecimalLogicalType(logical_type);
-      case ddb.duckdb_type.DUCKDB_TYPE_ENUM:
+      case duckdb.Type.ENUM:
         return new DuckDBEnumLogicalType(logical_type);
-      case ddb.duckdb_type.DUCKDB_TYPE_LIST:
+      case duckdb.Type.LIST:
         return new DuckDBListLogicalType(logical_type);
-      case ddb.duckdb_type.DUCKDB_TYPE_STRUCT:
+      case duckdb.Type.STRUCT:
         return new DuckDBStructLogicalType(logical_type);
-      case ddb.duckdb_type.DUCKDB_TYPE_MAP:
+      case duckdb.Type.MAP:
         return new DuckDBMapLogicalType(logical_type);
-      case ddb.duckdb_type.DUCKDB_TYPE_ARRAY:
+      case duckdb.Type.ARRAY:
         return new DuckDBArrayLogicalType(logical_type);
-      case ddb.duckdb_type.DUCKDB_TYPE_UNION:
+      case duckdb.Type.UNION:
         return new DuckDBUnionLogicalType(logical_type);
       default:
         return new DuckDBLogicalType(logical_type);
     }
   }
-  public static createDecimal(width: number, scale: number): DuckDBDecimalLogicalType {
-    return new DuckDBDecimalLogicalType(ddb.duckdb_create_decimal_type(width, scale));
+  public static createDecimal(
+    width: number,
+    scale: number
+  ): DuckDBDecimalLogicalType {
+    return new DuckDBDecimalLogicalType(
+      duckdb.create_decimal_type(width, scale)
+    );
   }
-  public static createEnum(values: readonly string[]): DuckDBEnumLogicalType {
-    // TODO: missing C API
-    throw new Error('not implemented');
+  public static createEnum(
+    member_names: readonly string[]
+  ): DuckDBEnumLogicalType {
+    return new DuckDBEnumLogicalType(duckdb.create_enum_type(member_names));
   }
-  public static createList(valueType: DuckDBLogicalType): DuckDBListLogicalType {
-    return new DuckDBListLogicalType(ddb.duckdb_create_list_type(valueType.logical_type));
+  public static createList(
+    valueType: DuckDBLogicalType
+  ): DuckDBListLogicalType {
+    return new DuckDBListLogicalType(
+      duckdb.create_list_type(valueType.logical_type)
+    );
   }
-  public static createStruct(entries: readonly DuckDBLogicalStructEntry[]): DuckDBStructLogicalType {
-    // TODO: C API takes raw pointers (lists of names and types)
-    throw new Error('not implemented');
+  public static createStruct(
+    entries: readonly DuckDBLogicalStructEntry[]
+  ): DuckDBStructLogicalType {
+    const member_types: duckdb.LogicalType[] = [];
+    const member_names: string[] = [];
+    for (const entry of entries) {
+      member_types.push(entry.valueType.logical_type);
+      member_names.push(entry.name);
+    }
+    return new DuckDBStructLogicalType(
+      duckdb.create_struct_type(member_types, member_names)
+    );
   }
-  public static createMap(keyType: DuckDBLogicalType, valueType: DuckDBLogicalType): DuckDBMapLogicalType {
-    return new DuckDBMapLogicalType(ddb.duckdb_create_map_type(keyType.logical_type, valueType.logical_type));
+  public static createMap(
+    keyType: DuckDBLogicalType,
+    valueType: DuckDBLogicalType
+  ): DuckDBMapLogicalType {
+    return new DuckDBMapLogicalType(
+      duckdb.create_map_type(keyType.logical_type, valueType.logical_type)
+    );
   }
-  public static createArray(valueType: DuckDBLogicalType, length: number): DuckDBArrayLogicalType {
-    return new DuckDBArrayLogicalType(ddb.duckdb_create_array_type(valueType.logical_type, length));
+  public static createArray(
+    valueType: DuckDBLogicalType,
+    length: number
+  ): DuckDBArrayLogicalType {
+    return new DuckDBArrayLogicalType(
+      duckdb.create_array_type(valueType.logical_type, length)
+    );
   }
-  public static createUnion(alternatives: readonly DuckDBLogicalUnionAlternative[]): DuckDBUnionLogicalType {
-    // TODO: C API takes raw pointers (lists of tags and types)
-    throw new Error('not implemented');
+  public static createUnion(
+    alternatives: readonly DuckDBLogicalUnionAlternative[]
+  ): DuckDBUnionLogicalType {
+    const member_types: duckdb.LogicalType[] = [];
+    const member_names: string[] = [];
+    for (const alternative of alternatives) {
+      member_types.push(alternative.valueType.logical_type);
+      member_names.push(alternative.tag);
+    }
+    return new DuckDBUnionLogicalType(
+      duckdb.create_union_type(member_types, member_names)
+    );
   }
   public dispose() {
-    ddb.duckdb_destroy_logical_type(this.logical_type);
+    duckdb.destroy_logical_type(this.logical_type);
   }
   public get typeId(): DuckDBTypeId {
-    return ddb.duckdb_get_type_id(this.logical_type) as unknown as DuckDBTypeId;
+    return duckdb.get_type_id(this.logical_type) as number as DuckDBTypeId;
   }
   public asType(): DuckDBType {
     switch (this.typeId) {
@@ -154,6 +192,8 @@ export class DuckDBLogicalType {
         throw new Error('Expected override');
       case DuckDBTypeId.MAP:
         throw new Error('Expected override');
+      case DuckDBTypeId.ARRAY:
+        throw new Error('Expected override');
       case DuckDBTypeId.UUID:
         return DuckDBUUIDType.instance;
       case DuckDBTypeId.UNION:
@@ -172,13 +212,15 @@ export class DuckDBLogicalType {
 
 export class DuckDBDecimalLogicalType extends DuckDBLogicalType {
   public get width(): number {
-    return ddb.duckdb_decimal_width(this.logical_type);
+    return duckdb.decimal_width(this.logical_type);
   }
   public get scale(): number {
-    return ddb.duckdb_decimal_scale(this.logical_type);
+    return duckdb.decimal_scale(this.logical_type);
   }
   public get internalTypeId(): DuckDBTypeId {
-    return ddb.duckdb_decimal_internal_type(this.logical_type) as unknown as DuckDBTypeId;
+    return duckdb.decimal_internal_type(
+      this.logical_type
+    ) as number as DuckDBTypeId;
   }
   public override asType(): DuckDBDecimalType {
     return new DuckDBDecimalType(this.width, this.scale);
@@ -187,10 +229,10 @@ export class DuckDBDecimalLogicalType extends DuckDBLogicalType {
 
 export class DuckDBEnumLogicalType extends DuckDBLogicalType {
   public get valueCount(): number {
-    return ddb.duckdb_enum_dictionary_size(this.logical_type);
+    return duckdb.enum_dictionary_size(this.logical_type);
   }
   public value(index: number): string {
-    return ddb.duckdb_enum_dictionary_value(this.logical_type, index);
+    return duckdb.enum_dictionary_value(this.logical_type, index);
   }
   public values(): readonly string[] {
     const values: string[] = [];
@@ -201,7 +243,9 @@ export class DuckDBEnumLogicalType extends DuckDBLogicalType {
     return values;
   }
   public get internalTypeId(): DuckDBTypeId {
-    return ddb.duckdb_enum_internal_type(this.logical_type) as unknown as DuckDBTypeId;
+    return duckdb.enum_internal_type(
+      this.logical_type
+    ) as number as DuckDBTypeId;
   }
   public override asType(): DuckDBEnumType {
     return new DuckDBEnumType(this.values(), this.internalTypeId);
@@ -210,7 +254,9 @@ export class DuckDBEnumLogicalType extends DuckDBLogicalType {
 
 export class DuckDBListLogicalType extends DuckDBLogicalType {
   public get valueType(): DuckDBLogicalType {
-    return DuckDBLogicalType.create(ddb.duckdb_list_type_child_type(this.logical_type));
+    return DuckDBLogicalType.create(
+      duckdb.list_type_child_type(this.logical_type)
+    );
   }
   public override asType(): DuckDBListType {
     return new DuckDBListType(this.valueType.asType());
@@ -224,13 +270,15 @@ export interface DuckDBLogicalStructEntry {
 
 export class DuckDBStructLogicalType extends DuckDBLogicalType {
   public get entryCount(): number {
-    return ddb.duckdb_struct_type_child_count(this.logical_type);
+    return duckdb.struct_type_child_count(this.logical_type);
   }
   public entryName(index: number): string {
-    return ddb.duckdb_struct_type_child_name(this.logical_type, index);
+    return duckdb.struct_type_child_name(this.logical_type, index);
   }
   public entryValueType(index: number): DuckDBLogicalType {
-    return DuckDBLogicalType.create(ddb.duckdb_struct_type_child_type(this.logical_type, index));
+    return DuckDBLogicalType.create(
+      duckdb.struct_type_child_type(this.logical_type, index)
+    );
   }
   public entries(): readonly DuckDBLogicalStructEntry[] {
     const entries: DuckDBLogicalStructEntry[] = [];
@@ -243,19 +291,25 @@ export class DuckDBStructLogicalType extends DuckDBLogicalType {
     return entries;
   }
   public override asType(): DuckDBStructType {
-    return new DuckDBStructType(this.entries().map(({ name, valueType }) => ({
-      name,
-      valueType: valueType.asType(),
-    })));
+    return new DuckDBStructType(
+      this.entries().map(({ name, valueType }) => ({
+        name,
+        valueType: valueType.asType(),
+      }))
+    );
   }
 }
 
 export class DuckDBMapLogicalType extends DuckDBLogicalType {
   public get keyType(): DuckDBLogicalType {
-    return DuckDBLogicalType.create(ddb.duckdb_map_type_key_type(this.logical_type));
+    return DuckDBLogicalType.create(
+      duckdb.map_type_key_type(this.logical_type)
+    );
   }
   public get valueType(): DuckDBLogicalType {
-    return DuckDBLogicalType.create(ddb.duckdb_map_type_value_type(this.logical_type));
+    return DuckDBLogicalType.create(
+      duckdb.map_type_value_type(this.logical_type)
+    );
   }
   public override asType(): DuckDBMapType {
     return new DuckDBMapType(this.keyType.asType(), this.valueType.asType());
@@ -264,10 +318,12 @@ export class DuckDBMapLogicalType extends DuckDBLogicalType {
 
 export class DuckDBArrayLogicalType extends DuckDBLogicalType {
   public get valueType(): DuckDBLogicalType {
-    return DuckDBLogicalType.create(ddb.duckdb_array_type_child_type(this.logical_type));
+    return DuckDBLogicalType.create(
+      duckdb.array_type_child_type(this.logical_type)
+    );
   }
   public get length(): number {
-    return ddb.duckdb_array_type_array_size(this.logical_type);
+    return duckdb.array_type_array_size(this.logical_type);
   }
   public override asType(): DuckDBListType {
     return new DuckDBArrayType(this.valueType.asType(), this.length);
@@ -281,13 +337,15 @@ export interface DuckDBLogicalUnionAlternative {
 
 export class DuckDBUnionLogicalType extends DuckDBLogicalType {
   public get alternativeCount(): number {
-    return ddb.duckdb_union_type_member_count(this.logical_type);
+    return duckdb.union_type_member_count(this.logical_type);
   }
   public alternativeTag(index: number): string {
-    return ddb.duckdb_union_type_member_name(this.logical_type, index);
+    return duckdb.union_type_member_name(this.logical_type, index);
   }
   public alternativeValueType(index: number): DuckDBLogicalType {
-    return DuckDBLogicalType.create(ddb.duckdb_union_type_member_type(this.logical_type, index));
+    return DuckDBLogicalType.create(
+      duckdb.union_type_member_type(this.logical_type, index)
+    );
   }
   public alternatives(): readonly DuckDBLogicalUnionAlternative[] {
     const alternatives: DuckDBLogicalUnionAlternative[] = [];
@@ -300,9 +358,11 @@ export class DuckDBUnionLogicalType extends DuckDBLogicalType {
     return alternatives;
   }
   public override asType(): DuckDBUnionType {
-    return new DuckDBUnionType(this.alternatives().map(({ tag, valueType }) => ({
-      tag,
-      valueType: valueType.asType(),
-    })));
+    return new DuckDBUnionType(
+      this.alternatives().map(({ tag, valueType }) => ({
+        tag,
+        valueType: valueType.asType(),
+      }))
+    );
   }
 }

@@ -1,5 +1,5 @@
-import * as ddb from '../..';
+import duckdb from '@duckdb/node-bindings';
 
 export function version(): string {
-  return ddb.duckdb_library_version();
+  return duckdb.library_version();
 }

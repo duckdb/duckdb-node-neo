@@ -1,0 +1,13 @@
+{
+  "name": "@duckdb/node-api",
+  "version": "0.0.4",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "dependencies": {
+    "@duckdb/node-bindings": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/duckdb/duckdb-node-neo.git"
+  }
+}
