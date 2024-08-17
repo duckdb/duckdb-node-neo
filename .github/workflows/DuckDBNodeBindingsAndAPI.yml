@@ -1,4 +1,4 @@
-name: DuckDB Node Client API
+name: DuckDB Node Bindings & API
 on:
   push:
   pull_request:
