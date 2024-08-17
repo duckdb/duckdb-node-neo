@@ -63,50 +63,47 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          sparse-checkout: alt
       
       - uses: pnpm/action-setup@v3
         with:
           version: 9
       
       - name: Workspace - Install
-        working-directory: alt
-        run: pnpm install
+        run: pnpm install --ignore-scripts
 
       - name: Bindings - Build
-        working-directory: alt/bindings
+        working-directory: bindings
         run: pnpm run build
       
       - name: Bindings - Test
-        working-directory: alt/bindings
+        working-directory: bindings
         run: pnpm test
       
       - name: API - Build
-        working-directory: alt/api
+        working-directory: api
         run: pnpm run build
       
       - name: API - Test
-        working-directory: alt/api
+        working-directory: api
         run: pnpm test
       
       - name: Publish - Bindings - Linux x64
         if: ${{ inputs.publish_linux_x64 }}
-        working-directory: alt/bindings/pkgs/@duckdb/node-bindings-linux-x64
+        working-directory: bindings/pkgs/@duckdb/node-bindings-linux-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Publish - Bindings
         if: ${{ inputs.publish_bindings }}
-        working-directory: alt/bindings/pkgs/@duckdb/node-bindings
+        working-directory: bindings/pkgs/@duckdb/node-bindings
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish - API
         if: ${{ inputs.publish_api }}
-        working-directory: alt/api/pkgs/@duckdb/node-api
+        working-directory: api/pkgs/@duckdb/node-api
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -117,36 +114,33 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          sparse-checkout: alt
       
       - uses: pnpm/action-setup@v3
         with:
           version: 9
 
       - name: Workspace - Install
-        working-directory: alt
-        run: pnpm install
+        run: pnpm install --ignore-scripts
 
       - name: Bindings - Build
-        working-directory: alt/bindings
+        working-directory: bindings
         run: pnpm run build
       
       - name: Bindings - Test
-        working-directory: alt/bindings
+        working-directory: bindings
         run: pnpm test
       
       - name: API - Build
-        working-directory: alt/api
+        working-directory: api
         run: pnpm run build
       
       - name: API - Test
-        working-directory: alt/api
+        working-directory: api
         run: pnpm test
       
       - name: Publish - Bindings - Darwin ARM64
         if: ${{ inputs.publish_darwin_arm64 }}
-        working-directory: alt/bindings/pkgs/@duckdb/node-bindings-darwin-arm64
+        working-directory: bindings/pkgs/@duckdb/node-bindings-darwin-arm64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -157,36 +151,33 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          sparse-checkout: alt
       
       - uses: pnpm/action-setup@v3
         with:
           version: 9
       
       - name: Workspace - Install
-        working-directory: alt
-        run: pnpm install
+        run: pnpm install --ignore-scripts
 
       - name: Bindings - Build
-        working-directory: alt/bindings
+        working-directory: bindings
         run: pnpm run build
       
       - name: Bindings - Test
-        working-directory: alt/bindings
+        working-directory: bindings
         run: pnpm test
       
       - name: API - Build
-        working-directory: alt/api
+        working-directory: api
         run: pnpm run build
       
       - name: API - Test
-        working-directory: alt/api
+        working-directory: api
         run: pnpm test
       
       - name: Publish - Bindings - Win32 x64
         if: ${{ inputs.publish_win32_x64 }}
-        working-directory: alt/bindings/pkgs/@duckdb/node-bindings-win32-x64
+        working-directory: bindings/pkgs/@duckdb/node-bindings-win32-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

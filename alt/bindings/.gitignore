@@ -1,6 +1,0 @@
-libduckdb
-pkgs/**/*.node
-pkgs/**/*.so
-pkgs/**/*.dylib
-pkgs/**/*.dll
-__pycache__

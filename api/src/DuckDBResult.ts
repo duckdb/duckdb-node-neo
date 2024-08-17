@@ -1,36 +1,43 @@
-import * as ddb from '../..';
+import duckdb from '@duckdb/node-bindings';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 
 export class DuckDBResult {
-  private readonly result: ddb.duckdb_result;
-  constructor(result: ddb.duckdb_result) {
+  private readonly result: duckdb.Result;
+  constructor(result: duckdb.Result) {
     this.result = result;
   }
   public dispose() {
-    ddb.duckdb_destroy_result(this.result);
+    duckdb.destroy_result(this.result);
   }
   public get columnCount(): number {
-    return ddb.duckdb_column_count(this.result);
+    return duckdb.column_count(this.result);
   }
   public columnName(columnIndex: number): string {
-    return ddb.duckdb_column_name(this.result, columnIndex);
+    return duckdb.column_name(this.result, columnIndex);
   }
   public columnTypeId(columnIndex: number): DuckDBTypeId {
-    return ddb.duckdb_column_type(this.result, columnIndex) as unknown as DuckDBTypeId;
+    return duckdb.column_type(
+      this.result,
+      columnIndex
+    ) as number as DuckDBTypeId;
   }
   public columnLogicalType(columnIndex: number): DuckDBLogicalType {
-    return DuckDBLogicalType.create(ddb.duckdb_column_logical_type(this.result, columnIndex));
+    return DuckDBLogicalType.create(
+      duckdb.column_logical_type(this.result, columnIndex)
+    );
   }
   public columnType(columnIndex: number): DuckDBType {
-    return DuckDBLogicalType.consumeAsType(ddb.duckdb_column_logical_type(this.result, columnIndex));
+    return DuckDBLogicalType.consumeAsType(
+      duckdb.column_logical_type(this.result, columnIndex)
+    );
   }
   public get rowsChanged(): number {
-    return ddb.duckdb_rows_changed(this.result);
+    return duckdb.rows_changed(this.result);
   }
   public async fetchChunk(): Promise<DuckDBDataChunk> {
-    return new DuckDBDataChunk(await ddb.duckdb_fetch_chunk(this.result));
+    return new DuckDBDataChunk(await duckdb.fetch_chunk(this.result));
   }
 }

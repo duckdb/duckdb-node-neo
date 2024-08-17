@@ -1,6 +1,0 @@
-{
-  "private": true,
-  "dependencies": {
-    "@duckdb/node-bindings": "../alt/bindings/pkgs/@duckdb/node-bindings"
-  }
-}
