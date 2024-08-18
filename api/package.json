@@ -6,7 +6,9 @@
     "build:test": "tsc -b test",
     "clean": "rimraf pkgs/@duckdb/node-api/lib",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "bench": "vitest bench --run",
+    "bench:watch": "vitest bench"
   },
   "dependencies": {
     "@duckdb/node-bindings": "workspace:*"
