@@ -1,7 +1,7 @@
 import duckdb from '@duckdb/node-bindings';
 import { expect, suite, test } from 'vitest';
 
-suite('functions', () => {
+suite('constants', () => {
   test('sizeof_bool', () => {
     expect(duckdb.sizeof_bool).toBe(1);
   });
