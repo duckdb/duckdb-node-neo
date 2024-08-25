@@ -1014,21 +1014,41 @@ private:
   // function from_date(date: Date_): DateParts
   Napi::Value from_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto date_obj = info[0].As<Napi::Object>();
+    auto days = date_obj.Get("days").As<Napi::Number>().Int32Value();
+    duckdb_date date = { days };
+    auto date_parts = duckdb_from_date(date);
+    auto result = Napi::Object::New(env);
+    result.Set("year", Napi::Number::New(env, date_parts.year));
+    result.Set("month", Napi::Number::New(env, date_parts.month));
+    result.Set("day", Napi::Number::New(env, date_parts.day));
+    return result;
   }
 
   // DUCKDB_API duckdb_date duckdb_to_date(duckdb_date_struct date);
   // function to_date(parts: DateParts): Date_
   Napi::Value to_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto date_parts_obj = info[0].As<Napi::Object>();
+    int32_t year = date_parts_obj.Get("year").As<Napi::Number>().Int32Value();
+    int8_t month = date_parts_obj.Get("month").As<Napi::Number>().Int32Value();
+    int8_t day = date_parts_obj.Get("day").As<Napi::Number>().Int32Value();
+    duckdb_date_struct date_parts { year, month, day };
+    auto date = duckdb_to_date(date_parts);
+    auto result = Napi::Object::New(env);
+    result.Set("days", Napi::Number::New(env, date.days));
+    return result;
   }
 
   // DUCKDB_API bool duckdb_is_finite_date(duckdb_date date);
   // function is_finite_date(date: Date_): boolean
   Napi::Value is_finite_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto date_obj = info[0].As<Napi::Object>();
+    auto days = date_obj.Get("days").As<Napi::Number>().Int32Value();
+    duckdb_date date = { days };
+    auto is_finite = duckdb_is_finite_date(date);
+    return Napi::Boolean::New(env, is_finite);
   }
 
   // DUCKDB_API duckdb_time_struct duckdb_from_time(duckdb_time time);
