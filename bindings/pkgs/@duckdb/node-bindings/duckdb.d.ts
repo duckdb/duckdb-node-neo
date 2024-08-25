@@ -282,7 +282,7 @@ export function rows_changed(result: Result): number;
 // #endif
 
 // DUCKDB_API const char *duckdb_result_error(duckdb_result *result);
-// not exposed: query rejects promise with error
+// not exposed: query, execute_prepared, and execute_pending reject promise with error
 
 // #ifndef DUCKDB_API_NO_DEPRECATED
 // DUCKDB_API duckdb_data_chunk duckdb_result_get_chunk(duckdb_result result, idx_t chunk_index);
@@ -468,6 +468,7 @@ export function bind_interval(prepared_statement: PreparedStatement, index: numb
 export function bind_varchar(prepared_statement: PreparedStatement, index: number, varchar: string): void;
 
 // DUCKDB_API duckdb_state duckdb_bind_varchar_length(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val, idx_t length);
+// not exposed: JS string includes length
 
 // DUCKDB_API duckdb_state duckdb_bind_blob(duckdb_prepared_statement prepared_statement, idx_t param_idx, const void *data, idx_t length);
 export function bind_blob(prepared_statement: PreparedStatement, index: number, data: Uint8Array): void;
@@ -526,6 +527,7 @@ export function destroy_value(value: Value): void;
 export function create_varchar(text: string): Value;
 
 // DUCKDB_API duckdb_value duckdb_create_varchar_length(const char *text, idx_t length);
+// not exposed: JS string includes length
 
 // DUCKDB_API duckdb_value duckdb_create_int64(int64_t val);
 export function create_int64(int64: bigint): Value;
@@ -666,6 +668,7 @@ export function vector_ensure_validity_writable(vector: Vector): void;
 export function vector_assign_string_element(vector: Vector, index: number, str: string): void;
 
 // DUCKDB_API void duckdb_vector_assign_string_element_len(duckdb_vector vector, idx_t index, const char *str, idx_t str_len);
+// not exposed: JS string includes length
 
 // DUCKDB_API duckdb_vector duckdb_list_vector_get_child(duckdb_vector vector);
 export function list_vector_get_child(vector: Vector): Vector;
@@ -746,7 +749,7 @@ export function appender_column_count(appender: Appender): number;
 export function appender_column_type(appender: Appender, column_index: number): LogicalType;
 
 // DUCKDB_API const char *duckdb_appender_error(duckdb_appender appender);
-export function appender_error(appender: Appender): string;
+// not exposed: other appender functions throw
 
 // DUCKDB_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
 export function appender_flush(appender: Appender): void;
@@ -758,7 +761,7 @@ export function appender_close(appender: Appender): void;
 export function appender_destroy(appender: Appender): void;
 
 // DUCKDB_API duckdb_state duckdb_appender_begin_row(duckdb_appender appender);
-export function appender_begin_row(appender: Appender): void;
+// not exposed: no-op
 
 // DUCKDB_API duckdb_state duckdb_appender_end_row(duckdb_appender appender);
 export function appender_end_row(appender: Appender): void;
@@ -818,6 +821,7 @@ export function append_interval(appender: Appender, interval: Interval): void;
 export function append_varchar(appender: Appender, varchar: string): void;
 
 // DUCKDB_API duckdb_state duckdb_append_varchar_length(duckdb_appender appender, const char *val, idx_t length);
+// not exposed: JS string includes length
 
 // DUCKDB_API duckdb_state duckdb_append_blob(duckdb_appender appender, const void *data, idx_t length);
 export function append_blob(appender: Appender, data: Uint8Array): void;

@@ -689,9 +689,34 @@ public:
       InstanceMethod("validity_set_row_invalid", &DuckDBNodeAddon::validity_set_row_invalid),
       InstanceMethod("validity_set_row_valid", &DuckDBNodeAddon::validity_set_row_valid),
 
-      // TODO: appender_create
-      // TODO: ...
-      // TODO: append_data_chunk
+      InstanceMethod("appender_create", &DuckDBNodeAddon::appender_create),
+      InstanceMethod("appender_column_count", &DuckDBNodeAddon::appender_column_count),
+      InstanceMethod("appender_column_type", &DuckDBNodeAddon::appender_column_type),
+      InstanceMethod("appender_flush", &DuckDBNodeAddon::appender_flush),
+      InstanceMethod("appender_close", &DuckDBNodeAddon::appender_close),
+      InstanceMethod("appender_destroy", &DuckDBNodeAddon::appender_destroy),
+      InstanceMethod("appender_end_row", &DuckDBNodeAddon::appender_end_row),
+      InstanceMethod("append_bool", &DuckDBNodeAddon::append_bool),
+      InstanceMethod("append_int8", &DuckDBNodeAddon::append_int8),
+      InstanceMethod("append_int16", &DuckDBNodeAddon::append_int16),
+      InstanceMethod("append_int32", &DuckDBNodeAddon::append_int32),
+      InstanceMethod("append_int64", &DuckDBNodeAddon::append_int64),
+      InstanceMethod("append_hugeint", &DuckDBNodeAddon::append_hugeint),
+      InstanceMethod("append_uint8", &DuckDBNodeAddon::append_uint8),
+      InstanceMethod("append_uint16", &DuckDBNodeAddon::append_uint16),
+      InstanceMethod("append_uint32", &DuckDBNodeAddon::append_uint32),
+      InstanceMethod("append_uint64", &DuckDBNodeAddon::append_uint64),
+      InstanceMethod("append_uhugeint", &DuckDBNodeAddon::append_uhugeint),
+      InstanceMethod("append_float", &DuckDBNodeAddon::append_float),
+      InstanceMethod("append_double", &DuckDBNodeAddon::append_double),
+      InstanceMethod("append_date", &DuckDBNodeAddon::append_date),
+      InstanceMethod("append_time", &DuckDBNodeAddon::append_time),
+      InstanceMethod("append_timestamp", &DuckDBNodeAddon::append_timestamp),
+      InstanceMethod("append_interval", &DuckDBNodeAddon::append_interval),
+      InstanceMethod("append_varchar", &DuckDBNodeAddon::append_varchar),
+      InstanceMethod("append_blob", &DuckDBNodeAddon::append_blob),
+      InstanceMethod("append_null", &DuckDBNodeAddon::append_null),
+      InstanceMethod("append_data_chunk", &DuckDBNodeAddon::append_data_chunk),
 
       InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
 
@@ -2026,36 +2051,209 @@ private:
   // #endif
 
   // DUCKDB_API duckdb_state duckdb_appender_create(duckdb_connection connection, const char *schema, const char *table, duckdb_appender *out_appender);
+  // function appender_create(connection: Connection, schema: string, table: string): Appender
+  Napi::Value appender_create(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API idx_t duckdb_appender_column_count(duckdb_appender appender);
+  // function appender_column_count(appender: Appender): number
+  Napi::Value appender_column_count(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_logical_type duckdb_appender_column_type(duckdb_appender appender, idx_t col_idx);
+  // function appender_column_type(appender: Appender, column_index: number): LogicalType
+  Napi::Value appender_column_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API const char *duckdb_appender_error(duckdb_appender appender);
+// not exposed: other appender functions throw
+
   // DUCKDB_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
+  // function appender_flush(appender: Appender): void
+  Napi::Value appender_flush(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_appender_close(duckdb_appender appender);
+  // function appender_close(appender: Appender): void
+  Napi::Value appender_close(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_appender_destroy(duckdb_appender *appender);
+  // function appender_destroy(appender: Appender): void
+  Napi::Value appender_destroy(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_appender_begin_row(duckdb_appender appender);
+  // not exposed: no-op
+
   // DUCKDB_API duckdb_state duckdb_appender_end_row(duckdb_appender appender);
+  // function appender_end_row(appender: Appender): void
+  Napi::Value appender_end_row(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_bool(duckdb_appender appender, bool value);
+  // function append_bool(appender: Appender, bool: boolean): void
+  Napi::Value append_bool(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_int8(duckdb_appender appender, int8_t value);
+  // function append_int8(appender: Appender, int8: number): void
+  Napi::Value append_int8(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_int16(duckdb_appender appender, int16_t value);
+  // function append_int16(appender: Appender, int16: number): void
+  Napi::Value append_int16(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_int32(duckdb_appender appender, int32_t value);
+  // function append_int32(appender: Appender, int32: number): void
+  Napi::Value append_int32(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_int64(duckdb_appender appender, int64_t value);
+  // function append_int64(appender: Appender, int64: bigint): void
+  Napi::Value append_int64(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_hugeint(duckdb_appender appender, duckdb_hugeint value);
+  // function append_hugeint(appender: Appender, hugeint: bigint): void
+  Napi::Value append_hugeint(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_uint8(duckdb_appender appender, uint8_t value);
+  // function append_uint8(appender: Appender, uint8: number): void
+  Napi::Value append_uint8(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_uint16(duckdb_appender appender, uint16_t value);
+  // function append_uint16(appender: Appender, uint16: number): void
+  Napi::Value append_uint16(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_uint32(duckdb_appender appender, uint32_t value);
+  // function append_uint32(appender: Appender, uint32: number): void
+  Napi::Value append_uint32(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_uint64(duckdb_appender appender, uint64_t value);
+  // function append_uint64(appender: Appender, uint64: bigint): void
+  Napi::Value append_uint64(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_uhugeint(duckdb_appender appender, duckdb_uhugeint value);
+  // function append_uhugeint(appender: Appender, uhugeint: bigint): void
+  Napi::Value append_uhugeint(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_float(duckdb_appender appender, float value);
+  // function append_float(appender: Appender, float: number): void
+  Napi::Value append_float(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_double(duckdb_appender appender, double value);
+  // function append_double(appender: Appender, double: number): void
+  Napi::Value append_double(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_date(duckdb_appender appender, duckdb_date value);
+  // function append_date(appender: Appender, date: Date_): void
+  Napi::Value append_date(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_time(duckdb_appender appender, duckdb_time value);
+  // function append_time(appender: Appender, time: Time): void
+  Napi::Value append_time(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_timestamp(duckdb_appender appender, duckdb_timestamp value);
+  // function append_timestamp(appender: Appender, timestamp: Timestamp): void
+  Napi::Value append_timestamp(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_interval(duckdb_appender appender, duckdb_interval value);
+  // function append_interval(appender: Appender, interval: Interval): void
+  Napi::Value append_interval(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_varchar(duckdb_appender appender, const char *val);
+  // function append_varchar(appender: Appender, varchar: string): void
+  Napi::Value append_varchar(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_varchar_length(duckdb_appender appender, const char *val, idx_t length);
+  // not exposed: JS string includes length
+
   // DUCKDB_API duckdb_state duckdb_append_blob(duckdb_appender appender, const void *data, idx_t length);
+  // function append_blob(appender: Appender, data: Uint8Array): void
+  Napi::Value append_blob(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_null(duckdb_appender appender);
+  // function append_null(appender: Appender): void
+  Napi::Value append_null(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk);
+  // function append_data_chunk(appender: Appender, chunk: DataChunk): void
+  Napi::Value append_data_chunk(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
   // DUCKDB_API duckdb_state duckdb_query_arrow(duckdb_connection connection, const char *query, duckdb_arrow *out_result);
@@ -2117,21 +2315,16 @@ NODE_API_ADDON(DuckDBNodeAddon)
 
 /*
 
-  270 DUCKDB_API functions
+  270 duckdb api functions
 +   1 added function
   ---
   271 total functions
 
-  139 InstanceMethods
-   10 functions not exposed
-   47 DUCKDB_API_NO_DEPRECATED functions
-+  44 DUCKDB_NO_EXTENSION_FUNCTIONS functions
+  167 instance methods
+   13 functions not exposed
+   47 deprecated functions
++  44 extension functions
   ---
-  240 functions accounted for
-
-  30 appender functions TODO
-+  1 appender functions TODO not exposed
-  --
-  31 appender functions TODO
+  271 functions accounted for
 
 */
