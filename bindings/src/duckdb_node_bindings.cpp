@@ -676,18 +676,18 @@ public:
       InstanceMethod("vector_get_column_type", &DuckDBNodeAddon::vector_get_column_type),
       InstanceMethod("vector_get_data", &DuckDBNodeAddon::vector_get_data),
       InstanceMethod("vector_get_validity", &DuckDBNodeAddon::vector_get_validity),
-      // TODO: vector_ensure_validity_writable
-      // TODO: vector_assign_string_element
+      InstanceMethod("vector_ensure_validity_writable", &DuckDBNodeAddon::vector_ensure_validity_writable),
+      InstanceMethod("vector_assign_string_element", &DuckDBNodeAddon::vector_assign_string_element),
       InstanceMethod("list_vector_get_child", &DuckDBNodeAddon::list_vector_get_child),
       InstanceMethod("list_vector_get_size", &DuckDBNodeAddon::list_vector_get_size),
-      // TODO: list_vector_set_size
-      // TODO: list_vector_reserve
+      InstanceMethod("list_vector_set_size", &DuckDBNodeAddon::list_vector_set_size),
+      InstanceMethod("list_vector_reserve", &DuckDBNodeAddon::list_vector_reserve),
       InstanceMethod("struct_vector_get_child", &DuckDBNodeAddon::struct_vector_get_child),
       InstanceMethod("array_vector_get_child", &DuckDBNodeAddon::array_vector_get_child),
       InstanceMethod("validity_row_is_valid", &DuckDBNodeAddon::validity_row_is_valid),
-      // TODO: validity_set_row_validity
-      // TODO: validity_set_row_invalid
-      // TODO: validity_set_row_valid
+      InstanceMethod("validity_set_row_validity", &DuckDBNodeAddon::validity_set_row_validity),
+      InstanceMethod("validity_set_row_invalid", &DuckDBNodeAddon::validity_set_row_invalid),
+      InstanceMethod("validity_set_row_valid", &DuckDBNodeAddon::validity_set_row_valid),
 
       // TODO: appender_create
       // TODO: ...
@@ -1888,10 +1888,18 @@ private:
   }
 
   // DUCKDB_API void duckdb_vector_ensure_validity_writable(duckdb_vector vector);
-  // TODO
+  // function vector_ensure_validity_writable(vector: Vector): void
+  Napi::Value vector_ensure_validity_writable(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API void duckdb_vector_assign_string_element(duckdb_vector vector, idx_t index, const char *str);
-  // TODO
+  // function vector_assign_string_element(vector: Vector, index: number, str: string): void
+  Napi::Value vector_assign_string_element(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
   
   // DUCKDB_API void duckdb_vector_assign_string_element_len(duckdb_vector vector, idx_t index, const char *str, idx_t str_len);
   // not exposed: JS string includes length
@@ -1915,7 +1923,18 @@ private:
   }
 
   // DUCKDB_API duckdb_state duckdb_list_vector_set_size(duckdb_vector vector, idx_t size);
+  // function list_vector_set_size(vector: Vector, size: number): void
+  Napi::Value list_vector_set_size(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_list_vector_reserve(duckdb_vector vector, idx_t required_capacity);
+  // function list_vector_reserve(vector: Vector, required_capacity: number): void
+  Napi::Value list_vector_reserve(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API duckdb_vector duckdb_struct_vector_get_child(duckdb_vector vector, idx_t index);
   // function struct_vector_get_child(vector: Vector, index: number): Vector
@@ -1947,13 +1966,25 @@ private:
   }
 
   // DUCKDB_API void duckdb_validity_set_row_validity(uint64_t *validity, idx_t row, bool valid);
-  // TODO
+  // function validity_set_row_validity(validity: Uint8Array, row_index: number, valid: boolean): void
+  Napi::Value validity_set_row_validity(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API void duckdb_validity_set_row_invalid(uint64_t *validity, idx_t row);
-  // TODO
+  // function validity_set_row_invalid(validity: Uint8Array, row_index: number): void
+  Napi::Value validity_set_row_invalid(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API void duckdb_validity_set_row_valid(uint64_t *validity, idx_t row);
-  // TODO
+  // function validity_set_row_valid(validity: Uint8Array, row_index: number): void
+  Napi::Value validity_set_row_valid(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // #ifndef DUCKDB_NO_EXTENSION_FUNCTIONS
   // DUCKDB_API duckdb_table_function duckdb_create_table_function();
