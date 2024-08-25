@@ -665,13 +665,13 @@ public:
       InstanceMethod("union_type_member_type", &DuckDBNodeAddon::union_type_member_type),
       InstanceMethod("destroy_logical_type", &DuckDBNodeAddon::destroy_logical_type),
 
-      // TODO: create_data_chunk
+      InstanceMethod("create_data_chunk", &DuckDBNodeAddon::create_data_chunk),
       InstanceMethod("destroy_data_chunk", &DuckDBNodeAddon::destroy_data_chunk),
-      // TODO: data_chunk_reset
+      InstanceMethod("data_chunk_reset", &DuckDBNodeAddon::data_chunk_reset),
       InstanceMethod("data_chunk_get_column_count", &DuckDBNodeAddon::data_chunk_get_column_count),
       InstanceMethod("data_chunk_get_vector", &DuckDBNodeAddon::data_chunk_get_vector),
       InstanceMethod("data_chunk_get_size", &DuckDBNodeAddon::data_chunk_get_size),
-      // TODO: data_chunk_set_size
+      InstanceMethod("data_chunk_set_size", &DuckDBNodeAddon::data_chunk_set_size),
 
       InstanceMethod("vector_get_column_type", &DuckDBNodeAddon::vector_get_column_type),
       InstanceMethod("vector_get_data", &DuckDBNodeAddon::vector_get_data),
@@ -1801,7 +1801,11 @@ private:
   }
 
   // DUCKDB_API duckdb_data_chunk duckdb_create_data_chunk(duckdb_logical_type *types, idx_t column_count);
-  // TODO
+  // function create_data_chunk(logical_types: readonly LogicalType[]): DataChunk
+  Napi::Value create_data_chunk(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API void duckdb_destroy_data_chunk(duckdb_data_chunk *chunk);
   // function destroy_data_chunk(chunk: DataChunk): void
@@ -1813,7 +1817,11 @@ private:
   }
 
   // DUCKDB_API void duckdb_data_chunk_reset(duckdb_data_chunk chunk);
-  // TODO
+  // function data_chunk_reset(chunk: DataChunk): void
+  Napi::Value data_chunk_reset(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API idx_t duckdb_data_chunk_get_column_count(duckdb_data_chunk chunk);
   // function data_chunk_get_column_count(chunk: DataChunk): number
@@ -1844,7 +1852,11 @@ private:
   }
 
   // DUCKDB_API void duckdb_data_chunk_set_size(duckdb_data_chunk chunk, idx_t size);
-  // TODO
+  // function data_chunk_set_size(chunk: DataChunk, size: number): void
+  Napi::Value data_chunk_set_size(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector);
   // function vector_get_column_type(vector: Vector): LogicalType
