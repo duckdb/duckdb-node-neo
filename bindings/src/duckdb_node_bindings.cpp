@@ -773,14 +773,22 @@ private:
   // function interrupt(connection: Connection): void
   Napi::Value interrupt(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    duckdb_interrupt(connection);
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_query_progress_type duckdb_query_progress(duckdb_connection connection);
   // function query_progress(connection: Connection): QueryProgress
   Napi::Value query_progress(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto progress = duckdb_query_progress(connection);
+    auto result = Napi::Object::New(env);
+    result.Set("percentage", Napi::Number::New(env, progress.percentage));
+    result.Set("rows_processed", Napi::BigInt::New(env, progress.rows_processed));
+    result.Set("total_rows_to_process", Napi::BigInt::New(env, progress.total_rows_to_process));
+    return result;
   }
 
   // DUCKDB_API void duckdb_disconnect(duckdb_connection *connection);

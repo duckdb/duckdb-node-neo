@@ -111,8 +111,8 @@ export interface Interval {
 
 export interface QueryProgress {
   percentage: number;
-  rows_processed: number;
-  total_rows_to_process: number;
+  rows_processed: bigint;
+  total_rows_to_process: bigint;
 }
 
 export interface Time {
