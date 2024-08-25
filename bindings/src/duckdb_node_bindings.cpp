@@ -617,6 +617,7 @@ public:
       
       InstanceMethod("extract_statements", &DuckDBNodeAddon::extract_statements),
       InstanceMethod("prepare_extracted_statement", &DuckDBNodeAddon::prepare_extracted_statement),
+      InstanceMethod("extract_statements_error", &DuckDBNodeAddon::extract_statements_error),
       InstanceMethod("destroy_extracted", &DuckDBNodeAddon::destroy_extracted),
 
       InstanceMethod("pending_prepared", &DuckDBNodeAddon::pending_prepared),
@@ -1392,7 +1393,11 @@ private:
   }
 
   // DUCKDB_API const char *duckdb_extract_statements_error(duckdb_extracted_statements extracted_statements);
-  // not exposed: extract_statements rejects promise with error
+  // function extract_statements_error(extracted_statements: ExtractedStatements): string
+  Napi::Value extract_statements_error(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API void duckdb_destroy_extracted(duckdb_extracted_statements *extracted_statements);
   // function destroy_extracted(extracted_statements: ExtractedStatements): void
@@ -2320,8 +2325,8 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   271 total functions
 
-  167 instance methods
-   13 functions not exposed
+  168 instance methods
+   12 functions not exposed
    47 deprecated functions
 +  44 extension functions
   ---
