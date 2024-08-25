@@ -2,7 +2,6 @@ import duckdb from '@duckdb/node-bindings';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBTypeId } from './DuckDBTypeId';
-import { throwOnFailure } from './throwOnFailure';
 
 export class DuckDBPreparedStatement {
   private readonly prepared_statement: duckdb.PreparedStatement;
@@ -25,10 +24,7 @@ export class DuckDBPreparedStatement {
     ) as number as DuckDBTypeId;
   }
   public clearBindings() {
-    throwOnFailure(
-      duckdb.clear_bindings(this.prepared_statement),
-      'Failed to clear bindings'
-    );
+    duckdb.clear_bindings(this.prepared_statement);
   }
   // TODO: is duckdb_bind_value useful?
   // TODO: get parameter index from name (duckdb_bind_parameter_index)
@@ -36,72 +32,36 @@ export class DuckDBPreparedStatement {
     duckdb.bind_boolean(this.prepared_statement, parameterIndex, value);
   }
   public bindTinyInt(parameterIndex: number, value: number) {
-    throwOnFailure(
-      duckdb.bind_int8(this.prepared_statement, parameterIndex, value),
-      'Failed to bind tinyint parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_int8(this.prepared_statement, parameterIndex, value);
   }
   public bindSmallInt(parameterIndex: number, value: number) {
-    throwOnFailure(
-      duckdb.bind_int16(this.prepared_statement, parameterIndex, value),
-      'Failed to bind smallint parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_int16(this.prepared_statement, parameterIndex, value);
   }
   public bindInteger(parameterIndex: number, value: number) {
     duckdb.bind_int32(this.prepared_statement, parameterIndex, value);
   }
   public bindBigInt(parameterIndex: number, value: bigint) {
-    throwOnFailure(
-      duckdb.bind_int64(this.prepared_statement, parameterIndex, value),
-      'Failed to bind bigint parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_int64(this.prepared_statement, parameterIndex, value);
   }
   // TODO: bind HUGEINT
   // TODO: bind DECIMAL
   public bindUTinyInt(parameterIndex: number, value: number) {
-    throwOnFailure(
-      duckdb.bind_uint8(this.prepared_statement, parameterIndex, value),
-      'Failed to bind utinyint parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_uint8(this.prepared_statement, parameterIndex, value);
   }
   public bindUSmallInt(parameterIndex: number, value: number) {
-    throwOnFailure(
-      duckdb.bind_uint16(this.prepared_statement, parameterIndex, value),
-      'Failed to bind usmallit parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_uint16(this.prepared_statement, parameterIndex, value);
   }
   public bindUInteger(parameterIndex: number, value: number) {
-    throwOnFailure(
-      duckdb.bind_uint32(this.prepared_statement, parameterIndex, value),
-      'Failed to bind uinteger parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_uint32(this.prepared_statement, parameterIndex, value);
   }
   public bindUBigInt(parameterIndex: number, value: bigint) {
-    throwOnFailure(
-      duckdb.bind_uint64(this.prepared_statement, parameterIndex, value),
-      'Failed to bind ubigint parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_uint64(this.prepared_statement, parameterIndex, value);
   }
   public bindFloat(parameterIndex: number, value: number) {
-    throwOnFailure(
-      duckdb.bind_float(this.prepared_statement, parameterIndex, value),
-      'Failed to bind float parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_float(this.prepared_statement, parameterIndex, value);
   }
   public bindDouble(parameterIndex: number, value: number) {
-    throwOnFailure(
-      duckdb.bind_double(this.prepared_statement, parameterIndex, value),
-      'Failed to bind double parameter',
-      () => `index: ${parameterIndex}, value: ${value}`
-    );
+    duckdb.bind_double(this.prepared_statement, parameterIndex, value);
   }
   // TODO: bind DATE
   // TODO: bind TIME
