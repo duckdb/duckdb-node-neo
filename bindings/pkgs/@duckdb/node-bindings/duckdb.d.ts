@@ -489,7 +489,7 @@ export function extract_statements(connection: Connection, query: string): Promi
 export function prepare_extracted_statement(connection: Connection, extracted_statements: ExtractedStatements, index: number): Promise<PreparedStatement>;
 
 // DUCKDB_API const char *duckdb_extract_statements_error(duckdb_extracted_statements extracted_statements);
-export function extract_statements_error(extracted_statements: ExtractedStatements): string;
+// not exposed: extract_statements rejects promise with error
 
 // DUCKDB_API void duckdb_destroy_extracted(duckdb_extracted_statements *extracted_statements);
 export function destroy_extracted(extracted_statements: ExtractedStatements): void;

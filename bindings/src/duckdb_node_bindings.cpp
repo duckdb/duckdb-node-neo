@@ -615,9 +615,9 @@ public:
       InstanceMethod("bind_null", &DuckDBNodeAddon::bind_null),
       InstanceMethod("execute_prepared", &DuckDBNodeAddon::execute_prepared),
       
-      // TODO: extract_statements
-      // TODO: ...
-      // TODO: destroy_extracted
+      InstanceMethod("extract_statements", &DuckDBNodeAddon::extract_statements),
+      InstanceMethod("prepare_extracted_statement", &DuckDBNodeAddon::prepare_extracted_statement),
+      InstanceMethod("destroy_extracted", &DuckDBNodeAddon::destroy_extracted),
 
       InstanceMethod("pending_prepared", &DuckDBNodeAddon::pending_prepared),
       InstanceMethod("destroy_pending", &DuckDBNodeAddon::destroy_pending),
@@ -1348,9 +1348,28 @@ private:
   // #endif
 
   // DUCKDB_API idx_t duckdb_extract_statements(duckdb_connection connection, const char *query, duckdb_extracted_statements *out_extracted_statements);
+  // function extract_statements(connection: Connection, query: string): Promise<ExtractedStatementsAndCount>
+  Napi::Value extract_statements(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_state duckdb_prepare_extracted_statement(duckdb_connection connection, duckdb_extracted_statements extracted_statements, idx_t index, duckdb_prepared_statement *out_prepared_statement);
+  // function prepare_extracted_statement(connection: Connection, extracted_statements: ExtractedStatements, index: number): Promise<PreparedStatement>
+  Napi::Value prepare_extracted_statement(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API const char *duckdb_extract_statements_error(duckdb_extracted_statements extracted_statements);
+  // not exposed: extract_statements rejects promise with error
+
   // DUCKDB_API void duckdb_destroy_extracted(duckdb_extracted_statements *extracted_statements);
+  // function destroy_extracted(extracted_statements: ExtractedStatements): void
+  Napi::Value destroy_extracted(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API duckdb_state duckdb_pending_prepared(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result);
   // function pending_prepared(prepared_statement: PreparedStatement): PendingResult
