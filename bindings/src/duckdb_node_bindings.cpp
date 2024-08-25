@@ -546,6 +546,7 @@ public:
       InstanceMethod("disconnect", &DuckDBNodeAddon::disconnect),
 
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
+
       InstanceMethod("create_config", &DuckDBNodeAddon::create_config),
       InstanceMethod("config_count", &DuckDBNodeAddon::config_count),
       InstanceMethod("get_config_flag", &DuckDBNodeAddon::get_config_flag),
@@ -564,9 +565,23 @@ public:
 
       InstanceMethod("vector_size", &DuckDBNodeAddon::vector_size),
 
-      // TODO: from_date
-      // TODO: ...
-      // TODO: decimal_to_double
+      InstanceMethod("from_date", &DuckDBNodeAddon::from_date),
+      InstanceMethod("to_date", &DuckDBNodeAddon::to_date),
+      InstanceMethod("is_finite_date", &DuckDBNodeAddon::is_finite_date),
+      InstanceMethod("from_time", &DuckDBNodeAddon::from_time),
+      InstanceMethod("create_time_tz", &DuckDBNodeAddon::create_time_tz),
+      InstanceMethod("from_time_tz", &DuckDBNodeAddon::from_time_tz),
+      InstanceMethod("to_time", &DuckDBNodeAddon::to_time),
+      InstanceMethod("from_timestamp", &DuckDBNodeAddon::from_timestamp),
+      InstanceMethod("to_timestamp", &DuckDBNodeAddon::to_timestamp),
+      InstanceMethod("is_finite_timestamp", &DuckDBNodeAddon::is_finite_timestamp),
+
+      InstanceMethod("hugeint_to_double", &DuckDBNodeAddon::hugeint_to_double),
+      InstanceMethod("double_to_hugeint", &DuckDBNodeAddon::double_to_hugeint),
+      InstanceMethod("uhugeint_to_double", &DuckDBNodeAddon::uhugeint_to_double),
+      InstanceMethod("double_to_uhugeint", &DuckDBNodeAddon::double_to_uhugeint),
+      InstanceMethod("double_to_decimal", &DuckDBNodeAddon::double_to_decimal),
+      InstanceMethod("decimal_to_double", &DuckDBNodeAddon::decimal_to_double),
 
       InstanceMethod("prepare", &DuckDBNodeAddon::prepare),
       InstanceMethod("destroy_prepare", &DuckDBNodeAddon::destroy_prepare),
@@ -706,12 +721,16 @@ private:
   }
 
   // DUCKDB_API void duckdb_interrupt(duckdb_connection connection);
+  // function interrupt(connection: Connection): void
   Napi::Value interrupt(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
     throw Napi::Error::New(env, "Not implemented yet");
   }
 
   // DUCKDB_API duckdb_query_progress_type duckdb_query_progress(duckdb_connection connection);
+  // function query_progress(connection: Connection): QueryProgress
   Napi::Value query_progress(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
     throw Napi::Error::New(env, "Not implemented yet");
   }
 
@@ -935,21 +954,116 @@ private:
   // not exposed: handled internally
 
   // DUCKDB_API duckdb_date_struct duckdb_from_date(duckdb_date date);
+  // function from_date(date: Date_): DateParts
+  Napi::Value from_date(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_date duckdb_to_date(duckdb_date_struct date);
+  // function to_date(parts: DateParts): Date_
+  Napi::Value to_date(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API bool duckdb_is_finite_date(duckdb_date date);
+  // function is_finite_date(date: Date_): boolean
+  Napi::Value is_finite_date(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_time_struct duckdb_from_time(duckdb_time time);
+  // function from_time(time: Time): TimeParts
+  Napi::Value from_time(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_time_tz duckdb_create_time_tz(int64_t micros, int32_t offset);
+  // function create_time_tz(micros: number, offset: number): TimeTZ
+  Napi::Value create_time_tz(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_time_tz_struct duckdb_from_time_tz(duckdb_time_tz micros);
+  // function from_time_tz(time_tz: TimeTZ): TimeTZParts
+  Napi::Value from_time_tz(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_time duckdb_to_time(duckdb_time_struct time);
+  // function to_time(parts: TimeParts): Time
+  Napi::Value to_time(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_timestamp_struct duckdb_from_timestamp(duckdb_timestamp ts);
+  // function from_timestamp(timestamp: Timestamp): TimestampParts
+  Napi::Value from_timestamp(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_timestamp duckdb_to_timestamp(duckdb_timestamp_struct ts);
+  // function to_timestamp(parts: TimestampParts): Timestamp
+  Napi::Value to_timestamp(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API bool duckdb_is_finite_timestamp(duckdb_timestamp ts);
+  // function is_finite_timestamp(timestamp: Timestamp): boolean
+  Napi::Value is_finite_timestamp(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API double duckdb_hugeint_to_double(duckdb_hugeint val);
+  // function hugeint_to_double(hugeint: bigint): number
+  Napi::Value hugeint_to_double(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_hugeint duckdb_double_to_hugeint(double val);
+  // function double_to_hugeint(double: number): bigint
+  Napi::Value double_to_hugeint(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API double duckdb_uhugeint_to_double(duckdb_uhugeint val);
+  // function uhugeint_to_double(uhugeint: bigint): number
+  Napi::Value uhugeint_to_double(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_uhugeint duckdb_double_to_uhugeint(double val);
+  // function double_to_uhugeint(double: number): bigint
+  Napi::Value double_to_uhugeint(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_decimal duckdb_double_to_decimal(double val, uint8_t width, uint8_t scale);
+  // function double_to_decimal(double: number, width: number, scale: number): Decimal
+  Napi::Value double_to_decimal(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API double duckdb_decimal_to_double(duckdb_decimal val);
+  // function decimal_to_double(decimal: Decimal): number
+  Napi::Value decimal_to_double(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API duckdb_state duckdb_prepare(duckdb_connection connection, const char *query, duckdb_prepared_statement *out_prepared_statement);
   // function prepare(connection: Connection, query: string): Promise<PreparedStatement>
