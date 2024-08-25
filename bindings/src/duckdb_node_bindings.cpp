@@ -541,8 +541,8 @@ public:
       InstanceMethod("open", &DuckDBNodeAddon::open),
       InstanceMethod("close", &DuckDBNodeAddon::close),
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
-      // TODO: interrupt
-      // TODO: query_progress
+      InstanceMethod("interrupt", &DuckDBNodeAddon::interrupt),
+      InstanceMethod("query_progress", &DuckDBNodeAddon::query_progress),
       InstanceMethod("disconnect", &DuckDBNodeAddon::disconnect),
 
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
@@ -706,10 +706,14 @@ private:
   }
 
   // DUCKDB_API void duckdb_interrupt(duckdb_connection connection);
-  // TODO
+  Napi::Value interrupt(const Napi::CallbackInfo& info) {
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API duckdb_query_progress_type duckdb_query_progress(duckdb_connection connection);
-  // TODO
+  Napi::Value query_progress(const Napi::CallbackInfo& info) {
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API void duckdb_disconnect(duckdb_connection *connection);
   // function disconnect(connection: Connection): Promise<void>
