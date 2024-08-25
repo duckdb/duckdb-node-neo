@@ -920,7 +920,7 @@ private:
   // not exposed: query, execute_prepared, and execute_pending reject promise with error
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
-// DUCKDB_API duckdb_data_chunk duckdb_result_get_chunk(duckdb_result result, idx_t chunk_index);
+  // DUCKDB_API duckdb_data_chunk duckdb_result_get_chunk(duckdb_result result, idx_t chunk_index);
   // DUCKDB_API bool duckdb_result_is_streaming(duckdb_result result);
   // DUCKDB_API idx_t duckdb_result_chunk_count(duckdb_result result);
   // #endif
@@ -2114,3 +2114,24 @@ private:
 };
 
 NODE_API_ADDON(DuckDBNodeAddon)
+
+/*
+
+  270 DUCKDB_API functions
++   1 added function
+  ---
+  271 total functions
+
+  139 InstanceMethods
+   10 functions not exposed
+   47 DUCKDB_API_NO_DEPRECATED functions
++  44 DUCKDB_NO_EXTENSION_FUNCTIONS functions
+  ---
+  240 functions accounted for
+
+  30 appender functions TODO
++  1 appender functions TODO not exposed
+  --
+  31 appender functions TODO
+
+*/
