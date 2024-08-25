@@ -623,9 +623,9 @@ public:
       InstanceMethod("destroy_pending", &DuckDBNodeAddon::destroy_pending),
       InstanceMethod("pending_error", &DuckDBNodeAddon::pending_error),
       InstanceMethod("pending_execute_task", &DuckDBNodeAddon::pending_execute_task),
-      // TODO: ...
+      InstanceMethod("pending_execute_check_state", &DuckDBNodeAddon::pending_execute_check_state),
       InstanceMethod("execute_pending", &DuckDBNodeAddon::execute_pending),
-      // TODO: pending_execution_is_finished
+      InstanceMethod("pending_execution_is_finished", &DuckDBNodeAddon::pending_execution_is_finished),
 
       // TODO: destroy_value
       // TODO: ...
@@ -1417,6 +1417,11 @@ private:
   }
 
   // DUCKDB_API duckdb_pending_state duckdb_pending_execute_check_state(duckdb_pending_result pending_result);
+  // function pending_execute_check_state(pending_resulit: PendingResult): PendingState
+  Napi::Value pending_execute_check_state(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API duckdb_state duckdb_execute_pending(duckdb_pending_result pending_result, duckdb_result *out_result);
   // function execute_pending(pending_result: PendingResult): Promise<Result>
@@ -1429,6 +1434,11 @@ private:
   }
 
   // DUCKDB_API bool duckdb_pending_execution_is_finished(duckdb_pending_state pending_state);
+  // function pending_execution_is_finished(pending_state: PendingState): boolean
+  Napi::Value pending_execution_is_finished(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API void duckdb_destroy_value(duckdb_value *value);
   // DUCKDB_API duckdb_value duckdb_create_varchar(const char *text);
