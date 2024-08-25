@@ -1033,7 +1033,7 @@ private:
     int32_t year = date_parts_obj.Get("year").As<Napi::Number>().Int32Value();
     int8_t month = date_parts_obj.Get("month").As<Napi::Number>().Int32Value();
     int8_t day = date_parts_obj.Get("day").As<Napi::Number>().Int32Value();
-    duckdb_date_struct date_parts { year, month, day };
+    duckdb_date_struct date_parts = { year, month, day };
     auto date = duckdb_to_date(date_parts);
     auto result = Napi::Object::New(env);
     result.Set("days", Napi::Number::New(env, date.days));
@@ -1055,28 +1055,67 @@ private:
   // function from_time(time: Time): TimeParts
   Napi::Value from_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto time_obj = info[0].As<Napi::Object>();
+    auto micros = time_obj.Get("micros").As<Napi::Number>().Int64Value();
+    duckdb_time time = { micros };
+    auto time_parts = duckdb_from_time(time);
+    auto result = Napi::Object::New(env);
+    result.Set("hour", Napi::Number::New(env, time_parts.hour));
+    result.Set("min", Napi::Number::New(env, time_parts.min));
+    result.Set("sec", Napi::Number::New(env, time_parts.sec));
+    result.Set("micros", Napi::Number::New(env, time_parts.micros));
+    return result;
   }
 
   // DUCKDB_API duckdb_time_tz duckdb_create_time_tz(int64_t micros, int32_t offset);
   // function create_time_tz(micros: number, offset: number): TimeTZ
   Napi::Value create_time_tz(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto micros = info[0].As<Napi::Number>().Int64Value();
+    auto offset = info[1].As<Napi::Number>().Int32Value();
+    auto time_tz = duckdb_create_time_tz(micros, offset);
+    auto result = Napi::Object::New(env);
+    result.Set("bits", Napi::BigInt::New(env, time_tz.bits));
+    return result;
   }
 
   // DUCKDB_API duckdb_time_tz_struct duckdb_from_time_tz(duckdb_time_tz micros);
   // function from_time_tz(time_tz: TimeTZ): TimeTZParts
   Napi::Value from_time_tz(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto time_tz_obj = info[0].As<Napi::Object>();
+    bool lossless;
+    auto bits = time_tz_obj.Get("bits").As<Napi::BigInt>().Uint64Value(&lossless);
+    if (!lossless) {
+      throw Napi::Error::New(env, "bits out of uint64 range");
+    }
+    duckdb_time_tz time_tz = { bits };
+    auto time_tz_parts = duckdb_from_time_tz(time_tz);
+    auto result = Napi::Object::New(env);
+    auto time = Napi::Object::New(env);
+    time.Set("hour", Napi::Number::New(env, time_tz_parts.time.hour));
+    time.Set("min", Napi::Number::New(env, time_tz_parts.time.min));
+    time.Set("sec", Napi::Number::New(env, time_tz_parts.time.sec));
+    time.Set("micros", Napi::Number::New(env, time_tz_parts.time.micros));
+    result.Set("time", time);
+    result.Set("offset", Napi::Number::New(env, time_tz_parts.offset));
+    return result;
   }
 
   // DUCKDB_API duckdb_time duckdb_to_time(duckdb_time_struct time);
   // function to_time(parts: TimeParts): Time
   Napi::Value to_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto time_parts_obj = info[0].As<Napi::Object>();
+    int8_t hour = time_parts_obj.Get("hour").As<Napi::Number>().Int32Value();
+    int8_t min = time_parts_obj.Get("min").As<Napi::Number>().Int32Value();
+    int8_t sec = time_parts_obj.Get("sec").As<Napi::Number>().Int32Value();
+    int32_t micros = time_parts_obj.Get("micros").As<Napi::Number>().Int32Value();
+    duckdb_time_struct time_parts = { hour, min, sec, micros };
+    auto time = duckdb_to_time(time_parts);
+    auto result = Napi::Object::New(env);
+    result.Set("micros", Napi::Number::New(env, time.micros));
+    return result;
   }
 
   // DUCKDB_API duckdb_timestamp_struct duckdb_from_timestamp(duckdb_timestamp ts);

@@ -127,8 +127,18 @@ export interface TimeParts {
 }
 
 export interface TimeTZ {
-  /** 40 bits for micros, 24 bits for offset */
-  bits: number; // or bigint, or buffer?
+  /**
+	 * 40 bits for micros, then 24 bits for encoded offset in seconds.
+	 * 
+	 * Max absolute unencoded offset = 15:59:59 = 60 * (60 * 15 + 59) + 59 = 57599.
+	 * 
+	 * Encoded offset is unencoded offset inverted then shifted (by +57599) to unsigned.
+	 * 
+	 * Max unencoded offset = 57599 -> -57599 -> 0 encoded.
+	 * 
+	 * Min unencoded offset = -57599 -> 57599 -> 115198 encoded.
+	 */
+  bits: bigint;
 }
 export interface TimeTZParts {
   time: TimeParts;
