@@ -528,7 +528,7 @@ export function create_varchar(text: string): Value;
 // DUCKDB_API duckdb_value duckdb_create_varchar_length(const char *text, idx_t length);
 
 // DUCKDB_API duckdb_value duckdb_create_int64(int64_t val);
-export function create_int64(int64: number): Value;
+export function create_int64(int64: bigint): Value;
 
 // DUCKDB_API duckdb_value duckdb_create_struct_value(duckdb_logical_type type, duckdb_value *values);
 export function create_struct_value(logical_type: LogicalType, values: readonly Value[]): Value;

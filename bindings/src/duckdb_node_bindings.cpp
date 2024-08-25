@@ -627,9 +627,14 @@ public:
       InstanceMethod("execute_pending", &DuckDBNodeAddon::execute_pending),
       InstanceMethod("pending_execution_is_finished", &DuckDBNodeAddon::pending_execution_is_finished),
 
-      // TODO: destroy_value
-      // TODO: ...
-      // TODO: get_int64
+      InstanceMethod("destroy_value", &DuckDBNodeAddon::destroy_value),
+      InstanceMethod("create_varchar", &DuckDBNodeAddon::create_varchar),
+      InstanceMethod("create_int64", &DuckDBNodeAddon::create_int64),
+      InstanceMethod("create_struct_value", &DuckDBNodeAddon::create_struct_value),
+      InstanceMethod("create_list_value", &DuckDBNodeAddon::create_list_value),
+      InstanceMethod("create_array_value", &DuckDBNodeAddon::create_array_value),
+      InstanceMethod("get_varchar", &DuckDBNodeAddon::get_varchar),
+      InstanceMethod("get_int64", &DuckDBNodeAddon::get_int64),
 
       InstanceMethod("create_logical_type", &DuckDBNodeAddon::create_logical_type),
       InstanceMethod("logical_type_get_alias", &DuckDBNodeAddon::logical_type_get_alias),
@@ -1441,14 +1446,63 @@ private:
   }
 
   // DUCKDB_API void duckdb_destroy_value(duckdb_value *value);
+  // function destroy_value(value: Value): void
+  Napi::Value destroy_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_value duckdb_create_varchar(const char *text);
+  // function create_varchar(text: string): Value
+  Napi::Value create_varchar(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_value duckdb_create_varchar_length(const char *text, idx_t length);
+  // not exposed: JS string includes length
+
   // DUCKDB_API duckdb_value duckdb_create_int64(int64_t val);
+  // function create_int64(int64: bigint): Value
+  Napi::Value create_int64(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_value duckdb_create_struct_value(duckdb_logical_type type, duckdb_value *values);
+  // function create_struct_value(logical_type: LogicalType, values: readonly Value[]): Value
+  Napi::Value create_struct_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_value duckdb_create_list_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count);
+  // function create_list_value(logical_type: LogicalType, values: readonly Value[]): Value
+  Napi::Value create_list_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API duckdb_value duckdb_create_array_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count);
+  // function create_array_value(logical_type: LogicalType, values: readonly Value[]): Value
+  Napi::Value create_array_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API char *duckdb_get_varchar(duckdb_value value);
+  // function get_varchar(value: Value): string
+  Napi::Value get_varchar(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
+
   // DUCKDB_API int64_t duckdb_get_int64(duckdb_value value);
+  // function get_int64(value: Value): bigint
+  Napi::Value get_int64(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    throw Napi::Error::New(env, "Not implemented yet");
+  }
 
   // DUCKDB_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
   // function create_logical_type(type: Type): LogicalType
