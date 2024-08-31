@@ -1230,14 +1230,33 @@ private:
   // function hugeint_to_double(hugeint: bigint): number
   Napi::Value hugeint_to_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto hugeint_as_bigint = info[0].As<Napi::BigInt>();
+    int sign_bit;
+    size_t word_count = 2;
+    uint64_t words[2];
+    hugeint_as_bigint.ToWords(&sign_bit, &word_count, words);
+    if (word_count > 2) {
+      throw Napi::Error::New(env, "bigint out of hugeint range");
+    }
+    uint64_t lower = word_count > 0 ? (sign_bit ? -1 : 1) * words[0] : 0;
+    int64_t upper = word_count > 1 ? (sign_bit ? -1 : 1) * words[1] : (word_count > 0 && sign_bit ? -1 : 0);
+    duckdb_hugeint hugeint = { lower, upper };
+    auto output_double = duckdb_hugeint_to_double(hugeint);
+    return Napi::Number::New(env, output_double);
   }
 
   // DUCKDB_API duckdb_hugeint duckdb_double_to_hugeint(double val);
   // function double_to_hugeint(double: number): bigint
   Napi::Value double_to_hugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto input_double = info[0].As<Napi::Number>().DoubleValue();
+    auto hugeint = duckdb_double_to_hugeint(input_double);
+    int sign_bit = input_double < 0 ? 1 : 0;
+    size_t word_count = hugeint.upper == -1 ? 1 : 2;
+    uint64_t words[2];
+    words[0] = (sign_bit ? -1 : 1) * hugeint.lower;
+    words[1] = (sign_bit ? -1 : 1) * hugeint.upper;
+    return Napi::BigInt::New(env, sign_bit, word_count, words);
   }
 
   // DUCKDB_API double duckdb_uhugeint_to_double(duckdb_uhugeint val);

@@ -178,4 +178,71 @@ suite('conversion', () => {
       expect(duckdb.is_finite_timestamp({ micros: -(2n ** 63n - 1n) })).toBe(false);
     });
   });
+  suite('hugeint_to_double', () => {
+    test('one', () => {
+      expect(duckdb.hugeint_to_double(1n)).toBe(1);
+    });
+    test('zero', () => {
+      expect(duckdb.hugeint_to_double(0n)).toBe(0);
+    });
+    test('negative one', () => {
+      expect(duckdb.hugeint_to_double(-1n)).toBe(-1);
+    });
+    test('one word', () => {
+      expect(duckdb.hugeint_to_double(2n ** 63n)).toBe(9.223372036854776e+18);
+    });
+    test('two words', () => {
+      expect(duckdb.hugeint_to_double(2n ** 65n)).toBe(3.6893488147419103e+19);
+    });
+    test('negative one word', () => {
+      expect(duckdb.hugeint_to_double(-(2n ** 63n))).toBe(-9.223372036854776e+18);
+    });
+    test('negative two words', () => {
+      expect(duckdb.hugeint_to_double(-(2n ** 65n))).toBe(-3.6893488147419103e+19);
+    });
+    test('min', () => {
+      expect(duckdb.hugeint_to_double(-(2n ** 127n - 1n))).toBe(-1.7014118346046923e+38);
+    });
+    test('max', () => {
+      expect(duckdb.hugeint_to_double(2n ** 127n - 1n)).toBe(1.7014118346046923e+38);
+    });
+    test('near min', () => {
+      expect(duckdb.hugeint_to_double(-(2n ** 127n - 2n ** 74n))).toBe(-1.7014118346046922e+38);
+    });
+    test('near max', () => {
+      expect(duckdb.hugeint_to_double(2n ** 127n - 2n ** 74n)).toBe(1.7014118346046922e+38);
+    });
+    test('out of range', () => {
+      expect(() => duckdb.hugeint_to_double(2n ** 129n)).toThrowError('bigint out of hugeint range');
+    });
+  });
+  suite('double_to_hugeint', () => {
+    test('one', () => {
+      expect(duckdb.double_to_hugeint(1)).toBe(1n);
+    });
+    test('zero', () => {
+      expect(duckdb.double_to_hugeint(0)).toBe(0n);
+    });
+    test('negative one', () => {
+      expect(duckdb.double_to_hugeint(-1)).toBe(-1n);
+    });
+    test('one word', () => {
+      expect(duckdb.double_to_hugeint(9.223372036854776e+18)).toBe(2n ** 63n);
+    });
+    test('two words', () => {
+      expect(duckdb.double_to_hugeint(3.6893488147419103e+19)).toBe(2n ** 65n);
+    });
+    test('negative one word', () => {
+      expect(duckdb.double_to_hugeint(-9.223372036854776e+18)).toBe(-(2n ** 63n));
+    });
+    test('negative two words', () => {
+      expect(duckdb.double_to_hugeint(-3.6893488147419103e+19)).toBe(-(2n ** 65n));
+    });
+    test('near min', () => {
+      expect(duckdb.double_to_hugeint(-1.7014118346046922e+38)).toBe(-(2n ** 127n - 2n ** 74n));
+    });
+    test('near max', () => {
+      expect(duckdb.double_to_hugeint(1.7014118346046922e+38)).toBe(2n ** 127n - 2n ** 74n);
+    });
+  });
 });
