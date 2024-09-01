@@ -1263,14 +1263,33 @@ private:
   // function uhugeint_to_double(uhugeint: bigint): number
   Napi::Value uhugeint_to_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto uhugeint_as_bigint = info[0].As<Napi::BigInt>();
+    int sign_bit;
+    size_t word_count = 2;
+    uint64_t words[2];
+    uhugeint_as_bigint.ToWords(&sign_bit, &word_count, words);
+    if (word_count > 2 || sign_bit) {
+      throw Napi::Error::New(env, "bigint out of uhugeint range");
+    }
+    uint64_t lower = word_count > 0 ? words[0] : 0;
+    uint64_t upper = word_count > 1 ? words[1] : 0;
+    duckdb_uhugeint uhugeint = { lower, upper };
+    auto output_double = duckdb_uhugeint_to_double(uhugeint);
+    return Napi::Number::New(env, output_double);
   }
 
   // DUCKDB_API duckdb_uhugeint duckdb_double_to_uhugeint(double val);
   // function double_to_uhugeint(double: number): bigint
   Napi::Value double_to_uhugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto input_double = info[0].As<Napi::Number>().DoubleValue();
+    auto uhugeint = duckdb_double_to_uhugeint(input_double);
+    int sign_bit = 0;
+    size_t word_count = 2;
+    uint64_t words[2];
+    words[0] = uhugeint.lower;
+    words[1] = uhugeint.upper;
+    return Napi::BigInt::New(env, sign_bit, word_count, words);
   }
 
   // DUCKDB_API duckdb_decimal duckdb_double_to_decimal(double val, uint8_t width, uint8_t scale);
