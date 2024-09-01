@@ -302,6 +302,18 @@ duckdb_result *GetResultFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<duckdb_result>(env, ResultTypeTag, value, "Invalid result argument");
 }
 
+static const napi_type_tag ValueTypeTag = {
+  0xC60F36613BF14E93, 0xBAA92848936FAA25
+};
+
+Napi::External<_duckdb_value> CreateExternalForValue(Napi::Env env, duckdb_value value) {
+  return CreateExternal<_duckdb_value>(env, ValueTypeTag, value);
+}
+
+duckdb_value GetValueFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_value>(env, ValueTypeTag, value, "Invalid value argument");
+}
+
 static const napi_type_tag VectorTypeTag = {
   0x9FE56DE8E3124D07, 0x9ABF31145EDE1C9E
 };
@@ -1431,7 +1443,13 @@ private:
   // function bind_value(prepared_statement: PreparedStatement, index: number, value: Value): void
   Napi::Value bind_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetValueFromExternal(env, info[2]);
+    if (duckdb_bind_value(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind value");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_parameter_index(duckdb_prepared_statement prepared_statement, idx_t *param_idx_out, const char *name);
@@ -1847,14 +1865,18 @@ private:
   // function destroy_value(value: Value): void
   Napi::Value destroy_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto value = GetValueFromExternal(env, info[0]);
+    duckdb_destroy_value(&value);
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_value duckdb_create_varchar(const char *text);
   // function create_varchar(text: string): Value
   Napi::Value create_varchar(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    std::string text = info[0].As<Napi::String>();
+    auto value = duckdb_create_varchar(text.c_str());
+    return CreateExternalForValue(env, value);
   }
 
   // DUCKDB_API duckdb_value duckdb_create_varchar_length(const char *text, idx_t length);
@@ -1864,42 +1886,76 @@ private:
   // function create_int64(int64: bigint): Value
   Napi::Value create_int64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    bool lossless;
+    auto int64 = info[0].As<Napi::BigInt>().Int64Value(&lossless);
+    if (!lossless) {
+      throw Napi::Error::New(env, "bigint out of int64 range");
+    }
+    auto value = duckdb_create_int64(int64);
+    return CreateExternalForValue(env, value);
   }
 
   // DUCKDB_API duckdb_value duckdb_create_struct_value(duckdb_logical_type type, duckdb_value *values);
   // function create_struct_value(logical_type: LogicalType, values: readonly Value[]): Value
   Napi::Value create_struct_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto values_array = info[1].As<Napi::Array>();
+    auto values_count = values_array.Length();
+    std::vector<duckdb_value> values_vector(values_count);
+    for (uint32_t i = 0; i < values_count; i++) {
+      values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
+    }
+    auto value = duckdb_create_struct_value(logical_type, values_vector.data());
+    return CreateExternalForValue(env, value);
   }
 
   // DUCKDB_API duckdb_value duckdb_create_list_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count);
   // function create_list_value(logical_type: LogicalType, values: readonly Value[]): Value
   Napi::Value create_list_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto values_array = info[1].As<Napi::Array>();
+    auto values_count = values_array.Length();
+    std::vector<duckdb_value> values_vector(values_count);
+    for (uint32_t i = 0; i < values_count; i++) {
+      values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
+    }
+    auto value = duckdb_create_list_value(logical_type, values_vector.data(), values_count);
+    return CreateExternalForValue(env, value);
   }
 
   // DUCKDB_API duckdb_value duckdb_create_array_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count);
   // function create_array_value(logical_type: LogicalType, values: readonly Value[]): Value
   Napi::Value create_array_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto values_array = info[1].As<Napi::Array>();
+    auto values_count = values_array.Length();
+    std::vector<duckdb_value> values_vector(values_count);
+    for (uint32_t i = 0; i < values_count; i++) {
+      values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
+    }
+    auto value = duckdb_create_array_value(logical_type, values_vector.data(), values_count);
+    return CreateExternalForValue(env, value);
   }
 
   // DUCKDB_API char *duckdb_get_varchar(duckdb_value value);
   // function get_varchar(value: Value): string
   Napi::Value get_varchar(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto value = GetValueFromExternal(env, info[0]);
+    auto varchar = duckdb_get_varchar(value);
+    return Napi::String::New(env, varchar);
   }
 
   // DUCKDB_API int64_t duckdb_get_int64(duckdb_value value);
   // function get_int64(value: Value): bigint
   Napi::Value get_int64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto value = GetValueFromExternal(env, info[0]);
+    auto int64 = duckdb_get_int64(value);
+    return Napi::BigInt::New(env, int64);
   }
 
   // DUCKDB_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
