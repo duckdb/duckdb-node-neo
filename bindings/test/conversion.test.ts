@@ -247,6 +247,12 @@ suite('conversion', () => {
     test('near max', () => {
       expect(duckdb.double_to_hugeint(1.7014118346046922e+38)).toBe(2n ** 127n - 2n ** 74n);
     });
+    test('out of range (positive)', () => {
+      expect(duckdb.double_to_hugeint(1.8e+38)).toBe(0n);
+    });
+    test('out of range (negative)', () => {
+      expect(duckdb.double_to_hugeint(-1.8e+38)).toBe(0n);
+    });
   });
   suite('uhugeint_to_double', () => {
     test('zero', () => {
@@ -289,6 +295,110 @@ suite('conversion', () => {
     });
     test('near max', () => {
       expect(duckdb.double_to_uhugeint(1.7014118346046922e+38)).toBe(2n ** 127n - 2n ** 74n);
+    });
+    test('out of range (positive)', () => {
+      expect(duckdb.double_to_uhugeint(3.5e+38)).toBe(0n);
+    });
+    test('out of range (negative)', () => {
+      expect(duckdb.double_to_uhugeint(-1)).toBe(0n);
+    });
+  });
+  suite('double_to_decimal', () => {
+    test('zero', () => {
+      expect(duckdb.double_to_decimal(0, 4, 1)).toStrictEqual({ width: 4, scale: 1, value: 0n });
+    });
+    test('one', () => {
+      expect(duckdb.double_to_decimal(1, 9, 4)).toStrictEqual({ width: 9, scale: 4, value: 10000n });
+    });
+    test('negative one', () => {
+      expect(duckdb.double_to_decimal(-1, 9, 4)).toStrictEqual({ width: 9, scale: 4, value: -10000n });
+    });
+    test('one word', () => {
+      expect(duckdb.double_to_decimal(123456789012.34568, 18, 6)).toStrictEqual(
+        { width: 18, scale: 6, value: 123456789012345680n }
+      );
+    });
+    test('two words', () => {
+      expect(duckdb.double_to_decimal(1.2345678901234567e+27, 38, 10)).toStrictEqual(
+        { width: 38, scale: 10, value: 12345678901234567525491324606797053952n }
+      );
+    });
+    test('negative one word', () => {
+      expect(duckdb.double_to_decimal(-123456789012.34568, 18, 6)).toStrictEqual(
+        { width: 18, scale: 6, value: -123456789012345680n }
+      );
+    });
+    test('negative two words', () => {
+      expect(duckdb.double_to_decimal(-1.2345678901234567e+27, 38, 10)).toStrictEqual(
+        { width: 38, scale: 10, value: -12345678901234567525491324606797053952n }
+      );
+    });
+    test('out of range (positive)', () => {
+      expect(duckdb.double_to_decimal(1e+38, 38, 0)).toStrictEqual(
+        { width: 0, scale: 0, value: 0n }
+      );
+    });
+    test('out of range (negative)', () => {
+      expect(duckdb.double_to_decimal(-1e+38, 38, 0)).toStrictEqual(
+        { width: 0, scale: 0, value: 0n }
+      );
+    });
+    test('out of range (width)', () => {
+      expect(duckdb.double_to_decimal(1, 39, 0)).toStrictEqual(
+        { width: 0, scale: 0, value: 0n }
+      );
+    });
+    test('out of range (scale)', () => {
+      expect(duckdb.double_to_decimal(1, 4, 4)).toStrictEqual(
+        { width: 0, scale: 0, value: 0n }
+      );
+    });
+  });
+  suite('decimal_to_double', () => {
+    test('zero', () => {
+      expect(duckdb.decimal_to_double({ width: 4, scale: 1, value: 0n })).toBe(0);
+    });
+    test('one', () => {
+      expect(duckdb.decimal_to_double({ width: 9, scale: 4, value: 10000n })).toBe(1);
+    });
+    test('negative one', () => {
+      expect(duckdb.decimal_to_double({ width: 9, scale: 4, value: -10000n })).toBe(-1);
+    });
+    test('one word', () => {
+      expect(
+        duckdb.decimal_to_double({
+          width: 18,
+          scale: 6,
+          value: 123456789012345680n,
+        })
+      ).toBe(123456789012.34568);
+    });
+    test('two words', () => {
+      expect(
+        duckdb.decimal_to_double({
+          width: 38,
+          scale: 10,
+          value: 12345678901234567525491324606797053952n,
+        })
+      ).toBe(1.2345678901234567e+27);
+    });
+    test('negative one word', () => {
+      expect(
+        duckdb.decimal_to_double({
+          width: 18,
+          scale: 6,
+          value: -123456789012345680n,
+        })
+      ).toBe(-123456789012.34568);
+    });
+    test('negative two words', () => {
+      expect(
+        duckdb.decimal_to_double({
+          width: 38,
+          scale: 10,
+          value: -12345678901234567525491324606797053952n,
+        })
+      ).toBe(-1.2345678901234567e+27);
     });
   });
 });

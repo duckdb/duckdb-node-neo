@@ -116,6 +116,65 @@ duckdb_timestamp_struct GetTimestampPartsFromObject(Napi::Object timestamp_parts
   return { date, time };
 }
 
+duckdb_hugeint GetHugeIntFromBigInt(Napi::Env env, Napi::BigInt bigint) {
+  int sign_bit;
+  size_t word_count = 2;
+  uint64_t words[2];
+  bigint.ToWords(&sign_bit, &word_count, words);
+  if (word_count > 2) {
+    throw Napi::Error::New(env, "bigint out of hugeint range");
+  }
+  uint64_t lower = word_count > 0 ? (sign_bit ? -1 : 1) * words[0] : 0;
+  int64_t upper = word_count > 1 ? (sign_bit ? -1 : 1) * words[1] : (word_count > 0 && sign_bit ? -1 : 0);
+  return { lower, upper };
+}
+
+Napi::BigInt MakeBigIntFromHugeInt(Napi::Env env, duckdb_hugeint hugeint) {
+  int sign_bit = hugeint.upper < 0 ? 1 : 0;
+  size_t word_count = hugeint.upper == -1 ? 1 : 2;
+  uint64_t words[2];
+  words[0] = (sign_bit ? -1 : 1) * hugeint.lower;
+  words[1] = (sign_bit ? -1 : 1) * hugeint.upper;
+  return Napi::BigInt::New(env, sign_bit, word_count, words);
+}
+
+duckdb_uhugeint GetUHugeIntFromBigInt(Napi::Env env, Napi::BigInt bigint) {
+  int sign_bit;
+  size_t word_count = 2;
+  uint64_t words[2];
+  bigint.ToWords(&sign_bit, &word_count, words);
+  if (word_count > 2 || sign_bit) {
+    throw Napi::Error::New(env, "bigint out of uhugeint range");
+  }
+  uint64_t lower = word_count > 0 ? words[0] : 0;
+  uint64_t upper = word_count > 1 ? words[1] : 0;
+  return { lower, upper };
+}
+
+Napi::BigInt MakeBigIntFromUHugeInt(Napi::Env env, duckdb_uhugeint uhugeint) {
+  int sign_bit = 0;
+  size_t word_count = 2;
+  uint64_t words[2];
+  words[0] = uhugeint.lower;
+  words[1] = uhugeint.upper;
+  return Napi::BigInt::New(env, sign_bit, word_count, words);
+}
+
+Napi::Object MakeDecimalObject(Napi::Env env, duckdb_decimal decimal) {
+  auto decimal_obj = Napi::Object::New(env);
+  decimal_obj.Set("width", Napi::Number::New(env, decimal.width));
+  decimal_obj.Set("scale", Napi::Number::New(env, decimal.scale));
+  decimal_obj.Set("value", MakeBigIntFromHugeInt(env, decimal.value));
+  return decimal_obj;
+}
+
+duckdb_decimal GetDecimalFromObject(Napi::Env env, Napi::Object decimal_obj) {
+  uint8_t width = decimal_obj.Get("width").As<Napi::Number>().Uint32Value();
+  uint8_t scale = decimal_obj.Get("scale").As<Napi::Number>().Uint32Value();
+  auto value = GetHugeIntFromBigInt(env, decimal_obj.Get("value").As<Napi::BigInt>());
+  return { width, scale, value };
+}
+
 // Externals
 
 template<typename T>
@@ -1230,17 +1289,8 @@ private:
   // function hugeint_to_double(hugeint: bigint): number
   Napi::Value hugeint_to_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto hugeint_as_bigint = info[0].As<Napi::BigInt>();
-    int sign_bit;
-    size_t word_count = 2;
-    uint64_t words[2];
-    hugeint_as_bigint.ToWords(&sign_bit, &word_count, words);
-    if (word_count > 2) {
-      throw Napi::Error::New(env, "bigint out of hugeint range");
-    }
-    uint64_t lower = word_count > 0 ? (sign_bit ? -1 : 1) * words[0] : 0;
-    int64_t upper = word_count > 1 ? (sign_bit ? -1 : 1) * words[1] : (word_count > 0 && sign_bit ? -1 : 0);
-    duckdb_hugeint hugeint = { lower, upper };
+    auto bigint = info[0].As<Napi::BigInt>();
+    auto hugeint = GetHugeIntFromBigInt(env, bigint);
     auto output_double = duckdb_hugeint_to_double(hugeint);
     return Napi::Number::New(env, output_double);
   }
@@ -1251,29 +1301,15 @@ private:
     auto env = info.Env();
     auto input_double = info[0].As<Napi::Number>().DoubleValue();
     auto hugeint = duckdb_double_to_hugeint(input_double);
-    int sign_bit = input_double < 0 ? 1 : 0;
-    size_t word_count = hugeint.upper == -1 ? 1 : 2;
-    uint64_t words[2];
-    words[0] = (sign_bit ? -1 : 1) * hugeint.lower;
-    words[1] = (sign_bit ? -1 : 1) * hugeint.upper;
-    return Napi::BigInt::New(env, sign_bit, word_count, words);
+    return MakeBigIntFromHugeInt(env, hugeint);
   }
 
   // DUCKDB_API double duckdb_uhugeint_to_double(duckdb_uhugeint val);
   // function uhugeint_to_double(uhugeint: bigint): number
   Napi::Value uhugeint_to_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto uhugeint_as_bigint = info[0].As<Napi::BigInt>();
-    int sign_bit;
-    size_t word_count = 2;
-    uint64_t words[2];
-    uhugeint_as_bigint.ToWords(&sign_bit, &word_count, words);
-    if (word_count > 2 || sign_bit) {
-      throw Napi::Error::New(env, "bigint out of uhugeint range");
-    }
-    uint64_t lower = word_count > 0 ? words[0] : 0;
-    uint64_t upper = word_count > 1 ? words[1] : 0;
-    duckdb_uhugeint uhugeint = { lower, upper };
+    auto bigint = info[0].As<Napi::BigInt>();
+    auto uhugeint = GetUHugeIntFromBigInt(env, bigint);
     auto output_double = duckdb_uhugeint_to_double(uhugeint);
     return Napi::Number::New(env, output_double);
   }
@@ -1284,26 +1320,28 @@ private:
     auto env = info.Env();
     auto input_double = info[0].As<Napi::Number>().DoubleValue();
     auto uhugeint = duckdb_double_to_uhugeint(input_double);
-    int sign_bit = 0;
-    size_t word_count = 2;
-    uint64_t words[2];
-    words[0] = uhugeint.lower;
-    words[1] = uhugeint.upper;
-    return Napi::BigInt::New(env, sign_bit, word_count, words);
+    return MakeBigIntFromUHugeInt(env, uhugeint);
   }
 
   // DUCKDB_API duckdb_decimal duckdb_double_to_decimal(double val, uint8_t width, uint8_t scale);
   // function double_to_decimal(double: number, width: number, scale: number): Decimal
   Napi::Value double_to_decimal(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto input_double = info[0].As<Napi::Number>().DoubleValue();
+    auto width = info[1].As<Napi::Number>().Uint32Value();
+    auto scale = info[2].As<Napi::Number>().Uint32Value();
+    auto decimal = duckdb_double_to_decimal(input_double, width, scale);
+    return MakeDecimalObject(env, decimal);
   }
 
   // DUCKDB_API double duckdb_decimal_to_double(duckdb_decimal val);
   // function decimal_to_double(decimal: Decimal): number
   Napi::Value decimal_to_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto decimal_obj = info[0].As<Napi::Object>();
+    auto decimal = GetDecimalFromObject(env, decimal_obj);
+    auto output_double = duckdb_decimal_to_double(decimal);
+    return Napi::Number::New(env, output_double); 
   }
 
   // DUCKDB_API duckdb_state duckdb_prepare(duckdb_connection connection, const char *query, duckdb_prepared_statement *out_prepared_statement);
