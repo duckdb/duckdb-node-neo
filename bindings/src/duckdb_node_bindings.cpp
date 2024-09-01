@@ -254,6 +254,18 @@ duckdb_data_chunk GetDataChunkFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_data_chunk>(env, DataChunkTypeTag, value, "Invalid data chunk argument");
 }
 
+static const napi_type_tag ExtractedStatementsTypeTag = {
+  0x59288E1C60C44EEB, 0xBFA35376EE0F04DD
+};
+
+Napi::External<_duckdb_extracted_statements> CreateExternalForExtractedStatements(Napi::Env env, duckdb_extracted_statements extracted_statements) {
+  return CreateExternal<_duckdb_extracted_statements>(env, ExtractedStatementsTypeTag, extracted_statements);
+}
+
+duckdb_extracted_statements GetExtractedStatementsFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_extracted_statements>(env, ExtractedStatementsTypeTag, value, "Invalid extracted statements argument");
+}
+
 static const napi_type_tag LogicalTypeTypeTag = {
   0x78AF202191ED4A23, 0x8093715369592A2B
 };
@@ -565,6 +577,66 @@ private:
 
   duckdb_prepared_statement prepared_statement_;
   duckdb_result *result_ptr_;
+
+};
+
+class ExtractStatementsWorker : public PromiseWorker {
+
+public:
+
+  ExtractStatementsWorker(Napi::Env env, duckdb_connection connection, std::string query)
+    : PromiseWorker(env), connection_(connection), query_(query) {
+  }
+
+protected:
+
+  void Execute() override {
+    statement_count_ = duckdb_extract_statements(connection_, query_.c_str(), &extracted_statements_);
+  }
+
+  Napi::Value Result() override {
+    auto extracted_statements_and_count_obj = Napi::Object::New(Env());
+    extracted_statements_and_count_obj.Set("extracted_statements", CreateExternalForExtractedStatements(Env(), extracted_statements_));
+    extracted_statements_and_count_obj.Set("statement_count", Napi::Number::New(Env(), statement_count_));
+    return extracted_statements_and_count_obj;
+  }
+
+private:
+
+  duckdb_connection connection_;
+  std::string query_;
+  duckdb_extracted_statements extracted_statements_;
+  idx_t statement_count_;
+
+};
+
+class PrepareExtractedStatementWorker : public PromiseWorker {
+
+public:
+
+  PrepareExtractedStatementWorker(Napi::Env env, duckdb_connection connection, duckdb_extracted_statements extracted_statements, idx_t index)
+    : PromiseWorker(env), connection_(connection), extracted_statements_(extracted_statements), index_(index) {
+  }
+
+protected:
+
+  void Execute() override {
+    if (duckdb_prepare_extracted_statement(connection_, extracted_statements_, index_, &prepared_statement_)) {
+      SetError(duckdb_prepare_error(prepared_statement_));
+      duckdb_destroy_prepare(&prepared_statement_);
+    }
+  }
+
+  Napi::Value Result() override {
+    return CreateExternalForPreparedStatement(Env(), prepared_statement_);
+  }
+
+private:
+
+  duckdb_connection connection_;
+  duckdb_extracted_statements extracted_statements_;
+  idx_t index_;
+  duckdb_prepared_statement prepared_statement_;
 
 };
 
@@ -1768,28 +1840,41 @@ private:
   // function extract_statements(connection: Connection, query: string): Promise<ExtractedStatementsAndCount>
   Napi::Value extract_statements(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    std::string query = info[1].As<Napi::String>();
+    auto worker = new ExtractStatementsWorker(env, connection, query);
+    worker->Queue();
+    return worker->Promise();
   }
 
   // DUCKDB_API duckdb_state duckdb_prepare_extracted_statement(duckdb_connection connection, duckdb_extracted_statements extracted_statements, idx_t index, duckdb_prepared_statement *out_prepared_statement);
   // function prepare_extracted_statement(connection: Connection, extracted_statements: ExtractedStatements, index: number): Promise<PreparedStatement>
   Napi::Value prepare_extracted_statement(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto extracted_statements = GetExtractedStatementsFromExternal(env, info[1]);
+    auto index = info[2].As<Napi::Number>().Uint32Value();
+    auto worker = new PrepareExtractedStatementWorker(env, connection, extracted_statements, index);
+    worker->Queue();
+    return worker->Promise();
   }
 
   // DUCKDB_API const char *duckdb_extract_statements_error(duckdb_extracted_statements extracted_statements);
   // function extract_statements_error(extracted_statements: ExtractedStatements): string
   Napi::Value extract_statements_error(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto extracted_statements = GetExtractedStatementsFromExternal(env, info[0]);
+    auto str = duckdb_extract_statements_error(extracted_statements);
+    return Napi::String::New(env, str);
   }
 
   // DUCKDB_API void duckdb_destroy_extracted(duckdb_extracted_statements *extracted_statements);
   // function destroy_extracted(extracted_statements: ExtractedStatements): void
   Napi::Value destroy_extracted(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto extracted_statements = GetExtractedStatementsFromExternal(env, info[0]);
+    duckdb_destroy_extracted(&extracted_statements);
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_pending_prepared(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result);
