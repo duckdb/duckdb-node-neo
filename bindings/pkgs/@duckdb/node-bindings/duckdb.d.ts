@@ -193,7 +193,7 @@ export interface PendingResult {
 }
 
 export interface PreparedStatement {
-	__duckdb_type: 'duckdb_config';
+	__duckdb_type: 'duckdb_prepared_statement';
 }
 
 export interface Result {
