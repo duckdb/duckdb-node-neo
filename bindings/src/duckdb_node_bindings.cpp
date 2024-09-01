@@ -1841,7 +1841,9 @@ private:
   // function pending_execute_check_state(pending_resulit: PendingResult): PendingState
   Napi::Value pending_execute_check_state(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto pending_result = GetPendingResultFromExternal(env, info[0]);
+    auto pending_state = duckdb_pending_execute_check_state(pending_result); 
+    return Napi::Number::New(env, pending_state);
   }
 
   // DUCKDB_API duckdb_state duckdb_execute_pending(duckdb_pending_result pending_result, duckdb_result *out_result);
@@ -1858,7 +1860,9 @@ private:
   // function pending_execution_is_finished(pending_state: PendingState): boolean
   Napi::Value pending_execution_is_finished(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto pending_state = static_cast<duckdb_pending_state>(info[0].As<Napi::Number>().Uint32Value());
+    auto is_finished = duckdb_pending_execution_is_finished(pending_state);
+    return Napi::Boolean::New(env, is_finished);
   }
 
   // DUCKDB_API void duckdb_destroy_value(duckdb_value *value);
