@@ -116,6 +116,17 @@ duckdb_timestamp_struct GetTimestampPartsFromObject(Napi::Object timestamp_parts
   return { date, time };
 }
 
+duckdb_interval GetIntervalFromObject(Napi::Env env, Napi::Object interval_obj) {
+  int32_t months = interval_obj.Get("months").As<Napi::Number>().Int32Value();
+  int32_t days = interval_obj.Get("days").As<Napi::Number>().Int32Value();
+  bool lossless;
+  int64_t micros = interval_obj.Get("micros").As<Napi::BigInt>().Int64Value(&lossless);
+  if (!lossless) {
+    throw Napi::Error::New(env, "micros out of int64 range");
+  }
+  return { months, days, micros };
+}
+
 duckdb_hugeint GetHugeIntFromBigInt(Napi::Env env, Napi::BigInt bigint) {
   int sign_bit;
   size_t word_count = 2;
@@ -1669,7 +1680,13 @@ private:
   // function bind_interval(prepared_statement: PreparedStatement, index: number, interval: Interval): void
   Napi::Value bind_interval(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetIntervalFromObject(env, info[2].As<Napi::Object>());
+    if (duckdb_bind_interval(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind interval");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_varchar(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val);
