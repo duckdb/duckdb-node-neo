@@ -1,97 +1,32 @@
 import duckdb from '@duckdb/node-bindings';
 import { expect, suite, test } from 'vitest';
-
-function isValid(validity: BigUint64Array, bit: number): boolean {
-  return (validity[Math.floor(bit / 64)] & (1n << BigInt(bit % 64))) !== 0n;
-}
-
-function expectValidity(validity_bytes: Uint8Array, validity: BigUint64Array, bit: number, expected: boolean) {
-  expect(duckdb.validity_row_is_valid(validity_bytes, bit)).toBe(expected);
-  expect(isValid(validity, bit)).toBe(expected);
-}
-
-/**
- * Gets the bytes either in or referenced by a `duckdb_string_t`
- * that is at `string_byte_offset` of the given `DataView`.
- */
-function getStringBytes(dv: DataView, string_byte_offset: number): Uint8Array {
-  const length_in_bytes = dv.getUint32(string_byte_offset, true);
-  if (length_in_bytes <= 12) {
-    return new Uint8Array(dv.buffer, dv.byteOffset + string_byte_offset + 4, length_in_bytes);
-  } else {
-    return duckdb.get_data_from_pointer(dv.buffer, dv.byteOffset + string_byte_offset + 8, length_in_bytes);
-  }
-}
-
-const decoder = new TextDecoder();
-
-/**
- * Gets the UTF-8 string either in or referenced by a `duckdb_string_t`
- * that is at `string_byte_offset` of the given `DataView`.
- */
-function getVarchar(dv: DataView, string_byte_offset: number): string {
-  return decoder.decode(getStringBytes(dv, string_byte_offset));
-}
+import { expectResult } from './utils/expectResult';
+import { expectValidity } from './utils/validityTestUtils';
+import { getVarchar } from './utils/valueTestUtils';
+import { withConnection } from './utils/withConnection';
 
 suite('query', () => {
   test('basic select', async () => {
-    const db = await duckdb.open();
-    try {
-      const con = await duckdb.connect(db);
+    await withConnection(async (con) => {
+      const res = await duckdb.query(con, 'select 17 as seventeen');
       try {
-        const res = await duckdb.query(con, 'select 17 as seventeen');
-        try {
-          expect(duckdb.result_statement_type(res)).toBe(duckdb.StatementType.SELECT);
-          expect(duckdb.result_return_type(res)).toBe(duckdb.ResultType.QUERY_RESULT);
-          expect(duckdb.rows_changed(res)).toBe(0);
-          expect(duckdb.column_count(res)).toBe(1);
-          expect(duckdb.column_name(res, 0)).toBe('seventeen');
-          expect(duckdb.column_type(res, 0)).toBe(duckdb.Type.INTEGER);
-          const col_0_logical_type = duckdb.column_logical_type(res, 0);
-          try {
-            expect(duckdb.get_type_id(col_0_logical_type)).toBe(duckdb.Type.INTEGER);
-          } finally {
-            duckdb.destroy_logical_type(col_0_logical_type);
-          }
-          const chunk = await duckdb.fetch_chunk(res);
-          try {
-            expect(duckdb.data_chunk_get_column_count(chunk)).toBe(1);
-            expect(duckdb.data_chunk_get_size(chunk)).toBe(1);
-            const vector = duckdb.data_chunk_get_vector(chunk, 0);
-            const logical_type = duckdb.vector_get_column_type(vector);
-            expect(duckdb.get_type_id(logical_type)).toBe(duckdb.Type.INTEGER);
-            const validityBytes = duckdb.vector_get_validity(vector, 8);
-            const validity = new BigUint64Array(validityBytes.buffer, 0, 1);
-            const data = duckdb.vector_get_data(vector, 4);
-            const dv = new DataView(data.buffer);
-            expect(isValid(validity, 0)).toBe(true);
-            const value = dv.getInt32(0, true);
-            expect(value).toBe(17);
-          } finally {
-            duckdb.destroy_data_chunk(chunk);
-          }
-        } finally {
-          duckdb.destroy_result(res);
-        }
+        await expectResult(res, {
+          columns: [
+            { name: 'seventeen', type: duckdb.Type.INTEGER },
+          ],
+          chunks: [
+            { rowCount: 1, vectors: [{ byteCount: 4, validity: [true], values: [17] }]},
+          ],
+        });
       } finally {
-        await duckdb.disconnect(con);
+        duckdb.destroy_result(res);
       }
-    } finally {
-      await duckdb.close(db);
-    }
+    });
   });
   test('basic error', async () => {
-    const db = await duckdb.open();
-    try {
-      const con = await duckdb.connect(db);
-      try {
-        await expect(duckdb.query(con, 'selct 1')).rejects.toThrow('Parser Error');
-      } finally {
-        await duckdb.disconnect(con);
-      }
-    } finally {
-      await duckdb.close(db);
-    }
+    await withConnection(async (con) => {
+      await expect(duckdb.query(con, 'selct 1')).rejects.toThrow('Parser Error');
+    });
   });
   test('test_all_types()', async () => {
     const db = await duckdb.open();
@@ -409,4 +344,6 @@ suite('query', () => {
       await duckdb.close(db);
     }
   });
+  // TODO: interrupt
+  // TODO: query_progress
 });
