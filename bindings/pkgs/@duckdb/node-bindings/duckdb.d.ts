@@ -670,7 +670,7 @@ export function vector_get_column_type(vector: Vector): LogicalType;
 export function vector_get_data(vector: Vector, byte_count: number): Uint8Array;
 
 // DUCKDB_API uint64_t *duckdb_vector_get_validity(duckdb_vector vector);
-export function vector_get_validity(vector: Vector, byte_cunt: number): Uint8Array;
+export function vector_get_validity(vector: Vector, byte_count: number): Uint8Array;
 
 // DUCKDB_API void duckdb_vector_ensure_validity_writable(duckdb_vector vector);
 export function vector_ensure_validity_writable(vector: Vector): void;
