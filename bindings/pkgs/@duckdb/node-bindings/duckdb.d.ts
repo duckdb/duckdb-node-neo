@@ -142,6 +142,7 @@ export interface TimeTZ {
 }
 export interface TimeTZParts {
   time: TimeParts;
+	/** Offset in seconds, from -15:59:59 = -57599 to 15:59:59 = 57599 */
   offset: number;
 }
 
