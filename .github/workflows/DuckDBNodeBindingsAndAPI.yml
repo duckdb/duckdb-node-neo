@@ -88,7 +88,7 @@ jobs:
         run: pnpm test
       
       - name: Git Status
-        if: ${{ inputs.publish_linux_x64 || publish_bindings || publish_api }}
+        if: ${{ inputs.publish_linux_x64 || inputs.publish_bindings || inputs.publish_api }}
         run: git status
       
       - name: Publish - Bindings - Linux x64
