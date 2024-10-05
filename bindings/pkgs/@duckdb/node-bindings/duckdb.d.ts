@@ -3,85 +3,85 @@
 export const sizeof_bool: number;
 
 export enum PendingState {
-	RESULT_READY = 0,
-	RESULT_NOT_READY = 1,
-	ERROR = 2,
-	NO_TASKS_AVAILABLE = 3,
+  RESULT_READY = 0,
+  RESULT_NOT_READY = 1,
+  ERROR = 2,
+  NO_TASKS_AVAILABLE = 3,
 }
 
 export enum ResultType {
   INVALID = 0,
-	CHANGED_ROWS = 1,
-	NOTHING = 2,
-	QUERY_RESULT = 3,
+  CHANGED_ROWS = 1,
+  NOTHING = 2,
+  QUERY_RESULT = 3,
 }
 
 export enum StatementType {
   INVALID = 0,
-	SELECT = 1,
-	INSERT = 2,
-	UPDATE = 3,
-	EXPLAIN = 4,
-	DELETE = 5,
-	PREPARE = 6,
-	CREATE = 7,
-	EXECUTE = 8,
-	ALTER = 9,
-	TRANSACTION = 10,
-	COPY = 11,
-	ANALYZE = 12,
-	VARIABLE_SET = 13,
-	CREATE_FUNC = 14,
-	DROP = 15,
-	EXPORT = 16,
-	PRAGMA = 17,
-	VACUUM = 18,
-	CALL = 19,
-	SET = 20,
-	LOAD = 21,
-	RELATION = 22,
-	EXTENSION = 23,
-	LOGICAL_PLAN = 24,
-	ATTACH = 25,
-	DETACH = 26,
-	MULTI = 27,
+  SELECT = 1,
+  INSERT = 2,
+  UPDATE = 3,
+  EXPLAIN = 4,
+  DELETE = 5,
+  PREPARE = 6,
+  CREATE = 7,
+  EXECUTE = 8,
+  ALTER = 9,
+  TRANSACTION = 10,
+  COPY = 11,
+  ANALYZE = 12,
+  VARIABLE_SET = 13,
+  CREATE_FUNC = 14,
+  DROP = 15,
+  EXPORT = 16,
+  PRAGMA = 17,
+  VACUUM = 18,
+  CALL = 19,
+  SET = 20,
+  LOAD = 21,
+  RELATION = 22,
+  EXTENSION = 23,
+  LOGICAL_PLAN = 24,
+  ATTACH = 25,
+  DETACH = 26,
+  MULTI = 27,
 }
 
 export enum Type {
   INVALID = 0,
-	BOOLEAN = 1,
-	TINYINT = 2,
-	SMALLINT = 3,
-	INTEGER = 4,
-	BIGINT = 5,
-	UTINYINT = 6,
-	USMALLINT = 7,
-	UINTEGER = 8,
-	UBIGINT = 9,
-	FLOAT = 10,
-	DOUBLE = 11,
-	TIMESTAMP = 12,
-	DATE = 13,
-	TIME = 14,
-	INTERVAL = 15,
-	HUGEINT = 16,
-	UHUGEINT = 32,
-	VARCHAR = 17,
-	BLOB = 18,
-	DECIMAL = 19,
-	TIMESTAMP_S = 20,
-	TIMESTAMP_MS = 21,
-	TIMESTAMP_NS = 22,
-	ENUM = 23,
-	LIST = 24,
-	STRUCT = 25,
-	MAP = 26,
-	ARRAY = 33,
-	UUID = 27,
-	UNION = 28,
-	BIT = 29,
-	TIME_TZ = 30,
-	TIMESTAMP_TZ = 31,
+  BOOLEAN = 1,
+  TINYINT = 2,
+  SMALLINT = 3,
+  INTEGER = 4,
+  BIGINT = 5,
+  UTINYINT = 6,
+  USMALLINT = 7,
+  UINTEGER = 8,
+  UBIGINT = 9,
+  FLOAT = 10,
+  DOUBLE = 11,
+  TIMESTAMP = 12,
+  DATE = 13,
+  TIME = 14,
+  INTERVAL = 15,
+  HUGEINT = 16,
+  UHUGEINT = 32,
+  VARCHAR = 17,
+  BLOB = 18,
+  DECIMAL = 19,
+  TIMESTAMP_S = 20,
+  TIMESTAMP_MS = 21,
+  TIMESTAMP_NS = 22,
+  ENUM = 23,
+  LIST = 24,
+  STRUCT = 25,
+  MAP = 26,
+  ARRAY = 33,
+  UUID = 27,
+  UNION = 28,
+  BIT = 29,
+  TIME_TZ = 30,
+  TIMESTAMP_TZ = 31,
 }
 
 
@@ -98,15 +98,15 @@ export interface DateParts {
 }
 
 export interface Decimal {
-	width: number;
-	scale: number;
-	value: bigint;
+  width: number;
+  scale: number;
+  value: bigint;
 }
 
 export interface Interval {
-	months: number;
-	days: number;
-	micros: bigint;
+  months: number;
+  days: number;
+  micros: bigint;
 }
 
 export interface QueryProgress {
@@ -128,81 +128,81 @@ export interface TimeParts {
 
 export interface TimeTZ {
   /**
-	 * 40 bits for micros, then 24 bits for encoded offset in seconds.
-	 * 
-	 * Max absolute unencoded offset = 15:59:59 = 60 * (60 * 15 + 59) + 59 = 57599.
-	 * 
-	 * Encoded offset is unencoded offset inverted then shifted (by +57599) to unsigned.
-	 * 
-	 * Max unencoded offset = 57599 -> -57599 -> 0 encoded.
-	 * 
-	 * Min unencoded offset = -57599 -> 57599 -> 115198 encoded.
-	 */
+  * 40 bits for micros, then 24 bits for encoded offset in seconds.
+  * 
+  * Max absolute unencoded offset = 15:59:59 = 60 * (60 * 15 + 59) + 59 = 57599.
+  * 
+  * Encoded offset is unencoded offset inverted then shifted (by +57599) to unsigned.
+  * 
+  * Max unencoded offset = 57599 -> -57599 -> 0 encoded.
+  * 
+  * Min unencoded offset = -57599 -> 57599 -> 115198 encoded.
+  */
   bits: bigint;
 }
 export interface TimeTZParts {
   time: TimeParts;
-	/** Offset in seconds, from -15:59:59 = -57599 to 15:59:59 = 57599 */
+  /** Offset in seconds, from -15:59:59 = -57599 to 15:59:59 = 57599 */
   offset: number;
 }
 
 export interface Timestamp {
-	/** Microseconds since 1970-01-01 */
-	micros: bigint;
+  /** Microseconds since 1970-01-01 */
+  micros: bigint;
 }
 export interface TimestampParts {
-	date: DateParts;
-	time: TimeParts;
+  date: DateParts;
+  time: TimeParts;
 }
 
 export interface Vector {
-	__duckdb_type: 'duckdb_vector';
+  __duckdb_type: 'duckdb_vector';
 }
 
 // Types (explicit destroy)
 
 export interface Appender {
-	__duckdb_type: 'duckdb_appender';
+  __duckdb_type: 'duckdb_appender';
 }
 
 export interface Config {
-	__duckdb_type: 'duckdb_config';
+  __duckdb_type: 'duckdb_config';
 }
 
 export interface Connection {
-	__duckdb_type: 'duckdb_connection';
+  __duckdb_type: 'duckdb_connection';
 }
 
 export interface Database {
-	__duckdb_type: 'duckdb_database';
+  __duckdb_type: 'duckdb_database';
 }
 
 export interface DataChunk {
-	__duckdb_type: 'duckdb_data_chunk';
+  __duckdb_type: 'duckdb_data_chunk';
 }
 
 export interface ExtractedStatements {
-	__duckdb_type: 'duckdb_extracted_statements';
+  __duckdb_type: 'duckdb_extracted_statements';
 }
 
 export interface LogicalType {
-	__duckdb_type: 'duckdb_logical_type';
+  __duckdb_type: 'duckdb_logical_type';
 }
 
 export interface PendingResult {
-	__duckdb_type: 'duckdb_pending_result';
+  __duckdb_type: 'duckdb_pending_result';
 }
 
 export interface PreparedStatement {
-	__duckdb_type: 'duckdb_prepared_statement';
+  __duckdb_type: 'duckdb_prepared_statement';
 }
 
 export interface Result {
-	__duckdb_type: 'duckdb_result';
+  __duckdb_type: 'duckdb_result';
 }
 
 export interface Value {
-	__duckdb_type: 'duckdb_value';
+  __duckdb_type: 'duckdb_value';
 }
 
 // Types (TypeScript only)
@@ -213,8 +213,8 @@ export interface ConfigFlag {
 }
 
 export interface ExtractedStatementsAndCount {
-	extracted_statements: ExtractedStatements;
-	statement_count: number;
+  extracted_statements: ExtractedStatements;
+  statement_count: number;
 }
 
 
