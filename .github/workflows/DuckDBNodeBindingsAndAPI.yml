@@ -138,6 +138,9 @@ jobs:
         working-directory: api
         run: pnpm test
       
+      - name: Git Status
+        run: git status
+      
       - name: Publish - Bindings - Darwin ARM64
         if: ${{ inputs.publish_darwin_arm64 }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-darwin-arm64
