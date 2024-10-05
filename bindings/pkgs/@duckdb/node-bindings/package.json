@@ -1,6 +1,6 @@
 {
   "name": "@duckdb/node-bindings",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "main": "./duckdb.js",
   "types": "./duckdb.d.ts",
   "optionalDependencies": {
