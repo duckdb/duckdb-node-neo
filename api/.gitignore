@@ -1,1 +1,2 @@
 pkgs/@duckdb/node-api/lib
+test/tsconfig.tsbuildinfo
