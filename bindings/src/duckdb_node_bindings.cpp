@@ -8,6 +8,186 @@
 
 #include "duckdb.h"
 
+// Conversion betweeen structs and objects
+
+Napi::Object MakeDateObject(Napi::Env env, duckdb_date date) {
+  auto date_obj = Napi::Object::New(env);
+  date_obj.Set("days", Napi::Number::New(env, date.days));
+  return date_obj;
+}
+
+duckdb_date GetDateFromObject(Napi::Object date_obj) {
+  auto days = date_obj.Get("days").As<Napi::Number>().Int32Value();
+  return { days };
+}
+
+Napi::Object MakeDatePartsObject(Napi::Env env, duckdb_date_struct date_parts) {
+  auto date_parts_obj = Napi::Object::New(env);
+  date_parts_obj.Set("year", Napi::Number::New(env, date_parts.year));
+  date_parts_obj.Set("month", Napi::Number::New(env, date_parts.month));
+  date_parts_obj.Set("day", Napi::Number::New(env, date_parts.day));
+  return date_parts_obj;
+}
+
+duckdb_date_struct GetDatePartsFromObject(Napi::Object date_parts_obj) {
+  int32_t year = date_parts_obj.Get("year").As<Napi::Number>().Int32Value();
+  int8_t month = date_parts_obj.Get("month").As<Napi::Number>().Int32Value();
+  int8_t day = date_parts_obj.Get("day").As<Napi::Number>().Int32Value();
+  return { year, month, day };
+}
+
+Napi::Object MakeTimeObject(Napi::Env env, duckdb_time time) {
+  auto time_obj = Napi::Object::New(env);
+  time_obj.Set("micros", Napi::Number::New(env, time.micros));
+  return time_obj;
+}
+
+duckdb_time GetTimeFromObject(Napi::Object time_obj) {
+  auto micros = time_obj.Get("micros").As<Napi::Number>().Int64Value();
+  return { micros };
+}
+
+Napi::Object MakeTimePartsObject(Napi::Env env, duckdb_time_struct time_parts) {
+  auto time_parts_obj = Napi::Object::New(env);
+  time_parts_obj.Set("hour", Napi::Number::New(env, time_parts.hour));
+  time_parts_obj.Set("min", Napi::Number::New(env, time_parts.min));
+  time_parts_obj.Set("sec", Napi::Number::New(env, time_parts.sec));
+  time_parts_obj.Set("micros", Napi::Number::New(env, time_parts.micros));
+  return time_parts_obj;
+}
+
+duckdb_time_struct GetTimePartsFromObject(Napi::Object time_parts_obj) {
+  int8_t hour = time_parts_obj.Get("hour").As<Napi::Number>().Int32Value();
+  int8_t min = time_parts_obj.Get("min").As<Napi::Number>().Int32Value();
+  int8_t sec = time_parts_obj.Get("sec").As<Napi::Number>().Int32Value();
+  int32_t micros = time_parts_obj.Get("micros").As<Napi::Number>().Int32Value();
+  return { hour, min, sec, micros };
+}
+
+Napi::Object MakeTimeTZObject(Napi::Env env, duckdb_time_tz time_tz) {
+  auto time_tz_obj = Napi::Object::New(env);
+  time_tz_obj.Set("bits", Napi::BigInt::New(env, time_tz.bits));
+  return time_tz_obj;
+}
+
+duckdb_time_tz GetTimeTZFromObject(Napi::Env env, Napi::Object time_tz_obj) {
+  bool lossless;
+  auto bits = time_tz_obj.Get("bits").As<Napi::BigInt>().Uint64Value(&lossless);
+  if (!lossless) {
+    throw Napi::Error::New(env, "bits out of uint64 range");
+  }
+  return { bits };
+}
+
+Napi::Object MakeTimeTZPartsObject(Napi::Env env, duckdb_time_tz_struct time_tz_parts) {
+  auto time_tz_parts_obj = Napi::Object::New(env);
+  time_tz_parts_obj.Set("time", MakeTimePartsObject(env, time_tz_parts.time));
+  time_tz_parts_obj.Set("offset", Napi::Number::New(env, time_tz_parts.offset));
+  return time_tz_parts_obj;
+}
+
+// GetTimeTZFromObject not used
+
+Napi::Object MakeTimestampObject(Napi::Env env, duckdb_timestamp timestamp) {
+  auto timestamp_obj = Napi::Object::New(env);
+  timestamp_obj.Set("micros", Napi::BigInt::New(env, timestamp.micros));
+  return timestamp_obj;
+}
+
+duckdb_timestamp GetTimestampFromObject(Napi::Env env, Napi::Object timestamp_obj) {
+  bool lossless;
+  auto micros = timestamp_obj.Get("micros").As<Napi::BigInt>().Int64Value(&lossless);
+  if (!lossless) {
+    throw Napi::Error::New(env, "micros out of int64 range");
+  }
+  return { micros };
+}
+
+Napi::Object MakeTimestampPartsObject(Napi::Env env, duckdb_timestamp_struct timestamp_parts) {
+  auto timestamp_parts_obj = Napi::Object::New(env);
+  timestamp_parts_obj.Set("date", MakeDatePartsObject(env, timestamp_parts.date));
+  timestamp_parts_obj.Set("time", MakeTimePartsObject(env, timestamp_parts.time));
+  return timestamp_parts_obj;
+}
+
+duckdb_timestamp_struct GetTimestampPartsFromObject(Napi::Object timestamp_parts_obj) {
+  auto date = GetDatePartsFromObject(timestamp_parts_obj.Get("date").As<Napi::Object>());
+  auto time = GetTimePartsFromObject(timestamp_parts_obj.Get("time").As<Napi::Object>());
+  return { date, time };
+}
+
+duckdb_interval GetIntervalFromObject(Napi::Env env, Napi::Object interval_obj) {
+  int32_t months = interval_obj.Get("months").As<Napi::Number>().Int32Value();
+  int32_t days = interval_obj.Get("days").As<Napi::Number>().Int32Value();
+  bool lossless;
+  int64_t micros = interval_obj.Get("micros").As<Napi::BigInt>().Int64Value(&lossless);
+  if (!lossless) {
+    throw Napi::Error::New(env, "micros out of int64 range");
+  }
+  return { months, days, micros };
+}
+
+duckdb_hugeint GetHugeIntFromBigInt(Napi::Env env, Napi::BigInt bigint) {
+  int sign_bit;
+  size_t word_count = 2;
+  uint64_t words[2];
+  bigint.ToWords(&sign_bit, &word_count, words);
+  if (word_count > 2) {
+    throw Napi::Error::New(env, "bigint out of hugeint range");
+  }
+  uint64_t lower = word_count > 0 ? (sign_bit ? -1 : 1) * words[0] : 0;
+  int64_t upper = word_count > 1 ? (sign_bit ? -1 : 1) * words[1] : (word_count > 0 && sign_bit ? -1 : 0);
+  return { lower, upper };
+}
+
+Napi::BigInt MakeBigIntFromHugeInt(Napi::Env env, duckdb_hugeint hugeint) {
+  int sign_bit = hugeint.upper < 0 ? 1 : 0;
+  size_t word_count = hugeint.upper == -1 ? 1 : 2;
+  uint64_t words[2];
+  words[0] = (sign_bit ? -1 : 1) * hugeint.lower;
+  words[1] = (sign_bit ? -1 : 1) * hugeint.upper;
+  return Napi::BigInt::New(env, sign_bit, word_count, words);
+}
+
+duckdb_uhugeint GetUHugeIntFromBigInt(Napi::Env env, Napi::BigInt bigint) {
+  int sign_bit;
+  size_t word_count = 2;
+  uint64_t words[2];
+  bigint.ToWords(&sign_bit, &word_count, words);
+  if (word_count > 2 || sign_bit) {
+    throw Napi::Error::New(env, "bigint out of uhugeint range");
+  }
+  uint64_t lower = word_count > 0 ? words[0] : 0;
+  uint64_t upper = word_count > 1 ? words[1] : 0;
+  return { lower, upper };
+}
+
+Napi::BigInt MakeBigIntFromUHugeInt(Napi::Env env, duckdb_uhugeint uhugeint) {
+  int sign_bit = 0;
+  size_t word_count = 2;
+  uint64_t words[2];
+  words[0] = uhugeint.lower;
+  words[1] = uhugeint.upper;
+  return Napi::BigInt::New(env, sign_bit, word_count, words);
+}
+
+Napi::Object MakeDecimalObject(Napi::Env env, duckdb_decimal decimal) {
+  auto decimal_obj = Napi::Object::New(env);
+  decimal_obj.Set("width", Napi::Number::New(env, decimal.width));
+  decimal_obj.Set("scale", Napi::Number::New(env, decimal.scale));
+  decimal_obj.Set("value", MakeBigIntFromHugeInt(env, decimal.value));
+  return decimal_obj;
+}
+
+duckdb_decimal GetDecimalFromObject(Napi::Env env, Napi::Object decimal_obj) {
+  uint8_t width = decimal_obj.Get("width").As<Napi::Number>().Uint32Value();
+  uint8_t scale = decimal_obj.Get("scale").As<Napi::Number>().Uint32Value();
+  auto value = GetHugeIntFromBigInt(env, decimal_obj.Get("value").As<Napi::BigInt>());
+  return { width, scale, value };
+}
+
+// Externals
+
 template<typename T>
 Napi::External<T> CreateExternal(Napi::Env env, const napi_type_tag &type_tag, T *data) {
   auto external = Napi::External<T>::New(env, data);
@@ -74,6 +254,18 @@ duckdb_data_chunk GetDataChunkFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_data_chunk>(env, DataChunkTypeTag, value, "Invalid data chunk argument");
 }
 
+static const napi_type_tag ExtractedStatementsTypeTag = {
+  0x59288E1C60C44EEB, 0xBFA35376EE0F04DD
+};
+
+Napi::External<_duckdb_extracted_statements> CreateExternalForExtractedStatements(Napi::Env env, duckdb_extracted_statements extracted_statements) {
+  return CreateExternal<_duckdb_extracted_statements>(env, ExtractedStatementsTypeTag, extracted_statements);
+}
+
+duckdb_extracted_statements GetExtractedStatementsFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_extracted_statements>(env, ExtractedStatementsTypeTag, value, "Invalid extracted statements argument");
+}
+
 static const napi_type_tag LogicalTypeTypeTag = {
   0x78AF202191ED4A23, 0x8093715369592A2B
 };
@@ -122,6 +314,18 @@ duckdb_result *GetResultFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<duckdb_result>(env, ResultTypeTag, value, "Invalid result argument");
 }
 
+static const napi_type_tag ValueTypeTag = {
+  0xC60F36613BF14E93, 0xBAA92848936FAA25
+};
+
+Napi::External<_duckdb_value> CreateExternalForValue(Napi::Env env, duckdb_value value) {
+  return CreateExternal<_duckdb_value>(env, ValueTypeTag, value);
+}
+
+duckdb_value GetValueFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_value>(env, ValueTypeTag, value, "Invalid value argument");
+}
+
 static const napi_type_tag VectorTypeTag = {
   0x9FE56DE8E3124D07, 0x9ABF31145EDE1C9E
 };
@@ -133,6 +337,8 @@ Napi::External<_duckdb_vector> CreateExternalForVector(Napi::Env env, duckdb_vec
 duckdb_vector GetVectorFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_vector>(env, VectorTypeTag, value, "Invalid vector argument");
 }
+
+// Promise workers
 
 class PromiseWorker : public Napi::AsyncWorker {
 
@@ -374,6 +580,66 @@ private:
 
 };
 
+class ExtractStatementsWorker : public PromiseWorker {
+
+public:
+
+  ExtractStatementsWorker(Napi::Env env, duckdb_connection connection, std::string query)
+    : PromiseWorker(env), connection_(connection), query_(query) {
+  }
+
+protected:
+
+  void Execute() override {
+    statement_count_ = duckdb_extract_statements(connection_, query_.c_str(), &extracted_statements_);
+  }
+
+  Napi::Value Result() override {
+    auto extracted_statements_and_count_obj = Napi::Object::New(Env());
+    extracted_statements_and_count_obj.Set("extracted_statements", CreateExternalForExtractedStatements(Env(), extracted_statements_));
+    extracted_statements_and_count_obj.Set("statement_count", Napi::Number::New(Env(), statement_count_));
+    return extracted_statements_and_count_obj;
+  }
+
+private:
+
+  duckdb_connection connection_;
+  std::string query_;
+  duckdb_extracted_statements extracted_statements_;
+  idx_t statement_count_;
+
+};
+
+class PrepareExtractedStatementWorker : public PromiseWorker {
+
+public:
+
+  PrepareExtractedStatementWorker(Napi::Env env, duckdb_connection connection, duckdb_extracted_statements extracted_statements, idx_t index)
+    : PromiseWorker(env), connection_(connection), extracted_statements_(extracted_statements), index_(index) {
+  }
+
+protected:
+
+  void Execute() override {
+    if (duckdb_prepare_extracted_statement(connection_, extracted_statements_, index_, &prepared_statement_)) {
+      SetError(duckdb_prepare_error(prepared_statement_));
+      duckdb_destroy_prepare(&prepared_statement_);
+    }
+  }
+
+  Napi::Value Result() override {
+    return CreateExternalForPreparedStatement(Env(), prepared_statement_);
+  }
+
+private:
+
+  duckdb_connection connection_;
+  duckdb_extracted_statements extracted_statements_;
+  idx_t index_;
+  duckdb_prepared_statement prepared_statement_;
+
+};
+
 class ExecutePendingWorker : public PromiseWorker {
 
 public:
@@ -429,6 +695,8 @@ private:
   duckdb_data_chunk data_chunk_;
 
 };
+
+// Enums
 
 void DefineEnumMember(Napi::Object enumObj, const char *key, uint32_t value) {
   enumObj.Set(key, value);
@@ -524,6 +792,8 @@ Napi::Object CreateTypeEnum(Napi::Env env) {
 	DefineEnumMember(typeEnum, "TIMESTAMP_TZ", 31);
   return typeEnum;
 }
+
+// Addon
 
 class DuckDBNodeAddon : public Napi::Addon<DuckDBNodeAddon> {
 
@@ -773,14 +1043,22 @@ private:
   // function interrupt(connection: Connection): void
   Napi::Value interrupt(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    duckdb_interrupt(connection);
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_query_progress_type duckdb_query_progress(duckdb_connection connection);
   // function query_progress(connection: Connection): QueryProgress
   Napi::Value query_progress(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto progress = duckdb_query_progress(connection);
+    auto result = Napi::Object::New(env);
+    result.Set("percentage", Napi::Number::New(env, progress.percentage));
+    result.Set("rows_processed", Napi::BigInt::New(env, progress.rows_processed));
+    result.Set("total_rows_to_process", Napi::BigInt::New(env, progress.total_rows_to_process));
+    return result;
   }
 
   // DUCKDB_API void duckdb_disconnect(duckdb_connection *connection);
@@ -1006,112 +1284,159 @@ private:
   // function from_date(date: Date_): DateParts
   Napi::Value from_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto date_obj = info[0].As<Napi::Object>();
+    auto date = GetDateFromObject(date_obj);
+    auto date_parts = duckdb_from_date(date);
+    return MakeDatePartsObject(env, date_parts);
   }
 
   // DUCKDB_API duckdb_date duckdb_to_date(duckdb_date_struct date);
   // function to_date(parts: DateParts): Date_
   Napi::Value to_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto date_parts_obj = info[0].As<Napi::Object>();
+    auto date_parts = GetDatePartsFromObject(date_parts_obj);
+    auto date = duckdb_to_date(date_parts);
+    return MakeDateObject(env, date);
   }
 
   // DUCKDB_API bool duckdb_is_finite_date(duckdb_date date);
   // function is_finite_date(date: Date_): boolean
   Napi::Value is_finite_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto date_obj = info[0].As<Napi::Object>();
+    auto date = GetDateFromObject(date_obj);
+    auto is_finite = duckdb_is_finite_date(date);
+    return Napi::Boolean::New(env, is_finite);
   }
 
   // DUCKDB_API duckdb_time_struct duckdb_from_time(duckdb_time time);
   // function from_time(time: Time): TimeParts
   Napi::Value from_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto time_obj = info[0].As<Napi::Object>();
+    auto time = GetTimeFromObject(time_obj);
+    auto time_parts = duckdb_from_time(time);
+    return MakeTimePartsObject(env, time_parts);
   }
 
   // DUCKDB_API duckdb_time_tz duckdb_create_time_tz(int64_t micros, int32_t offset);
   // function create_time_tz(micros: number, offset: number): TimeTZ
   Napi::Value create_time_tz(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto micros = info[0].As<Napi::Number>().Int64Value();
+    auto offset = info[1].As<Napi::Number>().Int32Value();
+    auto time_tz = duckdb_create_time_tz(micros, offset);
+    return MakeTimeTZObject(env, time_tz);
   }
 
   // DUCKDB_API duckdb_time_tz_struct duckdb_from_time_tz(duckdb_time_tz micros);
   // function from_time_tz(time_tz: TimeTZ): TimeTZParts
   Napi::Value from_time_tz(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto time_tz_obj = info[0].As<Napi::Object>();
+    auto time_tz = GetTimeTZFromObject(env, time_tz_obj);
+    auto time_tz_parts = duckdb_from_time_tz(time_tz);
+    return MakeTimeTZPartsObject(env, time_tz_parts);
   }
 
   // DUCKDB_API duckdb_time duckdb_to_time(duckdb_time_struct time);
   // function to_time(parts: TimeParts): Time
   Napi::Value to_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto time_parts_obj = info[0].As<Napi::Object>();
+    auto time_parts = GetTimePartsFromObject(time_parts_obj);
+    auto time = duckdb_to_time(time_parts);
+    return MakeTimeObject(env, time);
   }
 
   // DUCKDB_API duckdb_timestamp_struct duckdb_from_timestamp(duckdb_timestamp ts);
   // function from_timestamp(timestamp: Timestamp): TimestampParts
   Napi::Value from_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto timestamp_obj = info[0].As<Napi::Object>();
+    auto timestamp = GetTimestampFromObject(env, timestamp_obj);
+    auto timestamp_parts = duckdb_from_timestamp(timestamp);
+    return MakeTimestampPartsObject(env, timestamp_parts);
   }
 
   // DUCKDB_API duckdb_timestamp duckdb_to_timestamp(duckdb_timestamp_struct ts);
   // function to_timestamp(parts: TimestampParts): Timestamp
   Napi::Value to_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto timestamp_parts_obj = info[0].As<Napi::Object>();
+    auto timestamp_parts = GetTimestampPartsFromObject(timestamp_parts_obj);
+    auto timestamp = duckdb_to_timestamp(timestamp_parts);
+    return MakeTimestampObject(env, timestamp);
   }
 
   // DUCKDB_API bool duckdb_is_finite_timestamp(duckdb_timestamp ts);
   // function is_finite_timestamp(timestamp: Timestamp): boolean
   Napi::Value is_finite_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto timestamp_obj = info[0].As<Napi::Object>();
+    auto timestamp = GetTimestampFromObject(env, timestamp_obj);
+    auto is_finite = duckdb_is_finite_timestamp(timestamp);
+    return Napi::Boolean::New(env, is_finite);
   }
 
   // DUCKDB_API double duckdb_hugeint_to_double(duckdb_hugeint val);
   // function hugeint_to_double(hugeint: bigint): number
   Napi::Value hugeint_to_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto bigint = info[0].As<Napi::BigInt>();
+    auto hugeint = GetHugeIntFromBigInt(env, bigint);
+    auto output_double = duckdb_hugeint_to_double(hugeint);
+    return Napi::Number::New(env, output_double);
   }
 
   // DUCKDB_API duckdb_hugeint duckdb_double_to_hugeint(double val);
   // function double_to_hugeint(double: number): bigint
   Napi::Value double_to_hugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto input_double = info[0].As<Napi::Number>().DoubleValue();
+    auto hugeint = duckdb_double_to_hugeint(input_double);
+    return MakeBigIntFromHugeInt(env, hugeint);
   }
 
   // DUCKDB_API double duckdb_uhugeint_to_double(duckdb_uhugeint val);
   // function uhugeint_to_double(uhugeint: bigint): number
   Napi::Value uhugeint_to_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto bigint = info[0].As<Napi::BigInt>();
+    auto uhugeint = GetUHugeIntFromBigInt(env, bigint);
+    auto output_double = duckdb_uhugeint_to_double(uhugeint);
+    return Napi::Number::New(env, output_double);
   }
 
   // DUCKDB_API duckdb_uhugeint duckdb_double_to_uhugeint(double val);
   // function double_to_uhugeint(double: number): bigint
   Napi::Value double_to_uhugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto input_double = info[0].As<Napi::Number>().DoubleValue();
+    auto uhugeint = duckdb_double_to_uhugeint(input_double);
+    return MakeBigIntFromUHugeInt(env, uhugeint);
   }
 
   // DUCKDB_API duckdb_decimal duckdb_double_to_decimal(double val, uint8_t width, uint8_t scale);
   // function double_to_decimal(double: number, width: number, scale: number): Decimal
   Napi::Value double_to_decimal(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto input_double = info[0].As<Napi::Number>().DoubleValue();
+    auto width = info[1].As<Napi::Number>().Uint32Value();
+    auto scale = info[2].As<Napi::Number>().Uint32Value();
+    auto decimal = duckdb_double_to_decimal(input_double, width, scale);
+    return MakeDecimalObject(env, decimal);
   }
 
   // DUCKDB_API double duckdb_decimal_to_double(duckdb_decimal val);
   // function decimal_to_double(decimal: Decimal): number
   Napi::Value decimal_to_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto decimal_obj = info[0].As<Napi::Object>();
+    auto decimal = GetDecimalFromObject(env, decimal_obj);
+    auto output_double = duckdb_decimal_to_double(decimal);
+    return Napi::Number::New(env, output_double); 
   }
 
   // DUCKDB_API duckdb_state duckdb_prepare(duckdb_connection connection, const char *query, duckdb_prepared_statement *out_prepared_statement);
@@ -1160,35 +1485,56 @@ private:
   // function param_type(prepared_statement: PreparedStatement, index: number): Type
   Napi::Value param_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto type = duckdb_param_type(prepared_statement, index);
+    return Napi::Number::New(env, type);
   }
 
   // DUCKDB_API duckdb_state duckdb_clear_bindings(duckdb_prepared_statement prepared_statement);
   // function clear_bindings(prepared_statement: PreparedStatement): void
   Napi::Value clear_bindings(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    if (duckdb_clear_bindings(prepared_statement)) {
+      throw Napi::Error::New(env, "Failed to clear bindings");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_statement_type duckdb_prepared_statement_type(duckdb_prepared_statement statement);
   // function prepared_statement_type(prepared_statement: PreparedStatement): StatementType
   Napi::Value prepared_statement_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto statement_type = duckdb_prepared_statement_type(prepared_statement);
+    return Napi::Number::New(env, statement_type);
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_value(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_value val);
   // function bind_value(prepared_statement: PreparedStatement, index: number, value: Value): void
   Napi::Value bind_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetValueFromExternal(env, info[2]);
+    if (duckdb_bind_value(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind value");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_parameter_index(duckdb_prepared_statement prepared_statement, idx_t *param_idx_out, const char *name);
   // function bind_parameter_index(prepared_statement: PreparedStatement, name: string): number
   Napi::Value bind_parameter_index(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    std::string name = info[1].As<Napi::String>();
+    idx_t param_index;
+    if (duckdb_bind_parameter_index(prepared_statement, &param_index, name.c_str())) {
+      throw Napi::Error::New(env, "Failed to retrieve bind parameter index");
+    }
+    return Napi::Number::New(env, param_index);
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_boolean(duckdb_prepared_statement prepared_statement, idx_t param_idx, bool val);
@@ -1208,14 +1554,26 @@ private:
   // function bind_int8(prepared_statement: PreparedStatement, index: number, int8: number): void
   Napi::Value bind_int8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = info[2].As<Napi::Number>().Int32Value();
+    if (duckdb_bind_int8(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind int8");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_int16(duckdb_prepared_statement prepared_statement, idx_t param_idx, int16_t val);
   // function bind_int16(prepared_statement: PreparedStatement, index: number, int16: number): void
   Napi::Value bind_int16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = info[2].As<Napi::Number>().Int32Value();
+    if (duckdb_bind_int16(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind int16");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_int32(duckdb_prepared_statement prepared_statement, idx_t param_idx, int32_t val);
@@ -1235,98 +1593,190 @@ private:
   // function bind_int64(prepared_statement: PreparedStatement, index: number, int64: bigint): void
   Napi::Value bind_int64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    bool lossless;
+    auto value = info[2].As<Napi::BigInt>().Int64Value(&lossless);
+    if (!lossless) {
+      throw Napi::Error::New(env, "bigint out of int64 range");
+    }
+    if (duckdb_bind_int64(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind int64");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_hugeint(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_hugeint val);
   // function bind_hugeint(prepared_statement: PreparedStatement, index: number, hugeint: bigint): void
   Napi::Value bind_hugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetHugeIntFromBigInt(env, info[2].As<Napi::BigInt>());
+    if (duckdb_bind_hugeint(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind hugeint");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_uhugeint(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_uhugeint val);
   // function bind_uhugeint(prepared_statement: PreparedStatement, index: number, uhugeint: bigint): void
   Napi::Value bind_uhugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetUHugeIntFromBigInt(env, info[2].As<Napi::BigInt>());
+    if (duckdb_bind_uhugeint(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind uhugeint");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_decimal(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_decimal val);
   // function bind_decimal(prepared_statement: PreparedStatement, index: number, decimal: Decimal): void
   Napi::Value bind_decimal(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetDecimalFromObject(env, info[2].As<Napi::Object>());
+    if (duckdb_bind_decimal(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind decimal");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_uint8(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint8_t val);
   // function bind_uint8(prepared_statement: PreparedStatement, index: number, uint8: number): void
   Napi::Value bind_uint8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = info[2].As<Napi::Number>().Uint32Value();
+    if (duckdb_bind_uint8(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind uint8");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_uint16(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint16_t val);
   // function bind_uint16(prepared_statement: PreparedStatement, index: number, uint16: number): void
   Napi::Value bind_uint16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = info[2].As<Napi::Number>().Uint32Value();
+    if (duckdb_bind_uint16(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind uint16");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_uint32(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint32_t val);
   // function bind_uint32(prepared_statement: PreparedStatement, index: number, uint32: number): void
   Napi::Value bind_uint32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = info[2].As<Napi::Number>().Uint32Value();
+    if (duckdb_bind_uint32(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind uint32");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_uint64(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint64_t val);
   // function bind_uint64(prepared_statement: PreparedStatement, index: number, uint64: bigint): void
   Napi::Value bind_uint64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    bool lossless;
+    auto value = info[2].As<Napi::BigInt>().Uint64Value(&lossless);
+    if (!lossless) {
+      throw Napi::Error::New(env, "bigint out of uint64 range");
+    }
+    if (duckdb_bind_uint64(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind uint64");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_float(duckdb_prepared_statement prepared_statement, idx_t param_idx, float val);
   // function bind_float(prepared_statement: PreparedStatement, index: number, float: number): void
   Napi::Value bind_float(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = info[2].As<Napi::Number>().FloatValue();
+    if (duckdb_bind_float(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind float");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_double(duckdb_prepared_statement prepared_statement, idx_t param_idx, double val);
   // function bind_double(prepared_statement: PreparedStatement, index: number, double: number): void
   Napi::Value bind_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = info[2].As<Napi::Number>().DoubleValue();
+    if (duckdb_bind_double(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind double");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_date(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_date val);
   // function bind_date(prepared_statement: PreparedStatement, index: number, date: Date_): void
   Napi::Value bind_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetDateFromObject(info[2].As<Napi::Object>());
+    if (duckdb_bind_date(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind date");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_time(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_time val);
   // function bind_time(prepared_statement: PreparedStatement, index: number, time: Time): void
   Napi::Value bind_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetTimeFromObject(info[2].As<Napi::Object>());
+    if (duckdb_bind_time(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind time");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_timestamp(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_timestamp val);
   // function bind_timestamp(prepared_statement: PreparedStatement, index: number, timestamp: Timestamp): void
   Napi::Value bind_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetTimestampFromObject(env, info[2].As<Napi::Object>());
+    if (duckdb_bind_timestamp(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind timestamp");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_interval(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_interval val);
   // function bind_interval(prepared_statement: PreparedStatement, index: number, interval: Interval): void
   Napi::Value bind_interval(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetIntervalFromObject(env, info[2].As<Napi::Object>());
+    if (duckdb_bind_interval(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind interval");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_varchar(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val);
@@ -1349,7 +1799,15 @@ private:
   // function bind_blob(prepared_statement: PreparedStatement, index: number, data: Uint8Array): void
   Napi::Value bind_blob(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto array = info[2].As<Napi::Uint8Array>();
+    auto data = reinterpret_cast<void*>(array.Data());
+    auto length = array.ByteLength();
+    if (duckdb_bind_blob(prepared_statement, index, data, length)) {
+      throw Napi::Error::New(env, "Failed to bind blob");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_bind_null(duckdb_prepared_statement prepared_statement, idx_t param_idx);
@@ -1382,28 +1840,41 @@ private:
   // function extract_statements(connection: Connection, query: string): Promise<ExtractedStatementsAndCount>
   Napi::Value extract_statements(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    std::string query = info[1].As<Napi::String>();
+    auto worker = new ExtractStatementsWorker(env, connection, query);
+    worker->Queue();
+    return worker->Promise();
   }
 
   // DUCKDB_API duckdb_state duckdb_prepare_extracted_statement(duckdb_connection connection, duckdb_extracted_statements extracted_statements, idx_t index, duckdb_prepared_statement *out_prepared_statement);
   // function prepare_extracted_statement(connection: Connection, extracted_statements: ExtractedStatements, index: number): Promise<PreparedStatement>
   Napi::Value prepare_extracted_statement(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto extracted_statements = GetExtractedStatementsFromExternal(env, info[1]);
+    auto index = info[2].As<Napi::Number>().Uint32Value();
+    auto worker = new PrepareExtractedStatementWorker(env, connection, extracted_statements, index);
+    worker->Queue();
+    return worker->Promise();
   }
 
   // DUCKDB_API const char *duckdb_extract_statements_error(duckdb_extracted_statements extracted_statements);
   // function extract_statements_error(extracted_statements: ExtractedStatements): string
   Napi::Value extract_statements_error(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto extracted_statements = GetExtractedStatementsFromExternal(env, info[0]);
+    auto str = duckdb_extract_statements_error(extracted_statements);
+    return Napi::String::New(env, str);
   }
 
   // DUCKDB_API void duckdb_destroy_extracted(duckdb_extracted_statements *extracted_statements);
   // function destroy_extracted(extracted_statements: ExtractedStatements): void
   Napi::Value destroy_extracted(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto extracted_statements = GetExtractedStatementsFromExternal(env, info[0]);
+    duckdb_destroy_extracted(&extracted_statements);
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_pending_prepared(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result);
@@ -1455,7 +1926,9 @@ private:
   // function pending_execute_check_state(pending_resulit: PendingResult): PendingState
   Napi::Value pending_execute_check_state(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto pending_result = GetPendingResultFromExternal(env, info[0]);
+    auto pending_state = duckdb_pending_execute_check_state(pending_result); 
+    return Napi::Number::New(env, pending_state);
   }
 
   // DUCKDB_API duckdb_state duckdb_execute_pending(duckdb_pending_result pending_result, duckdb_result *out_result);
@@ -1472,21 +1945,27 @@ private:
   // function pending_execution_is_finished(pending_state: PendingState): boolean
   Napi::Value pending_execution_is_finished(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto pending_state = static_cast<duckdb_pending_state>(info[0].As<Napi::Number>().Uint32Value());
+    auto is_finished = duckdb_pending_execution_is_finished(pending_state);
+    return Napi::Boolean::New(env, is_finished);
   }
 
   // DUCKDB_API void duckdb_destroy_value(duckdb_value *value);
   // function destroy_value(value: Value): void
   Napi::Value destroy_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto value = GetValueFromExternal(env, info[0]);
+    duckdb_destroy_value(&value);
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_value duckdb_create_varchar(const char *text);
   // function create_varchar(text: string): Value
   Napi::Value create_varchar(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    std::string text = info[0].As<Napi::String>();
+    auto value = duckdb_create_varchar(text.c_str());
+    return CreateExternalForValue(env, value);
   }
 
   // DUCKDB_API duckdb_value duckdb_create_varchar_length(const char *text, idx_t length);
@@ -1496,42 +1975,76 @@ private:
   // function create_int64(int64: bigint): Value
   Napi::Value create_int64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    bool lossless;
+    auto int64 = info[0].As<Napi::BigInt>().Int64Value(&lossless);
+    if (!lossless) {
+      throw Napi::Error::New(env, "bigint out of int64 range");
+    }
+    auto value = duckdb_create_int64(int64);
+    return CreateExternalForValue(env, value);
   }
 
   // DUCKDB_API duckdb_value duckdb_create_struct_value(duckdb_logical_type type, duckdb_value *values);
   // function create_struct_value(logical_type: LogicalType, values: readonly Value[]): Value
   Napi::Value create_struct_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto values_array = info[1].As<Napi::Array>();
+    auto values_count = values_array.Length();
+    std::vector<duckdb_value> values_vector(values_count);
+    for (uint32_t i = 0; i < values_count; i++) {
+      values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
+    }
+    auto value = duckdb_create_struct_value(logical_type, values_vector.data());
+    return CreateExternalForValue(env, value);
   }
 
   // DUCKDB_API duckdb_value duckdb_create_list_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count);
   // function create_list_value(logical_type: LogicalType, values: readonly Value[]): Value
   Napi::Value create_list_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto values_array = info[1].As<Napi::Array>();
+    auto values_count = values_array.Length();
+    std::vector<duckdb_value> values_vector(values_count);
+    for (uint32_t i = 0; i < values_count; i++) {
+      values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
+    }
+    auto value = duckdb_create_list_value(logical_type, values_vector.data(), values_count);
+    return CreateExternalForValue(env, value);
   }
 
   // DUCKDB_API duckdb_value duckdb_create_array_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count);
   // function create_array_value(logical_type: LogicalType, values: readonly Value[]): Value
   Napi::Value create_array_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto values_array = info[1].As<Napi::Array>();
+    auto values_count = values_array.Length();
+    std::vector<duckdb_value> values_vector(values_count);
+    for (uint32_t i = 0; i < values_count; i++) {
+      values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
+    }
+    auto value = duckdb_create_array_value(logical_type, values_vector.data(), values_count);
+    return CreateExternalForValue(env, value);
   }
 
   // DUCKDB_API char *duckdb_get_varchar(duckdb_value value);
   // function get_varchar(value: Value): string
   Napi::Value get_varchar(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto value = GetValueFromExternal(env, info[0]);
+    auto varchar = duckdb_get_varchar(value);
+    return Napi::String::New(env, varchar);
   }
 
   // DUCKDB_API int64_t duckdb_get_int64(duckdb_value value);
   // function get_int64(value: Value): bigint
   Napi::Value get_int64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto value = GetValueFromExternal(env, info[0]);
+    auto int64 = duckdb_get_int64(value);
+    return Napi::BigInt::New(env, int64);
   }
 
   // DUCKDB_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
