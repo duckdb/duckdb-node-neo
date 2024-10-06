@@ -73,6 +73,7 @@ suite('pending', () => {
         const pending = duckdb.pending_prepared(prepared);
         try {
           duckdb.interrupt(connection);
+          await sleep(0); // yield to allow progress
 
           let pending_state = duckdb.pending_execute_check_state(pending);
           while (!duckdb.pending_execution_is_finished(pending_state)) {
