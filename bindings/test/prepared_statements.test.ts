@@ -1,17 +1,21 @@
 import duckdb from '@duckdb/node-bindings';
 import { expect, suite, test } from 'vitest';
 import {
+  ARRAY,
   BIGINT,
   BLOB,
   BOOLEAN,
   DATE,
   DECIMAL,
   DOUBLE,
+  ENTRY,
   FLOAT,
   HUGEINT,
   INTEGER,
   INTERVAL,
+  LIST,
   SMALLINT,
+  STRUCT,
   TIME,
   TIMESTAMP,
   TINYINT,
@@ -22,7 +26,7 @@ import {
   UTINYINT,
   VARCHAR,
 } from './utils/expectedLogicalTypes';
-import { data } from './utils/expectedVectors';
+import { array, data, list, struct } from './utils/expectedVectors';
 import { expectResult } from './utils/expectResult';
 import { withConnection } from './utils/withConnection';
 
@@ -198,7 +202,7 @@ suite('prepared statements', () => {
       }
     });
   });
-  test('bind types', async () => {
+  test('bind primitive types', async () => {
     await withConnection(async (connection) => {
       const prepared = await duckdb.prepare(connection,
         'select \
@@ -345,6 +349,71 @@ suite('prepared statements', () => {
           });
         } finally {
           duckdb.destroy_result(result);
+        }
+      } finally {
+        duckdb.destroy_prepare(prepared);
+      }
+    });
+  });
+  test('bind nested types', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await duckdb.prepare(connection,
+        'select \
+        ? as struct, \
+        ? as list, \
+        ? as array'
+      );
+      try {
+        const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+        const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
+        const struct_type = duckdb.create_struct_type([int_type, varchar_type], ['a', 'b']);
+
+        const int_value = duckdb.create_int64(42n);
+        const varchar_value = duckdb.create_varchar('🦆🦆🦆🦆🦆🦆');
+        
+        const struct_value = duckdb.create_struct_value(struct_type, [int_value, varchar_value]);
+        duckdb.bind_value(prepared, 1, struct_value);
+        expect(duckdb.param_type(prepared, 1)).toBe(duckdb.Type.STRUCT);
+
+        const list_value = duckdb.create_list_value(int_type, [int_value]);
+        duckdb.bind_value(prepared, 2, list_value);
+        expect(duckdb.param_type(prepared, 2)).toBe(duckdb.Type.LIST);
+
+        const array_value = duckdb.create_array_value(int_type, [int_value]);
+        duckdb.bind_value(prepared, 3, array_value);
+        expect(duckdb.param_type(prepared, 3)).toBe(duckdb.Type.ARRAY);
+
+        const result = await duckdb.execute_prepared(prepared);
+        try {
+          await expectResult(result, {
+            columns: [
+              { name: 'struct', logicalType: STRUCT(ENTRY('a', INTEGER), ENTRY('b', VARCHAR)) },
+              { name: 'list', logicalType: LIST(INTEGER) },
+              { name: 'array', logicalType: ARRAY(INTEGER, 1) },
+            ],
+            chunks: [
+              {
+                rowCount: 1,
+                vectors: [
+                  struct(1, [true], [data(4, [true], [42]), data(16, [true], ['🦆🦆🦆🦆🦆🦆'])]),
+                  list([true], [[0n, 1n]], 1, data(4, [true], [42])),
+                  array(1, [true], data(4, [true], [42])),
+                ]
+              },
+            ],
+          });
+        } finally {
+          duckdb.destroy_result(result);
+
+          duckdb.destroy_value(int_value);
+          duckdb.destroy_value(varchar_value);
+          duckdb.destroy_value(struct_value);
+          duckdb.destroy_value(list_value);
+          duckdb.destroy_value(array_value);
+
+          duckdb.destroy_logical_type(int_type);
+          duckdb.destroy_logical_type(varchar_type);
+          duckdb.destroy_logical_type(struct_type);
         }
       } finally {
         duckdb.destroy_prepare(prepared);
