@@ -276,6 +276,4 @@ suite('query', () => {
       }
     });
   });
-  // TODO: interrupt
-  // TODO: query_progress
 });
