@@ -2357,7 +2357,14 @@ private:
   // function create_data_chunk(logical_types: readonly LogicalType[]): DataChunk
   Napi::Value create_data_chunk(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto types_array = info[0].As<Napi::Array>();
+    auto types_count = types_array.Length();
+    std::vector<duckdb_logical_type> types(types_count);
+    for (uint32_t i = 0; i < types_count; i++) {
+      types[i] = GetLogicalTypeFromExternal(env, types_array.Get(i));
+    }
+    auto data_chunk = duckdb_create_data_chunk(types.data(), types_count);
+    return CreateExternalForDataChunk(env, data_chunk);
   }
 
   // DUCKDB_API void duckdb_destroy_data_chunk(duckdb_data_chunk *chunk);
@@ -2373,7 +2380,9 @@ private:
   // function data_chunk_reset(chunk: DataChunk): void
   Napi::Value data_chunk_reset(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto chunk = GetDataChunkFromExternal(env, info[0]);
+    duckdb_data_chunk_reset(chunk);
+    return env.Undefined();
   }
 
   // DUCKDB_API idx_t duckdb_data_chunk_get_column_count(duckdb_data_chunk chunk);
@@ -2408,7 +2417,10 @@ private:
   // function data_chunk_set_size(chunk: DataChunk, size: number): void
   Napi::Value data_chunk_set_size(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto chunk = GetDataChunkFromExternal(env, info[0]);
+    auto size = info[1].As<Napi::Number>().Uint32Value();
+    duckdb_data_chunk_set_size(chunk, size);
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector);
