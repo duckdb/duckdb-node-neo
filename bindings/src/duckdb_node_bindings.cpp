@@ -1478,7 +1478,9 @@ private:
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto parameter_name = duckdb_parameter_name(prepared_statement, index);
-    return Napi::String::New(env, parameter_name);
+    auto str = Napi::String::New(env, parameter_name);
+    duckdb_free((void *)parameter_name);
+    return str;
   }
 
   // DUCKDB_API duckdb_type duckdb_param_type(duckdb_prepared_statement prepared_statement, idx_t param_idx);
@@ -2035,7 +2037,9 @@ private:
     auto env = info.Env();
     auto value = GetValueFromExternal(env, info[0]);
     auto varchar = duckdb_get_varchar(value);
-    return Napi::String::New(env, varchar);
+    auto str = Napi::String::New(env, varchar);
+    duckdb_free(varchar);
+    return str;
   }
 
   // DUCKDB_API int64_t duckdb_get_int64(duckdb_value value);
@@ -2228,7 +2232,9 @@ private:
     auto enum_logical_type = GetLogicalTypeFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = duckdb_enum_dictionary_value(enum_logical_type, index);
-    return Napi::String::New(env, value);
+    auto str = Napi::String::New(env, value);
+    duckdb_free(value);
+    return str;
   }
 
   // DUCKDB_API duckdb_logical_type duckdb_list_type_child_type(duckdb_logical_type type);
@@ -2292,7 +2298,9 @@ private:
     auto struct_logical_type = GetLogicalTypeFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto child_name = duckdb_struct_type_child_name(struct_logical_type, index);
-    return Napi::String::New(env, child_name);
+    auto str = Napi::String::New(env, child_name);
+    duckdb_free(child_name);
+    return str;
   }
 
   // DUCKDB_API duckdb_logical_type duckdb_struct_type_child_type(duckdb_logical_type type, idx_t index);
@@ -2321,7 +2329,9 @@ private:
     auto union_logical_type = GetLogicalTypeFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto member_name = duckdb_union_type_member_name(union_logical_type, index);
-    return Napi::String::New(env, member_name);
+    auto str = Napi::String::New(env, member_name);
+    duckdb_free(member_name);
+    return str;
   }
 
   // DUCKDB_API duckdb_logical_type duckdb_union_type_member_type(duckdb_logical_type type, idx_t index);
