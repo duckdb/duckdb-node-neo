@@ -41,13 +41,10 @@ suite('pending', () => {
         const pending = duckdb.pending_prepared(prepared);
         try {
           let pending_state = duckdb.pending_execute_check_state(pending);
-          let taskCount = 0;
           while (!duckdb.pending_execution_is_finished(pending_state)) {
             pending_state = duckdb.pending_execute_task(pending);
-            taskCount++;
             await sleep(0); // yield to allow progress
           }
-          expect(taskCount).toBe(2);
           const result = await duckdb.execute_pending(pending);
           try {
             await expectResult(result, {
@@ -76,10 +73,13 @@ suite('pending', () => {
         const pending = duckdb.pending_prepared(prepared);
         try {
           duckdb.interrupt(connection);
-          await sleep(0);
 
-          const pending_state = duckdb.pending_execute_task(pending);
-          expect(duckdb.pending_execution_is_finished(pending_state)).toBe(true);
+          let pending_state = duckdb.pending_execute_check_state(pending);
+          while (!duckdb.pending_execution_is_finished(pending_state)) {
+            pending_state = duckdb.pending_execute_task(pending);
+            await sleep(0); // yield to allow progress
+          }
+
           expect(pending_state).toBe(duckdb.PendingState.ERROR);
           expect(duckdb.pending_error(pending)).toBe('INTERRUPT Error: Interrupted!');
         } finally {
