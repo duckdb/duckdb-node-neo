@@ -54,15 +54,24 @@ function checkFunctionSignatures() {
     const typeDefsSigs = getFunctionSignaturesFromComments(typeDefsFilePath);
     const bindingsSigs = getFunctionSignaturesFromComments(bindingsFilePath);
 
+    console.log(`header sigs: ${headerSigs.length}`);
+    console.log(`type defs sigs: ${typeDefsSigs.length}`);
+    console.log(`bindings sigs: ${bindingsSigs.length}`);
+
     const headerSigsJSON = JSON.stringify(headerSigs, null, 2);
     const typeDefsSigsJSON = JSON.stringify(typeDefsSigs, null, 2);
     const bindingsSigsJSON = JSON.stringify(bindingsSigs, null, 2);
 
-    if (headerSigsJSON !== typeDefsSigsJSON) {
-      console.warn('Type defs different!');
+    if (headerSigsJSON === typeDefsSigsJSON) {
+      console.log('OK: Type defs sigs match header sigs');
+    } else {
+      console.warn('WARNING: Type defs sigs DO NOT match header sigs!');
     }
-    if (headerSigsJSON !== bindingsSigsJSON) {
-      console.warn('Bindings different!');
+
+    if (headerSigsJSON === bindingsSigsJSON) {
+      console.log('OK: Bindings sigs match header sigs');
+    } else {
+      console.warn('WARNING: Bindings sigs DO NOT match header sigs!');
     }
 
     if (process.argv[2] === 'writeFiles') {
