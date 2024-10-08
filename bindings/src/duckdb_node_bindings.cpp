@@ -2357,7 +2357,14 @@ private:
   // function create_data_chunk(logical_types: readonly LogicalType[]): DataChunk
   Napi::Value create_data_chunk(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto types_array = info[0].As<Napi::Array>();
+    auto types_count = types_array.Length();
+    std::vector<duckdb_logical_type> types(types_count);
+    for (uint32_t i = 0; i < types_count; i++) {
+      types[i] = GetLogicalTypeFromExternal(env, types_array.Get(i));
+    }
+    auto data_chunk = duckdb_create_data_chunk(types.data(), types_count);
+    return CreateExternalForDataChunk(env, data_chunk);
   }
 
   // DUCKDB_API void duckdb_destroy_data_chunk(duckdb_data_chunk *chunk);
@@ -2373,7 +2380,9 @@ private:
   // function data_chunk_reset(chunk: DataChunk): void
   Napi::Value data_chunk_reset(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto chunk = GetDataChunkFromExternal(env, info[0]);
+    duckdb_data_chunk_reset(chunk);
+    return env.Undefined();
   }
 
   // DUCKDB_API idx_t duckdb_data_chunk_get_column_count(duckdb_data_chunk chunk);
@@ -2408,7 +2417,10 @@ private:
   // function data_chunk_set_size(chunk: DataChunk, size: number): void
   Napi::Value data_chunk_set_size(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto chunk = GetDataChunkFromExternal(env, info[0]);
+    auto size = info[1].As<Napi::Number>().Uint32Value();
+    duckdb_data_chunk_set_size(chunk, size);
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector);
@@ -2444,14 +2456,20 @@ private:
   // function vector_ensure_validity_writable(vector: Vector): void
   Napi::Value vector_ensure_validity_writable(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto vector = GetVectorFromExternal(env, info[0]);
+    duckdb_vector_ensure_validity_writable(vector);
+    return env.Undefined();
   }
 
   // DUCKDB_API void duckdb_vector_assign_string_element(duckdb_vector vector, idx_t index, const char *str);
   // function vector_assign_string_element(vector: Vector, index: number, str: string): void
   Napi::Value vector_assign_string_element(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    std::string str = info[2].As<Napi::String>();
+    duckdb_vector_assign_string_element(vector, index, str.c_str());
+    return env.Undefined();
   }
   
   // DUCKDB_API void duckdb_vector_assign_string_element_len(duckdb_vector vector, idx_t index, const char *str, idx_t str_len);
@@ -2479,14 +2497,20 @@ private:
   // function list_vector_set_size(vector: Vector, size: number): void
   Napi::Value list_vector_set_size(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto size = info[1].As<Napi::Number>().Uint32Value();
+    duckdb_list_vector_set_size(vector, size);
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_list_vector_reserve(duckdb_vector vector, idx_t required_capacity);
   // function list_vector_reserve(vector: Vector, required_capacity: number): void
   Napi::Value list_vector_reserve(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto required_capacity = info[1].As<Napi::Number>().Uint32Value();
+    duckdb_list_vector_reserve(vector, required_capacity);
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_vector duckdb_struct_vector_get_child(duckdb_vector vector, idx_t index);
@@ -2522,21 +2546,31 @@ private:
   // function validity_set_row_validity(validity: Uint8Array, row_index: number, valid: boolean): void
   Napi::Value validity_set_row_validity(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto validity = reinterpret_cast<uint64_t*>(info[0].As<Napi::Uint8Array>().Data());
+    auto row_index = info[1].As<Napi::Number>().Uint32Value();
+    auto valid = info[2].As<Napi::Boolean>();
+    duckdb_validity_set_row_validity(validity, row_index, valid);
+    return env.Undefined();
   }
 
   // DUCKDB_API void duckdb_validity_set_row_invalid(uint64_t *validity, idx_t row);
   // function validity_set_row_invalid(validity: Uint8Array, row_index: number): void
   Napi::Value validity_set_row_invalid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto validity = reinterpret_cast<uint64_t*>(info[0].As<Napi::Uint8Array>().Data());
+    auto row_index = info[1].As<Napi::Number>().Uint32Value();
+    duckdb_validity_set_row_invalid(validity, row_index);
+    return env.Undefined();
   }
 
   // DUCKDB_API void duckdb_validity_set_row_valid(uint64_t *validity, idx_t row);
   // function validity_set_row_valid(validity: Uint8Array, row_index: number): void
   Napi::Value validity_set_row_valid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto validity = reinterpret_cast<uint64_t*>(info[0].As<Napi::Uint8Array>().Data());
+    auto row_index = info[1].As<Napi::Number>().Uint32Value();
+    duckdb_validity_set_row_valid(validity, row_index);
+    return env.Undefined();
   }
 
   // #ifndef DUCKDB_NO_EXTENSION_FUNCTIONS
