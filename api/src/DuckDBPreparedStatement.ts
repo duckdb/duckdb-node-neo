@@ -3,6 +3,8 @@ import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBTypeId } from './DuckDBTypeId';
 
+type StatementType = duckdb.StatementType;
+
 export class DuckDBPreparedStatement {
   private readonly prepared_statement: duckdb.PreparedStatement;
   constructor(prepared_statement: duckdb.PreparedStatement) {
@@ -10,6 +12,9 @@ export class DuckDBPreparedStatement {
   }
   public dispose() {
     duckdb.destroy_prepare(this.prepared_statement);
+  }
+  public get statementType(): StatementType {
+    return duckdb.prepared_statement_type(this.prepared_statement);
   }
   public get parameterCount(): number {
     return duckdb.nparams(this.prepared_statement);
