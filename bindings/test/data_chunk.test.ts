@@ -48,7 +48,6 @@ suite('data chunk', () => {
         duckdb.data_chunk_set_size(chunk, 3);
         const vector = duckdb.data_chunk_get_vector(chunk, 0);
         duckdb.vector_ensure_validity_writable(vector);
-        // const data = duckdb.vector_get_data(vector, 3 * 4);
         const validity = duckdb.vector_get_validity(vector, 8);
         expect(validity[0]).toBe(0b11111111);
         duckdb.validity_set_row_validity(validity, 1, false);
