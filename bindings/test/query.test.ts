@@ -249,7 +249,7 @@ suite('query', () => {
           statementType: duckdb.StatementType.CREATE,
           resultType: duckdb.ResultType.NOTHING,
           columns: [
-            { name: 'Count', logicalType: { typeId: duckdb.Type.BIGINT } },
+            { name: 'Count', logicalType: BIGINT },
           ],
           chunks: [
             { columnCount: 0, rowCount: 0, vectors: [] },
@@ -265,7 +265,7 @@ suite('query', () => {
           resultType: duckdb.ResultType.CHANGED_ROWS,
           rowsChanged: 17,
           columns: [
-            { name: 'Count', logicalType: { typeId: duckdb.Type.BIGINT } },
+            { name: 'Count', logicalType: BIGINT },
           ],
           chunks: [
             { rowCount: 1, vectors: [data(8, [true], [17n])] },

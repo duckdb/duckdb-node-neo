@@ -206,6 +206,18 @@ T* GetDataFromExternal(Napi::Env env, const napi_type_tag &type_tag, Napi::Value
 
 // The following type tags are generated using: uuidgen | sed -r -e 's/-//g' -e 's/(.{16})(.*)/0x\1, 0x\2/'
 
+static const napi_type_tag AppenderTypeTag = {
+  0x32E0AB3B83F74A89, 0xB785905D92D54996
+};
+
+Napi::External<_duckdb_appender> CreateExternalForAppender(Napi::Env env, duckdb_appender appender) {
+  return CreateExternal<_duckdb_appender>(env, AppenderTypeTag, appender);
+}
+
+duckdb_appender GetAppenderFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_appender>(env, AppenderTypeTag, value, "Invalid appender argument");
+}
+
 static const napi_type_tag ConfigTypeTag = {
   0x5963FBB9648B4D2A, 0xB41ADE86056218D1
 };
@@ -1886,7 +1898,7 @@ private:
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     duckdb_pending_result pending_result;
     if (duckdb_pending_prepared(prepared_statement, &pending_result)) {
-      auto error = duckdb_pending_error(pending_result);
+      std::string error = duckdb_pending_error(pending_result);
       duckdb_destroy_pending(&pending_result);
       throw Napi::Error::New(env, error);
     }
@@ -2616,45 +2628,71 @@ private:
   // function appender_create(connection: Connection, schema: string, table: string): Appender
   Napi::Value appender_create(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    std::string schema = info[1].As<Napi::String>();
+    std::string table = info[2].As<Napi::String>();
+    duckdb_appender appender;
+    if (duckdb_appender_create(connection, schema.c_str(), table.c_str(), &appender)) {
+      std::string error = duckdb_appender_error(appender);
+      duckdb_appender_destroy(&appender);
+      throw Napi::Error::New(env, error);
+    }
+    return CreateExternalForAppender(env, appender);
   }
 
   // DUCKDB_API idx_t duckdb_appender_column_count(duckdb_appender appender);
   // function appender_column_count(appender: Appender): number
   Napi::Value appender_column_count(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto column_count = duckdb_appender_column_count(appender);
+    return Napi::Number::New(env, column_count);
   }
 
   // DUCKDB_API duckdb_logical_type duckdb_appender_column_type(duckdb_appender appender, idx_t col_idx);
   // function appender_column_type(appender: Appender, column_index: number): LogicalType
   Napi::Value appender_column_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto column_index = info[1].As<Napi::Number>().Uint32Value();
+    auto logical_type = duckdb_appender_column_type(appender, column_index);
+    return CreateExternalForLogicalType(env, logical_type);
   }
 
   // DUCKDB_API const char *duckdb_appender_error(duckdb_appender appender);
-// not exposed: other appender functions throw
+  // not exposed: other appender functions throw
 
   // DUCKDB_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
   // function appender_flush(appender: Appender): void
   Napi::Value appender_flush(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    if (duckdb_appender_flush(appender)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_appender_close(duckdb_appender appender);
   // function appender_close(appender: Appender): void
   Napi::Value appender_close(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    if (duckdb_appender_close(appender)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_appender_destroy(duckdb_appender *appender);
   // function appender_destroy(appender: Appender): void
   Napi::Value appender_destroy(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    if (duckdb_appender_destroy(&appender)) {
+      throw Napi::Error::New(env, "Failed to destroy appender");
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_appender_begin_row(duckdb_appender appender);
@@ -2664,133 +2702,237 @@ private:
   // function appender_end_row(appender: Appender): void
   Napi::Value appender_end_row(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    if (duckdb_appender_end_row(appender)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_bool(duckdb_appender appender, bool value);
   // function append_bool(appender: Appender, bool: boolean): void
   Napi::Value append_bool(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto bool_value = info[1].As<Napi::Boolean>();
+    if (duckdb_append_bool(appender, bool_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_int8(duckdb_appender appender, int8_t value);
   // function append_int8(appender: Appender, int8: number): void
   Napi::Value append_int8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto int8_value = info[1].As<Napi::Number>().Int32Value();
+    if (duckdb_append_int8(appender, int8_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_int16(duckdb_appender appender, int16_t value);
   // function append_int16(appender: Appender, int16: number): void
   Napi::Value append_int16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto int16_value = info[1].As<Napi::Number>().Int32Value();
+    if (duckdb_append_int16(appender, int16_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_int32(duckdb_appender appender, int32_t value);
   // function append_int32(appender: Appender, int32: number): void
   Napi::Value append_int32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto int32_value = info[1].As<Napi::Number>().Int32Value();
+    if (duckdb_append_int32(appender, int32_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_int64(duckdb_appender appender, int64_t value);
   // function append_int64(appender: Appender, int64: bigint): void
   Napi::Value append_int64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    bool lossless;
+    auto int64_value = info[1].As<Napi::BigInt>().Int64Value(&lossless);
+    if (!lossless) {
+      throw Napi::Error::New(env, "bigint out of int64 range");
+    }
+    if (duckdb_append_int64(appender, int64_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_hugeint(duckdb_appender appender, duckdb_hugeint value);
   // function append_hugeint(appender: Appender, hugeint: bigint): void
   Napi::Value append_hugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto bigint = info[1].As<Napi::BigInt>();
+    auto hugeint_value = GetHugeIntFromBigInt(env, bigint);
+    if (duckdb_append_hugeint(appender, hugeint_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_uint8(duckdb_appender appender, uint8_t value);
   // function append_uint8(appender: Appender, uint8: number): void
   Napi::Value append_uint8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto uint8_value = info[1].As<Napi::Number>().Uint32Value();
+    if (duckdb_append_uint8(appender, uint8_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_uint16(duckdb_appender appender, uint16_t value);
   // function append_uint16(appender: Appender, uint16: number): void
   Napi::Value append_uint16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto uint16_value = info[1].As<Napi::Number>().Uint32Value();
+    if (duckdb_append_uint16(appender, uint16_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_uint32(duckdb_appender appender, uint32_t value);
   // function append_uint32(appender: Appender, uint32: number): void
   Napi::Value append_uint32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto uint32_value = info[1].As<Napi::Number>().Uint32Value();
+    if (duckdb_append_uint32(appender, uint32_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_uint64(duckdb_appender appender, uint64_t value);
   // function append_uint64(appender: Appender, uint64: bigint): void
   Napi::Value append_uint64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    bool lossless;
+    auto uint64_value = info[1].As<Napi::BigInt>().Uint64Value(&lossless);
+    if (!lossless) {
+      throw Napi::Error::New(env, "bigint out of uint64 range");
+    }
+    if (duckdb_append_uint64(appender, uint64_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_uhugeint(duckdb_appender appender, duckdb_uhugeint value);
   // function append_uhugeint(appender: Appender, uhugeint: bigint): void
   Napi::Value append_uhugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto bigint = info[1].As<Napi::BigInt>();
+    auto uhugeint_value = GetUHugeIntFromBigInt(env, bigint);
+    if (duckdb_append_uhugeint(appender, uhugeint_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_float(duckdb_appender appender, float value);
   // function append_float(appender: Appender, float: number): void
   Napi::Value append_float(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto float_value = info[1].As<Napi::Number>().FloatValue();
+    if (duckdb_append_float(appender, float_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_double(duckdb_appender appender, double value);
   // function append_double(appender: Appender, double: number): void
   Napi::Value append_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto double_value = info[1].As<Napi::Number>().DoubleValue();
+    if (duckdb_append_double(appender, double_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_date(duckdb_appender appender, duckdb_date value);
   // function append_date(appender: Appender, date: Date_): void
   Napi::Value append_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto date_value = GetDateFromObject(info[1].As<Napi::Object>());
+    if (duckdb_append_date(appender, date_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_time(duckdb_appender appender, duckdb_time value);
   // function append_time(appender: Appender, time: Time): void
   Napi::Value append_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto time_value = GetTimeFromObject(info[1].As<Napi::Object>());
+    if (duckdb_append_time(appender, time_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_timestamp(duckdb_appender appender, duckdb_timestamp value);
   // function append_timestamp(appender: Appender, timestamp: Timestamp): void
   Napi::Value append_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto timestamp_value = GetTimestampFromObject(env, info[1].As<Napi::Object>());
+    if (duckdb_append_timestamp(appender, timestamp_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_interval(duckdb_appender appender, duckdb_interval value);
   // function append_interval(appender: Appender, interval: Interval): void
   Napi::Value append_interval(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto interval_value = GetIntervalFromObject(env, info[1].As<Napi::Object>());
+    if (duckdb_append_interval(appender, interval_value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_varchar(duckdb_appender appender, const char *val);
   // function append_varchar(appender: Appender, varchar: string): void
   Napi::Value append_varchar(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    std::string str = info[1].As<Napi::String>();
+    if (duckdb_append_varchar(appender, str.c_str())) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_varchar_length(duckdb_appender appender, const char *val, idx_t length);
@@ -2800,21 +2942,37 @@ private:
   // function append_blob(appender: Appender, data: Uint8Array): void
   Napi::Value append_blob(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto array = info[1].As<Napi::Uint8Array>();
+    auto data = reinterpret_cast<void*>(array.Data());
+    auto length = array.ByteLength();
+    if (duckdb_append_blob(appender, data, length)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_null(duckdb_appender appender);
   // function append_null(appender: Appender): void
   Napi::Value append_null(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    if (duckdb_append_null(appender)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // DUCKDB_API duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk);
   // function append_data_chunk(appender: Appender, chunk: DataChunk): void
   Napi::Value append_data_chunk(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    throw Napi::Error::New(env, "Not implemented yet");
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto chunk = GetDataChunkFromExternal(env, info[1]);
+    if (duckdb_append_data_chunk(appender, chunk)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
   }
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
