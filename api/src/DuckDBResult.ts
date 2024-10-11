@@ -4,6 +4,11 @@ import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 
+type ResultReturnType = duckdb.ResultType;
+type StatementType = duckdb.StatementType;
+
+export type { ResultReturnType, StatementType };
+
 export class DuckDBResult {
   private readonly result: duckdb.Result;
   constructor(result: duckdb.Result) {
@@ -11,6 +16,12 @@ export class DuckDBResult {
   }
   public dispose() {
     duckdb.destroy_result(this.result);
+  }
+  public get returnType(): ResultReturnType {
+    return duckdb.result_return_type(this.result);
+  }
+  public get statementType(): StatementType {
+    return duckdb.result_statement_type(this.result);
   }
   public get columnCount(): number {
     return duckdb.column_count(this.result);
