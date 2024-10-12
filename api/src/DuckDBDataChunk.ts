@@ -2,7 +2,7 @@ import duckdb from '@duckdb/node-bindings';
 import { DuckDBVector } from './DuckDBVector';
 
 export class DuckDBDataChunk {
-  private readonly chunk: duckdb.DataChunk;
+  public readonly chunk: duckdb.DataChunk;
   constructor(chunk: duckdb.DataChunk) {
     this.chunk = chunk;
   }

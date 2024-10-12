@@ -10,5 +10,7 @@ export * from './DuckDBPreparedStatement';
 export * from './DuckDBResult';
 export * from './DuckDBType';
 export * from './DuckDBTypeId';
+export * from './DuckDBValue';
 export * from './DuckDBVector';
+export * from './enums';
 export * from './version';
