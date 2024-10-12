@@ -2,16 +2,8 @@ import duckdb from '@duckdb/node-bindings';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBTypeId } from './DuckDBTypeId';
-
-type Date_ = duckdb.Date_;
-type Decimal = duckdb.Decimal;
-type Interval = duckdb.Interval;
-type Time = duckdb.Time;
-type Timestamp = duckdb.Timestamp;
-
-type StatementType = duckdb.StatementType;
-
-export type { Date_, Decimal, Interval, Time, Timestamp };
+import { Date_, Decimal, Interval, Time, Timestamp } from './DuckDBValue';
+import { StatementType } from './enums';
 
 export class DuckDBPreparedStatement {
   private readonly prepared_statement: duckdb.PreparedStatement;
@@ -60,12 +52,6 @@ export class DuckDBPreparedStatement {
   public bindHugeInt(parameterIndex: number, value: bigint) {
     duckdb.bind_hugeint(this.prepared_statement, parameterIndex, value);
   }
-  public bindUHugeInt(parameterIndex: number, value: bigint) {
-    duckdb.bind_uhugeint(this.prepared_statement, parameterIndex, value);
-  }
-  public bindDecimal(parameterIndex: number, value: Decimal) {
-    duckdb.bind_decimal(this.prepared_statement, parameterIndex, value);
-  }
   public bindUTinyInt(parameterIndex: number, value: number) {
     duckdb.bind_uint8(this.prepared_statement, parameterIndex, value);
   }
@@ -77,6 +63,12 @@ export class DuckDBPreparedStatement {
   }
   public bindUBigInt(parameterIndex: number, value: bigint) {
     duckdb.bind_uint64(this.prepared_statement, parameterIndex, value);
+  }
+  public bindUHugeInt(parameterIndex: number, value: bigint) {
+    duckdb.bind_uhugeint(this.prepared_statement, parameterIndex, value);
+  }
+  public bindDecimal(parameterIndex: number, value: Decimal) {
+    duckdb.bind_decimal(this.prepared_statement, parameterIndex, value);
   }
   public bindFloat(parameterIndex: number, value: number) {
     duckdb.bind_float(this.prepared_statement, parameterIndex, value);
@@ -94,6 +86,7 @@ export class DuckDBPreparedStatement {
     duckdb.bind_timestamp(this.prepared_statement, parameterIndex, value);
   }
   // TODO: bind TIMESTAMPS_S/_MS/_NS?
+  // TODO: bind TIME_TZ/TIMESTAMP_TZ?
   public bindInterval(parameterIndex: number, value: Interval) {
     duckdb.bind_interval(this.prepared_statement, parameterIndex, value);
   }
@@ -104,7 +97,7 @@ export class DuckDBPreparedStatement {
     duckdb.bind_blob(this.prepared_statement, parameterIndex, value);
   }
   // TODO: bind ENUM?
-  // TODO: bind nested types? (LIST, STRUCT, MAP, UNION) (using bindValue?)
+  // TODO: bind nested types? (ARRAY, LIST, STRUCT, MAP, UNION) (using bindValue?)
   // TODO: bind UUID?
   // TODO: bind BIT?
   public bindNull(parameterIndex: number) {

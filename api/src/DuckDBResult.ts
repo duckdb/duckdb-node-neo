@@ -3,11 +3,7 @@ import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
-
-type ResultReturnType = duckdb.ResultType;
-type StatementType = duckdb.StatementType;
-
-export type { ResultReturnType, StatementType };
+import { ResultReturnType, StatementType } from './enums';
 
 export class DuckDBResult {
   private readonly result: duckdb.Result;
