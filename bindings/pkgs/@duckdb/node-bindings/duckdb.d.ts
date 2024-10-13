@@ -298,6 +298,9 @@ export function rows_changed(result: Result): number;
 // DUCKDB_API const char *duckdb_result_error(duckdb_result *result);
 // not exposed: query, execute_prepared, and execute_pending reject promise with error
 
+// DUCKDB_API duckdb_error_type duckdb_result_error_type(duckdb_result *result);
+// not exposed: query, execute_prepared, and execute_pending reject promise with error
+
 // #ifndef DUCKDB_API_NO_DEPRECATED
 // DUCKDB_API duckdb_data_chunk duckdb_result_get_chunk(duckdb_result result, idx_t chunk_index);
 // DUCKDB_API bool duckdb_result_is_streaming(duckdb_result result);
@@ -344,6 +347,12 @@ export function result_return_type(result: Result): ResultType;
 export function vector_size(): number;
 
 // DUCKDB_API bool duckdb_string_is_inlined(duckdb_string_t string);
+// not exposed: handled internally
+
+// DUCKDB_API uint32_t duckdb_string_t_length(duckdb_string_t string);
+// not exposed: handled internally
+
+// DUCKDB_API const char *duckdb_string_t_data(duckdb_string_t *string);
 // not exposed: handled internally
 
 // DUCKDB_API duckdb_date_struct duckdb_from_date(duckdb_date date);
@@ -474,6 +483,9 @@ export function bind_time(prepared_statement: PreparedStatement, index: number, 
 
 // DUCKDB_API duckdb_state duckdb_bind_timestamp(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_timestamp val);
 export function bind_timestamp(prepared_statement: PreparedStatement, index: number, timestamp: Timestamp): void;
+
+// DUCKDB_API duckdb_state duckdb_bind_timestamp_tz(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_timestamp val);
+export function bind_timestamp_tz(prepared_statement: PreparedStatement, index: number, timestamp: Timestamp): void;
 
 // DUCKDB_API duckdb_state duckdb_bind_interval(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_interval val);
 export function bind_interval(prepared_statement: PreparedStatement, index: number, interval: Interval): void;

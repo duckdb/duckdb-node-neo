@@ -894,6 +894,7 @@ public:
       InstanceMethod("bind_date", &DuckDBNodeAddon::bind_date),
       InstanceMethod("bind_time", &DuckDBNodeAddon::bind_time),
       InstanceMethod("bind_timestamp", &DuckDBNodeAddon::bind_timestamp),
+      InstanceMethod("bind_timestamp_tz", &DuckDBNodeAddon::bind_timestamp_tz),
       InstanceMethod("bind_interval", &DuckDBNodeAddon::bind_interval),
       InstanceMethod("bind_varchar", &DuckDBNodeAddon::bind_varchar),
       InstanceMethod("bind_blob", &DuckDBNodeAddon::bind_blob),
@@ -1239,6 +1240,9 @@ private:
   // DUCKDB_API const char *duckdb_result_error(duckdb_result *result);
   // not exposed: query, execute_prepared, and execute_pending reject promise with error
 
+  // DUCKDB_API duckdb_error_type duckdb_result_error_type(duckdb_result *result);
+  // not exposed: query, execute_prepared, and execute_pending reject promise with error
+
   // #ifndef DUCKDB_API_NO_DEPRECATED
   // DUCKDB_API duckdb_data_chunk duckdb_result_get_chunk(duckdb_result result, idx_t chunk_index);
   // DUCKDB_API bool duckdb_result_is_streaming(duckdb_result result);
@@ -1294,6 +1298,12 @@ private:
   }
 
   // DUCKDB_API bool duckdb_string_is_inlined(duckdb_string_t string);
+  // not exposed: handled internally
+
+  // DUCKDB_API uint32_t duckdb_string_t_length(duckdb_string_t string);
+  // not exposed: handled internally
+
+  // DUCKDB_API const char *duckdb_string_t_data(duckdb_string_t *string);
   // not exposed: handled internally
 
   // DUCKDB_API duckdb_date_struct duckdb_from_date(duckdb_date date);
@@ -1780,6 +1790,19 @@ private:
     auto value = GetTimestampFromObject(env, info[2].As<Napi::Object>());
     if (duckdb_bind_timestamp(prepared_statement, index, value)) {
       throw Napi::Error::New(env, "Failed to bind timestamp");
+    }
+    return env.Undefined();
+  }
+
+  // DUCKDB_API duckdb_state duckdb_bind_timestamp_tz(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_timestamp val);
+  // function bind_timestamp_tz(prepared_statement: PreparedStatement, index: number, timestamp: Timestamp): void
+  Napi::Value bind_timestamp_tz(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetTimestampFromObject(env, info[2].As<Napi::Object>());
+    if (duckdb_bind_timestamp_tz(prepared_statement, index, value)) {
+      throw Napi::Error::New(env, "Failed to bind timestamp_tz");
     }
     return env.Undefined();
   }
