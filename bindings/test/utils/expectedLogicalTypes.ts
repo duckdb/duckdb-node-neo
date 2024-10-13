@@ -102,6 +102,16 @@ export const TIMESTAMP_TZ: ExpectedSimpleLogicalType = {
   typeId: duckdb.Type.TIMESTAMP_TZ,
 };
 
+export const ANY: ExpectedSimpleLogicalType = {
+  typeId: duckdb.Type.ANY,
+};
+export const VARINT: ExpectedSimpleLogicalType = {
+  typeId: duckdb.Type.VARINT,
+};
+export const SQLNULL: ExpectedSimpleLogicalType = {
+  typeId: duckdb.Type.SQLNULL,
+};
+
 export function ARRAY(
   valueType: ExpectedLogicalType,
   size: number

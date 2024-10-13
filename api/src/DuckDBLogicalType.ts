@@ -1,5 +1,6 @@
 import duckdb from '@duckdb/node-bindings';
 import {
+  DuckDBAnyType,
   DuckDBArrayType,
   DuckDBBigIntType,
   DuckDBBitType,
@@ -15,6 +16,7 @@ import {
   DuckDBIntervalType,
   DuckDBListType,
   DuckDBMapType,
+  DuckDBSQLNullType,
   DuckDBSmallIntType,
   DuckDBStructType,
   DuckDBTimeTZType,
@@ -34,6 +36,7 @@ import {
   DuckDBUUIDType,
   DuckDBUnionType,
   DuckDBVarCharType,
+  DuckDBVarIntType,
 } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 
@@ -204,6 +207,12 @@ export class DuckDBLogicalType {
         return DuckDBTimeTZType.instance;
       case DuckDBTypeId.TIMESTAMP_TZ:
         return DuckDBTimestampTZType.instance;
+      case DuckDBTypeId.ANY:
+        return DuckDBAnyType.instance;
+      case DuckDBTypeId.VARINT:
+        return DuckDBVarIntType.instance;
+      case DuckDBTypeId.SQLNULL:
+        return DuckDBSQLNullType.instance;
       default:
         throw new Error(`Unexpected type id: ${this.typeId}`);
     }
