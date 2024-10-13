@@ -361,6 +361,12 @@ export abstract class DuckDBVector<T> {
         return DuckDBTimeTZVector.fromRawVector(vector, itemCount);
       case DuckDBTypeId.TIMESTAMP_TZ:
         return DuckDBTimestampVector.fromRawVector(vector, itemCount);
+      case DuckDBTypeId.ANY:
+        throw new Error(`Vector not implemented for ANY type`);
+      case DuckDBTypeId.VARINT:
+        return DuckDBBlobVector.fromRawVector(vector, itemCount); // TODO: VARINT
+      case DuckDBTypeId.SQLNULL:
+        throw new Error(`Vector not implemented for SQLNULL type`);
       default:
         throw new Error(`Invalid type id: ${vectorType.typeId}`);
     }

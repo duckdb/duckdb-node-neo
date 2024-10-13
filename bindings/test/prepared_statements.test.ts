@@ -290,7 +290,7 @@ suite('prepared statements', () => {
         expect(duckdb.param_type(prepared, 20)).toBe(duckdb.Type.BLOB);
 
         duckdb.bind_null(prepared, 21);
-        expect(duckdb.param_type(prepared, 21)).toBe(duckdb.Type.INVALID);
+        expect(duckdb.param_type(prepared, 21)).toBe(duckdb.Type.SQLNULL);
 
         const result = await duckdb.execute_prepared(prepared);
         try {

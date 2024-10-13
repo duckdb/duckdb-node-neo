@@ -117,7 +117,7 @@ node test.mjs
 Expected output for above example:
 
 ```
-v1.0.0
+v1.1.1
 [col 0] bool::BOOLEAN
   [row 0] false
   [row 1] true

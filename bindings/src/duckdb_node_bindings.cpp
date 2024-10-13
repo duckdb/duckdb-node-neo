@@ -802,6 +802,9 @@ Napi::Object CreateTypeEnum(Napi::Env env) {
 	DefineEnumMember(typeEnum, "BIT", 29);
 	DefineEnumMember(typeEnum, "TIME_TZ", 30);
 	DefineEnumMember(typeEnum, "TIMESTAMP_TZ", 31);
+  DefineEnumMember(typeEnum, "ANY", 34);
+  DefineEnumMember(typeEnum, "VARINT", 35);
+  DefineEnumMember(typeEnum, "SQLNULL", 36);
   return typeEnum;
 }
 
@@ -1095,6 +1098,7 @@ private:
     auto env = info.Env();
     duckdb_config config;
     if (duckdb_create_config(&config)) {
+      duckdb_destroy_config(&config);
       throw Napi::Error::New(env, "Failed to create config");
     }
     return CreateExternalForConfig(env, config);

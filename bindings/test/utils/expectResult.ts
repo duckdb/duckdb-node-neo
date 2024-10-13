@@ -12,8 +12,8 @@ export async function expectResult(result: duckdb.Result, expectedResult: Expect
   expect(duckdb.column_count(result)).toBe(expectedResult.columns.length);
   for (let col = 0; col < expectedResult.columns.length; col++) {
     const expectedColumn = expectedResult.columns[col];
-    expect(duckdb.column_name(result, col)).toBe(expectedColumn.name);
-    expect(duckdb.column_type(result, col)).toBe(expectedColumn.logicalType.typeId);
+    expect(duckdb.column_name(result, col), `${col}`).toBe(expectedColumn.name);
+    expect(duckdb.column_type(result, col), `${col}`).toBe(expectedColumn.logicalType.typeId);
     withLogicalType(duckdb.column_logical_type(result, col),
       (logical_type) => expectLogicalType(logical_type, expectedColumn.logicalType, `col ${col}`)
     );

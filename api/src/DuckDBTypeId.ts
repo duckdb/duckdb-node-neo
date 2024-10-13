@@ -34,4 +34,7 @@ export enum DuckDBTypeId {
   BIT = 29,
   TIME_TZ = 30,
   TIMESTAMP_TZ = 31,
+  ANY = 34,
+  VARINT = 35,
+  SQLNULL = 36,
 }

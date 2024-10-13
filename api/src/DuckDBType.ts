@@ -266,6 +266,27 @@ export class DuckDBTimestampTZType extends BaseDuckDBType {
   public static readonly instance = new DuckDBTimestampTZType();
 }
 
+export class DuckDBAnyType extends BaseDuckDBType {
+  private constructor() {
+    super(DuckDBTypeId.ANY);
+  }
+  public static readonly instance = new DuckDBAnyType();
+}
+
+export class DuckDBVarIntType extends BaseDuckDBType {
+  private constructor() {
+    super(DuckDBTypeId.VARINT);
+  }
+  public static readonly instance = new DuckDBVarIntType();
+}
+
+export class DuckDBSQLNullType extends BaseDuckDBType {
+  private constructor() {
+    super(DuckDBTypeId.SQLNULL);
+  }
+  public static readonly instance = new DuckDBSQLNullType();
+}
+
 export type DuckDBType =
   | DuckDBBooleanType
   | DuckDBTinyIntType
@@ -300,4 +321,7 @@ export type DuckDBType =
   | DuckDBBitType
   | DuckDBTimeTZType
   | DuckDBTimestampTZType
+  | DuckDBAnyType
+  | DuckDBVarIntType
+  | DuckDBSQLNullType
   ;
