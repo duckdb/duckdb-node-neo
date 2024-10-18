@@ -2,11 +2,13 @@ import duckdb from '@duckdb/node-bindings';
 import { expect, suite, test } from 'vitest';
 
 suite('logical_type', () => {
-  test('create, get, and destroy', () => {
+  test('create, get id, get/set alias, and destroy', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
     try {
       expect(duckdb.get_type_id(int_type)).toBe(duckdb.Type.INTEGER);
       expect(duckdb.logical_type_get_alias(int_type)).toBeNull();
+      duckdb.logical_type_set_alias(int_type, 'my_logical_type');
+      expect(duckdb.logical_type_get_alias(int_type)).toBe('my_logical_type');
     } finally {
       duckdb.destroy_logical_type(int_type);
     }

@@ -18,6 +18,7 @@ import {
   STRUCT,
   TIME,
   TIMESTAMP,
+  TIMESTAMP_TZ,
   TINYINT,
   UBIGINT,
   UHUGEINT,
@@ -223,6 +224,7 @@ suite('prepared statements', () => {
         ? as date, \
         ? as time, \
         ? as timestamp, \
+        ? as timestamp_tz, \
         ? as interval, \
         ? as varchar, \
         ? as blob, \
@@ -280,17 +282,20 @@ suite('prepared statements', () => {
         duckdb.bind_timestamp(prepared, 17, { micros: 9223372036854775806n });
         expect(duckdb.param_type(prepared, 17)).toBe(duckdb.Type.TIMESTAMP);
 
-        duckdb.bind_interval(prepared, 18, { months: 999, days: 999, micros: 999999999n });
-        expect(duckdb.param_type(prepared, 18)).toBe(duckdb.Type.INTERVAL);
+        duckdb.bind_timestamp_tz(prepared, 18, { micros: 9223372036854775806n });
+        expect(duckdb.param_type(prepared, 18)).toBe(duckdb.Type.TIMESTAMP_TZ);
 
-        duckdb.bind_varchar(prepared, 19, '🦆🦆🦆🦆🦆🦆');
-        expect(duckdb.param_type(prepared, 19)).toBe(duckdb.Type.VARCHAR);
+        duckdb.bind_interval(prepared, 19, { months: 999, days: 999, micros: 999999999n });
+        expect(duckdb.param_type(prepared, 19)).toBe(duckdb.Type.INTERVAL);
 
-        duckdb.bind_blob(prepared, 20, Buffer.from('thisisalongblob\x00withnullbytes'));
-        expect(duckdb.param_type(prepared, 20)).toBe(duckdb.Type.BLOB);
+        duckdb.bind_varchar(prepared, 20, '🦆🦆🦆🦆🦆🦆');
+        expect(duckdb.param_type(prepared, 20)).toBe(duckdb.Type.VARCHAR);
 
-        duckdb.bind_null(prepared, 21);
-        expect(duckdb.param_type(prepared, 21)).toBe(duckdb.Type.SQLNULL);
+        duckdb.bind_blob(prepared, 21, Buffer.from('thisisalongblob\x00withnullbytes'));
+        expect(duckdb.param_type(prepared, 21)).toBe(duckdb.Type.BLOB);
+
+        duckdb.bind_null(prepared, 22);
+        expect(duckdb.param_type(prepared, 22)).toBe(duckdb.Type.SQLNULL);
 
         const result = await duckdb.execute_prepared(prepared);
         try {
@@ -313,6 +318,7 @@ suite('prepared statements', () => {
               { name: 'date', logicalType: DATE },
               { name: 'time', logicalType: TIME },
               { name: 'timestamp', logicalType: TIMESTAMP },
+              { name: 'timestamp_tz', logicalType: TIMESTAMP_TZ },
               { name: 'interval', logicalType: INTERVAL },
               { name: 'varchar', logicalType: VARCHAR },
               { name: 'blob', logicalType: BLOB },
@@ -338,6 +344,7 @@ suite('prepared statements', () => {
                   data(8, [true], [1.7976931348623157e+308]),
                   data(4, [true], [2147483646]),
                   data(8, [true], [86400000000n]),
+                  data(8, [true], [9223372036854775806n]),
                   data(8, [true], [9223372036854775806n]),
                   data(16, [true], [{ months: 999, days: 999, micros: 999999999n }]),
                   data(16, [true], ['🦆🦆🦆🦆🦆🦆']),
@@ -382,6 +389,8 @@ suite('prepared statements', () => {
         const array_value = duckdb.create_array_value(int_type, [int_value]);
         duckdb.bind_value(prepared, 3, array_value);
         expect(duckdb.param_type(prepared, 3)).toBe(duckdb.Type.ARRAY);
+
+        // TODO: map value?
 
         const result = await duckdb.execute_prepared(prepared);
         try {

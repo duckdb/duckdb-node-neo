@@ -89,6 +89,7 @@ suite('appender', () => {
           varchar varchar, \
           blob blob, \
           null_column integer, \
+          integer_with_default integer default 42\
         )');
       try {
         await expectResult(createResult, {
@@ -107,7 +108,7 @@ suite('appender', () => {
 
       const appender = duckdb.appender_create(connection, 'main', 'appender_target');
       try {
-        expect(duckdb.appender_column_count(appender)).toBe(20);
+        expect(duckdb.appender_column_count(appender)).toBe(21);
         
         const expectedLogicalTypes = [
           BOOLEAN,
@@ -129,6 +130,7 @@ suite('appender', () => {
           INTERVAL,
           VARCHAR,
           BLOB,
+          INTEGER,
           INTEGER,
         ];
         for (let i = 0; i < expectLogicalType.length; i++) {
@@ -160,6 +162,7 @@ suite('appender', () => {
         duckdb.append_varchar(appender, '🦆🦆🦆🦆🦆🦆');
         duckdb.append_blob(appender, Buffer.from('thisisalongblob\x00withnullbytes'));
         duckdb.append_null(appender);
+        duckdb.append_default(appender);
         
         duckdb.appender_end_row(appender);
         // explicitly calling flush and close is unnecessary because destroy does both, but this exercises them.
@@ -193,6 +196,7 @@ suite('appender', () => {
             { name: 'varchar', logicalType: VARCHAR },
             { name: 'blob', logicalType: BLOB },
             { name: 'null_column', logicalType: INTEGER },
+            { name: 'integer_with_default', logicalType: INTEGER },
           ],
           chunks: [
             {
@@ -218,6 +222,7 @@ suite('appender', () => {
                 data(16, [true], ['🦆🦆🦆🦆🦆🦆']),
                 data(16, [true], [Buffer.from('thisisalongblob\x00withnullbytes')]),
                 data(4, [false], [null]),
+                data(4, [true], [42]),
               ],
             },
           ],
