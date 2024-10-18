@@ -390,6 +390,8 @@ suite('prepared statements', () => {
         duckdb.bind_value(prepared, 3, array_value);
         expect(duckdb.param_type(prepared, 3)).toBe(duckdb.Type.ARRAY);
 
+        // TODO: map value?
+
         const result = await duckdb.execute_prepared(prepared);
         try {
           await expectResult(result, {
