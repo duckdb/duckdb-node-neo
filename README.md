@@ -162,171 +162,175 @@ v1.1.2
   [row 0] 0
   [row 1] 18446744073709551615
   [row 2] null
-[col 11] date::DATE
+[col 11] varint::VARINT
+  [row 0] -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368
+  [row 1] 179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368
+  [row 2] null
+[col 12] date::DATE
   [row 0] -2147483646
   [row 1] 2147483646
   [row 2] null
-[col 12] time::TIME
+[col 13] time::TIME
   [row 0] 0
   [row 1] 86400000000
   [row 2] null
-[col 13] timestamp::TIMESTAMP
+[col 14] timestamp::TIMESTAMP
   [row 0] -9223372022400000000
   [row 1] 9223372036854775806
   [row 2] null
-[col 14] timestamp_s::TIMESTAMP_S
+[col 15] timestamp_s::TIMESTAMP_S
   [row 0] -9223372022400
   [row 1] 9223372036854
   [row 2] null
-[col 15] timestamp_ms::TIMESTAMP_MS
+[col 16] timestamp_ms::TIMESTAMP_MS
   [row 0] -9223372022400000
   [row 1] 9223372036854775
   [row 2] null
-[col 16] timestamp_ns::TIMESTAMP_NS
-  [row 0] -9223372036854775808
+[col 17] timestamp_ns::TIMESTAMP_NS
+  [row 0] -9223286400000000000
   [row 1] 9223372036854775806
   [row 2] null
-[col 17] time_tz::TIME_TZ
+[col 18] time_tz::TIME_TZ
   [row 0] {"microseconds":0,"offset":57599}
   [row 1] {"microseconds":86400000000,"offset":-57599}
   [row 2] null
-[col 18] timestamp_tz::TIMESTAMP_TZ
+[col 19] timestamp_tz::TIMESTAMP_TZ
   [row 0] -9223372022400000000
   [row 1] 9223372036854775806
   [row 2] null
-[col 19] float::FLOAT
+[col 20] float::FLOAT
   [row 0] -3.4028234663852886e+38
   [row 1] 3.4028234663852886e+38
   [row 2] null
-[col 20] double::DOUBLE
+[col 21] double::DOUBLE
   [row 0] -1.7976931348623157e+308
   [row 1] 1.7976931348623157e+308
   [row 2] null
-[col 21] dec_4_1::DECIMAL
+[col 22] dec_4_1::DECIMAL
   [row 0] {"scaledValue":-9999,"type":{"typeId":19,"width":4,"scale":1}}
   [row 1] {"scaledValue":9999,"type":{"typeId":19,"width":4,"scale":1}}
   [row 2] null
-[col 22] dec_9_4::DECIMAL
+[col 23] dec_9_4::DECIMAL
   [row 0] {"scaledValue":-999999999,"type":{"typeId":19,"width":9,"scale":4}}
   [row 1] {"scaledValue":999999999,"type":{"typeId":19,"width":9,"scale":4}}
   [row 2] null
-[col 23] dec_18_6::DECIMAL
+[col 24] dec_18_6::DECIMAL
   [row 0] {"scaledValue":{"$bigint":"-999999999999999999"},"type":{"typeId":19,"width":18,"scale":6}}
   [row 1] {"scaledValue":{"$bigint":"999999999999999999"},"type":{"typeId":19,"width":18,"scale":6}}
   [row 2] null
-[col 24] dec38_10::DECIMAL
+[col 25] dec38_10::DECIMAL
   [row 0] {"scaledValue":{"$bigint":"-99999999999999999999999999999999999999"},"type":{"typeId":19,"width":38,"scale":10}}
   [row 1] {"scaledValue":{"$bigint":"99999999999999999999999999999999999999"},"type":{"typeId":19,"width":38,"scale":10}}
   [row 2] null
-[col 25] uuid::UUID
+[col 26] uuid::UUID
   [row 0] -170141183460469231731687303715884105728
   [row 1] 170141183460469231731687303715884105727
   [row 2] null
-[col 26] interval::INTERVAL
+[col 27] interval::INTERVAL
   [row 0] {"months":0,"days":0,"micros":{"$bigint":"0"}}
   [row 1] {"months":999,"days":999,"micros":{"$bigint":"999999999"}}
   [row 2] null
-[col 27] varchar::VARCHAR
+[col 28] varchar::VARCHAR
   [row 0] 🦆🦆🦆🦆🦆🦆
   [row 1] goose
   [row 2] null
-[col 28] blob::BLOB
+[col 29] blob::BLOB
   [row 0] thisisalongblobwithnullbytes
   [row 1] a
   [row 2] null
-[col 29] bit::BIT
+[col 30] bit::BIT
   [row 0] 1000100101110100010101001110101
   [row 1] 10101
   [row 2] null
-[col 30] small_enum::ENUM
+[col 31] small_enum::ENUM
   [row 0] DUCK_DUCK_ENUM
   [row 1] GOOSE
   [row 2] null
-[col 31] medium_enum::ENUM
+[col 32] medium_enum::ENUM
   [row 0] enum_0
   [row 1] enum_299
   [row 2] null
-[col 32] large_enum::ENUM
+[col 33] large_enum::ENUM
   [row 0] enum_0
   [row 1] enum_69999
   [row 2] null
-[col 33] int_array::LIST
+[col 34] int_array::LIST
   [row 0] LIST []
   [row 1] LIST [42, 999, null, null, -42]
   [row 2] null
-[col 34] double_array::LIST
+[col 35] double_array::LIST
   [row 0] LIST []
   [row 1] LIST [42, NaN, Infinity, -Infinity, null, -42]
   [row 2] null
-[col 35] date_array::LIST
+[col 36] date_array::LIST
   [row 0] LIST []
   [row 1] LIST [0, 2147483647, -2147483647, null, 19124]
   [row 2] null
-[col 36] timestamp_array::LIST
+[col 37] timestamp_array::LIST
   [row 0] LIST []
   [row 1] LIST [0, 9223372036854775807, -9223372036854775807, null, 1652372625000000]
   [row 2] null
-[col 37] timestamptz_array::LIST
+[col 38] timestamptz_array::LIST
   [row 0] LIST []
   [row 1] LIST [0, 9223372036854775807, -9223372036854775807, null, 1652397825000000]
   [row 2] null
-[col 38] varchar_array::LIST
+[col 39] varchar_array::LIST
   [row 0] LIST []
   [row 1] LIST [🦆🦆🦆🦆🦆🦆, goose, null, ]
   [row 2] null
-[col 39] nested_int_array::LIST
+[col 40] nested_int_array::LIST
   [row 0] LIST []
   [row 1] LIST [LIST [], LIST [42, 999, null, null, -42], null, LIST [], LIST [42, 999, null, null, -42]]
   [row 2] null
-[col 40] struct::STRUCT
+[col 41] struct::STRUCT
   [row 0] STRUCT { "a": null, "b": null }
   [row 1] STRUCT { "a": 42, "b": 🦆🦆🦆🦆🦆🦆 }
   [row 2] null
-[col 41] struct_of_arrays::STRUCT
+[col 42] struct_of_arrays::STRUCT
   [row 0] STRUCT { "a": null, "b": null }
   [row 1] STRUCT { "a": LIST [42, 999, null, null, -42], "b": LIST [🦆🦆🦆🦆🦆🦆, goose, null, ] }
   [row 2] null
-[col 42] array_of_structs::LIST
+[col 43] array_of_structs::LIST
   [row 0] LIST []
   [row 1] LIST [STRUCT { "a": null, "b": null }, STRUCT { "a": 42, "b": 🦆🦆🦆🦆🦆🦆 }, null]
   [row 2] null
-[col 43] map::MAP
+[col 44] map::MAP
   [row 0] MAP {  }
   [row 1] MAP { key1: 🦆🦆🦆🦆🦆🦆, key2: goose }
   [row 2] null
-[col 44] union::UNION
+[col 45] union::UNION
   [row 0] Frank
   [row 1] 5
   [row 2] null
-[col 45] fixed_int_array::ARRAY
+[col 46] fixed_int_array::ARRAY
   [row 0] ARRAY [null, 2, 3]
   [row 1] ARRAY [4, 5, 6]
   [row 2] null
-[col 46] fixed_varchar_array::ARRAY
+[col 47] fixed_varchar_array::ARRAY
   [row 0] ARRAY [a, null, c]
   [row 1] ARRAY [d, e, f]
   [row 2] null
-[col 47] fixed_nested_int_array::ARRAY
+[col 48] fixed_nested_int_array::ARRAY
   [row 0] ARRAY [ARRAY [null, 2, 3], null, ARRAY [null, 2, 3]]
   [row 1] ARRAY [ARRAY [4, 5, 6], ARRAY [null, 2, 3], ARRAY [4, 5, 6]]
   [row 2] null
-[col 48] fixed_nested_varchar_array::ARRAY
+[col 49] fixed_nested_varchar_array::ARRAY
   [row 0] ARRAY [ARRAY [a, null, c], null, ARRAY [a, null, c]]
   [row 1] ARRAY [ARRAY [d, e, f], ARRAY [a, null, c], ARRAY [d, e, f]]
   [row 2] null
-[col 49] fixed_struct_array::ARRAY
+[col 50] fixed_struct_array::ARRAY
   [row 0] ARRAY [STRUCT { "a": null, "b": null }, STRUCT { "a": 42, "b": 🦆🦆🦆🦆🦆🦆 }, STRUCT { "a": null, "b": null }]
   [row 1] ARRAY [STRUCT { "a": 42, "b": 🦆🦆🦆🦆🦆🦆 }, STRUCT { "a": null, "b": null }, STRUCT { "a": 42, "b": 🦆🦆🦆🦆🦆🦆 }]
   [row 2] null
-[col 50] struct_of_fixed_array::STRUCT
+[col 51] struct_of_fixed_array::STRUCT
   [row 0] STRUCT { "a": ARRAY [null, 2, 3], "b": ARRAY [a, null, c] }
   [row 1] STRUCT { "a": ARRAY [4, 5, 6], "b": ARRAY [d, e, f] }
   [row 2] null
-[col 51] fixed_array_of_int_list::ARRAY
+[col 52] fixed_array_of_int_list::ARRAY
   [row 0] ARRAY [LIST [], LIST [42, 999, null, null, -42], LIST []]
   [row 1] ARRAY [LIST [42, 999, null, null, -42], LIST [], LIST [42, 999, null, null, -42]]
   [row 2] null
-[col 52] list_of_fixed_int_array::LIST
+[col 53] list_of_fixed_int_array::LIST
   [row 0] LIST [ARRAY [null, 2, 3], ARRAY [4, 5, 6], ARRAY [null, 2, 3]]
   [row 1] LIST [ARRAY [4, 5, 6], ARRAY [null, 2, 3], ARRAY [4, 5, 6]]
   [row 2] null
