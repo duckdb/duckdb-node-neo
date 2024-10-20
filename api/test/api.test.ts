@@ -62,6 +62,7 @@ import {
   DuckDBTimestampSecondsType,
   DuckDBTimestampSecondsVector,
   DuckDBTimestampTZType,
+  DuckDBTimestampTZVector,
   DuckDBTimestampType,
   DuckDBTimestampVector,
   DuckDBTinyIntType,
@@ -85,6 +86,7 @@ import {
   DuckDBVarCharType,
   DuckDBVarCharVector,
   DuckDBVarIntType,
+  DuckDBVarIntVector,
   DuckDBVector,
   configurationOptionDescriptions,
   version
@@ -145,7 +147,7 @@ const MinTimeTZOffset = -MaxTimeTZOffset;
 const MinTimeTZ = new DuckDBTimeTZValue(MinTimeTZMicroseconds, MaxTimeTZOffset);
 const MaxTimeTZ = new DuckDBTimeTZValue(MaxTimeTZMicroseconds, MinTimeTZOffset);
 const MinTS_S = BigInt(-9223372022400); // from test_all_types() select epoch(timestamp_s)::bigint;
-const MaxTS_S = BigInt(9223372036854);
+const MaxTS_S = BigInt( 9223372036854);
 const MinTS_MS = MinTS_S * BI_1000;
 const MaxTS_MS = (MaxInt64 - BI_1) / BI_1000;
 const MinTS_US = MinTS_MS * BI_1000;
@@ -154,31 +156,13 @@ const TS_US_Inf = MaxInt64;
 const MinTS_NS = -9223286400000000000n;
 const MaxTS_NS = MaxInt64 - BI_1;
 const MinFloat32 = Math.fround(-3.4028235e+38);
-const MaxFloat32 = Math.fround(3.4028235e+38);
+const MaxFloat32 = Math.fround( 3.4028235e+38);
 const MinFloat64 = -Number.MAX_VALUE;
 const MaxFloat64 = Number.MAX_VALUE;
 const MinUUID = MinInt128;
 const MaxUUID = MaxInt128;
-const MinVarInt = new Uint8Array([0x7F, 0xFF, 0x7F,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-]);
-const MaxVarInt = new Uint8Array([0x80, 0x00, 0x80,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-]);
+const MinVarInt = -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368n
+const MaxVarInt =  179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368n;
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -544,7 +528,7 @@ describe('api', () => {
           assertValues(chunk, 8, DuckDBUSmallIntVector, [MinUInt16, MaxUInt16, null]);
           assertValues(chunk, 9, DuckDBUIntegerVector, [MinUInt32, MaxUInt32, null]);
           assertValues(chunk, 10, DuckDBUBigIntVector, [MinUInt64, MaxUInt64, null]);
-          assertValues(chunk, 11, DuckDBBlobVector, [MinVarInt, MaxVarInt, null]);
+          assertValues(chunk, 11, DuckDBVarIntVector, [MinVarInt, MaxVarInt, null]);
           assertValues(chunk, 12, DuckDBDateVector, [MinDate, MaxDate, null]);
           assertValues(chunk, 13, DuckDBTimeVector, [MinTime, MaxTime, null]);
           assertValues(chunk, 14, DuckDBTimestampVector, [MinTS_US, MaxTS_US, null]);
@@ -552,7 +536,7 @@ describe('api', () => {
           assertValues(chunk, 16, DuckDBTimestampMillisecondsVector, [MinTS_MS, MaxTS_MS, null]);
           assertValues(chunk, 17, DuckDBTimestampNanosecondsVector, [MinTS_NS, MaxTS_NS, null]);
           assertValues(chunk, 18, DuckDBTimeTZVector, [MinTimeTZ, MaxTimeTZ, null]);
-          assertValues(chunk, 19, DuckDBTimestampVector, [MinTS_US, MaxTS_US, null]);
+          assertValues(chunk, 19, DuckDBTimestampTZVector, [MinTS_US, MaxTS_US, null]);
           assertValues(chunk, 20, DuckDBFloatVector, [MinFloat32, MaxFloat32, null]);
           assertValues(chunk, 21, DuckDBDoubleVector, [MinFloat64, MaxFloat64, null]);
           assertValues(chunk, 22, DuckDBDecimal2Vector, [
