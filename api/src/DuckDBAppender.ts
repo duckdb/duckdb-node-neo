@@ -27,6 +27,9 @@ export class DuckDBAppender {
   public endRow() {
     duckdb.appender_end_row(this.appender);
   }
+  public appendDefault() {
+    duckdb.append_default(this.appender);
+  }
   public appendBoolean(value: boolean) {
     duckdb.append_bool(this.appender, value);
   }
