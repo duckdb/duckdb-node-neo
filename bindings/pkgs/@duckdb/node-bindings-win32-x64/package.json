@@ -1,6 +1,6 @@
 {
   "name": "@duckdb/node-bindings-win32-x64",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "os": [
     "win32"
   ],
