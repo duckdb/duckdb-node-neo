@@ -139,6 +139,12 @@ export class DuckDBLogicalType {
   public get typeId(): DuckDBTypeId {
     return duckdb.get_type_id(this.logical_type) as number as DuckDBTypeId;
   }
+  public get alias(): string | null {
+    return duckdb.logical_type_get_alias(this.logical_type);
+  }
+  public set alias(newAlias: string) {
+    duckdb.logical_type_set_alias(this.logical_type, newAlias);
+  }
   public asType(): DuckDBType {
     switch (this.typeId) {
       case DuckDBTypeId.BOOLEAN:
