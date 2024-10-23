@@ -96,21 +96,21 @@ jobs:
         working-directory: bindings/pkgs/@duckdb/node-bindings-linux-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
-          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
       
       - name: Publish - Bindings
         if: ${{ inputs.publish_bindings }}
         working-directory: bindings/pkgs/@duckdb/node-bindings
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
-          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
       - name: Publish - API
         if: ${{ inputs.publish_api }}
         working-directory: api/pkgs/@duckdb/node-api
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
-          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
   macos:
     name: Mac OS X
@@ -151,7 +151,7 @@ jobs:
         working-directory: bindings/pkgs/@duckdb/node-bindings-darwin-arm64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
-          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
   windows:
     name: Windows
@@ -192,4 +192,4 @@ jobs:
         working-directory: bindings/pkgs/@duckdb/node-bindings-win32-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
-          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
