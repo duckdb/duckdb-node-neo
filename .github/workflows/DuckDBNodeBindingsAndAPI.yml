@@ -1,6 +1,5 @@
 name: DuckDB Node Bindings & API
 on:
-  push:
   pull_request:
   workflow_dispatch:
     inputs:
