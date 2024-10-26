@@ -1,6 +1,7 @@
 import duckdb from '@duckdb/node-bindings';
 
-type ResultReturnType = duckdb.ResultType;
-type StatementType = duckdb.StatementType;
+export type ResultReturnType = duckdb.ResultType;
+export const ResultReturnType = duckdb.ResultType;
 
-export type { ResultReturnType, StatementType };
+export type StatementType = duckdb.StatementType;
+export const StatementType = duckdb.StatementType;
