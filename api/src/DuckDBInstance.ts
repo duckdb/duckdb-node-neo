@@ -14,7 +14,7 @@ export class DuckDBInstance {
       const config = duckdb.create_config();
       try {
         for (const optionName in options) {
-          const optionValue = options[optionName];
+          const optionValue = String(options[optionName]);
           duckdb.set_config(config, optionName, optionValue);
         }
         return new DuckDBInstance(await duckdb.open(path, config));
