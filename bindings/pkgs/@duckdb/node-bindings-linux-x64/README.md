@@ -1,5 +1,5 @@
 # DuckDB Node Bindings: Linux x64
 
-Node bindings to the DuckDB C API for Linux x64.
+Binaries supporting [Node](https://nodejs.org/) bindings to the [DuckDB C API](https://duckdb.org/docs/api/c/overview) for Linux x64.
 
-[Documentation](https://github.com/duckdb/duckdb-node-neo)
+See [@duckdb/node-bindings](https://www.npmjs.com/package/@duckdb/node-bindings) for a low-level API that uses these binaries, or [@duckdb/node-api](https://www.npmjs.com/package/@duckdb/node-api) for a high-level API built on those bindings.
