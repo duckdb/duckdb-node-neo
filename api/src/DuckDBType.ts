@@ -1,9 +1,13 @@
 import { DuckDBTypeId } from './DuckDBTypeId';
+import { quotedIdentifier, quotedString } from './sql';
 
 export abstract class BaseDuckDBType {
   public readonly typeId: DuckDBTypeId;
   protected constructor(typeId: DuckDBTypeId) {
     this.typeId = typeId;
+  }
+  public toString(): string {
+    return DuckDBTypeId[this.typeId];
   }
 }
 
@@ -150,6 +154,9 @@ export class DuckDBDecimalType extends BaseDuckDBType {
     this.width = width;
     this.scale = scale;
   }
+  public toString(): string {
+    return `DECIMAL(${this.width},${this.scale})`;
+  }
   public static readonly default = new DuckDBDecimalType(18, 3);
 }
 
@@ -182,6 +189,9 @@ export class DuckDBEnumType extends BaseDuckDBType {
     this.values = values;
     this.internalTypeId = internalTypeId;
   }
+  public toString(): string {
+    return `ENUM(${this.values.map(quotedString).join(', ')})`;
+  }
 }
 
 export class DuckDBListType extends BaseDuckDBType {
@@ -189,6 +199,9 @@ export class DuckDBListType extends BaseDuckDBType {
   public constructor(valueType: DuckDBType) {
     super(DuckDBTypeId.LIST);
     this.valueType = valueType;
+  }
+  public toString(): string {
+    return `${this.valueType}[]`;
   }
 }
 
@@ -203,6 +216,11 @@ export class DuckDBStructType extends BaseDuckDBType {
     super(DuckDBTypeId.STRUCT);
     this.entries = entries;
   }
+  public toString(): string {
+    return `STRUCT(${this.entries.map(
+      entry => `${quotedIdentifier(entry.name)} ${entry.valueType}`
+    ).join(', ')})`;
+  }
 }
 
 export class DuckDBMapType extends BaseDuckDBType {
@@ -213,6 +231,9 @@ export class DuckDBMapType extends BaseDuckDBType {
     this.keyType = keyType;
     this.valueType = valueType;
   }
+  public toString(): string {
+    return `MAP(${this.keyType}, ${this.valueType})`;
+  }
 }
 
 export class DuckDBArrayType extends BaseDuckDBType {
@@ -222,6 +243,9 @@ export class DuckDBArrayType extends BaseDuckDBType {
     super(DuckDBTypeId.ARRAY);
     this.valueType = valueType;
     this.length = length;
+  }
+  public toString(): string {
+    return `${this.valueType}[${this.length}]`;
   }
 }
 
@@ -243,6 +267,11 @@ export class DuckDBUnionType extends BaseDuckDBType {
     super(DuckDBTypeId.UNION);
     this.alternatives = alternatives;
   }
+  public toString(): string {
+    return `UNION(${this.alternatives.map(
+      entry => `${quotedIdentifier(entry.tag)} ${entry.valueType}`
+    ).join(', ')})`;
+  }
 }
 
 export class DuckDBBitType extends BaseDuckDBType {
@@ -256,12 +285,18 @@ export class DuckDBTimeTZType extends BaseDuckDBType {
   private constructor() {
     super(DuckDBTypeId.TIME_TZ);
   }
+  public toString(): string {
+    return "TIME WITH TIME ZONE";
+  }
   public static readonly instance = new DuckDBTimeTZType();
 }
 
 export class DuckDBTimestampTZType extends BaseDuckDBType {
   private constructor() {
     super(DuckDBTypeId.TIMESTAMP_TZ);
+  }
+  public toString(): string {
+    return "TIMESTAMP WITH TIME ZONE";
   }
   public static readonly instance = new DuckDBTimestampTZType();
 }

@@ -13,4 +13,5 @@ export * from './DuckDBTypeId';
 export * from './DuckDBValue';
 export * from './DuckDBVector';
 export * from './enums';
+export * from './sql';
 export * from './version';
