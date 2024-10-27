@@ -43,19 +43,19 @@
 ### Update Package Versions
 
 Change version in:
-- api/pkgs/@duckdb/node-api/package.json
-- bindings/pkgs/@duckdb/node-bindings/package.json
-- bindings/pkgs/@duckdb/node-bindings-darwin-arm64/package.json
-- bindings/pkgs/@duckdb/node-bindings-linux-x64/package.json
-- bindings/pkgs/@duckdb/node-bindings-win32-x64/package.json
+- `api/pkgs/@duckdb/node-api/package.json`
+- `bindings/pkgs/@duckdb/node-bindings/package.json`
+- `bindings/pkgs/@duckdb/node-bindings-darwin-arm64/package.json`
+- `bindings/pkgs/@duckdb/node-bindings-linux-x64/package.json`
+- `bindings/pkgs/@duckdb/node-bindings-win32-x64/package.json`
 
 ### Upgrade DuckDB Version
 
 Change version in:
-- bindings/scripts/fetch_libduckdb_linux.py
-- bindings/scripts/fetch_libduckdb_mac.py
-- bindings/scripts/fetch_libduckdb_win.py
-- bindings/test/constants.test.ts
+- `bindings/scripts/fetch_libduckdb_linux.py`
+- `bindings/scripts/fetch_libduckdb_mac.py`
+- `bindings/scripts/fetch_libduckdb_win.py`
+- `bindings/test/constants.test.ts`
 
 Also change DuckDB version in package versions.
 
@@ -63,7 +63,9 @@ Also change DuckDB version in package versions.
 
 - `node scripts/checkFunctionSignatures.mjs [writeFiles]`
 
-Diffs the function signatures declared in `duckdb.d.ts` and implemented in `duckdb_node_bindings.cpp` against the downloaded `duckdb.h`.
+Checks for differences between the function signatures in `duckdb.h` and those declared in `duckdb.d.ts` and implemented in `duckdb_node_bindings.cpp`.
+
+Optionally outputs JSON files that can be diff'd.
 
 Useful when upgrading the DuckDB version to detect changes to the C API.
 
