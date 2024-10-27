@@ -2,13 +2,13 @@
 
 An API for using [DuckDB](https://duckdb.org/) in [Node](https://nodejs.org/).
 
-This is a high-level API meant for applications. It depends on low-level bindings that adhere closely to DuckDB's C API, available separately as [@duckdb/duckdb-bindings](https://www.npmjs.com/package/@duckdb/node-bindings).
+This is a high-level API meant for applications. It depends on low-level bindings that adhere closely to [DuckDB's C API](https://duckdb.org/docs/api/c/overview), available separately as [@duckdb/duckdb-bindings](https://www.npmjs.com/package/@duckdb/node-bindings).
 
 ## Features
 
 ### Main differences from [duckdb-node](https://www.npmjs.com/package/duckdb)
 - Native support for Promises; no need for separate [duckdb-async](https://www.npmjs.com/package/duckdb-async) wrapper.
-- DuckDB-specific API; not based on SQLite.
+- DuckDB-specific API; not based on the [SQLite Node API](https://www.npmjs.com/package/sqlite3).
 - Lossless & efficent support for values of all [DuckDB data types](https://duckdb.org/docs/sql/data_types/overview).
 - Wraps [released DuckDB binaries](https://github.com/duckdb/duckdb/releases) instead of rebuilding DuckDB.
 - Built on [DuckDB's C API](https://duckdb.org/docs/api/c/overview); exposes more functionality.
