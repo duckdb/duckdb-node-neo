@@ -191,6 +191,12 @@ function typeToString(dataType) {
 }
 ```
 
+While the example above demonstrates how to access the properties of data type objects, there is a much simpler way to convert them to strings:
+
+```ts
+const dataTypeString = dataType.toString();
+```
+
 ### Inspect Data Values
 
 ```ts

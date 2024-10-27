@@ -1,5 +1,6 @@
 import { assert, describe, test } from 'vitest';
 import {
+  DuckDBAnyType,
   DuckDBArrayType,
   DuckDBArrayVector,
   DuckDBBigIntType,
@@ -44,6 +45,7 @@ import {
   DuckDBMapVector,
   DuckDBPendingResultState,
   DuckDBResult,
+  DuckDBSQLNullType,
   DuckDBSmallDecimal,
   DuckDBSmallIntType,
   DuckDBSmallIntVector,
@@ -283,6 +285,10 @@ describe('api', () => {
     const ver = version();
     assert.ok(ver.startsWith('v'), `version starts with 'v'`);
   });
+  test('should expose configuration option descriptions', () => {
+    const descriptions = configurationOptionDescriptions();
+    assert.ok(descriptions['memory_limit'], `descriptions has 'memory_limit'`);
+  });
   test('ReturnResultType enum', () => {
     assert.equal(ResultReturnType.INVALID, 0);
     assert.equal(ResultReturnType.CHANGED_ROWS, 1);
@@ -353,9 +359,55 @@ describe('api', () => {
     assert.equal(StatementType[StatementType.DETACH], 'DETACH');
     assert.equal(StatementType[StatementType.MULTI], 'MULTI');
   });
-  test('should expose configuration option descriptions', () => {
-    const descriptions = configurationOptionDescriptions();
-    assert.ok(descriptions['memory_limit'], `descriptions has 'memory_limit'`);
+  test('DuckDBType toString', () => {
+    assert.equal(DuckDBBooleanType.instance.toString(), 'BOOLEAN');
+    assert.equal(DuckDBTinyIntType.instance.toString(), 'TINYINT');
+    assert.equal(DuckDBSmallIntType.instance.toString(), 'SMALLINT');
+    assert.equal(DuckDBIntegerType.instance.toString(), 'INTEGER');
+    assert.equal(DuckDBBigIntType.instance.toString(), 'BIGINT');
+    assert.equal(DuckDBUTinyIntType.instance.toString(), 'UTINYINT');
+    assert.equal(DuckDBUSmallIntType.instance.toString(), 'USMALLINT');
+    assert.equal(DuckDBUIntegerType.instance.toString(), 'UINTEGER');
+    assert.equal(DuckDBUBigIntType.instance.toString(), 'UBIGINT');
+    assert.equal(DuckDBFloatType.instance.toString(), 'FLOAT');
+    assert.equal(DuckDBDoubleType.instance.toString(), 'DOUBLE');
+    assert.equal(DuckDBTimestampType.instance.toString(), 'TIMESTAMP');
+    assert.equal(DuckDBDateType.instance.toString(), 'DATE');
+    assert.equal(DuckDBTimeType.instance.toString(), 'TIME');
+    assert.equal(DuckDBIntervalType.instance.toString(), 'INTERVAL');
+    assert.equal(DuckDBHugeIntType.instance.toString(), 'HUGEINT');
+    assert.equal(DuckDBUHugeIntType.instance.toString(), 'UHUGEINT');
+    assert.equal(DuckDBVarCharType.instance.toString(), 'VARCHAR');
+    assert.equal(DuckDBBlobType.instance.toString(), 'BLOB');
+    assert.equal((new DuckDBDecimalType(17, 5)).toString(), 'DECIMAL(17,5)');
+    assert.equal(DuckDBTimestampSecondsType.instance.toString(), 'TIMESTAMP_S');
+    assert.equal(DuckDBTimestampMillisecondsType.instance.toString(), 'TIMESTAMP_MS');
+    assert.equal(DuckDBTimestampNanosecondsType.instance.toString(), 'TIMESTAMP_NS');
+    assert.equal(
+      (new DuckDBEnumType(['fly', 'swim', 'walk'], DuckDBTypeId.UTINYINT)).toString(),
+      `ENUM('fly', 'swim', 'walk')`
+    );
+    assert.equal((new DuckDBListType(DuckDBIntegerType.instance)).toString(), 'INTEGER[]');
+    assert.equal((new DuckDBStructType([
+      { name: 'id', valueType: DuckDBVarCharType.instance },
+      { name: 'ts', valueType: DuckDBTimestampType.instance },
+    ])).toString(), 'STRUCT("id" VARCHAR, "ts" TIMESTAMP)');
+    assert.equal(
+      (new DuckDBMapType(DuckDBIntegerType.instance, DuckDBVarCharType.instance)).toString(),
+      'MAP(INTEGER, VARCHAR)'
+    );
+    assert.equal((new DuckDBArrayType(DuckDBIntegerType.instance, 3)).toString(), 'INTEGER[3]');
+    assert.equal(DuckDBUUIDType.instance.toString(), 'UUID');
+    assert.equal((new DuckDBUnionType([
+      { tag: 'str', valueType: DuckDBVarCharType.instance },
+      { tag: 'num', valueType: DuckDBIntegerType.instance },
+    ])).toString(), 'UNION("str" VARCHAR, "num" INTEGER)');
+    assert.equal(DuckDBBitType.instance.toString(), 'BIT');
+    assert.equal(DuckDBTimeTZType.instance.toString(), 'TIME WITH TIME ZONE');
+    assert.equal(DuckDBTimestampTZType.instance.toString(), 'TIMESTAMP WITH TIME ZONE');
+    assert.equal(DuckDBAnyType.instance.toString(), 'ANY');
+    assert.equal(DuckDBVarIntType.instance.toString(), 'VARINT');
+    assert.equal(DuckDBSQLNullType.instance.toString(), 'SQLNULL');
   });
   test('should support creating, connecting, running a basic query, and reading results', async () => {
     const instance = await DuckDBInstance.create();
