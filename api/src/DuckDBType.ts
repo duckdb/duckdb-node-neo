@@ -1,9 +1,9 @@
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { quotedIdentifier, quotedString } from './sql';
 
-export abstract class BaseDuckDBType {
-  public readonly typeId: DuckDBTypeId;
-  protected constructor(typeId: DuckDBTypeId) {
+export abstract class BaseDuckDBType<T extends DuckDBTypeId> {
+  public readonly typeId: T;
+  protected constructor(typeId: T) {
     this.typeId = typeId;
   }
   public toString(): string {
@@ -11,84 +11,84 @@ export abstract class BaseDuckDBType {
   }
 }
 
-export class DuckDBBooleanType extends BaseDuckDBType {
+export class DuckDBBooleanType extends BaseDuckDBType<DuckDBTypeId.BOOLEAN> {
   private constructor() {
     super(DuckDBTypeId.BOOLEAN);
   }
   public static readonly instance = new DuckDBBooleanType();
 }
 
-export class DuckDBTinyIntType extends BaseDuckDBType {
+export class DuckDBTinyIntType extends BaseDuckDBType<DuckDBTypeId.TINYINT> {
   private constructor() {
     super(DuckDBTypeId.TINYINT);
   }
   public static readonly instance = new DuckDBTinyIntType();
 }
 
-export class DuckDBSmallIntType extends BaseDuckDBType {
+export class DuckDBSmallIntType extends BaseDuckDBType<DuckDBTypeId.SMALLINT> {
   private constructor() {
     super(DuckDBTypeId.SMALLINT);
   }
   public static readonly instance = new DuckDBSmallIntType();
 }
 
-export class DuckDBIntegerType extends BaseDuckDBType {
+export class DuckDBIntegerType extends BaseDuckDBType<DuckDBTypeId.INTEGER> {
   private constructor() {
     super(DuckDBTypeId.INTEGER);
   }
   public static readonly instance = new DuckDBIntegerType();
 }
 
-export class DuckDBBigIntType extends BaseDuckDBType {
+export class DuckDBBigIntType extends BaseDuckDBType<DuckDBTypeId.BIGINT> {
   private constructor() {
     super(DuckDBTypeId.BIGINT);
   }
   public static readonly instance = new DuckDBBigIntType();
 }
 
-export class DuckDBUTinyIntType extends BaseDuckDBType {
+export class DuckDBUTinyIntType extends BaseDuckDBType<DuckDBTypeId.UTINYINT> {
   private constructor() {
     super(DuckDBTypeId.UTINYINT);
   }
   public static readonly instance = new DuckDBUTinyIntType();
 }
 
-export class DuckDBUSmallIntType extends BaseDuckDBType {
+export class DuckDBUSmallIntType extends BaseDuckDBType<DuckDBTypeId.USMALLINT> {
   private constructor() {
     super(DuckDBTypeId.USMALLINT);
   }
   public static readonly instance = new DuckDBUSmallIntType();
 }
 
-export class DuckDBUIntegerType extends BaseDuckDBType {
+export class DuckDBUIntegerType extends BaseDuckDBType<DuckDBTypeId.UINTEGER> {
   private constructor() {
     super(DuckDBTypeId.UINTEGER);
   }
   public static readonly instance = new DuckDBUIntegerType();
 }
 
-export class DuckDBUBigIntType extends BaseDuckDBType {
+export class DuckDBUBigIntType extends BaseDuckDBType<DuckDBTypeId.UBIGINT> {
   private constructor() {
     super(DuckDBTypeId.UBIGINT);
   }
   public static readonly instance = new DuckDBUBigIntType();
 }
 
-export class DuckDBFloatType extends BaseDuckDBType {
+export class DuckDBFloatType extends BaseDuckDBType<DuckDBTypeId.FLOAT> {
   private constructor() {
     super(DuckDBTypeId.FLOAT);
   }
   public static readonly instance = new DuckDBFloatType();
 }
 
-export class DuckDBDoubleType extends BaseDuckDBType {
+export class DuckDBDoubleType extends BaseDuckDBType<DuckDBTypeId.DOUBLE> {
   private constructor() {
     super(DuckDBTypeId.DOUBLE);
   }
   public static readonly instance = new DuckDBDoubleType();
 }
 
-export class DuckDBTimestampType extends BaseDuckDBType {
+export class DuckDBTimestampType extends BaseDuckDBType<DuckDBTypeId.TIMESTAMP> {
   private constructor() {
     super(DuckDBTypeId.TIMESTAMP);
   }
@@ -96,57 +96,58 @@ export class DuckDBTimestampType extends BaseDuckDBType {
 }
 
 export type DuckDBTimestampMicrosecondsType = DuckDBTimestampType;
+export const DuckDBTimestampMicrosecondsType = DuckDBTimestampType;
 
-export class DuckDBDateType extends BaseDuckDBType {
+export class DuckDBDateType extends BaseDuckDBType<DuckDBTypeId.DATE> {
   private constructor() {
     super(DuckDBTypeId.DATE);
   }
   public static readonly instance = new DuckDBDateType();
 }
 
-export class DuckDBTimeType extends BaseDuckDBType {
+export class DuckDBTimeType extends BaseDuckDBType<DuckDBTypeId.TIME> {
   private constructor() {
     super(DuckDBTypeId.TIME);
   }
   public static readonly instance = new DuckDBTimeType();
 }
 
-export class DuckDBIntervalType extends BaseDuckDBType {
+export class DuckDBIntervalType extends BaseDuckDBType<DuckDBTypeId.INTERVAL> {
   private constructor() {
     super(DuckDBTypeId.INTERVAL);
   }
   public static readonly instance = new DuckDBIntervalType();
 }
 
-export class DuckDBHugeIntType extends BaseDuckDBType {
+export class DuckDBHugeIntType extends BaseDuckDBType<DuckDBTypeId.HUGEINT> {
   private constructor() {
     super(DuckDBTypeId.HUGEINT);
   }
   public static readonly instance = new DuckDBHugeIntType();
 }
 
-export class DuckDBUHugeIntType extends BaseDuckDBType {
+export class DuckDBUHugeIntType extends BaseDuckDBType<DuckDBTypeId.UHUGEINT> {
   private constructor() {
     super(DuckDBTypeId.UHUGEINT);
   }
   public static readonly instance = new DuckDBUHugeIntType();
 }
 
-export class DuckDBVarCharType extends BaseDuckDBType {
+export class DuckDBVarCharType extends BaseDuckDBType<DuckDBTypeId.VARCHAR> {
   private constructor() {
     super(DuckDBTypeId.VARCHAR);
   }
   public static readonly instance = new DuckDBVarCharType();
 }
 
-export class DuckDBBlobType extends BaseDuckDBType {
+export class DuckDBBlobType extends BaseDuckDBType<DuckDBTypeId.BLOB> {
   private constructor() {
     super(DuckDBTypeId.BLOB);
   }
   public static readonly instance = new DuckDBBlobType();
 }
 
-export class DuckDBDecimalType extends BaseDuckDBType {
+export class DuckDBDecimalType extends BaseDuckDBType<DuckDBTypeId.DECIMAL> {
   public readonly width: number;
   public readonly scale: number;
   public constructor(width: number, scale: number) {
@@ -160,28 +161,28 @@ export class DuckDBDecimalType extends BaseDuckDBType {
   public static readonly default = new DuckDBDecimalType(18, 3);
 }
 
-export class DuckDBTimestampSecondsType extends BaseDuckDBType {
+export class DuckDBTimestampSecondsType extends BaseDuckDBType<DuckDBTypeId.TIMESTAMP_S> {
   private constructor() {
     super(DuckDBTypeId.TIMESTAMP_S);
   }
   public static readonly instance = new DuckDBTimestampSecondsType();
 }
 
-export class DuckDBTimestampMillisecondsType extends BaseDuckDBType {
+export class DuckDBTimestampMillisecondsType extends BaseDuckDBType<DuckDBTypeId.TIMESTAMP_MS> {
   private constructor() {
     super(DuckDBTypeId.TIMESTAMP_MS);
   }
   public static readonly instance = new DuckDBTimestampMillisecondsType();
 }
 
-export class DuckDBTimestampNanosecondsType extends BaseDuckDBType {
+export class DuckDBTimestampNanosecondsType extends BaseDuckDBType<DuckDBTypeId.TIMESTAMP_NS> {
   private constructor() {
     super(DuckDBTypeId.TIMESTAMP_NS);
   }
   public static readonly instance = new DuckDBTimestampNanosecondsType();
 }
 
-export class DuckDBEnumType extends BaseDuckDBType {
+export class DuckDBEnumType extends BaseDuckDBType<DuckDBTypeId.ENUM> {
   public readonly values: readonly string[];
   public readonly internalTypeId: DuckDBTypeId;
   public constructor(values: readonly string[], internalTypeId: DuckDBTypeId) {
@@ -194,7 +195,7 @@ export class DuckDBEnumType extends BaseDuckDBType {
   }
 }
 
-export class DuckDBListType extends BaseDuckDBType {
+export class DuckDBListType extends BaseDuckDBType<DuckDBTypeId.LIST> {
   public readonly valueType: DuckDBType;
   public constructor(valueType: DuckDBType) {
     super(DuckDBTypeId.LIST);
@@ -210,7 +211,7 @@ export interface DuckDBStructEntryType {
   readonly valueType: DuckDBType;
 }
 
-export class DuckDBStructType extends BaseDuckDBType {
+export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
   public readonly entries: readonly DuckDBStructEntryType[];
   public constructor(entries: readonly DuckDBStructEntryType[]) {
     super(DuckDBTypeId.STRUCT);
@@ -223,7 +224,7 @@ export class DuckDBStructType extends BaseDuckDBType {
   }
 }
 
-export class DuckDBMapType extends BaseDuckDBType {
+export class DuckDBMapType extends BaseDuckDBType<DuckDBTypeId.MAP> {
   public readonly keyType: DuckDBType;
   public readonly valueType: DuckDBType;
   public constructor(keyType: DuckDBType, valueType: DuckDBType) {
@@ -236,7 +237,7 @@ export class DuckDBMapType extends BaseDuckDBType {
   }
 }
 
-export class DuckDBArrayType extends BaseDuckDBType {
+export class DuckDBArrayType extends BaseDuckDBType<DuckDBTypeId.ARRAY> {
   public readonly valueType: DuckDBType;
   public readonly length: number;
   public constructor(valueType: DuckDBType, length: number) {
@@ -249,7 +250,7 @@ export class DuckDBArrayType extends BaseDuckDBType {
   }
 }
 
-export class DuckDBUUIDType extends BaseDuckDBType {
+export class DuckDBUUIDType extends BaseDuckDBType<DuckDBTypeId.UUID> {
   private constructor() {
     super(DuckDBTypeId.UUID);
   }
@@ -261,7 +262,7 @@ export interface DuckDBUnionAlternativeType {
   readonly valueType: DuckDBType;
 }
 
-export class DuckDBUnionType extends BaseDuckDBType {
+export class DuckDBUnionType extends BaseDuckDBType<DuckDBTypeId.UNION> {
   public readonly alternatives: readonly DuckDBUnionAlternativeType[];
   public constructor(alternatives: readonly DuckDBUnionAlternativeType[]) {
     super(DuckDBTypeId.UNION);
@@ -274,14 +275,14 @@ export class DuckDBUnionType extends BaseDuckDBType {
   }
 }
 
-export class DuckDBBitType extends BaseDuckDBType {
+export class DuckDBBitType extends BaseDuckDBType<DuckDBTypeId.BIT> {
   private constructor() {
     super(DuckDBTypeId.BIT);
   }
   public static readonly instance = new DuckDBBitType();
 }
 
-export class DuckDBTimeTZType extends BaseDuckDBType {
+export class DuckDBTimeTZType extends BaseDuckDBType<DuckDBTypeId.TIME_TZ> {
   private constructor() {
     super(DuckDBTypeId.TIME_TZ);
   }
@@ -291,7 +292,7 @@ export class DuckDBTimeTZType extends BaseDuckDBType {
   public static readonly instance = new DuckDBTimeTZType();
 }
 
-export class DuckDBTimestampTZType extends BaseDuckDBType {
+export class DuckDBTimestampTZType extends BaseDuckDBType<DuckDBTypeId.TIMESTAMP_TZ> {
   private constructor() {
     super(DuckDBTypeId.TIMESTAMP_TZ);
   }
@@ -301,21 +302,21 @@ export class DuckDBTimestampTZType extends BaseDuckDBType {
   public static readonly instance = new DuckDBTimestampTZType();
 }
 
-export class DuckDBAnyType extends BaseDuckDBType {
+export class DuckDBAnyType extends BaseDuckDBType<DuckDBTypeId.ANY> {
   private constructor() {
     super(DuckDBTypeId.ANY);
   }
   public static readonly instance = new DuckDBAnyType();
 }
 
-export class DuckDBVarIntType extends BaseDuckDBType {
+export class DuckDBVarIntType extends BaseDuckDBType<DuckDBTypeId.VARINT> {
   private constructor() {
     super(DuckDBTypeId.VARINT);
   }
   public static readonly instance = new DuckDBVarIntType();
 }
 
-export class DuckDBSQLNullType extends BaseDuckDBType {
+export class DuckDBSQLNullType extends BaseDuckDBType<DuckDBTypeId.SQLNULL> {
   private constructor() {
     super(DuckDBTypeId.SQLNULL);
   }
