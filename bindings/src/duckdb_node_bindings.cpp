@@ -38,12 +38,16 @@ duckdb_date_struct GetDatePartsFromObject(Napi::Object date_parts_obj) {
 
 Napi::Object MakeTimeObject(Napi::Env env, duckdb_time time) {
   auto time_obj = Napi::Object::New(env);
-  time_obj.Set("micros", Napi::Number::New(env, time.micros));
+  time_obj.Set("micros", Napi::BigInt::New(env, time.micros));
   return time_obj;
 }
 
-duckdb_time GetTimeFromObject(Napi::Object time_obj) {
-  auto micros = time_obj.Get("micros").As<Napi::Number>().Int64Value();
+duckdb_time GetTimeFromObject(Napi::Env env, Napi::Object time_obj) {
+  bool lossless;
+  auto micros = time_obj.Get("micros").As<Napi::BigInt>().Int64Value(&lossless);
+  if (!lossless) {
+    throw Napi::Error::New(env, "micros out of int64 range");
+  }
   return { micros };
 }
 
@@ -1391,7 +1395,7 @@ private:
   Napi::Value from_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto time_obj = info[0].As<Napi::Object>();
-    auto time = GetTimeFromObject(time_obj);
+    auto time = GetTimeFromObject(env, time_obj);
     auto time_parts = duckdb_from_time(time);
     return MakeTimePartsObject(env, time_parts);
   }
@@ -1824,7 +1828,7 @@ private:
     auto env = info.Env();
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
-    auto value = GetTimeFromObject(info[2].As<Napi::Object>());
+    auto value = GetTimeFromObject(env, info[2].As<Napi::Object>());
     if (duckdb_bind_time(prepared_statement, index, value)) {
       throw Napi::Error::New(env, "Failed to bind time");
     }
@@ -2202,7 +2206,7 @@ private:
   // function create_time(input: Time): Value
   Napi::Value create_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto input = GetTimeFromObject(info[0].As<Napi::Object>());
+    auto input = GetTimeFromObject(env, info[0].As<Napi::Object>());
     auto value = duckdb_create_time(input);
     return CreateExternalForValue(env, value);
   }
@@ -3408,7 +3412,7 @@ private:
   Napi::Value append_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
-    auto time_value = GetTimeFromObject(info[1].As<Napi::Object>());
+    auto time_value = GetTimeFromObject(env, info[1].As<Napi::Object>());
     if (duckdb_append_time(appender, time_value)) {
       throw Napi::Error::New(env, duckdb_appender_error(appender));
     }

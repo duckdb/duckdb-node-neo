@@ -1,8 +1,13 @@
 import duckdb from '@duckdb/node-bindings';
-import { DuckDBType } from './DuckDBType';
-import { DuckDBLogicalType } from './DuckDBLogicalType';
-import { Date_, Interval, Time, Timestamp } from './DuckDBValue';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
+import { DuckDBLogicalType } from './DuckDBLogicalType';
+import { DuckDBType } from './DuckDBType';
+import {
+  DuckDBDateValue,
+  DuckDBIntervalValue,
+  DuckDBTimestampValue,
+  DuckDBTimeValue,
+} from './values';
 
 export class DuckDBAppender {
   private readonly appender: duckdb.Appender;
@@ -70,18 +75,18 @@ export class DuckDBAppender {
   public appendDouble(value: number) {
     duckdb.append_double(this.appender, value);
   }
-  public appendDate(value: Date_) {
+  public appendDate(value: DuckDBDateValue) {
     duckdb.append_date(this.appender, value);
   }
-  public appendTime(value: Time) {
+  public appendTime(value: DuckDBTimeValue) {
     duckdb.append_time(this.appender, value);
   }
-  public appendTimestamp(value: Timestamp) {
+  public appendTimestamp(value: DuckDBTimestampValue) {
     duckdb.append_timestamp(this.appender, value);
   }
   // TODO: append TIMESTAMPS_S/_MS/_NS?
   // TODO: append TIME_TZ/TIMESTAMP_TZ?
-  public appendInterval(value: Interval) {
+  public appendInterval(value: DuckDBIntervalValue) {
     duckdb.append_interval(this.appender, value);
   }
   public appendVarchar(value: string) {

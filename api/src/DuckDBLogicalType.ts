@@ -340,7 +340,7 @@ export class DuckDBArrayLogicalType extends DuckDBLogicalType {
   public get length(): number {
     return duckdb.array_type_array_size(this.logical_type);
   }
-  public override asType(): DuckDBListType {
+  public override asType(): DuckDBArrayType {
     return new DuckDBArrayType(this.valueType.asType(), this.length);
   }
 }

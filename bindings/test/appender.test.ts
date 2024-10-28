@@ -156,7 +156,7 @@ suite('appender', () => {
         duckdb.append_float(appender, 3.4028234663852886e+38);
         duckdb.append_double(appender, 1.7976931348623157e+308);
         duckdb.append_date(appender, { days: 2147483646 });
-        duckdb.append_time(appender, { micros: 86400000000 });
+        duckdb.append_time(appender, { micros: 86400000000n });
         duckdb.append_timestamp(appender, { micros: 9223372036854775806n });
         duckdb.append_interval(appender, { months: 999, days: 999, micros: 999999999n });
         duckdb.append_varchar(appender, '🦆🦆🦆🦆🦆🦆');

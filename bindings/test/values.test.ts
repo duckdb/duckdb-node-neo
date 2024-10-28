@@ -166,7 +166,7 @@ suite('values', () => {
     }
   });
   test('time', () => {
-    const input = { micros: 86400000000 };
+    const input = { micros: 86400000000n };
     const time_value = duckdb.create_time(input);
     try {
       expectLogicalType(duckdb.get_value_type(time_value), TIME);

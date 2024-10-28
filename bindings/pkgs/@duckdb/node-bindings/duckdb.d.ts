@@ -120,7 +120,7 @@ export interface QueryProgress {
 
 export interface Time {
   /** Microseconds since 00:00:00 */
-  micros: number;
+  micros: bigint;
 }
 export interface TimeParts {
   hour: number;

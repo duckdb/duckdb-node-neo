@@ -276,7 +276,7 @@ suite('prepared statements', () => {
         duckdb.bind_date(prepared, 15, { days: 2147483646 });
         expect(duckdb.param_type(prepared, 15)).toBe(duckdb.Type.DATE);
 
-        duckdb.bind_time(prepared, 16, { micros: 86400000000 });
+        duckdb.bind_time(prepared, 16, { micros: 86400000000n });
         expect(duckdb.param_type(prepared, 16)).toBe(duckdb.Type.TIME);
 
         duckdb.bind_timestamp(prepared, 17, { micros: 9223372036854775806n });

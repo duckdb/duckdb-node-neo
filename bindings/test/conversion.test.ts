@@ -39,14 +39,14 @@ suite('conversion', () => {
   suite('from_time', () => {
     test('mid-range', () => {
       // 45296789123 = 1000000 * (60 * (60 * 12 + 34) + 56) + 789123 = 12:34:56.789123
-      expect(duckdb.from_time({ micros: 45296789123 })).toStrictEqual({ hour: 12, min: 34, sec: 56, micros: 789123 });
+      expect(duckdb.from_time({ micros: 45296789123n })).toStrictEqual({ hour: 12, min: 34, sec: 56, micros: 789123 });
     });
     test('min', () => {
-      expect(duckdb.from_time({ micros: 0 })).toStrictEqual({ hour: 0, min: 0, sec: 0, micros: 0 });
+      expect(duckdb.from_time({ micros: 0n })).toStrictEqual({ hour: 0, min: 0, sec: 0, micros: 0 });
     });
     test('max', () => {
       // 86400000000 = 1000000 * (60 * (60 * 24 + 0) + 0) + 0 = 24:00:00.000000
-      expect(duckdb.from_time({ micros: 86400000000 })).toStrictEqual({ hour: 24, min: 0, sec: 0, micros: 0 });
+      expect(duckdb.from_time({ micros: 86400000000n })).toStrictEqual({ hour: 24, min: 0, sec: 0, micros: 0 });
     });
   });
   suite('create_time_tz', () => {
@@ -85,13 +85,13 @@ suite('conversion', () => {
   });
   suite('to_time', () => {
     test('mid-range', () => {
-      expect(duckdb.to_time({ hour: 12, min: 34, sec: 56, micros: 789123 })).toStrictEqual({ micros: 45296789123 });
+      expect(duckdb.to_time({ hour: 12, min: 34, sec: 56, micros: 789123 })).toStrictEqual({ micros: 45296789123n });
     });
     test('min', () => {
-      expect(duckdb.to_time({ hour: 0, min: 0, sec: 0, micros: 0 })).toStrictEqual({ micros: 0 });
+      expect(duckdb.to_time({ hour: 0, min: 0, sec: 0, micros: 0 })).toStrictEqual({ micros: 0n });
     });
     test('max', () => {
-      expect(duckdb.to_time({ hour: 24, min: 0, sec: 0, micros: 0 })).toStrictEqual({ micros: 86400000000 });
+      expect(duckdb.to_time({ hour: 24, min: 0, sec: 0, micros: 0 })).toStrictEqual({ micros: 86400000000n });
     });
   });
   suite('from_timestamp', () => {

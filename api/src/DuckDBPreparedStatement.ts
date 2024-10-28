@@ -2,8 +2,14 @@ import duckdb from '@duckdb/node-bindings';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBTypeId } from './DuckDBTypeId';
-import { Date_, Decimal, Interval, Time, Timestamp } from './DuckDBValue';
 import { StatementType } from './enums';
+import {
+  DuckDBDateValue,
+  DuckDBDecimalValue,
+  DuckDBIntervalValue,
+  DuckDBTimestampValue,
+  DuckDBTimeValue,
+} from './values';
 
 export class DuckDBPreparedStatement {
   private readonly prepared_statement: duckdb.PreparedStatement;
@@ -67,7 +73,7 @@ export class DuckDBPreparedStatement {
   public bindUHugeInt(parameterIndex: number, value: bigint) {
     duckdb.bind_uhugeint(this.prepared_statement, parameterIndex, value);
   }
-  public bindDecimal(parameterIndex: number, value: Decimal) {
+  public bindDecimal(parameterIndex: number, value: DuckDBDecimalValue) {
     duckdb.bind_decimal(this.prepared_statement, parameterIndex, value);
   }
   public bindFloat(parameterIndex: number, value: number) {
@@ -76,18 +82,18 @@ export class DuckDBPreparedStatement {
   public bindDouble(parameterIndex: number, value: number) {
     duckdb.bind_double(this.prepared_statement, parameterIndex, value);
   }
-  public bindDate(parameterIndex: number, value: Date_) {
+  public bindDate(parameterIndex: number, value: DuckDBDateValue) {
     duckdb.bind_date(this.prepared_statement, parameterIndex, value);
   }
-  public bindTime(parameterIndex: number, value: Time) {
+  public bindTime(parameterIndex: number, value: DuckDBTimeValue) {
     duckdb.bind_time(this.prepared_statement, parameterIndex, value);
   }
-  public bindTimestamp(parameterIndex: number, value: Timestamp) {
+  public bindTimestamp(parameterIndex: number, value: DuckDBTimestampValue) {
     duckdb.bind_timestamp(this.prepared_statement, parameterIndex, value);
   }
   // TODO: bind TIMESTAMPS_S/_MS/_NS?
   // TODO: bind TIME_TZ/TIMESTAMP_TZ?
-  public bindInterval(parameterIndex: number, value: Interval) {
+  public bindInterval(parameterIndex: number, value: DuckDBIntervalValue) {
     duckdb.bind_interval(this.prepared_statement, parameterIndex, value);
   }
   public bindVarchar(parameterIndex: number, value: string) {
