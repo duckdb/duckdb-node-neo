@@ -1,14 +1,8 @@
-import { DuckDBBitType } from '../DuckDBType';
-
 export class DuckDBBitValue {
   public readonly data: Uint8Array;
 
   constructor(data: Uint8Array) {
     this.data = data;
-  }
-
-  public get type(): DuckDBBitType {
-    return DuckDBBitType.instance;
   }
 
   private padding(): number {
@@ -20,8 +14,10 @@ export class DuckDBBitValue {
   }
 
   public getBool(index: number): boolean {
-    const dataIndex = Math.floor(index / 8) + 1;
-    return (this.data[dataIndex] & (1 << (index % 8))) !== 0;
+    const offset = index + this.padding();
+    const dataIndex = Math.floor(offset / 8) + 1;
+    const byte = this.data[dataIndex] >> (7 - (offset % 8));
+    return (byte & 1) !== 0;
   }
 
   public getBit(index: number): 0 | 1 {
@@ -77,4 +73,8 @@ export class DuckDBBitValue {
 
     return new DuckDBBitValue(data);
   }
+}
+
+export function bitValue(str: string): DuckDBBitValue {
+  return DuckDBBitValue.fromString(str);
 }

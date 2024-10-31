@@ -1,13 +1,18 @@
-import { DuckDBListType } from '../DuckDBType';
-import { DuckDBVector } from '../DuckDBVector';
+import { displayStringForDuckDBValue } from '../conversion/displayStringForDuckDBValue';
 import { DuckDBValue } from './DuckDBValue';
 
-export class DuckDBListValue<TValue extends DuckDBValue = DuckDBValue> {
-  public readonly type: DuckDBListType;
-  public readonly vector: DuckDBVector<TValue>;
+export class DuckDBListValue {
+  public readonly items: readonly DuckDBValue[];
 
-  public constructor(type: DuckDBListType, vector: DuckDBVector<TValue>) {
-    this.type = type;
-    this.vector = vector;
+  public constructor(items: readonly DuckDBValue[]) {
+    this.items = items;
   }
+
+  public toString(): string {
+    return `[${this.items.map(displayStringForDuckDBValue).join(', ')}]`;
+  }
+}
+
+export function listValue(items: readonly DuckDBValue[]): DuckDBListValue {
+  return new DuckDBListValue(items);
 }

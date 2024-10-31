@@ -1,5 +1,5 @@
 import { Date_ } from '@duckdb/node-bindings';
-import { DuckDBDateType } from '../DuckDBType';
+import { getDuckDBDateStringFromDays } from '../conversion/dateTimeStringConversion';
 
 export class DuckDBDateValue implements Date_ {
   public readonly days: number;
@@ -8,7 +8,19 @@ export class DuckDBDateValue implements Date_ {
     this.days = days;
   }
 
-  public get type(): DuckDBDateType {
-    return DuckDBDateType.instance;
+  public toString(): string {
+    return getDuckDBDateStringFromDays(this.days);
   }
+
+  public static readonly Epoch = new DuckDBDateValue(0);
+
+  public static readonly Max = new DuckDBDateValue(2 ** 31 - 2);
+  public static readonly Min = new DuckDBDateValue(-(2 ** 31 - 2));
+
+  public static readonly PosInf = new DuckDBDateValue(2 ** 31 - 1);
+  public static readonly NegInf = new DuckDBDateValue(-(2 ** 31 - 1));
+}
+
+export function dateValue(days: number): DuckDBDateValue {
+  return new DuckDBDateValue(days);
 }

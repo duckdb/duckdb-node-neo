@@ -193,22 +193,22 @@ const getBoolean = makeGetBoolean();
 
 function getDecimal2(dataView: DataView, offset: number, type: DuckDBDecimalType): DuckDBDecimalValue<number> {
   const scaledValue = getInt16(dataView, offset);
-  return new DuckDBDecimalValue(type, scaledValue);
+  return new DuckDBDecimalValue(type.width, type.scale, scaledValue);
 }
 
 function getDecimal4(dataView: DataView, offset: number, type: DuckDBDecimalType): DuckDBDecimalValue<number> {
   const scaledValue = getInt32(dataView, offset);
-  return new DuckDBDecimalValue(type, scaledValue);
+  return new DuckDBDecimalValue(type.width, type.scale, scaledValue);
 }
 
 function getDecimal8(dataView: DataView, offset: number, type: DuckDBDecimalType): DuckDBDecimalValue<bigint> {
   const scaledValue = getInt64(dataView, offset);
-  return new DuckDBDecimalValue(type, scaledValue);
+  return new DuckDBDecimalValue(type.width, type.scale, scaledValue);
 }
 
 function getDecimal16(dataView: DataView, offset: number, type: DuckDBDecimalType): DuckDBDecimalValue<bigint> {
   const scaledValue = getInt128(dataView, offset);
-  return new DuckDBDecimalValue(type, scaledValue);
+  return new DuckDBDecimalValue(type.width, type.scale, scaledValue);
 }
 
 function vectorData(vector: duckdb.Vector, byteCount: number): Uint8Array {
@@ -391,6 +391,13 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
   public abstract get itemCount(): number;
   public abstract getItem(itemIndex: number): TValue | null;
   public abstract slice(offset: number, length: number): DuckDBVector<TValue>;
+  public toArray(): (TValue | null)[] {
+    const items: (TValue | null)[] = [];
+    for (let i = 0; i < this.itemCount; i++) {
+      items.push(this.getItem(i));
+    }
+    return items;
+  }
 }
 
 export class DuckDBBooleanVector extends DuckDBVector<boolean> {
@@ -1302,17 +1309,17 @@ export class DuckDBEnum4Vector extends DuckDBVector<string> {
   }
 }
 
-export class DuckDBListVector<TValue extends DuckDBValue = DuckDBValue> extends DuckDBVector<DuckDBListValue> {
+export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
   private readonly listType: DuckDBListType;
   private readonly entryData: BigUint64Array;
   private readonly validity: DuckDBValidity;
-  private readonly childData: DuckDBVector<TValue>;
+  private readonly childData: DuckDBVector;
   private readonly _itemCount: number;
   constructor(
     listType: DuckDBListType,
     entryData: BigUint64Array,
     validity: DuckDBValidity,
-    childData: DuckDBVector<TValue>,
+    childData: DuckDBVector,
     itemCount: number,
   ) {
     super();
@@ -1340,7 +1347,7 @@ export class DuckDBListVector<TValue extends DuckDBValue = DuckDBValue> extends 
   public override get itemCount(): number {
     return this._itemCount;
   }
-  public getItemVector(itemIndex: number): DuckDBVector<TValue> | null {
+  public getItemVector(itemIndex: number): DuckDBVector | null {
     if (!this.validity.itemValid(itemIndex)) {
       return null;
     }
@@ -1349,16 +1356,16 @@ export class DuckDBListVector<TValue extends DuckDBValue = DuckDBValue> extends 
     const length = Number(this.entryData[entryDataStartIndex + 1]);
     return this.childData.slice(offset, length);
   }
-  public override getItem(itemIndex: number): DuckDBListValue<TValue> | null {
+  public override getItem(itemIndex: number): DuckDBListValue | null {
     const vector = this.getItemVector(itemIndex);
     if (!vector) {
       return null;
     }
-    return new DuckDBListValue(this.listType, vector);
+    return new DuckDBListValue(vector.toArray());
   }
-  public override slice(offset: number, length: number): DuckDBListVector<TValue> {
+  public override slice(offset: number, length: number): DuckDBListVector {
     const entryDataStartIndex = offset * 2;
-    return new DuckDBListVector<TValue>(
+    return new DuckDBListVector(
       this.listType,
       this.entryData.slice(entryDataStartIndex, entryDataStartIndex + length * 2),
       this.validity.slice(offset),
@@ -1401,12 +1408,12 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
     if (!this.validity.itemValid(itemIndex)) {
       return null;
     }
-    const values: DuckDBValue[] = [];
+    const entries: { [name: string]: DuckDBValue } = {};
     const entryCount = this.structType.entries.length;
     for (let i = 0; i < entryCount; i++) {
-      values.push(this.entryVectors[i].getItem(itemIndex));
+      entries[this.structType.entries[i].name] = this.entryVectors[i].getItem(itemIndex);
     }
-    return new DuckDBStructValue(this.structType, values);
+    return new DuckDBStructValue(entries);
   }
   public getItemValue(itemIndex: number, entryIndex: number): DuckDBValue | null {
     if (!this.validity.itemValid(itemIndex)) {
@@ -1461,7 +1468,7 @@ export class DuckDBMapVector extends DuckDBVector<DuckDBMapValue> {
       const value = itemVector.getItemValue(i, 1);
       entries.push({ key, value });
     }
-    return new DuckDBMapValue(this.mapType, entries);
+    return new DuckDBMapValue(entries);
   }
   public override slice(offset: number, length: number): DuckDBMapVector {
     return new DuckDBMapVector(
@@ -1471,15 +1478,15 @@ export class DuckDBMapVector extends DuckDBVector<DuckDBMapValue> {
   }
 }
 
-export class DuckDBArrayVector<TValue extends DuckDBValue = DuckDBValue> extends DuckDBVector<DuckDBArrayValue<TValue>> {
+export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
   private readonly arrayType: DuckDBArrayType;
   private readonly validity: DuckDBValidity;
-  private readonly childData: DuckDBVector<TValue>;
+  private readonly childData: DuckDBVector;
   private readonly _itemCount: number;
   constructor(
     arrayType: DuckDBArrayType,
     validity: DuckDBValidity,
-    childData: DuckDBVector<TValue>,
+    childData: DuckDBVector,
     itemCount: number,
   ) {
     super();
@@ -1508,14 +1515,14 @@ export class DuckDBArrayVector<TValue extends DuckDBValue = DuckDBValue> extends
   public override get itemCount(): number {
     return this._itemCount;
   }
-  public override getItem(itemIndex: number): DuckDBArrayValue<TValue> | null {
+  public override getItem(itemIndex: number): DuckDBArrayValue | null {
     if (!this.validity.itemValid(itemIndex)) {
       return null;
     }
-    return new DuckDBArrayValue(this.arrayType, this.childData.slice(itemIndex * this.arrayType.length, this.arrayType.length));
+    return new DuckDBArrayValue(this.childData.slice(itemIndex * this.arrayType.length, this.arrayType.length).toArray());
   }
-  public override slice(offset: number, length: number): DuckDBArrayVector<TValue> {
-    return new DuckDBArrayVector<TValue>(
+  public override slice(offset: number, length: number): DuckDBArrayVector {
+    return new DuckDBArrayVector(
       this.arrayType,
       this.validity.slice(offset),
       this.childData.slice(offset * this.arrayType.length, length * this.arrayType.length),

@@ -23,6 +23,8 @@ export class DuckDBTinyIntType extends BaseDuckDBType<DuckDBTypeId.TINYINT> {
     super(DuckDBTypeId.TINYINT);
   }
   public static readonly instance = new DuckDBTinyIntType();
+  public static readonly Max = 2 ** 7 - 1;
+  public static readonly Min = -(2 ** 7);
 }
 
 export class DuckDBSmallIntType extends BaseDuckDBType<DuckDBTypeId.SMALLINT> {
@@ -30,6 +32,8 @@ export class DuckDBSmallIntType extends BaseDuckDBType<DuckDBTypeId.SMALLINT> {
     super(DuckDBTypeId.SMALLINT);
   }
   public static readonly instance = new DuckDBSmallIntType();
+  public static readonly Max = 2 ** 15 - 1;
+  public static readonly Min = -(2 ** 15);
 }
 
 export class DuckDBIntegerType extends BaseDuckDBType<DuckDBTypeId.INTEGER> {
@@ -37,6 +41,8 @@ export class DuckDBIntegerType extends BaseDuckDBType<DuckDBTypeId.INTEGER> {
     super(DuckDBTypeId.INTEGER);
   }
   public static readonly instance = new DuckDBIntegerType();
+  public static readonly Max = 2 ** 31 - 1;
+  public static readonly Min = -(2 ** 31);
 }
 
 export class DuckDBBigIntType extends BaseDuckDBType<DuckDBTypeId.BIGINT> {
@@ -44,6 +50,8 @@ export class DuckDBBigIntType extends BaseDuckDBType<DuckDBTypeId.BIGINT> {
     super(DuckDBTypeId.BIGINT);
   }
   public static readonly instance = new DuckDBBigIntType();
+  public static readonly Max = 2n ** 63n - 1n;
+  public static readonly Min = -(2n ** 63n);
 }
 
 export class DuckDBUTinyIntType extends BaseDuckDBType<DuckDBTypeId.UTINYINT> {
@@ -51,6 +59,8 @@ export class DuckDBUTinyIntType extends BaseDuckDBType<DuckDBTypeId.UTINYINT> {
     super(DuckDBTypeId.UTINYINT);
   }
   public static readonly instance = new DuckDBUTinyIntType();
+  public static readonly Max = 2 ** 8 - 1;
+  public static readonly Min = 0;
 }
 
 export class DuckDBUSmallIntType extends BaseDuckDBType<DuckDBTypeId.USMALLINT> {
@@ -58,6 +68,8 @@ export class DuckDBUSmallIntType extends BaseDuckDBType<DuckDBTypeId.USMALLINT> 
     super(DuckDBTypeId.USMALLINT);
   }
   public static readonly instance = new DuckDBUSmallIntType();
+  public static readonly Max = 2 ** 16 - 1;
+  public static readonly Min = 0;
 }
 
 export class DuckDBUIntegerType extends BaseDuckDBType<DuckDBTypeId.UINTEGER> {
@@ -65,6 +77,8 @@ export class DuckDBUIntegerType extends BaseDuckDBType<DuckDBTypeId.UINTEGER> {
     super(DuckDBTypeId.UINTEGER);
   }
   public static readonly instance = new DuckDBUIntegerType();
+  public static readonly Max = 2 ** 32 - 1;
+  public static readonly Min = 0;
 }
 
 export class DuckDBUBigIntType extends BaseDuckDBType<DuckDBTypeId.UBIGINT> {
@@ -72,6 +86,8 @@ export class DuckDBUBigIntType extends BaseDuckDBType<DuckDBTypeId.UBIGINT> {
     super(DuckDBTypeId.UBIGINT);
   }
   public static readonly instance = new DuckDBUBigIntType();
+  public static readonly Max = 2n ** 64n - 1n;
+  public static readonly Min = 0n;
 }
 
 export class DuckDBFloatType extends BaseDuckDBType<DuckDBTypeId.FLOAT> {
@@ -79,6 +95,8 @@ export class DuckDBFloatType extends BaseDuckDBType<DuckDBTypeId.FLOAT> {
     super(DuckDBTypeId.FLOAT);
   }
   public static readonly instance = new DuckDBFloatType();
+  public static readonly Min = Math.fround(-3.4028235e+38);
+  public static readonly Max = Math.fround( 3.4028235e+38);
 }
 
 export class DuckDBDoubleType extends BaseDuckDBType<DuckDBTypeId.DOUBLE> {
@@ -86,6 +104,8 @@ export class DuckDBDoubleType extends BaseDuckDBType<DuckDBTypeId.DOUBLE> {
     super(DuckDBTypeId.DOUBLE);
   }
   public static readonly instance = new DuckDBDoubleType();
+  public static readonly Min = -Number.MAX_VALUE;
+  public static readonly Max = Number.MAX_VALUE;
 }
 
 export class DuckDBTimestampType extends BaseDuckDBType<DuckDBTypeId.TIMESTAMP> {
@@ -124,6 +144,8 @@ export class DuckDBHugeIntType extends BaseDuckDBType<DuckDBTypeId.HUGEINT> {
     super(DuckDBTypeId.HUGEINT);
   }
   public static readonly instance = new DuckDBHugeIntType();
+  public static readonly Max = 2n ** 127n - 1n;
+  public static readonly Min = -(2n ** 127n);
 }
 
 export class DuckDBUHugeIntType extends BaseDuckDBType<DuckDBTypeId.UHUGEINT> {
@@ -131,6 +153,8 @@ export class DuckDBUHugeIntType extends BaseDuckDBType<DuckDBTypeId.UHUGEINT> {
     super(DuckDBTypeId.UHUGEINT);
   }
   public static readonly instance = new DuckDBUHugeIntType();
+  public static readonly Max = 2n ** 128n - 1n;
+  public static readonly Min = 0n;
 }
 
 export class DuckDBVarCharType extends BaseDuckDBType<DuckDBTypeId.VARCHAR> {
@@ -314,6 +338,8 @@ export class DuckDBVarIntType extends BaseDuckDBType<DuckDBTypeId.VARINT> {
     super(DuckDBTypeId.VARINT);
   }
   public static readonly instance = new DuckDBVarIntType();
+  public static readonly Max: bigint =  179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368n;
+  public static readonly Min: bigint = -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368n;
 }
 
 export class DuckDBSQLNullType extends BaseDuckDBType<DuckDBTypeId.SQLNULL> {
