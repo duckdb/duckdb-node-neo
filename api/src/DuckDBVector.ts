@@ -18,7 +18,6 @@ import {
   DuckDBListType,
   DuckDBMapType,
   DuckDBSmallIntType,
-  DuckDBStructEntryType,
   DuckDBStructType,
   DuckDBTimeTZType,
   DuckDBTimeType,
@@ -37,7 +36,7 @@ import {
   DuckDBUUIDType,
   DuckDBUnionType,
   DuckDBVarCharType,
-  DuckDBVarIntType,
+  DuckDBVarIntType
 } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import {
@@ -1388,12 +1387,11 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
     this.validity = validity;
   }
   static fromRawVector(structType: DuckDBStructType, vector: duckdb.Vector, itemCount: number): DuckDBStructVector {
-    const entryCount = structType.entries.length;
+    const entryCount = structType.entryCount;
     const entryVectors: DuckDBVector[] = [];
     for (let i = 0; i < entryCount; i++) {
-      const entry = structType.entries[i];
       const child_vector = duckdb.struct_vector_get_child(vector, i);
-      entryVectors.push(DuckDBVector.create(child_vector, itemCount, entry.valueType));
+      entryVectors.push(DuckDBVector.create(child_vector, itemCount, structType.entryTypes[i]));
     }
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBStructVector(structType, itemCount, entryVectors, validity);
@@ -1409,9 +1407,9 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
       return null;
     }
     const entries: { [name: string]: DuckDBValue } = {};
-    const entryCount = this.structType.entries.length;
+    const entryCount = this.structType.entryCount;
     for (let i = 0; i < entryCount; i++) {
-      entries[this.structType.entries[i].name] = this.entryVectors[i].getItem(itemIndex);
+      entries[this.structType.entryNames[i]] = this.entryVectors[i].getItem(itemIndex);
     }
     return new DuckDBStructValue(entries);
   }
@@ -1441,10 +1439,10 @@ export class DuckDBMapVector extends DuckDBVector<DuckDBMapValue> {
     this.listVector = listVector;
   }
   static fromRawVector(mapType: DuckDBMapType, vector: duckdb.Vector, itemCount: number): DuckDBMapVector {
-    const listVectorType = new DuckDBListType(new DuckDBStructType([
-      { name: 'key', valueType: mapType.keyType },
-      { name: 'value', valueType: mapType.valueType }
-    ]));
+    const listVectorType = new DuckDBListType(new DuckDBStructType(
+      ['key', 'value'],
+      [mapType.keyType, mapType.valueType],
+    ));
     return new DuckDBMapVector(mapType, DuckDBListVector.fromRawVector(listVectorType, vector, itemCount));
   }
   public override get type(): DuckDBMapType {
@@ -1575,11 +1573,14 @@ export class DuckDBUnionVector extends DuckDBVector<DuckDBUnionValue> {
     this.structVector = structVector;
   }
   static fromRawVector(unionType: DuckDBUnionType, vector: duckdb.Vector, itemCount: number): DuckDBUnionVector {
-    const structEntryTypes: DuckDBStructEntryType[] = [{ name: 'tag', valueType: DuckDBUTinyIntType.instance }];
-    for (const alternative of unionType.alternatives) {
-      structEntryTypes.push({ name: alternative.tag, valueType: alternative.valueType });
+    const entryNames: string[] = ['tag'];
+    const entryTypes: DuckDBType[] = [DuckDBUTinyIntType.instance];
+    const memberCount = unionType.memberCount;
+    for (let i = 0; i < memberCount; i++) {
+      entryNames.push(unionType.memberTags[i]);
+      entryTypes.push(unionType.memberTypes[i]);
     }
-    const structVectorType = new DuckDBStructType(structEntryTypes);
+    const structVectorType = new DuckDBStructType(entryNames, entryTypes);
     return new DuckDBUnionVector(unionType, DuckDBStructVector.fromRawVector(structVectorType, vector, itemCount));
   }
   public override get type(): DuckDBUnionType {
@@ -1593,9 +1594,9 @@ export class DuckDBUnionVector extends DuckDBVector<DuckDBUnionValue> {
     if (tagValue == null) {
       return null;
     }
-    const alternativeIndex = Number(tagValue);
-    const tag = this.unionType.alternatives[alternativeIndex].tag;
-    const entryIndex = alternativeIndex + 1;
+    const memberIndex = Number(tagValue);
+    const tag = this.unionType.memberTags[memberIndex];
+    const entryIndex = memberIndex + 1;
     const value = this.structVector.getItemValue(itemIndex, entryIndex);
     return new DuckDBUnionValue(tag, value);
   }

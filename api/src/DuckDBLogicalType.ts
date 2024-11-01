@@ -92,13 +92,19 @@ export class DuckDBLogicalType {
     );
   }
   public static createStruct(
-    entries: readonly DuckDBLogicalStructEntry[]
+    entryNames: readonly string[],
+    entryLogicalTypes: readonly DuckDBLogicalType[],    
   ): DuckDBStructLogicalType {
+    const length = entryNames.length;
+    if (length !== entryLogicalTypes.length) {
+      throw new Error(`Could not create struct: \
+        entryNames length (${entryNames.length}) does not match entryLogicalTypes length (${entryLogicalTypes.length})`);
+    }
     const member_types: duckdb.LogicalType[] = [];
     const member_names: string[] = [];
-    for (const entry of entries) {
-      member_types.push(entry.valueType.logical_type);
-      member_names.push(entry.name);
+    for (let i = 0; i < length; i++) {
+      member_types.push(entryLogicalTypes[i].logical_type);
+      member_names.push(entryNames[i]);
     }
     return new DuckDBStructLogicalType(
       duckdb.create_struct_type(member_types, member_names)
@@ -121,13 +127,19 @@ export class DuckDBLogicalType {
     );
   }
   public static createUnion(
-    alternatives: readonly DuckDBLogicalUnionAlternative[]
+    memberTags: readonly string[],
+    memberLogicalTypes: readonly DuckDBLogicalType[], 
   ): DuckDBUnionLogicalType {
+    const length = memberTags.length;
+    if (length !== memberLogicalTypes.length) {
+      throw new Error(`Could not create union: \
+        memberTags length (${memberTags.length}) does not match memberLogicalTypes length (${memberLogicalTypes.length})`);
+    }
     const member_types: duckdb.LogicalType[] = [];
     const member_names: string[] = [];
-    for (const alternative of alternatives) {
-      member_types.push(alternative.valueType.logical_type);
-      member_names.push(alternative.tag);
+    for (let i = 0; i < length; i++) {
+      member_types.push(memberLogicalTypes[i].logical_type);
+      member_names.push(memberTags[i]);
     }
     return new DuckDBUnionLogicalType(
       duckdb.create_union_type(member_types, member_names)
@@ -278,11 +290,6 @@ export class DuckDBListLogicalType extends DuckDBLogicalType {
   }
 }
 
-export interface DuckDBLogicalStructEntry {
-  readonly name: string;
-  readonly valueType: DuckDBLogicalType;
-}
-
 export class DuckDBStructLogicalType extends DuckDBLogicalType {
   public get entryCount(): number {
     return duckdb.struct_type_child_count(this.logical_type);
@@ -290,28 +297,40 @@ export class DuckDBStructLogicalType extends DuckDBLogicalType {
   public entryName(index: number): string {
     return duckdb.struct_type_child_name(this.logical_type, index);
   }
-  public entryValueType(index: number): DuckDBLogicalType {
+  public entryLogicalType(index: number): DuckDBLogicalType {
     return DuckDBLogicalType.create(
       duckdb.struct_type_child_type(this.logical_type, index)
     );
   }
-  public entries(): readonly DuckDBLogicalStructEntry[] {
-    const entries: DuckDBLogicalStructEntry[] = [];
+  public entryType(index: number): DuckDBType {
+    return this.entryLogicalType(index).asType();
+  }
+  public entryNames(): string[] {
+    const names: string[] = [];
     const count = this.entryCount;
     for (let i = 0; i < count; i++) {
-      const name = this.entryName(i);
-      const valueType = this.entryValueType(i);
-      entries.push({ name, valueType });
+      names.push(this.entryName(i));
     }
-    return entries;
+    return names;
+  }
+  public entryLogicalTypes(): DuckDBLogicalType[] {
+    const valueTypes: DuckDBLogicalType[] = [];
+    const count = this.entryCount;
+    for (let i = 0; i < count; i++) {
+      valueTypes.push(this.entryLogicalType(i));
+    }
+    return valueTypes;
+  }
+  public entryTypes(): DuckDBType[] {
+    const valueTypes: DuckDBType[] = [];
+    const count = this.entryCount;
+    for (let i = 0; i < count; i++) {
+      valueTypes.push(this.entryType(i));
+    }
+    return valueTypes;
   }
   public override asType(): DuckDBStructType {
-    return new DuckDBStructType(
-      this.entries().map(({ name, valueType }) => ({
-        name,
-        valueType: valueType.asType(),
-      }))
-    );
+    return new DuckDBStructType(this.entryNames(), this.entryTypes());
   }
 }
 
@@ -345,39 +364,46 @@ export class DuckDBArrayLogicalType extends DuckDBLogicalType {
   }
 }
 
-export interface DuckDBLogicalUnionAlternative {
-  readonly tag: string;
-  readonly valueType: DuckDBLogicalType;
-}
-
 export class DuckDBUnionLogicalType extends DuckDBLogicalType {
-  public get alternativeCount(): number {
+  public get memberCount(): number {
     return duckdb.union_type_member_count(this.logical_type);
   }
-  public alternativeTag(index: number): string {
+  public memberTag(index: number): string {
     return duckdb.union_type_member_name(this.logical_type, index);
   }
-  public alternativeValueType(index: number): DuckDBLogicalType {
+  public memberLogicalType(index: number): DuckDBLogicalType {
     return DuckDBLogicalType.create(
       duckdb.union_type_member_type(this.logical_type, index)
     );
   }
-  public alternatives(): readonly DuckDBLogicalUnionAlternative[] {
-    const alternatives: DuckDBLogicalUnionAlternative[] = [];
-    const count = this.alternativeCount;
+  public memberType(index: number): DuckDBType {
+    return this.memberLogicalType(index).asType();
+  }
+  public memberTags(): string[] {
+    const tags: string[] = [];
+    const count = this.memberCount;
     for (let i = 0; i < count; i++) {
-      const tag = this.alternativeTag(i);
-      const valueType = this.alternativeValueType(i);
-      alternatives.push({ tag, valueType });
+      tags.push(this.memberTag(i));
     }
-    return alternatives;
+    return tags;
+  }
+  public memberLogicalTypes(): DuckDBLogicalType[] {
+    const valueTypes: DuckDBLogicalType[] = [];
+    const count = this.memberCount;
+    for (let i = 0; i < count; i++) {
+      valueTypes.push(this.memberLogicalType(i));
+    }
+    return valueTypes;
+  }
+  public memberTypes(): DuckDBType[] {
+    const valueTypes: DuckDBType[] = [];
+    const count = this.memberCount;
+    for (let i = 0; i < count; i++) {
+      valueTypes.push(this.memberType(i));
+    }
+    return valueTypes;
   }
   public override asType(): DuckDBUnionType {
-    return new DuckDBUnionType(
-      this.alternatives().map(({ tag, valueType }) => ({
-        tag,
-        valueType: valueType.asType(),
-      }))
-    );
+    return new DuckDBUnionType(this.memberTags(), this.memberTypes());
   }
 }

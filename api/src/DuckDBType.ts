@@ -236,15 +236,26 @@ export interface DuckDBStructEntryType {
 }
 
 export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
-  public readonly entries: readonly DuckDBStructEntryType[];
-  public constructor(entries: readonly DuckDBStructEntryType[]) {
+  public readonly entryNames: readonly string[];
+  public readonly entryTypes: readonly DuckDBType[];
+  public constructor(entryNames: readonly string[], entryTypes: readonly DuckDBType[]) {
     super(DuckDBTypeId.STRUCT);
-    this.entries = entries;
+    if (entryNames.length !== entryTypes.length) {
+      throw new Error(`Could not create DuckDBStructType: \
+        entryNames length (${entryNames.length}) does not match entryTypes length (${entryTypes.length})`);
+    }
+    this.entryNames = entryNames;
+    this.entryTypes = entryTypes;
+  }
+  public get entryCount() {
+    return this.entryNames.length;
   }
   public toString(): string {
-    return `STRUCT(${this.entries.map(
-      entry => `${quotedIdentifier(entry.name)} ${entry.valueType}`
-    ).join(', ')})`;
+    const parts: string[] = [];
+    for (let i = 0; i < this.entryNames.length; i++) {
+      parts.push(`${quotedIdentifier(this.entryNames[i])} ${this.entryTypes[i]}`);
+    }
+    return `STRUCT(${parts.join(', ')})`;
   }
 }
 
@@ -281,21 +292,27 @@ export class DuckDBUUIDType extends BaseDuckDBType<DuckDBTypeId.UUID> {
   public static readonly instance = new DuckDBUUIDType();
 }
 
-export interface DuckDBUnionAlternativeType {
-  readonly tag: string;
-  readonly valueType: DuckDBType;
-}
-
 export class DuckDBUnionType extends BaseDuckDBType<DuckDBTypeId.UNION> {
-  public readonly alternatives: readonly DuckDBUnionAlternativeType[];
-  public constructor(alternatives: readonly DuckDBUnionAlternativeType[]) {
+  public readonly memberTags: readonly string[];
+  public readonly memberTypes: readonly DuckDBType[];
+  public constructor(memberTags: readonly string[], memberTypes: readonly DuckDBType[]) {
     super(DuckDBTypeId.UNION);
-    this.alternatives = alternatives;
+    if (memberTags.length !== memberTypes.length) {
+      throw new Error(`Could not create DuckDBUnionType: \
+        tags length (${memberTags.length}) does not match valueTypes length (${memberTypes.length})`);
+    }
+    this.memberTags = memberTags;
+    this.memberTypes = memberTypes;
+  }
+  public get memberCount() {
+    return this.memberTags.length;
   }
   public toString(): string {
-    return `UNION(${this.alternatives.map(
-      entry => `${quotedIdentifier(entry.tag)} ${entry.valueType}`
-    ).join(', ')})`;
+    const parts: string[] = [];
+    for (let i = 0; i < this.memberTags.length; i++) {
+      parts.push(`${quotedIdentifier(this.memberTags[i])} ${this.memberTypes[i]}`);
+    }
+    return `UNION(${parts.join(', ')})`;
   }
 }
 

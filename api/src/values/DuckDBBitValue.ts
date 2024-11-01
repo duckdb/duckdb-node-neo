@@ -1,15 +1,15 @@
 export class DuckDBBitValue {
   public readonly data: Uint8Array;
 
-  constructor(data: Uint8Array) {
+  public constructor(data: Uint8Array) {
     this.data = data;
   }
 
-  private padding(): number {
+  public padding(): number {
     return this.data[0];
   }
 
-  public length(): number {
+  public get length(): number {
     return (this.data.length - 1) * 8 - this.padding();
   }
 
@@ -20,25 +20,52 @@ export class DuckDBBitValue {
     return (byte & 1) !== 0;
   }
 
+  public toBools(): boolean[] {
+    const bools: boolean[] = [];
+    const length = this.length;
+    for (let i = 0; i < length; i++) {
+      bools.push(this.getBool(i));
+    }
+    return bools;
+  }
+
   public getBit(index: number): 0 | 1 {
     return this.getBool(index) ? 1 : 0;
   }
 
+  public toBits(): number[] {
+    const bits: number[] = [];
+    const length = this.length;
+    for (let i = 0; i < length; i++) {
+      bits.push(this.getBit(i));
+    }
+    return bits;
+  }
+
   public toString(): string {
-    const chars = Array.from<string>({ length: this.length() });
-    for (let i = 0; i < this.length(); i++) {
+    const length = this.length;
+    const chars = Array.from<string>({ length });
+    for (let i = 0; i < length; i++) {
       chars[i] = this.getBool(i) ? '1' : '0';
     }
     return chars.join('');
   }
 
-  public static fromString(str: string): DuckDBBitValue {
-    if (!/^[01]*$/.test(str)) {
-      throw new Error(`input string must only contain '0's and '1's`);
-    }
+  public static fromString(str: string, on: string = '1'): DuckDBBitValue {
+    return DuckDBBitValue.fromLengthAndPredicate(str.length, i => str[i] === on);
+  }
 
-    const byteCount = Math.ceil(str.length / 8) + 1;
-    const paddingBitCount = (8 - (str.length % 8)) % 8;
+  public static fromBits(bits: readonly number[], on: number = 1): DuckDBBitValue {
+    return DuckDBBitValue.fromLengthAndPredicate(bits.length, i => bits[i] === on);
+  }
+
+  public static fromBools(bools: readonly boolean[]): DuckDBBitValue {
+    return DuckDBBitValue.fromLengthAndPredicate(bools.length, i => bools[i]);
+  }
+
+  public static fromLengthAndPredicate(length: number, predicate: (index: number) => boolean): DuckDBBitValue {
+    const byteCount = Math.ceil(length / 8) + 1;
+    const paddingBitCount = (8 - (length % 8)) % 8;
 
     const data = new Uint8Array(byteCount);
     let byteIndex = 0;
@@ -47,28 +74,28 @@ export class DuckDBBitValue {
     data[byteIndex++] = paddingBitCount;
 
     let byte = 0;
-    let bitIndex = 0;
+    let byteBit = 0;
 
     // padding consists of 1s in MSB of second byte
-    while (bitIndex < paddingBitCount) {
+    while (byteBit < paddingBitCount) {
       byte <<= 1;
       byte |= 1;
-      bitIndex++;
+      byteBit++;
     }
 
-    let charIndex = 0;
+    let bitIndex = 0;
 
     while (byteIndex < byteCount) {
-      while (bitIndex < 8) {
+      while (byteBit < 8) {
         byte <<= 1;
-        if (str[charIndex++] === '1') {
+        if (predicate(bitIndex++)) {
           byte |= 1;
         }
-        bitIndex++;
+        byteBit++;
       }
       data[byteIndex++] = byte;
       byte = 0;
-      bitIndex = 0;
+      byteBit = 0;
     }
 
     return new DuckDBBitValue(data);

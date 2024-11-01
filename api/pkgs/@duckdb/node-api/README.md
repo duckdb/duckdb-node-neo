@@ -16,7 +16,9 @@ This is a high-level API meant for applications. It depends on low-level binding
 ### Roadmap
 
 Some features are not yet complete:
-- Friendlier APIs for consuming advanced data types and values, especially converting them to strings.
+- Friendlier APIs for convering results to common JS data structures.
+- Friendlier APIs for converting values of specialized and complex DuckDB types to common JS types.
+- Automatic memory management (i.e. avoiding the need to call `dispose` manually in most cases).
 - Appending and binding advanced data types. (Additional DuckDB C API support needed.)
 - Writing to data chunk vectors. (Directly writing to binary buffers is challenging to support using the Node Addon API.)
 - User-defined types & functions. (Support for this was added to the DuckDB C API in v1.1.0.)
@@ -163,38 +165,44 @@ chunk.dispose();
 ```ts
 import { DuckDBTypeId } from '@duckdb/node-api';
 
-function typeToString(dataType) {
-  switch (dataType.typeId) {
-    case DuckDBTypeId.ARRAY:
-      return `${typeToString(dataType.valueType)}[${dataType.length}]`;
-    case DuckDBTypeId.DECIMAL:
-      return `DECIMAL(${dataType.width},${dataType.scale})`;
-    case DuckDBTypeId.ENUM:
-      return `ENUM(${dataType.values.map(
-        value => `'${value.replace(`'`, `''`)}'`
-      ).join(', ')})`;
-    case DuckDBTypeId.LIST:
-      return `${typeToString(dataType.valueType)}[]`;
-    case DuckDBTypeId.MAP:
-      return `MAP(${typeToString(dataType.keyType)}, ${typeToString(dataType.valueType)})`;
-    case DuckDBTypeId.STRUCT:
-      return `STRUCT(${dataType.entries.map(
-        entry => `"${entry.name.replace(`"`, `""`)}" ${typeToString(entry.valueType)}`
-      ).join(', ')})`;
-    case DuckDBTypeId.UNION:
-      return `UNION(${dataType.alternatives.map(
-        alt => `"${alt.tag.replace(`"`, `""`)}" ${typeToString(alt.valueType)}`
-      ).join(', ')})`;
-    default:
-      return DuckDBTypeId[dataType.typeId];
-  }
+if (columnType.typeId === DuckDBTypeId.ARRAY) {
+  const arrayValueType = columnType.valueType;
+  const arrayLength = columnType.length;
+}
+
+if (columnType.typeId === DuckDBTypeId.DECIMAL) {
+  const decimalWidth = columnType.width;
+  const decimalScale = columnType.scale;
+}
+
+if (columnType.typeId === DuckDBTypeId.ENUM) {
+  const enumValues = columnType.values;
+}
+
+if (columnType.typeId === DuckDBTypeId.LIST) {
+  const listValueType = columnType.valueType;
+}
+
+if (columnType.typeId === DuckDBTypeId.MAP) {
+  const mapKeyType = columnType.keyType;
+  const mapValueType = columnType.valueType;
+}
+
+if (columnType.typeId === DuckDBTypeId.STRUCT) {
+  const structEntryNames = columnType.names;
+  const structEntryTypes = columnType.valueTypes;
+}
+
+if (columnType.typeId === DuckDBTypeId.UNION) {
+  const unionMemberTags = columnType.memberTags;
+  const unionMemberTypes = columnType.memberTypes;
 }
 ```
 
-While the example above demonstrates how to access the properties of data type objects, there is a much simpler way to convert them to strings:
+Every type implements toString, matching DuckDB's type-to-string conversion.
 
 ```ts
-const dataTypeString = dataType.toString();
+const typeString = columnType.toString();
 ```
 
 ### Inspect Data Values
@@ -202,50 +210,104 @@ const dataTypeString = dataType.toString();
 ```ts
 import { DuckDBTypeId } from '@duckdb/node-api';
 
-function valueToString(value, dataType) {
-  switch (dataType.typeId) {
-    case DuckDBTypeId.ARRAY:
-      return value
-        ? `[${Array.from({ length: dataType.length }).map(
-            (_, i) => valueToString(value.getItem(i), dataType.valueType)
-          ).join(', ')}]`
-        : 'null';
-    case DuckDBTypeId.DECIMAL:
-      return JSON.stringify(value, replacer);
-    case DuckDBTypeId.INTERVAL:
-      return JSON.stringify(value, replacer);
-    case DuckDBTypeId.LIST:
-      return value
-        ? `[${Array.from({ length: value.itemCount }).map(
-            (_, i) => valueToString(value.getItem(i), dataType.valueType)
-          ).join(', ')}]`
-        : 'null';
-    case DuckDBTypeId.MAP:
-      return value
-        ? `{ ${value.map(
-            (entry) => `${valueToString(entry.key, dataType.keyType)}=${valueToString(entry.value, dataType.valueType)}`
-          ).join(', ')} }`
-        : 'null';
-    case DuckDBTypeId.STRUCT:
-      return value
-        ? `{ ${value.map(
-            (entry, i) => `'${entry.name.replace(`'`, `''`)}': ${valueToString(entry.value, dataType.entries[i].valueType)}`
-          ).join(', ')} }`
-        : 'null';
-    case DuckDBTypeId.TIME_TZ:
-      return JSON.stringify(value, replacer);
-    case DuckDBTypeId.UNION:
-      return value
-        ? valueToString(value.value, dataType.alternatives.find((alt) => alt.tag === value.tag).valueType)
-        : 'null';
-    default:
-      return String(value);
-  }
+if (columnType.typeId === DuckDBTypeId.ARRAY) {
+  const arrayItems = columnValue.items; // array of values
+  const arrayString = columnValue.toString();
 }
 
-function replacer(key, value) {
-  return typeof value === "bigint" ? { $bigint: value.toString() } : value;
+if (columnType.typeId === DuckDBTypeId.BIT) {
+  const bools = columnValue.toBools(); // array of booleans
+  const bits = columnValue.toBits(); // arrary of 0s and 1s
+  const bitString = columnValue.toString(); // string of '0's and '1's
 }
+
+if (columnType.typeId === DuckDBTypeId.BLOB) {
+  const blobBytes = columnValue.bytes; // Uint8Array
+  const blobString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.DATE) {
+  const dateDays = columnValue.days;
+  const dateString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.DECIMAL) {
+  const decimalWidth = columnValue.width;
+  const decimalScale = columnValue.scale;
+  const decimalValue = columnValue.value; // bigint (raw fixed-point integer; `scale` indicates number of fractional digits)
+  const decimalString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.INTERVAL) {
+  const intervalMonths = columnValue.months;
+  const intervalDays = columnValue.days;
+  const intervalMicros = columnValue.micros; // bigint
+  const intervalString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.LIST) {
+  const listItems = columnValue.items; // array of values
+  const listString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.MAP) {
+  const mapEntries = columnValue.entries; // array of { key, value }
+  const mapString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.STRUCT) {
+  const structEntries = columnValue.entries; // { name1: value1, name2: value2, ... }
+  const structString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.TIMESTAMP_MS) {
+  const timestampMillis = columnValue.milliseconds; // bigint
+  const timestampMillisString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.TIMESTAMP_NS) {
+  const timestampNanos = columnValue.nanoseconds; // bigint
+  const timestampNanosString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.TIMESTAMP_S) {
+  const timestampSecs = columnValue.seconds; // bigint
+  const timestampSecsString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.TIMESTAMP_TZ) {
+  const timestampTZMicros = columnValue.micros; // bigint
+  const timestampTZString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.TIMESTAMP) {
+  const timestampMicros = columnValue.micros; // bigint
+  const timestampString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.TIME_TZ) {
+  const timeTZMicros = columnValue.microseconds;
+  const timeTZOffset = columnValue.offset;
+  const timeTZString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.TIME) {
+  const timeMicros = columnValue.microseconds; // bigint
+  const timeString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.UNION) {
+  const unionTag = columnValue.tag;
+  const unionValue = columnValue.value;
+  const unionValueString = columnValue.toString();
+}
+
+if (columnType.typeId === DuckDBTypeId.UUID) {
+  const uuidHugeint = columnValue.hugeint; // bigint
+  const uuidString = columnValue.toString();
+}
+
+// other values are represented as null, boolean, number, bigint, or string
 ```
 
 ### Append To Table
