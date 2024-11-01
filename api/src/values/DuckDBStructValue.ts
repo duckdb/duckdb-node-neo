@@ -1,14 +1,10 @@
 import { displayStringForDuckDBValue } from '../conversion/displayStringForDuckDBValue';
 import { DuckDBValue } from './DuckDBValue';
 
-export interface DuckDBStructEntries {
-  readonly [name: string]: DuckDBValue;
-}
-
 export class DuckDBStructValue {
-  public readonly entries: DuckDBStructEntries;
+  public readonly entries: Readonly<Record<string, DuckDBValue>>;
 
-  public constructor(entries: DuckDBStructEntries) {
+  public constructor(entries: Readonly<Record<string, DuckDBValue>>) {
     this.entries = entries;
   }
 
@@ -21,6 +17,6 @@ export class DuckDBStructValue {
   }
 }
 
-export function structValue(entries: DuckDBStructEntries): DuckDBStructValue {
+export function structValue(entries: Readonly<Record<string, DuckDBValue>>): DuckDBStructValue {
   return new DuckDBStructValue(entries);
 }

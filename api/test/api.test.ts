@@ -314,20 +314,20 @@ describe('api', () => {
       `ENUM('fly', 'swim', 'walk')`
     );
     assert.equal((new DuckDBListType(DuckDBIntegerType.instance)).toString(), 'INTEGER[]');
-    assert.equal((new DuckDBStructType([
-      { name: 'id', valueType: DuckDBVarCharType.instance },
-      { name: 'ts', valueType: DuckDBTimestampType.instance },
-    ])).toString(), 'STRUCT("id" VARCHAR, "ts" TIMESTAMP)');
+    assert.equal((new DuckDBStructType(
+      ['id', 'ts'],
+      [DuckDBVarCharType.instance, DuckDBTimestampType.instance],
+    )).toString(), 'STRUCT("id" VARCHAR, "ts" TIMESTAMP)');
     assert.equal(
       (new DuckDBMapType(DuckDBIntegerType.instance, DuckDBVarCharType.instance)).toString(),
       'MAP(INTEGER, VARCHAR)'
     );
     assert.equal((new DuckDBArrayType(DuckDBIntegerType.instance, 3)).toString(), 'INTEGER[3]');
     assert.equal(DuckDBUUIDType.instance.toString(), 'UUID');
-    assert.equal((new DuckDBUnionType([
-      { tag: 'str', valueType: DuckDBVarCharType.instance },
-      { tag: 'num', valueType: DuckDBIntegerType.instance },
-    ])).toString(), 'UNION("str" VARCHAR, "num" INTEGER)');
+    assert.equal((new DuckDBUnionType(
+      ['str', 'num'],
+      [DuckDBVarCharType.instance, DuckDBIntegerType.instance],
+    )).toString(), 'UNION("str" VARCHAR, "num" INTEGER)');
     assert.equal(DuckDBBitType.instance.toString(), 'BIT');
     assert.equal(DuckDBTimeTZType.instance.toString(), 'TIME WITH TIME ZONE');
     assert.equal(DuckDBTimestampTZType.instance.toString(), 'TIMESTAMP WITH TIME ZONE');
@@ -529,35 +529,35 @@ describe('api', () => {
           { name: 'timestamptz_array', type: new DuckDBListType(DuckDBTimestampTZType.instance) },
           { name: 'varchar_array', type: new DuckDBListType(DuckDBVarCharType.instance) },
           { name: 'nested_int_array', type: new DuckDBListType(new DuckDBListType(DuckDBIntegerType.instance)) },
-          { name: 'struct', type: new DuckDBStructType([
-            { name: 'a', valueType: DuckDBIntegerType.instance },
-            { name: 'b', valueType: DuckDBVarCharType.instance },
-          ]) },
-          { name: 'struct_of_arrays', type: new DuckDBStructType([
-            { name: 'a', valueType: new DuckDBListType(DuckDBIntegerType.instance) },
-            { name: 'b', valueType: new DuckDBListType(DuckDBVarCharType.instance) },
-          ])},
-          { name: 'array_of_structs', type: new DuckDBListType(new DuckDBStructType([
-            { name: 'a', valueType: DuckDBIntegerType.instance },
-            { name: 'b', valueType: DuckDBVarCharType.instance },
-          ]))},
+          { name: 'struct', type: new DuckDBStructType(
+            ['a', 'b'],
+            [DuckDBIntegerType.instance, DuckDBVarCharType.instance],
+          ) },
+          { name: 'struct_of_arrays', type: new DuckDBStructType(
+            ['a', 'b'],
+            [new DuckDBListType(DuckDBIntegerType.instance), new DuckDBListType(DuckDBVarCharType.instance)],
+          ) },
+          { name: 'array_of_structs', type: new DuckDBListType(new DuckDBStructType(
+            ['a', 'b'],
+            [DuckDBIntegerType.instance, DuckDBVarCharType.instance],
+          ))},
           { name: 'map', type: new DuckDBMapType(DuckDBVarCharType.instance, DuckDBVarCharType.instance) },
-          { name: 'union', type: new DuckDBUnionType([
-            { tag: 'name', valueType: DuckDBVarCharType.instance },
-            { tag: 'age', valueType: DuckDBSmallIntType.instance },
-          ])},
+          { name: 'union', type: new DuckDBUnionType(
+            ['name', 'age'],
+            [DuckDBVarCharType.instance, DuckDBSmallIntType.instance],
+          )},
           { name: 'fixed_int_array', type: new DuckDBArrayType(DuckDBIntegerType.instance, 3) },
           { name: 'fixed_varchar_array', type: new DuckDBArrayType(DuckDBVarCharType.instance, 3) },
           { name: 'fixed_nested_int_array', type: new DuckDBArrayType(new DuckDBArrayType(DuckDBIntegerType.instance, 3), 3) },
           { name: 'fixed_nested_varchar_array', type: new DuckDBArrayType(new DuckDBArrayType(DuckDBVarCharType.instance, 3), 3) },
-          { name: 'fixed_struct_array', type: new DuckDBArrayType(new DuckDBStructType([
-            { name: 'a', valueType: DuckDBIntegerType.instance },
-            { name: 'b', valueType: DuckDBVarCharType.instance },
-          ]), 3) },
-          { name: 'struct_of_fixed_array', type: new DuckDBStructType([
-            { name: 'a', valueType: new DuckDBArrayType(DuckDBIntegerType.instance, 3) },
-            { name: 'b', valueType: new DuckDBArrayType(DuckDBVarCharType.instance, 3) },
-          ]) },
+          { name: 'fixed_struct_array', type: new DuckDBArrayType(new DuckDBStructType(
+            ['a', 'b'],
+            [DuckDBIntegerType.instance, DuckDBVarCharType.instance],
+          ), 3) },
+          { name: 'struct_of_fixed_array', type: new DuckDBStructType(
+            ['a', 'b'],
+            [new DuckDBArrayType(DuckDBIntegerType.instance, 3), new DuckDBArrayType(DuckDBVarCharType.instance, 3)],
+          ) },
           { name: 'fixed_array_of_int_list', type: new DuckDBArrayType(new DuckDBListType(DuckDBIntegerType.instance), 3) },
           { name: 'list_of_fixed_int_array', type: new DuckDBListType(new DuckDBArrayType(DuckDBIntegerType.instance, 3)) },
         ]);
