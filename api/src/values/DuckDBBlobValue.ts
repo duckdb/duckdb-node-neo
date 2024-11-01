@@ -1,4 +1,6 @@
-import { DuckDBBlobType } from '../DuckDBType';
+import { stringFromBlob } from '../conversion/stringFromBlob';
+
+const textEncoder = new TextEncoder();
 
 export class DuckDBBlobValue {
   public readonly bytes: Uint8Array;
@@ -7,7 +9,16 @@ export class DuckDBBlobValue {
     this.bytes = bytes;
   }
 
-  public get type(): DuckDBBlobType {
-    return DuckDBBlobType.instance;
+  /** Matches BLOB-to-VARCHAR conversion behavior of DuckDB. */
+  public toString(): string {
+    return stringFromBlob(this.bytes);
   }
+
+  public static fromString(str: string): DuckDBBlobValue {
+    return new DuckDBBlobValue(Buffer.from(textEncoder.encode(str)));
+  }
+}
+
+export function blobValue(bytes: Uint8Array): DuckDBBlobValue {
+  return new DuckDBBlobValue(bytes);
 }

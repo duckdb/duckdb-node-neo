@@ -1,23 +1,25 @@
-import { DuckDBMapType } from '../DuckDBType';
+import { displayStringForDuckDBValue } from '../conversion/displayStringForDuckDBValue';
 import { DuckDBValue } from './DuckDBValue';
 
-export interface DuckDBMapEntry<
-  TKey extends DuckDBValue = DuckDBValue,
-  TValue extends DuckDBValue = DuckDBValue,
-> {
-  key: TKey;
-  value: TValue;
+export interface DuckDBMapEntry {
+  key: DuckDBValue;
+  value: DuckDBValue;
 }
 
-export class DuckDBMapValue<
-  TKey extends DuckDBValue = DuckDBValue,
-  TValue extends DuckDBValue = DuckDBValue,
-> {
-  public readonly type: DuckDBMapType;
-  public readonly entries: DuckDBMapEntry<TKey, TValue>[];
+export class DuckDBMapValue {
+  public readonly entries: DuckDBMapEntry[];
 
-  public constructor(type: DuckDBMapType, entries: DuckDBMapEntry<TKey, TValue>[]) {
-    this.type = type;
+  public constructor(entries: DuckDBMapEntry[]) {
     this.entries = entries;
   }
+
+  public toString(): string {
+    return `{${this.entries.map(({ key, value }) =>
+      `${displayStringForDuckDBValue(key)}: ${displayStringForDuckDBValue(value)}`
+    ).join(', ')}}`;
+  }
+}
+
+export function mapValue(entries: DuckDBMapEntry[]): DuckDBMapValue {
+  return new DuckDBMapValue(entries);
 }

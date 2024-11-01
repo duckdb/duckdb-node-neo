@@ -1,12 +1,26 @@
-import { DuckDBStructType } from '../DuckDBType';
+import { displayStringForDuckDBValue } from '../conversion/displayStringForDuckDBValue';
 import { DuckDBValue } from './DuckDBValue';
 
-export class DuckDBStructValue {
-  public readonly type: DuckDBStructType;
-  public readonly values: readonly DuckDBValue[];
+export interface DuckDBStructEntries {
+  readonly [name: string]: DuckDBValue;
+}
 
-  public constructor(type: DuckDBStructType, values: readonly DuckDBValue[]) {
-    this.type = type;
-    this.values = values;
+export class DuckDBStructValue {
+  public readonly entries: DuckDBStructEntries;
+
+  public constructor(entries: DuckDBStructEntries) {
+    this.entries = entries;
   }
+
+  public toString(): string {
+    const parts: string[] = [];
+    for (const name in this.entries) {
+      parts.push(`${displayStringForDuckDBValue(name)}: ${displayStringForDuckDBValue(this.entries[name])}`);
+    }
+    return `{${parts.join(', ')}}`;
+  }
+}
+
+export function structValue(entries: DuckDBStructEntries): DuckDBStructValue {
+  return new DuckDBStructValue(entries);
 }
