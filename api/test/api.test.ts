@@ -106,9 +106,12 @@ import {
   listValue,
   mapValue,
   structValue,
+  timeTZValue,
+  timeValue,
   timestampTZValue,
   timestampValue,
   unionValue,
+  uuidValue,
   version
 } from '../src';
 
@@ -593,7 +596,7 @@ describe('api', () => {
           assertValues(chunk, 21, DuckDBDoubleVector, [DuckDBDoubleType.Min, DuckDBDoubleType.Max, null]);
           assertValues(chunk, 22, DuckDBDecimal2Vector, [
             decimalNumber(4, 1, -9999),
-            decimalNumber(4, 1, 9999 as number),
+            decimalNumber(4, 1, 9999),
             null,
           ]);
           assertValues(chunk, 23, DuckDBDecimal4Vector, [
@@ -844,20 +847,152 @@ describe('api', () => {
     });
   });
   test('values toString', () => {
+    // array
     assert.equal(arrayValue([]).toString(), '[]');
     assert.equal(arrayValue([1, 2, 3]).toString(), '[1, 2, 3]');
     assert.equal(arrayValue(['a', 'b', 'c']).toString(), `['a', 'b', 'c']`);
 
+    // bit
     assert.equal(bitValue('').toString(), '');
     assert.equal(bitValue('10101').toString(), '10101');
     assert.equal(bitValue('0010001001011100010101011010111').toString(), '0010001001011100010101011010111');
 
+    // blob
     assert.equal(DuckDBBlobValue.fromString('').toString(), '');
     assert.equal(DuckDBBlobValue.fromString('thisisalongblob\x00withnullbytes').toString(), 'thisisalongblob\\x00withnullbytes');
     assert.equal(DuckDBBlobValue.fromString('\x00\x00\x00a').toString(), '\\x00\\x00\\x00a');
 
+    // date
     assert.equal(DuckDBDateValue.Epoch.toString(), '1970-01-01');
     assert.equal(DuckDBDateValue.Max.toString(), '5881580-07-10');
     assert.equal(DuckDBDateValue.Min.toString(), '5877642-06-25 (BC)');
+
+    // decimal
+    assert.equal(decimalNumber(4, 1, 0).toString(), '0.0');
+    assert.equal(decimalNumber(4, 1,  9876).toString(),  '987.6');
+    assert.equal(decimalNumber(4, 1, -9876).toString(), '-987.6');
+
+    assert.equal(decimalNumber(9, 4, 0).toString(), '0.0000');
+    assert.equal(decimalNumber(9, 4,  987654321).toString(),  '98765.4321');
+    assert.equal(decimalNumber(9, 4, -987654321).toString(), '-98765.4321');
+
+    assert.equal(decimalNumber(18, 6, 0).toString(), '0.000000');
+    assert.equal(decimalBigint(18, 6,  987654321098765432n).toString(),  '987654321098.765432');
+    assert.equal(decimalBigint(18, 6, -987654321098765432n).toString(), '-987654321098.765432');
+
+    assert.equal(decimalNumber(38, 10, 0).toString(), '0.0000000000');
+    assert.equal(decimalBigint(38, 10,  98765432109876543210987654321098765432n).toString(),  '9876543210987654321098765432.1098765432');
+    assert.equal(decimalBigint(38, 10, -98765432109876543210987654321098765432n).toString(), '-9876543210987654321098765432.1098765432');
+
+    // interval
+    assert.equal(intervalValue(0, 0, 0n).toString(), '00:00:00');
+
+    assert.equal(intervalValue( 1, 0, 0n).toString(),  '1 month');
+    assert.equal(intervalValue(-1, 0, 0n).toString(), '-1 month');
+    assert.equal(intervalValue( 2, 0, 0n).toString(),  '2 months');
+    assert.equal(intervalValue(-2, 0, 0n).toString(), '-2 months');
+    assert.equal(intervalValue( 12, 0, 0n).toString(), '1 year');
+    assert.equal(intervalValue(-12, 0, 0n).toString(), '-1 year');
+    assert.equal(intervalValue( 24, 0, 0n).toString(),  '2 years');
+    assert.equal(intervalValue(-24, 0, 0n).toString(), '-2 years');
+    assert.equal(intervalValue( 25, 0, 0n).toString(),  '2 years 1 month');
+    assert.equal(intervalValue(-25, 0, 0n).toString(), '-2 years -1 month');
+
+    assert.equal(intervalValue(0, 1, 0n).toString(),   '1 day');
+    assert.equal(intervalValue(0, -1, 0n).toString(), '-1 day');
+    assert.equal(intervalValue(0, 2, 0n).toString(),   '2 days');
+    assert.equal(intervalValue(0, -2, 0n).toString(), '-2 days');
+    assert.equal(intervalValue(0, 30, 0n).toString(), '30 days');
+    assert.equal(intervalValue(0, 365, 0n).toString(), '365 days');
+
+    assert.equal(intervalValue(0, 0,  1n).toString(),  '00:00:00.000001');
+    assert.equal(intervalValue(0, 0, -1n).toString(), '-00:00:00.000001');
+    assert.equal(intervalValue(0, 0,  987654n).toString(),  '00:00:00.987654');
+    assert.equal(intervalValue(0, 0, -987654n).toString(), '-00:00:00.987654');
+    assert.equal(intervalValue(0, 0,  1000000n).toString(),  '00:00:01');
+    assert.equal(intervalValue(0, 0, -1000000n).toString(), '-00:00:01');
+    assert.equal(intervalValue(0, 0,  59n * 1000000n).toString(),  '00:00:59');
+    assert.equal(intervalValue(0, 0, -59n * 1000000n).toString(), '-00:00:59');
+    assert.equal(intervalValue(0, 0,  60n * 1000000n).toString(),  '00:01:00');
+    assert.equal(intervalValue(0, 0, -60n * 1000000n).toString(), '-00:01:00');
+    assert.equal(intervalValue(0, 0,  59n * 60n * 1000000n).toString(),  '00:59:00');
+    assert.equal(intervalValue(0, 0, -59n * 60n * 1000000n).toString(), '-00:59:00');
+    assert.equal(intervalValue(0, 0,  60n * 60n * 1000000n).toString(),  '01:00:00');
+    assert.equal(intervalValue(0, 0, -60n * 60n * 1000000n).toString(), '-01:00:00');
+    assert.equal(intervalValue(0, 0,  24n * 60n * 60n * 1000000n).toString(),  '24:00:00');
+    assert.equal(intervalValue(0, 0, -24n * 60n * 60n * 1000000n).toString(), '-24:00:00');
+    assert.equal(intervalValue(0, 0,  2147483647n * 60n * 60n * 1000000n).toString(),  '2147483647:00:00');
+    assert.equal(intervalValue(0, 0, -2147483647n * 60n * 60n * 1000000n).toString(), '-2147483647:00:00');
+    assert.equal(intervalValue(0, 0,   2147483647n * 60n * 60n * 1000000n + 1n ).toString(),  '2147483647:00:00.000001');
+    assert.equal(intervalValue(0, 0, -(2147483647n * 60n * 60n * 1000000n + 1n)).toString(), '-2147483647:00:00.000001');
+
+    assert.equal(intervalValue(2 * 12 + 3, 5, (7n * 60n * 60n + 11n * 60n + 13n) * 1000000n + 17n).toString(),
+      '2 years 3 months 5 days 07:11:13.000017');
+    assert.equal(intervalValue(-(2 * 12 + 3), -5, -((7n * 60n * 60n + 11n * 60n + 13n) * 1000000n + 17n)).toString(),
+      '-2 years -3 months -5 days -07:11:13.000017');
+
+    // list
+    assert.equal(listValue([]).toString(), '[]');
+    assert.equal(listValue([1, 2, 3]).toString(), '[1, 2, 3]');
+    assert.equal(listValue(['a', 'b', 'c']).toString(), `['a', 'b', 'c']`);
+
+    // map
+    assert.equal(mapValue([]).toString(), '{}');
+    assert.equal(mapValue([{ key: 1, value: 'a' }, { key: 2, value: 'b' }]).toString(), `{1: 'a', 2: 'b'}`);
+
+    // struct
+    assert.equal(structValue({}).toString(), '{}');
+    assert.equal(structValue({a: 1, b: 2}).toString(), `{'a': 1, 'b': 2}`);
+
+    // timestamp milliseconds
+    assert.equal(DuckDBTimestampMillisecondsValue.Epoch.toString(), '1970-01-01 00:00:00');
+    assert.equal(DuckDBTimestampMillisecondsValue.Max.toString(), '294247-01-10 04:00:54.775');
+    assert.equal(DuckDBTimestampMillisecondsValue.Min.toString(), '290309-12-22 (BC) 00:00:00');
+
+    // timestamp nanoseconds
+    assert.equal(DuckDBTimestampNanosecondsValue.Epoch.toString(), '1970-01-01 00:00:00');
+    assert.equal(DuckDBTimestampNanosecondsValue.Max.toString(), '2262-04-11 23:47:16.854775806');
+    assert.equal(DuckDBTimestampNanosecondsValue.Min.toString(), '1677-09-22 00:00:00');
+
+    // timestamp seconds
+    assert.equal(DuckDBTimestampSecondsValue.Epoch.toString(), '1970-01-01 00:00:00');
+    assert.equal(DuckDBTimestampSecondsValue.Max.toString(), '294247-01-10 04:00:54');
+    assert.equal(DuckDBTimestampSecondsValue.Min.toString(), '290309-12-22 (BC) 00:00:00');
+
+    // timestamp tz
+    assert.equal(DuckDBTimestampTZValue.Epoch.toString(), '1970-01-01 00:00:00');
+    // assert.equal(DuckDBTimestampTZValue.Max.toString(), '294247-01-09 20:00:54.775806-08'); // in PST
+    assert.equal(DuckDBTimestampTZValue.Max.toString(), '294247-01-10 04:00:54.775806'); // TODO TZ
+    // assert.equal(DuckDBTimestampTZValue.Min.toString(), '290309-12-21 (BC) 16:00:00-08'); // in PST
+    assert.equal(DuckDBTimestampTZValue.Min.toString(), '290309-12-22 (BC) 00:00:00'); // TODO TZ
+    assert.equal(DuckDBTimestampTZValue.PosInf.toString(), 'infinity');
+    assert.equal(DuckDBTimestampTZValue.NegInf.toString(), '-infinity');
+
+    // timestamp
+    assert.equal(DuckDBTimestampValue.Epoch.toString(), '1970-01-01 00:00:00');
+    assert.equal(DuckDBTimestampValue.Max.toString(), '294247-01-10 04:00:54.775806');
+    assert.equal(DuckDBTimestampValue.Min.toString(), '290309-12-22 (BC) 00:00:00');
+    assert.equal(DuckDBTimestampValue.PosInf.toString(), 'infinity');
+    assert.equal(DuckDBTimestampValue.NegInf.toString(), '-infinity');
+
+    // time tz
+    assert.equal(timeTZValue(0, 0).toString(), '00:00:00');
+    // assert.equal(DuckDBTimeTZValue.Max.toString(), '24:00:00-15:59:59'); 
+    assert.equal(DuckDBTimeTZValue.Max.toString(), '24:00:00'); // TODO TZ
+    // assert.equal(DuckDBTimeTZValue.Max.toString(), '00:00:00+15:59:59'); 
+    assert.equal(DuckDBTimeTZValue.Min.toString(), '00:00:00'); // TODO TZ
+
+    // time
+    assert.equal(DuckDBTimeValue.Max.toString(), '24:00:00');
+    assert.equal(DuckDBTimeValue.Min.toString(), '00:00:00');
+    assert.equal(timeValue((12n * 60n * 60n + 34n * 60n + 56n) * 1000000n + 987654n).toString(), '12:34:56.987654');
+
+    // union
+    assert.equal(unionValue('a', 42).toString(), '42');
+    assert.equal(unionValue('b', 'duck').toString(), 'duck');
+
+    // uuid
+    assert.equal(uuidValue(0n).toString(), '00000000-0000-0000-0000-000000000000');
+    assert.equal(uuidValue(2n ** 128n - 1n).toString(), 'ffffffff-ffff-ffff-ffff-ffffffffffff');
   });
 });
