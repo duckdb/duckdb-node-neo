@@ -264,7 +264,7 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
     return duckdb.vector_size();
   }
   public static create(vector: duckdb.Vector, itemCount: number, knownType?: DuckDBType): DuckDBVector {
-    const vectorType = knownType ? knownType : DuckDBLogicalType.consumeAsType(duckdb.vector_get_column_type(vector));
+    const vectorType = knownType ? knownType : DuckDBLogicalType.create(duckdb.vector_get_column_type(vector)).asType();
     switch (vectorType.typeId) {
       case DuckDBTypeId.BOOLEAN:
         return DuckDBBooleanVector.fromRawVector(vector, itemCount);

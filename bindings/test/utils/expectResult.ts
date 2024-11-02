@@ -3,7 +3,6 @@ import { expect } from 'vitest';
 import { expectChunk } from './expectChunk';
 import { ExpectedResult } from './ExpectedResult';
 import { expectLogicalType } from './expectLogicalType';
-import { withLogicalType } from './withLogicalType';
 
 export async function expectResult(result: duckdb.Result, expectedResult: ExpectedResult) {
   expect(duckdb.result_statement_type(result)).toBe(expectedResult.statementType ?? duckdb.StatementType.SELECT);
@@ -14,9 +13,7 @@ export async function expectResult(result: duckdb.Result, expectedResult: Expect
     const expectedColumn = expectedResult.columns[col];
     expect(duckdb.column_name(result, col), `${col}`).toBe(expectedColumn.name);
     expect(duckdb.column_type(result, col), `${col}`).toBe(expectedColumn.logicalType.typeId);
-    withLogicalType(duckdb.column_logical_type(result, col),
-      (logical_type) => expectLogicalType(logical_type, expectedColumn.logicalType, `col ${col}`)
-    );
+    expectLogicalType(duckdb.column_logical_type(result, col), expectedColumn.logicalType, `col ${col}`);
   }
   for (const expectedChunk of expectedResult.chunks) {
     const chunk = await duckdb.fetch_chunk(result);

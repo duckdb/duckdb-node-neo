@@ -18,7 +18,6 @@ This is a high-level API meant for applications. It depends on low-level binding
 Some features are not yet complete:
 - Friendlier APIs for convering results to common JS data structures.
 - Friendlier APIs for converting values of specialized and complex DuckDB types to common JS types.
-- Automatic memory management (i.e. avoiding the need to call `dispose` manually in most cases).
 - Appending and binding advanced data types. (Additional DuckDB C API support needed.)
 - Writing to data chunk vectors. (Directly writing to binary buffers is challenging to support using the Node Addon API.)
 - User-defined types & functions. (Support for this was added to the DuckDB C API in v1.1.0.)
@@ -70,31 +69,16 @@ Set configuration options:
 const instance = await DuckDBInstance.create('my_duckdb.db', { threads: '4' });
 ```
 
-Dispose:
-```ts
-await instance.dispose();
-```
-
 ### Connect
 
 ```ts
 const connection = await instance.connect();
 ```
 
-Dispose:
-```ts
-await connection.dispose();
-```
-
 ### Run SQL
 
 ```ts
 const result = await connection.run('from test_all_types()');
-```
-
-Dispose:
-```ts
-result.dispose();
 ```
 
 ### Parameterize SQL
@@ -104,12 +88,6 @@ const prepared = await connection.prepare('select $1, $2');
 prepared.bindVarchar(1, 'duck');
 prepared.bindInteger(2, 42);
 const result = await prepared.run();
-```
-
-Dispose:
-```ts
-result.dispose();
-prepared.dispose();
 ```
 
 ### Inspect Result
@@ -155,11 +133,6 @@ for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
 }
 ```
 
-Dispose data chunk:
-```ts
-chunk.dispose();
-```
-
 ### Inspect Data Types
 
 ```ts
@@ -196,6 +169,11 @@ if (columnType.typeId === DuckDBTypeId.STRUCT) {
 if (columnType.typeId === DuckDBTypeId.UNION) {
   const unionMemberTags = columnType.memberTags;
   const unionMemberTypes = columnType.memberTypes;
+}
+
+// For the JSON type (https://duckdb.org/docs/data/json/json_type)
+if (columnType.alias === 'JSON') {
+  const json = JSON.parse(columnValue);
 }
 ```
 
@@ -313,25 +291,25 @@ if (columnType.typeId === DuckDBTypeId.UUID) {
 ### Append To Table
 
 ```ts
-const createTableResult = await connection.run(`create or replace table target_table(i integer, v varchar)`);
-createTableResult.dispose();
+await connection.run(`create or replace table target_table(i integer, v varchar)`);
 
 const appender = await connection.createAppender('main', 'target_table');
-try {
-  appender.appendInteger(42);
-  appender.appendVarchar('duck');
-  appender.endRow();
-  appender.appendInteger(123);
-  appender.appendVarchar('mallard');
-  appender.endRow();
-  appender.flush();
-  appender.appendInteger(17);
-  appender.appendVarchar('goose');
-  appender.endRow();
-  appender.close(); // also flushes
-} finally {
-  appender.dispose();
-}
+
+appender.appendInteger(42);
+appender.appendVarchar('duck');
+appender.endRow();
+
+appender.appendInteger(123);
+appender.appendVarchar('mallard');
+appender.endRow();
+
+appender.flush();
+
+appender.appendInteger(17);
+appender.appendVarchar('goose');
+appender.endRow();
+
+appender.close(); // also flushes
 ```
 
 ### Extract Statements
@@ -343,24 +321,15 @@ const extractedStatements = await connection.extractStatements(`
   drop table numbers;
 `);
 const parameterValues = [10, 7];
-try {
-  const statementCount = extractedStatements.count;
-  for (let statementIndex = 0; statementIndex < statementCount; statementIndex++) {
-    const prepared = await extractedStatements.prepare(statementIndex);
-    try {
-      let parameterCount = prepared.parameterCount;
-      for (let parameterIndex = 1; parameterIndex <= parameterCount; parameterIndex++) {
-        prepared.bindInteger(parameterIndex, parameterValues.shift());
-      }
-      const result = await prepared.run();
-      // ...
-      result.dispose();
-    } finally {
-      prepared.dispose();
-    }
+const statementCount = extractedStatements.count;
+for (let statementIndex = 0; statementIndex < statementCount; statementIndex++) {
+  const prepared = await extractedStatements.prepare(statementIndex);
+  let parameterCount = prepared.parameterCount;
+  for (let parameterIndex = 1; parameterIndex <= parameterCount; parameterIndex++) {
+    prepared.bindInteger(parameterIndex, parameterValues.shift());
   }
-} finally {
-  extractedStatements.dispose();
+  const result = await prepared.run();
+  // ...
 }
 ```
 
@@ -376,21 +345,12 @@ async function sleep(ms) {
 }
 
 const prepared = await connection.prepare('from range(10_000_000)');
-try {
-  const pending = prepared.start();
-  try {
-    while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
-      console.log('not ready');
-      await sleep(1);
-    }
-    console.log('ready');
-    const result = await pending.getResult();
-    // ...
-    result.dispose();
-  } finally {
-    pending.dispose();
-  }
-} finally {
-  prepared.dispose();
+const pending = prepared.start();
+while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
+  console.log('not ready');
+  await sleep(1);
 }
+console.log('ready');
+const result = await pending.getResult();
+// ...
 ```
