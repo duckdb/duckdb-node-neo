@@ -10,9 +10,6 @@ export class DuckDBResult {
   constructor(result: duckdb.Result) {
     this.result = result;
   }
-  public dispose() {
-    duckdb.destroy_result(this.result);
-  }
   public get returnType(): ResultReturnType {
     return duckdb.result_return_type(this.result);
   }

@@ -9,11 +9,6 @@ async function setupConnection() {
   connection = await instance.connect();
 }
 
-async function teardownConnection() {
-  await connection.dispose();
-  await instance.dispose();
-}
-
 export function benchFn(sql: string) {
   return () => runSql(connection, sql);
 }
@@ -26,6 +21,5 @@ export function benchOpts(options?: { additionalSetup?: (connection: DuckDBConne
       await additionalSetup(connection);
     }
   ) : setupConnection;
-  const teardown = teardownConnection;
-  return { setup, teardown };
+  return { setup };
 }

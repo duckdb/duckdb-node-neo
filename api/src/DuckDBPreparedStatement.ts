@@ -16,9 +16,6 @@ export class DuckDBPreparedStatement {
   constructor(prepared_statement: duckdb.PreparedStatement) {
     this.prepared_statement = prepared_statement;
   }
-  public dispose() {
-    duckdb.destroy_prepare(this.prepared_statement);
-  }
   public get statementType(): StatementType {
     return duckdb.prepared_statement_type(this.prepared_statement);
   }

@@ -16,6 +16,5 @@ suite('config', () => {
     const config = duckdb.create_config()
     expect(config).toBeTruthy();
     duckdb.set_config(config, 'custom_user_agent', 'my_user_agent');
-    duckdb.destroy_config(config);
   });
 });

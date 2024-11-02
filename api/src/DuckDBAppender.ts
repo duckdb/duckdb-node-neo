@@ -14,9 +14,6 @@ export class DuckDBAppender {
   constructor(appender: duckdb.Appender) {
     this.appender = appender;
   }
-  public dispose() {
-    duckdb.appender_destroy(this.appender);
-  }
   public close() {
     duckdb.appender_close(this.appender);
   }

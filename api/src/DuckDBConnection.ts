@@ -15,9 +15,6 @@ export class DuckDBConnection {
   ): Promise<DuckDBConnection> {
     return instance.connect();
   }
-  public dispose(): Promise<void> {
-    return duckdb.disconnect(this.connection);
-  }
   public interrupt() {
     duckdb.interrupt(this.connection);
   }
@@ -38,15 +35,11 @@ export class DuckDBConnection {
     const { extracted_statements, statement_count } =
       await duckdb.extract_statements(this.connection, sql);
     if (statement_count === 0) {
-      try {
-        throw new Error(
-          `Failed to extract statements: ${duckdb.extract_statements_error(
-            extracted_statements
-          )}`
-        );
-      } finally {
-        duckdb.destroy_extracted(extracted_statements);
-      }
+      throw new Error(
+        `Failed to extract statements: ${duckdb.extract_statements_error(
+          extracted_statements
+        )}`
+      );
     }
     return new DuckDBExtractedStatements(
       this.connection,
