@@ -9,9 +9,6 @@ export class DuckDBDataChunk {
   public static create(logical_types: duckdb.LogicalType[]): DuckDBDataChunk {
     return new DuckDBDataChunk(duckdb.create_data_chunk(logical_types));
   }
-  public dispose() {
-    duckdb.destroy_data_chunk(this.chunk);
-  }
   public reset() {
     duckdb.data_chunk_reset(this.chunk);
   }

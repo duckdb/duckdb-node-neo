@@ -1,4 +1,5 @@
 #define NODE_ADDON_API_DISABLE_DEPRECATED
+#define NODE_ADDON_API_REQUIRE_BASIC_FINALIZERS
 #define NODE_API_NO_EXTERNAL_BUFFERS_ALLOWED
 #include "napi.h"
 
@@ -200,8 +201,15 @@ duckdb_decimal GetDecimalFromObject(Napi::Env env, Napi::Object decimal_obj) {
 
 // Externals
 
+template<typename T, typename Finalizer>
+Napi::External<T> CreateExternal(Napi::Env env, const napi_type_tag &type_tag, T *data, Finalizer finalizer) {
+  auto external = Napi::External<T>::New(env, data, finalizer);
+  external.TypeTag(&type_tag);
+  return external;
+}
+
 template<typename T>
-Napi::External<T> CreateExternal(Napi::Env env, const napi_type_tag &type_tag, T *data) {
+Napi::External<T> CreateExternalWithoutFinalizer(Napi::Env env, const napi_type_tag &type_tag, T *data) {
   auto external = Napi::External<T>::New(env, data);
   external.TypeTag(&type_tag);
   return external;
@@ -222,8 +230,15 @@ static const napi_type_tag AppenderTypeTag = {
   0x32E0AB3B83F74A89, 0xB785905D92D54996
 };
 
+void FinalizeAppender(Napi::BasicEnv, duckdb_appender appender) {
+  if (appender) {
+    duckdb_appender_destroy(&appender);
+    appender = nullptr;
+  }
+}
+
 Napi::External<_duckdb_appender> CreateExternalForAppender(Napi::Env env, duckdb_appender appender) {
-  return CreateExternal<_duckdb_appender>(env, AppenderTypeTag, appender);
+  return CreateExternal<_duckdb_appender>(env, AppenderTypeTag, appender, FinalizeAppender);
 }
 
 duckdb_appender GetAppenderFromExternal(Napi::Env env, Napi::Value value) {
@@ -234,8 +249,15 @@ static const napi_type_tag ConfigTypeTag = {
   0x5963FBB9648B4D2A, 0xB41ADE86056218D1
 };
 
+void FinalizeConfig(Napi::BasicEnv, duckdb_config config) {
+  if (config) {
+    duckdb_destroy_config(&config);
+    config = nullptr;
+  }
+}
+
 Napi::External<_duckdb_config> CreateExternalForConfig(Napi::Env env, duckdb_config config) {
-  return CreateExternal<_duckdb_config>(env, ConfigTypeTag, config);
+  return CreateExternal<_duckdb_config>(env, ConfigTypeTag, config, FinalizeConfig);
 }
 
 duckdb_config GetConfigFromExternal(Napi::Env env, Napi::Value value) {
@@ -246,8 +268,15 @@ static const napi_type_tag ConnectionTypeTag = {
   0x922B9BF54AB04DFC, 0x8A258578D371DB71
 };
 
+void FinalizeConnection(Napi::BasicEnv, duckdb_connection connection) {
+  if (connection) {
+    duckdb_disconnect(&connection);
+    connection = nullptr;
+  }
+}
+
 Napi::External<_duckdb_connection> CreateExternalForConnection(Napi::Env env, duckdb_connection connection) {
-  return CreateExternal<_duckdb_connection>(env, ConnectionTypeTag, connection);
+  return CreateExternal<_duckdb_connection>(env, ConnectionTypeTag, connection, FinalizeConnection);
 }
 
 duckdb_connection GetConnectionFromExternal(Napi::Env env, Napi::Value value) {
@@ -258,8 +287,15 @@ static const napi_type_tag DatabaseTypeTag = {
   0x835A8533653C40D1, 0x83B3BE2B233BA8F3
 };
 
+void FinalizeDatabase(Napi::BasicEnv, duckdb_database database) {
+  if (database) {
+    duckdb_close(&database);
+    database = nullptr;
+  }
+}
+
 Napi::External<_duckdb_database> CreateExternalForDatabase(Napi::Env env, duckdb_database database) {
-  return CreateExternal<_duckdb_database>(env, DatabaseTypeTag, database);
+  return CreateExternal<_duckdb_database>(env, DatabaseTypeTag, database, FinalizeDatabase);
 }
 
 duckdb_database GetDatabaseFromExternal(Napi::Env env, Napi::Value value) {
@@ -270,8 +306,15 @@ static const napi_type_tag DataChunkTypeTag = {
   0x2C7537AB063A4296, 0xB1E70F08B0BBD1A3
 };
 
+void FinalizeDataChunk(Napi::BasicEnv, duckdb_data_chunk chunk) {
+  if (chunk) {
+    duckdb_destroy_data_chunk(&chunk);
+    chunk = nullptr;
+  }
+}
+
 Napi::External<_duckdb_data_chunk> CreateExternalForDataChunk(Napi::Env env, duckdb_data_chunk chunk) {
-  return CreateExternal<_duckdb_data_chunk>(env, DataChunkTypeTag, chunk);
+  return CreateExternal<_duckdb_data_chunk>(env, DataChunkTypeTag, chunk, FinalizeDataChunk);
 }
 
 duckdb_data_chunk GetDataChunkFromExternal(Napi::Env env, Napi::Value value) {
@@ -282,8 +325,15 @@ static const napi_type_tag ExtractedStatementsTypeTag = {
   0x59288E1C60C44EEB, 0xBFA35376EE0F04DD
 };
 
+void FinalizeExtractedStatements(Napi::BasicEnv, duckdb_extracted_statements extracted_statements) {
+  if (extracted_statements) {
+    duckdb_destroy_extracted(&extracted_statements);
+    extracted_statements = nullptr;
+  }
+}
+
 Napi::External<_duckdb_extracted_statements> CreateExternalForExtractedStatements(Napi::Env env, duckdb_extracted_statements extracted_statements) {
-  return CreateExternal<_duckdb_extracted_statements>(env, ExtractedStatementsTypeTag, extracted_statements);
+  return CreateExternal<_duckdb_extracted_statements>(env, ExtractedStatementsTypeTag, extracted_statements, FinalizeExtractedStatements);
 }
 
 duckdb_extracted_statements GetExtractedStatementsFromExternal(Napi::Env env, Napi::Value value) {
@@ -294,8 +344,15 @@ static const napi_type_tag LogicalTypeTypeTag = {
   0x78AF202191ED4A23, 0x8093715369592A2B
 };
 
+void FinalizeLogicalType(Napi::BasicEnv, duckdb_logical_type logical_type) {
+  if (logical_type) {
+    duckdb_destroy_logical_type(&logical_type);
+    logical_type = nullptr;
+  }
+}
+
 Napi::External<_duckdb_logical_type> CreateExternalForLogicalType(Napi::Env env, duckdb_logical_type logical_type) {
-  return CreateExternal<_duckdb_logical_type>(env, LogicalTypeTypeTag, logical_type);
+  return CreateExternal<_duckdb_logical_type>(env, LogicalTypeTypeTag, logical_type, FinalizeLogicalType);
 }
 
 duckdb_logical_type GetLogicalTypeFromExternal(Napi::Env env, Napi::Value value) {
@@ -306,8 +363,15 @@ static const napi_type_tag PendingResultTypeTag = {
   0x257E88ECE8294FEC, 0xB64963BBBD1DBB41
 };
 
+void FinalizePendingResult(Napi::BasicEnv, duckdb_pending_result pending_result) {
+  if (pending_result) {
+    duckdb_destroy_pending(&pending_result);
+    pending_result = nullptr;
+  }
+}
+
 Napi::External<_duckdb_pending_result> CreateExternalForPendingResult(Napi::Env env, duckdb_pending_result pending_result) {
-  return CreateExternal<_duckdb_pending_result>(env, PendingResultTypeTag, pending_result);
+  return CreateExternal<_duckdb_pending_result>(env, PendingResultTypeTag, pending_result, FinalizePendingResult);
 }
 
 duckdb_pending_result GetPendingResultFromExternal(Napi::Env env, Napi::Value value) {
@@ -318,8 +382,15 @@ static const napi_type_tag PreparedStatementTypeTag = {
   0xA8B03DAD16D34416, 0x9735A7E1F2A1240C
 };
 
+void FinalizePreparedStatement(Napi::BasicEnv, duckdb_prepared_statement prepared_statement) {
+  if (prepared_statement) {
+    duckdb_destroy_prepare(&prepared_statement);
+    prepared_statement = nullptr;
+  }
+}
+
 Napi::External<_duckdb_prepared_statement> CreateExternalForPreparedStatement(Napi::Env env, duckdb_prepared_statement prepared_statement) {
-  return CreateExternal<_duckdb_prepared_statement>(env, PreparedStatementTypeTag, prepared_statement);
+  return CreateExternal<_duckdb_prepared_statement>(env, PreparedStatementTypeTag, prepared_statement, FinalizePreparedStatement);
 }
 
 duckdb_prepared_statement GetPreparedStatementFromExternal(Napi::Env env, Napi::Value value) {
@@ -330,8 +401,16 @@ static const napi_type_tag ResultTypeTag = {
   0x08F7FE3AE12345E5, 0x8733310DC29372D9
 };
 
+void FinalizeResult(Napi::BasicEnv, duckdb_result *result_ptr) {
+  if (result_ptr) {
+    duckdb_destroy_result(result_ptr);
+    duckdb_free(result_ptr); // memory for duckdb_result struct is malloc'd in QueryWorker, ExecutePreparedWorker, or ExecutePendingWorker.
+    result_ptr = nullptr;
+  }
+}
+
 Napi::External<duckdb_result> CreateExternalForResult(Napi::Env env, duckdb_result *result_ptr) {
-  return CreateExternal<duckdb_result>(env, ResultTypeTag, result_ptr);
+  return CreateExternal<duckdb_result>(env, ResultTypeTag, result_ptr, FinalizeResult);
 }
 
 duckdb_result *GetResultFromExternal(Napi::Env env, Napi::Value value) {
@@ -342,8 +421,15 @@ static const napi_type_tag ValueTypeTag = {
   0xC60F36613BF14E93, 0xBAA92848936FAA25
 };
 
+void FinalizeValue(Napi::BasicEnv, duckdb_value value) {
+  if (value) {
+    duckdb_destroy_value(&value);
+    value = nullptr;
+  }
+}
+
 Napi::External<_duckdb_value> CreateExternalForValue(Napi::Env env, duckdb_value value) {
-  return CreateExternal<_duckdb_value>(env, ValueTypeTag, value);
+  return CreateExternal<_duckdb_value>(env, ValueTypeTag, value, FinalizeValue);
 }
 
 duckdb_value GetValueFromExternal(Napi::Env env, Napi::Value value) {
@@ -355,7 +441,8 @@ static const napi_type_tag VectorTypeTag = {
 };
 
 Napi::External<_duckdb_vector> CreateExternalForVector(Napi::Env env, duckdb_vector vector) {
-  return CreateExternal<_duckdb_vector>(env, VectorTypeTag, vector);
+  // Vectors live as long as their containing data chunk; they cannot be explicitly destroyed.
+  return CreateExternalWithoutFinalizer<_duckdb_vector>(env, VectorTypeTag, vector);
 }
 
 duckdb_vector GetVectorFromExternal(Napi::Env env, Napi::Value value) {
@@ -437,30 +524,6 @@ private:
 
 };
 
-class CloseWorker : public PromiseWorker {
-
-public:
-
-  CloseWorker(Napi::Env env, duckdb_database database)
-    : PromiseWorker(env), database_(database) {
-  }
-
-protected:
-
-  void Execute() override {
-    duckdb_close(&database_);
-  }
-
-  Napi::Value Result() override {
-    return Env().Undefined();
-  }
-
-private:
-
-  duckdb_database database_;
-
-};
-
 class ConnectWorker : public PromiseWorker {
 
 public:
@@ -484,30 +547,6 @@ protected:
 private:
 
   duckdb_database database_;
-  duckdb_connection connection_;
-
-};
-
-class DisconnectWorker : public PromiseWorker {
-
-public:
-
-  DisconnectWorker(Napi::Env env, duckdb_connection connection)
-    : PromiseWorker(env), connection_(connection) {
-  }
-
-protected:
-
-  void Execute() override {
-    duckdb_disconnect(&connection_);
-  }
-
-  Napi::Value Result() override {
-    return Env().Undefined();
-  }
-
-private:
-
   duckdb_connection connection_;
 
 };
@@ -836,11 +875,9 @@ public:
       InstanceValue("Type", CreateTypeEnum(env)),
 
       InstanceMethod("open", &DuckDBNodeAddon::open),
-      InstanceMethod("close", &DuckDBNodeAddon::close),
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
       InstanceMethod("interrupt", &DuckDBNodeAddon::interrupt),
       InstanceMethod("query_progress", &DuckDBNodeAddon::query_progress),
-      InstanceMethod("disconnect", &DuckDBNodeAddon::disconnect),
 
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
 
@@ -848,10 +885,8 @@ public:
       InstanceMethod("config_count", &DuckDBNodeAddon::config_count),
       InstanceMethod("get_config_flag", &DuckDBNodeAddon::get_config_flag),
       InstanceMethod("set_config", &DuckDBNodeAddon::set_config),
-      InstanceMethod("destroy_config", &DuckDBNodeAddon::destroy_config),
 
       InstanceMethod("query", &DuckDBNodeAddon::query),
-      InstanceMethod("destroy_result", &DuckDBNodeAddon::destroy_result),
       InstanceMethod("column_name", &DuckDBNodeAddon::column_name),
       InstanceMethod("column_type", &DuckDBNodeAddon::column_type),
       InstanceMethod("result_statement_type", &DuckDBNodeAddon::result_statement_type),
@@ -881,7 +916,6 @@ public:
       InstanceMethod("decimal_to_double", &DuckDBNodeAddon::decimal_to_double),
 
       InstanceMethod("prepare", &DuckDBNodeAddon::prepare),
-      InstanceMethod("destroy_prepare", &DuckDBNodeAddon::destroy_prepare),
       InstanceMethod("nparams", &DuckDBNodeAddon::nparams),
       InstanceMethod("parameter_name", &DuckDBNodeAddon::parameter_name),
       InstanceMethod("param_type", &DuckDBNodeAddon::param_type),
@@ -916,17 +950,14 @@ public:
       InstanceMethod("extract_statements", &DuckDBNodeAddon::extract_statements),
       InstanceMethod("prepare_extracted_statement", &DuckDBNodeAddon::prepare_extracted_statement),
       InstanceMethod("extract_statements_error", &DuckDBNodeAddon::extract_statements_error),
-      InstanceMethod("destroy_extracted", &DuckDBNodeAddon::destroy_extracted),
 
       InstanceMethod("pending_prepared", &DuckDBNodeAddon::pending_prepared),
-      InstanceMethod("destroy_pending", &DuckDBNodeAddon::destroy_pending),
       InstanceMethod("pending_error", &DuckDBNodeAddon::pending_error),
       InstanceMethod("pending_execute_task", &DuckDBNodeAddon::pending_execute_task),
       InstanceMethod("pending_execute_check_state", &DuckDBNodeAddon::pending_execute_check_state),
       InstanceMethod("execute_pending", &DuckDBNodeAddon::execute_pending),
       InstanceMethod("pending_execution_is_finished", &DuckDBNodeAddon::pending_execution_is_finished),
 
-      InstanceMethod("destroy_value", &DuckDBNodeAddon::destroy_value),
       InstanceMethod("create_varchar", &DuckDBNodeAddon::create_varchar),
       InstanceMethod("create_bool", &DuckDBNodeAddon::create_bool),
       InstanceMethod("create_int8", &DuckDBNodeAddon::create_int8),
@@ -1003,10 +1034,8 @@ public:
       InstanceMethod("union_type_member_count", &DuckDBNodeAddon::union_type_member_count),
       InstanceMethod("union_type_member_name", &DuckDBNodeAddon::union_type_member_name),
       InstanceMethod("union_type_member_type", &DuckDBNodeAddon::union_type_member_type),
-      InstanceMethod("destroy_logical_type", &DuckDBNodeAddon::destroy_logical_type),
 
       InstanceMethod("create_data_chunk", &DuckDBNodeAddon::create_data_chunk),
-      InstanceMethod("destroy_data_chunk", &DuckDBNodeAddon::destroy_data_chunk),
       InstanceMethod("data_chunk_reset", &DuckDBNodeAddon::data_chunk_reset),
       InstanceMethod("data_chunk_get_column_count", &DuckDBNodeAddon::data_chunk_get_column_count),
       InstanceMethod("data_chunk_get_vector", &DuckDBNodeAddon::data_chunk_get_vector),
@@ -1034,7 +1063,6 @@ public:
       InstanceMethod("appender_column_type", &DuckDBNodeAddon::appender_column_type),
       InstanceMethod("appender_flush", &DuckDBNodeAddon::appender_flush),
       InstanceMethod("appender_close", &DuckDBNodeAddon::appender_close),
-      InstanceMethod("appender_destroy", &DuckDBNodeAddon::appender_destroy),
       InstanceMethod("appender_end_row", &DuckDBNodeAddon::appender_end_row),
       InstanceMethod("append_default", &DuckDBNodeAddon::append_default),
       InstanceMethod("append_bool", &DuckDBNodeAddon::append_bool),
@@ -1090,14 +1118,7 @@ private:
   // not exposed: consolidated into open
 
   // DUCKDB_API void duckdb_close(duckdb_database *database);
-  // function close(database: Database): Promise<void>
-  Napi::Value close(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto database = GetDatabaseFromExternal(env, info[0]);
-    auto worker = new CloseWorker(env, database);
-    worker->Queue();
-    return worker->Promise();
-  }
+  // not exposed: closed in finalizer
 
   // DUCKDB_API duckdb_state duckdb_connect(duckdb_database database, duckdb_connection *out_connection);
   // function connect(database: Database): Promise<Connection>
@@ -1132,14 +1153,7 @@ private:
   }
 
   // DUCKDB_API void duckdb_disconnect(duckdb_connection *connection);
-  // function disconnect(connection: Connection): Promise<void>
-  Napi::Value disconnect(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto connection = GetConnectionFromExternal(env, info[0]);
-    auto worker = new DisconnectWorker(env, connection);
-    worker->Queue();
-    return worker->Promise();
-  }
+  // not exposed: disconnected in finalizer
 
   // DUCKDB_API const char *duckdb_library_version();
   // function library_version(): string
@@ -1195,13 +1209,7 @@ private:
   }
 
   // DUCKDB_API void duckdb_destroy_config(duckdb_config *config);
-  // function destroy_config(config: Config): void
-  Napi::Value destroy_config(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto config = GetConfigFromExternal(env, info[0]);
-    duckdb_destroy_config(&config);
-    return env.Undefined();
-  }
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_API duckdb_state duckdb_query(duckdb_connection connection, const char *query, duckdb_result *out_result);
   // function query(connection: Connection, query: string): Promise<Result>
@@ -1216,14 +1224,7 @@ private:
 
 
   // DUCKDB_API void duckdb_destroy_result(duckdb_result *result);
-  // function destroy_result(result: Result): void
-  Napi::Value destroy_result(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto result_ptr = GetResultFromExternal(env, info[0]);
-    duckdb_destroy_result(result_ptr);
-    duckdb_free(result_ptr); // memory for duckdb_result struct is malloc'd in QueryWorker
-    return env.Undefined();
-  }
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_API const char *duckdb_column_name(duckdb_result *result, idx_t col);
   // function column_name(result: Result, column_index: number): string
@@ -1531,13 +1532,7 @@ private:
   }
 
   // DUCKDB_API void duckdb_destroy_prepare(duckdb_prepared_statement *prepared_statement);
-  // function destroy_prepare(prepared_statement: PreparedStatement): void
-  Napi::Value destroy_prepare(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
-    duckdb_destroy_prepare(&prepared_statement);
-    return env.Undefined();
-  }
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_API const char *duckdb_prepare_error(duckdb_prepared_statement prepared_statement);
   // not exposed: prepare rejects promise with error
@@ -1964,13 +1959,7 @@ private:
   }
 
   // DUCKDB_API void duckdb_destroy_extracted(duckdb_extracted_statements *extracted_statements);
-  // function destroy_extracted(extracted_statements: ExtractedStatements): void
-  Napi::Value destroy_extracted(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto extracted_statements = GetExtractedStatementsFromExternal(env, info[0]);
-    duckdb_destroy_extracted(&extracted_statements);
-    return env.Undefined();
-  }
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_API duckdb_state duckdb_pending_prepared(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result);
   // function pending_prepared(prepared_statement: PreparedStatement): PendingResult
@@ -1991,13 +1980,7 @@ private:
   // #endif
 
   // DUCKDB_API void duckdb_destroy_pending(duckdb_pending_result *pending_result);
-  // function destroy_pending(pending_result: PendingResult): void
-  Napi::Value destroy_pending(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto pending_result = GetPendingResultFromExternal(env, info[0]);
-    duckdb_destroy_pending(&pending_result);
-    return env.Undefined();
-  }
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_API const char *duckdb_pending_error(duckdb_pending_result pending_result);
   // function pending_error(pending_result: PendingResult): string
@@ -2046,13 +2029,7 @@ private:
   }
 
   // DUCKDB_API void duckdb_destroy_value(duckdb_value *value);
-  // function destroy_value(value: Value): void
-  Napi::Value destroy_value(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto value = GetValueFromExternal(env, info[0]);
-    duckdb_destroy_value(&value);
-    return env.Undefined();
-  }
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_API duckdb_value duckdb_create_varchar(const char *text);
   // function create_varchar(text: string): Value
@@ -2818,13 +2795,7 @@ private:
   }
 
   // DUCKDB_API void duckdb_destroy_logical_type(duckdb_logical_type *type);
-  // function destroy_logical_type(logical_type: LogicalType): void
-  Napi::Value destroy_logical_type(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
-    duckdb_destroy_logical_type(&logical_type);
-    return env.Undefined();
-  }
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_API duckdb_state duckdb_register_logical_type(duckdb_connection con, duckdb_logical_type type, duckdb_create_type_info info);
   // function register_logical_type(connection: Connection, logical_type: LogicalType, info: CreateTypeInfo): void
@@ -2844,13 +2815,7 @@ private:
   }
 
   // DUCKDB_API void duckdb_destroy_data_chunk(duckdb_data_chunk *chunk);
-  // function destroy_data_chunk(chunk: DataChunk): void
-  Napi::Value destroy_data_chunk(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto chunk = GetDataChunkFromExternal(env, info[0]);
-    duckdb_destroy_data_chunk(&chunk);
-    return env.Undefined();
-  }
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_API void duckdb_data_chunk_reset(duckdb_data_chunk chunk);
   // function data_chunk_reset(chunk: DataChunk): void
@@ -3194,15 +3159,7 @@ private:
   }
 
   // DUCKDB_API duckdb_state duckdb_appender_destroy(duckdb_appender *appender);
-  // function appender_destroy(appender: Appender): void
-  Napi::Value appender_destroy(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto appender = GetAppenderFromExternal(env, info[0]);
-    if (duckdb_appender_destroy(&appender)) {
-      throw Napi::Error::New(env, "Failed to destroy appender");
-    }
-    return env.Undefined();
-  }
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_API duckdb_state duckdb_appender_begin_row(duckdb_appender appender);
   // not exposed: no-op
@@ -3576,7 +3533,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   372 total functions
 
-  211 instance methods
+  200 instance methods
     1 unimplemented logical type functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
@@ -3591,7 +3548,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
     4 unimplemented table description functions
     8 unimplemented tasks functions
    12 unimplemented cast function functions
-   15 functions not exposed
+   26 functions not exposed
 +  47 deprecated functions
   ---
   372 functions accounted for

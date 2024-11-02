@@ -48,7 +48,6 @@ export class DuckDBLogicalType {
   static consumeAsType(logical_type: duckdb.LogicalType): DuckDBType {
     const logicalType = DuckDBLogicalType.create(logical_type);
     const type = logicalType.asType();
-    logicalType.dispose();
     return type;
   }
   static create(logical_type: duckdb.LogicalType): DuckDBLogicalType {
@@ -144,9 +143,6 @@ export class DuckDBLogicalType {
     return new DuckDBUnionLogicalType(
       duckdb.create_union_type(member_types, member_names)
     );
-  }
-  public dispose() {
-    duckdb.destroy_logical_type(this.logical_type);
   }
   public get typeId(): DuckDBTypeId {
     return duckdb.get_type_id(this.logical_type) as number as DuckDBTypeId;

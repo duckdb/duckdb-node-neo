@@ -13,9 +13,6 @@ export class DuckDBPendingResult {
   constructor(pending_result: duckdb.PendingResult) {
     this.pending_result = pending_result;
   }
-  public dispose() {
-    duckdb.destroy_pending(this.pending_result);
-  }
   public runTask(): DuckDBPendingResultState {
     const pending_state = duckdb.pending_execute_task(this.pending_result);
     switch (pending_state) {

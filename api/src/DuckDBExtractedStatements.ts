@@ -14,9 +14,6 @@ export class DuckDBExtractedStatements {
     this.extracted_statements = extracted_statements;
     this.statement_count = statement_count;
   }
-  public dispose() {
-    duckdb.destroy_extracted(this.extracted_statements);
-  }
   public get count(): number {
     return this.statement_count;
   }

@@ -12,21 +12,14 @@ export class DuckDBInstance {
   ): Promise<DuckDBInstance> {
     if (options) {
       const config = duckdb.create_config();
-      try {
-        for (const optionName in options) {
-          const optionValue = String(options[optionName]);
-          duckdb.set_config(config, optionName, optionValue);
-        }
-        return new DuckDBInstance(await duckdb.open(path, config));
-      } finally {
-        duckdb.destroy_config(config);
+      for (const optionName in options) {
+        const optionValue = String(options[optionName]);
+        duckdb.set_config(config, optionName, optionValue);
       }
+      return new DuckDBInstance(await duckdb.open(path, config));
     } else {
       return new DuckDBInstance(await duckdb.open(path));
     }
-  }
-  public dispose(): Promise<void> {
-    return duckdb.close(this.db);
   }
   public async connect(): Promise<DuckDBConnection> {
     return new DuckDBConnection(await duckdb.connect(this.db));

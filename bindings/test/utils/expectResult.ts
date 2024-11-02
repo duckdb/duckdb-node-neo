@@ -20,10 +20,6 @@ export async function expectResult(result: duckdb.Result, expectedResult: Expect
   }
   for (const expectedChunk of expectedResult.chunks) {
     const chunk = await duckdb.fetch_chunk(result);
-    try {
-      expectChunk(chunk, expectedChunk, expectedResult.columns);
-    } finally {
-      duckdb.destroy_data_chunk(chunk);
-    }
+    expectChunk(chunk, expectedChunk, expectedResult.columns);
   }
 }

@@ -14,8 +14,6 @@ export async function runSql(connection: DuckDBConnection, sql: string): Promise
         valueCount++;
       }
     }
-    chunk.dispose();
     chunk = await result.fetchChunk();
   }
-  chunk.dispose();
 }

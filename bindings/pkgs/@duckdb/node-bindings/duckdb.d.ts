@@ -234,7 +234,7 @@ export function open(path?: string, config?: Config): Promise<Database>;
 // not exposed: consolidated into open
 
 // DUCKDB_API void duckdb_close(duckdb_database *database);
-export function close(database: Database): Promise<void>;
+// not exposed: closed in finalizer
 
 // DUCKDB_API duckdb_state duckdb_connect(duckdb_database database, duckdb_connection *out_connection);
 export function connect(database: Database): Promise<Connection>;
@@ -246,7 +246,7 @@ export function interrupt(connection: Connection): void;
 export function query_progress(connection: Connection): QueryProgress;
 
 // DUCKDB_API void duckdb_disconnect(duckdb_connection *connection);
-export function disconnect(connection: Connection): Promise<void>;
+// not exposed: disconnected in finalizer
 
 // DUCKDB_API const char *duckdb_library_version();
 export function library_version(): string;
@@ -264,13 +264,13 @@ export function get_config_flag(index: number): ConfigFlag;
 export function set_config(config: Config, name: string, option: string): void;
 
 // DUCKDB_API void duckdb_destroy_config(duckdb_config *config);
-export function destroy_config(config: Config): void;
+// not exposed: destroyed in finalizer
 
 // DUCKDB_API duckdb_state duckdb_query(duckdb_connection connection, const char *query, duckdb_result *out_result);
 export function query(connection: Connection, query: string): Promise<Result>;
 
 // DUCKDB_API void duckdb_destroy_result(duckdb_result *result);
-export function destroy_result(result: Result): void;
+// not exposed: destroyed in finalizer
 
 // DUCKDB_API const char *duckdb_column_name(duckdb_result *result, idx_t col);
 export function column_name(result: Result, column_index: number): string;
@@ -411,7 +411,7 @@ export function decimal_to_double(decimal: Decimal): number;
 export function prepare(connection: Connection, query: string): Promise<PreparedStatement>;
 
 // DUCKDB_API void duckdb_destroy_prepare(duckdb_prepared_statement *prepared_statement);
-export function destroy_prepare(prepared_statement: PreparedStatement): void;
+// not exposed: destroyed in finalizer
 
 // DUCKDB_API const char *duckdb_prepare_error(duckdb_prepared_statement prepared_statement);
 // not exposed: prepare rejects promise with error
@@ -523,7 +523,7 @@ export function prepare_extracted_statement(connection: Connection, extracted_st
 export function extract_statements_error(extracted_statements: ExtractedStatements): string;
 
 // DUCKDB_API void duckdb_destroy_extracted(duckdb_extracted_statements *extracted_statements);
-export function destroy_extracted(extracted_statements: ExtractedStatements): void;
+// not exposed: destroyed in finalizer
 
 // DUCKDB_API duckdb_state duckdb_pending_prepared(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result);
 export function pending_prepared(prepared_statement: PreparedStatement): PendingResult;
@@ -533,7 +533,7 @@ export function pending_prepared(prepared_statement: PreparedStatement): Pending
 // #endif
 
 // DUCKDB_API void duckdb_destroy_pending(duckdb_pending_result *pending_result);
-export function destroy_pending(pending_result: PendingResult): void;
+// not exposed: destroyed in finalizer
 
 // DUCKDB_API const char *duckdb_pending_error(duckdb_pending_result pending_result);
 export function pending_error(pending_result: PendingResult): string;
@@ -551,7 +551,7 @@ export function execute_pending(pending_result: PendingResult): Promise<Result>;
 export function pending_execution_is_finished(pending_state: PendingState): boolean;
 
 // DUCKDB_API void duckdb_destroy_value(duckdb_value *value);
-export function destroy_value(value: Value): void;
+// not exposed: destroyed in finalizer
 
 // DUCKDB_API duckdb_value duckdb_create_varchar(const char *text);
 export function create_varchar(text: string): Value;
@@ -782,7 +782,7 @@ export function union_type_member_name(logical_type: LogicalType, index: number)
 export function union_type_member_type(logical_type: LogicalType, index: number): LogicalType;
 
 // DUCKDB_API void duckdb_destroy_logical_type(duckdb_logical_type *type);
-export function destroy_logical_type(logical_type: LogicalType): void;
+// not exposed: destroyed in finalizer
 
 // DUCKDB_API duckdb_state duckdb_register_logical_type(duckdb_connection con, duckdb_logical_type type, duckdb_create_type_info info);
 // export function register_logical_type(connection: Connection, logical_type: LogicalType, info: CreateTypeInfo): void;
@@ -791,7 +791,7 @@ export function destroy_logical_type(logical_type: LogicalType): void;
 export function create_data_chunk(logical_types: readonly LogicalType[]): DataChunk;
 
 // DUCKDB_API void duckdb_destroy_data_chunk(duckdb_data_chunk *chunk);
-export function destroy_data_chunk(chunk: DataChunk): void;
+// not exposed: destroyed in finalizer
 
 // DUCKDB_API void duckdb_data_chunk_reset(duckdb_data_chunk chunk);
 export function data_chunk_reset(chunk: DataChunk): void;
@@ -959,7 +959,7 @@ export function appender_flush(appender: Appender): void;
 export function appender_close(appender: Appender): void;
 
 // DUCKDB_API duckdb_state duckdb_appender_destroy(duckdb_appender *appender);
-export function appender_destroy(appender: Appender): void;
+// not exposed: destroyed in finalizer
 
 // DUCKDB_API duckdb_state duckdb_appender_begin_row(duckdb_appender appender);
 // not exposed: no-op
