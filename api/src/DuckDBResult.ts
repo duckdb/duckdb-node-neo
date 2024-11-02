@@ -34,9 +34,9 @@ export class DuckDBResult {
     );
   }
   public columnType(columnIndex: number): DuckDBType {
-    return DuckDBLogicalType.consumeAsType(
+    return DuckDBLogicalType.create(
       duckdb.column_logical_type(this.result, columnIndex)
-    );
+    ).asType();
   }
   public get rowsChanged(): number {
     return duckdb.rows_changed(this.result);

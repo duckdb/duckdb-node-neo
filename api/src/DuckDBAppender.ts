@@ -24,7 +24,9 @@ export class DuckDBAppender {
     return duckdb.appender_column_count(this.appender);
   }
   public columnType(columnIndex: number): DuckDBType {
-    return DuckDBLogicalType.consumeAsType(duckdb.appender_column_type(this.appender, columnIndex));
+    return DuckDBLogicalType.create(
+      duckdb.appender_column_type(this.appender, columnIndex)
+    ).asType();
   }
   public endRow() {
     duckdb.appender_end_row(this.appender);
