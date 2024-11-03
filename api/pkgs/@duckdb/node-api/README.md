@@ -2,7 +2,9 @@
 
 An API for using [DuckDB](https://duckdb.org/) in [Node](https://nodejs.org/).
 
-This is a high-level API meant for applications. It depends on low-level bindings that adhere closely to [DuckDB's C API](https://duckdb.org/docs/api/c/overview), available separately as [@duckdb/duckdb-bindings](https://www.npmjs.com/package/@duckdb/node-bindings).
+This is a high-level API meant for applications.
+It depends on low-level bindings that adhere closely to [DuckDB's C API](https://duckdb.org/docs/api/c/overview),
+available separately as [@duckdb/duckdb-bindings](https://www.npmjs.com/package/@duckdb/node-bindings).
 
 ## Features
 
@@ -17,7 +19,7 @@ This is a high-level API meant for applications. It depends on low-level binding
 
 Some features are not yet complete:
 - Appending and binding advanced data types. (Additional DuckDB C API support needed.)
-- Writing to data chunk vectors. (Directly writing to binary buffers is challenging to support using the Node Addon API.)
+- Writing to data chunk vectors. (Needs special handling in Node.)
 - User-defined types & functions. (Support for this was added to the DuckDB C API in v1.1.0.)
 - Profiling info (Added in v1.1.0)
 - Table description (Added in v1.1.0)
@@ -64,7 +66,9 @@ const instance = await DuckDBInstance.create('my_duckdb.db');
 
 Set configuration options:
 ```ts
-const instance = await DuckDBInstance.create('my_duckdb.db', { threads: '4' });
+const instance = await DuckDBInstance.create('my_duckdb.db', {
+  threads: '4'
+});
 ```
 
 ### Connect
@@ -116,12 +120,14 @@ while (true) {
 
 Read chunk data (column-major):
 ```ts
-const columns = chunk.getColumns(); // array of columns, each as an array of values
+// array of columns, each as an array of values
+const columns = chunk.getColumns(); 
 ```
 
 Read chunk data (row-major):
 ```ts
-const columns = chunk.getRows(); // array of rows, each as an array of values
+// array of rows, each as an array of values
+const columns = chunk.getRows(); 
 ```
 
 Read chunk data (one value at a time)
@@ -184,7 +190,8 @@ if (columnType.alias === 'JSON') {
 }
 ```
 
-Every type implements toString, matching DuckDB's type-to-string conversion.
+Every type implements toString.
+The result is both human-friendly and readable by DuckDB in an appropriate expression.
 
 ```ts
 const typeString = columnType.toString();
@@ -220,7 +227,8 @@ if (columnType.typeId === DuckDBTypeId.DATE) {
 if (columnType.typeId === DuckDBTypeId.DECIMAL) {
   const decimalWidth = columnValue.width;
   const decimalScale = columnValue.scale;
-  const decimalValue = columnValue.value; // bigint (Scaled-up value. Represented number is value/(10^scale).)
+  // Scaled-up value. Represented number is value/(10^scale).
+  const decimalValue = columnValue.value; // bigint
   const decimalString = columnValue.toString();
   const decimalDouble = columnValue.toDouble();
 }
@@ -243,7 +251,8 @@ if (columnType.typeId === DuckDBTypeId.MAP) {
 }
 
 if (columnType.typeId === DuckDBTypeId.STRUCT) {
-  const structEntries = columnValue.entries; // { name1: value1, name2: value2, ... }
+  // { name1: value1, name2: value2, ... }
+  const structEntries = columnValue.entries;
   const structString = columnValue.toString();
 }
 
@@ -265,20 +274,29 @@ if (columnType.typeId === DuckDBTypeId.TIMESTAMP_S) {
 if (columnType.typeId === DuckDBTypeId.TIMESTAMP_TZ) {
   const timestampTZMicros = columnValue.micros; // bigint
   const timestampTZString = columnValue.toString();
-  const { date: { year, month, day }, time: { hour, min, sec, micros } } = columnValue.toParts();
+  const {
+    date: { year, month, day },
+    time: { hour, min, sec, micros },
+  } = columnValue.toParts();
 }
 
 if (columnType.typeId === DuckDBTypeId.TIMESTAMP) {
   const timestampMicros = columnValue.micros; // bigint
   const timestampString = columnValue.toString();
-  const { date: { year, month, day }, time: { hour, min, sec, micros } } = columnValue.toParts();
+  const {
+    date: { year, month, day },
+    time: { hour, min, sec, micros },
+  } = columnValue.toParts();
 }
 
 if (columnType.typeId === DuckDBTypeId.TIME_TZ) {
   const timeTZMicros = columnValue.micros; // bigint
   const timeTZOffset = columnValue.offset;
   const timeTZString = columnValue.toString();
-  const { time: { hour, min, sec, micros }, offset } = columnValue.toParts();
+  const {
+    time: { hour, min, sec, micros },
+    offset,
+  } = columnValue.toParts();
 }
 
 if (columnType.typeId === DuckDBTypeId.TIME) {
@@ -298,13 +316,15 @@ if (columnType.typeId === DuckDBTypeId.UUID) {
   const uuidString = columnValue.toString();
 }
 
-// other values are represented as null, boolean, number, bigint, or string
+// other possible values are: null, boolean, number, bigint, or string
 ```
 
 ### Append To Table
 
 ```ts
-await connection.run(`create or replace table target_table(i integer, v varchar)`);
+await connection.run(
+  `create or replace table target_table(i integer, v varchar)`
+);
 
 const appender = await connection.createAppender('main', 'target_table');
 
@@ -335,11 +355,11 @@ const extractedStatements = await connection.extractStatements(`
 `);
 const parameterValues = [10, 7];
 const statementCount = extractedStatements.count;
-for (let statementIndex = 0; statementIndex < statementCount; statementIndex++) {
-  const prepared = await extractedStatements.prepare(statementIndex);
+for (let stmtIndex = 0; stmtIndex < statementCount; stmtIndex++) {
+  const prepared = await extractedStatements.prepare(stmtIndex);
   let parameterCount = prepared.parameterCount;
-  for (let parameterIndex = 1; parameterIndex <= parameterCount; parameterIndex++) {
-    prepared.bindInteger(parameterIndex, parameterValues.shift());
+  for (let paramIndex = 1; paramIndex <= parameterCount; paramIndex++) {
+    prepared.bindInteger(paramIndex, parameterValues.shift());
   }
   const result = await prepared.run();
   // ...
