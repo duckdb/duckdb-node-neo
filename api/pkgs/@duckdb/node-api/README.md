@@ -16,8 +16,6 @@ This is a high-level API meant for applications. It depends on low-level binding
 ### Roadmap
 
 Some features are not yet complete:
-- Friendlier APIs for convering results to common JS data structures.
-- Friendlier APIs for converting values of specialized and complex DuckDB types to common JS types.
 - Appending and binding advanced data types. (Additional DuckDB C API support needed.)
 - Writing to data chunk vectors. (Directly writing to binary buffers is challenging to support using the Node Addon API.)
 - User-defined types & functions. (Support for this was added to the DuckDB C API in v1.1.0.)
@@ -94,22 +92,21 @@ const result = await prepared.run();
 
 Get column names and types:
 ```ts
-const columnNames = [];
-const columnTypes = [];
-const columnCount = result.columnCount;
-for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-  const columnName = result.columnName(columnIndex);
-  const columnType = result.columnType(columnIndex);
-  columnNames.push(columnName);
-  columnTypes.push(columnType);
-}
+const columnNames = result.columnNames();
+const columnTypes = result.columnTypes();
 ```
 
-Fetch data chunks:
+Fetch all chunks:
+```ts
+const chunks = await result.fetchAllChunks();
+```
+
+Fetch one chunk at a time:
 ```ts
 const chunks = [];
 while (true) {
   const chunk = await result.fetchChunk();
+  // Last chunk will have zero rows.
   if (chunk.rowCount === 0) {
     break;
   }
@@ -117,13 +114,23 @@ while (true) {
 }
 ```
 
-Read column data:
+Read chunk data (column-major):
+```ts
+const columns = chunk.getColumns(); // array of columns, each as an array of values
+```
+
+Read chunk data (row-major):
+```ts
+const columns = chunk.getRows(); // array of rows, each as an array of values
+```
+
+Read chunk data (one value at a time)
 ```ts
 const columns = [];
-const columnCount = result.columnCount;
+const columnCount = chunk.columnCount;
 for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
   const columnValues = [];
-  const columnVector = chunk.getColumn(columnIndex);
+  const columnVector = chunk.getColumnVector(columnIndex);
   const itemCount = columnVector.itemCount;
   for (let itemIndex = 0; itemIndex < itemCount; itemIndex++) {
     const value = columnVector.getItem(itemIndex);
@@ -207,13 +214,15 @@ if (columnType.typeId === DuckDBTypeId.BLOB) {
 if (columnType.typeId === DuckDBTypeId.DATE) {
   const dateDays = columnValue.days;
   const dateString = columnValue.toString();
+  const { year, month, day } = columnValue.toParts();
 }
 
 if (columnType.typeId === DuckDBTypeId.DECIMAL) {
   const decimalWidth = columnValue.width;
   const decimalScale = columnValue.scale;
-  const decimalValue = columnValue.value; // bigint (raw fixed-point integer; `scale` indicates number of fractional digits)
+  const decimalValue = columnValue.value; // bigint (Scaled-up value. Represented number is value/(10^scale).)
   const decimalString = columnValue.toString();
+  const decimalDouble = columnValue.toDouble();
 }
 
 if (columnType.typeId === DuckDBTypeId.INTERVAL) {
@@ -256,22 +265,26 @@ if (columnType.typeId === DuckDBTypeId.TIMESTAMP_S) {
 if (columnType.typeId === DuckDBTypeId.TIMESTAMP_TZ) {
   const timestampTZMicros = columnValue.micros; // bigint
   const timestampTZString = columnValue.toString();
+  const { date: { year, month, day }, time: { hour, min, sec, micros } } = columnValue.toParts();
 }
 
 if (columnType.typeId === DuckDBTypeId.TIMESTAMP) {
   const timestampMicros = columnValue.micros; // bigint
   const timestampString = columnValue.toString();
+  const { date: { year, month, day }, time: { hour, min, sec, micros } } = columnValue.toParts();
 }
 
 if (columnType.typeId === DuckDBTypeId.TIME_TZ) {
   const timeTZMicros = columnValue.micros; // bigint
   const timeTZOffset = columnValue.offset;
   const timeTZString = columnValue.toString();
+  const { time: { hour, min, sec, micros }, offset } = columnValue.toParts();
 }
 
 if (columnType.typeId === DuckDBTypeId.TIME) {
   const timeMicros = columnValue.micros; // bigint
   const timeString = columnValue.toString();
+  const { hour, min, sec, micros } = columnValue.toParts();
 }
 
 if (columnType.typeId === DuckDBTypeId.UNION) {
@@ -333,7 +346,7 @@ for (let statementIndex = 0; statementIndex < statementCount; statementIndex++) 
 }
 ```
 
-### Control Evaluation
+### Control Evaluation of Tasks
 
 ```ts
 import { DuckDBPendingResultState } from '@duckdb/node-api';
