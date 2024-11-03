@@ -264,13 +264,13 @@ if (columnType.typeId === DuckDBTypeId.TIMESTAMP) {
 }
 
 if (columnType.typeId === DuckDBTypeId.TIME_TZ) {
-  const timeTZMicros = columnValue.microseconds;
+  const timeTZMicros = columnValue.micros; // bigint
   const timeTZOffset = columnValue.offset;
   const timeTZString = columnValue.toString();
 }
 
 if (columnType.typeId === DuckDBTypeId.TIME) {
-  const timeMicros = columnValue.microseconds; // bigint
+  const timeMicros = columnValue.micros; // bigint
   const timeString = columnValue.toString();
 }
 

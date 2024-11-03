@@ -1,5 +1,7 @@
-import { Date_ } from '@duckdb/node-bindings';
+import duckdb, { Date_, DateParts } from '@duckdb/node-bindings';
 import { getDuckDBDateStringFromDays } from '../conversion/dateTimeStringConversion';
+
+export type { DateParts };
 
 export class DuckDBDateValue implements Date_ {
   public readonly days: number;
@@ -8,8 +10,20 @@ export class DuckDBDateValue implements Date_ {
     this.days = days;
   }
 
+  public get isFinite(): boolean {
+    return duckdb.is_finite_date(this);
+  }
+
   public toString(): string {
     return getDuckDBDateStringFromDays(this.days);
+  }
+
+  public toParts(): DateParts {
+    return duckdb.from_date(this);
+  }
+
+  public static fromParts(parts: DateParts): DuckDBDateValue {
+    return new DuckDBDateValue(duckdb.to_date(parts).days);
   }
 
   public static readonly Epoch = new DuckDBDateValue(0);

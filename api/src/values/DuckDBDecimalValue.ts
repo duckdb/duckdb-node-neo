@@ -1,46 +1,41 @@
-import { Decimal } from '@duckdb/node-bindings';
+import duckdb, { Decimal } from '@duckdb/node-bindings';
 import { stringFromDecimal } from '../conversion/stringFromDecimal';
 
-export class DuckDBDecimalValue<T extends number | bigint = number | bigint> implements Decimal {
+export class DuckDBDecimalValue implements Decimal {
+  /** Total number of decimal digits (including fractional digits) in represented number. */
   public readonly width: number;
-  public readonly scale: number;
-  public readonly scaledValue: T;
 
-  public constructor(width: number, scale: number, scaledValue: T) {
+  /** Number of fractional digits in represented number. */
+  public readonly scale: number;
+
+  /** Scaled-up value. Represented number is value/(10^scale). */
+  public readonly value: bigint;
+
+  /**
+   * @param value Scaled-up value. Represented number is value/(10^scale).
+   * @param width Total number of decimal digits (including fractional digits) in represented number.
+   * @param scale Number of fractional digits in represented number.
+   */
+  public constructor(value: bigint, width: number, scale: number) {
     this.width = width;
     this.scale = scale;
-    this.scaledValue = scaledValue;
-  }
-
-  get value(): bigint {
-    return BigInt(this.scaledValue);
+    this.value = value;
   }
 
   public toString(): string {
     return stringFromDecimal(this.value, this.scale);
   }
+
+  public toDouble(): number {
+    return duckdb.decimal_to_double(this);
+  }
+
+  public static fromDouble(double: number, width: number, scale: number): DuckDBDecimalValue {
+    const decimal = duckdb.double_to_decimal(double, width, scale);
+    return new DuckDBDecimalValue(decimal.value, decimal.width, decimal.scale);
+  }
 }
 
-export function decimalValue<T extends number | bigint = number | bigint>(
-  width: number,
-  scale: number,
-  scaledValue: T
-): DuckDBDecimalValue<T> {
-  return new DuckDBDecimalValue(width, scale, scaledValue);
-}
-
-export function decimalNumber(
-  width: number,
-  scale: number,
-  scaledValue: number
-): DuckDBDecimalValue<number> {
-  return new DuckDBDecimalValue(width, scale, scaledValue);
-}
-
-export function decimalBigint(
-  width: number,
-  scale: number,
-  scaledValue: bigint
-): DuckDBDecimalValue<bigint> {
-  return new DuckDBDecimalValue(width, scale, scaledValue);
+export function decimalValue(value: bigint, width: number, scale: number): DuckDBDecimalValue {
+  return new DuckDBDecimalValue(value, width, scale);
 }

@@ -1,6 +1,8 @@
-import { Timestamp } from '@duckdb/node-bindings';
-import { DuckDBTimestampMillisecondsValue } from './DuckDBTimestampMillisecondsValue';
+import duckdb, { Timestamp, TimestampParts } from '@duckdb/node-bindings';
 import { getDuckDBTimestampStringFromMicroseconds } from '../conversion/dateTimeStringConversion';
+import { DuckDBTimestampMillisecondsValue } from './DuckDBTimestampMillisecondsValue';
+
+export type { TimestampParts };
 
 export class DuckDBTimestampValue implements Timestamp {
   public readonly micros: bigint;
@@ -11,6 +13,14 @@ export class DuckDBTimestampValue implements Timestamp {
 
   public toString(): string {
     return getDuckDBTimestampStringFromMicroseconds(this.micros);
+  }
+
+  public toParts(): TimestampParts {
+    return duckdb.from_timestamp(this);
+  }
+
+  public static fromParts(parts: TimestampParts): DuckDBTimestampValue {
+    return new DuckDBTimestampValue(duckdb.to_timestamp(parts).micros);
   }
   
   public static readonly Epoch = new DuckDBTimestampValue(0n);

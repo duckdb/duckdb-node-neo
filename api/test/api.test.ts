@@ -1,5 +1,6 @@
 import { assert, describe, test } from 'vitest';
 import {
+  DateParts,
   DuckDBAnyType,
   DuckDBArrayType,
   DuckDBArrayVector,
@@ -22,6 +23,7 @@ import {
   DuckDBDecimal4Vector,
   DuckDBDecimal8Vector,
   DuckDBDecimalType,
+  DuckDBDecimalValue,
   DuckDBDoubleType,
   DuckDBDoubleVector,
   DuckDBEnum1Vector,
@@ -96,12 +98,14 @@ import {
   DuckDBVector,
   ResultReturnType,
   StatementType,
+  TimeParts,
+  TimeTZParts,
+  TimestampParts,
   arrayValue,
   bitValue,
   configurationOptionDescriptions,
   dateValue,
-  decimalBigint,
-  decimalNumber,
+  decimalValue,
   intervalValue,
   listValue,
   mapValue,
@@ -525,23 +529,23 @@ describe('api', () => {
       assertValues(chunk, 20, DuckDBFloatVector, [DuckDBFloatType.Min, DuckDBFloatType.Max, null]);
       assertValues(chunk, 21, DuckDBDoubleVector, [DuckDBDoubleType.Min, DuckDBDoubleType.Max, null]);
       assertValues(chunk, 22, DuckDBDecimal2Vector, [
-        decimalNumber(4, 1, -9999),
-        decimalNumber(4, 1, 9999),
+        decimalValue(-9999n, 4, 1),
+        decimalValue( 9999n, 4, 1),
         null,
       ]);
       assertValues(chunk, 23, DuckDBDecimal4Vector, [
-        decimalNumber(9, 4, -999999999),
-        decimalNumber(9, 4, 999999999),
+        decimalValue(-999999999n, 9, 4),
+        decimalValue( 999999999n, 9, 4),
         null,
       ]);
       assertValues(chunk, 24, DuckDBDecimal8Vector, [
-        decimalBigint(18, 6, -BI_18_9s),
-        decimalBigint(18, 6, BI_18_9s),
+        decimalValue(-BI_18_9s, 18, 6),
+        decimalValue( BI_18_9s, 18, 6),
         null,
       ]);
       assertValues(chunk, 25, DuckDBDecimal16Vector, [
-        decimalBigint(38, 10, -BI_38_9s),
-        decimalBigint(38, 10, BI_38_9s),
+        decimalValue(-BI_38_9s, 38, 10),
+        decimalValue( BI_38_9s, 38, 10),
         null,
       ]);
       assertValues(chunk, 26, DuckDBUUIDVector, [DuckDBUUIDValue.Min, DuckDBUUIDValue.Max, null]);
@@ -792,21 +796,21 @@ describe('api', () => {
     assert.equal(DuckDBDateValue.Min.toString(), '5877642-06-25 (BC)');
 
     // decimal
-    assert.equal(decimalNumber(4, 1, 0).toString(), '0.0');
-    assert.equal(decimalNumber(4, 1,  9876).toString(),  '987.6');
-    assert.equal(decimalNumber(4, 1, -9876).toString(), '-987.6');
+    assert.equal(decimalValue(0n, 4, 1).toString(), '0.0');
+    assert.equal(decimalValue( 9876n, 4, 1).toString(),  '987.6');
+    assert.equal(decimalValue(-9876n, 4, 1).toString(), '-987.6');
 
-    assert.equal(decimalNumber(9, 4, 0).toString(), '0.0000');
-    assert.equal(decimalNumber(9, 4,  987654321).toString(),  '98765.4321');
-    assert.equal(decimalNumber(9, 4, -987654321).toString(), '-98765.4321');
+    assert.equal(decimalValue(0n, 9, 4).toString(), '0.0000');
+    assert.equal(decimalValue( 987654321n, 9, 4).toString(),  '98765.4321');
+    assert.equal(decimalValue(-987654321n, 9, 4).toString(), '-98765.4321');
 
-    assert.equal(decimalNumber(18, 6, 0).toString(), '0.000000');
-    assert.equal(decimalBigint(18, 6,  987654321098765432n).toString(),  '987654321098.765432');
-    assert.equal(decimalBigint(18, 6, -987654321098765432n).toString(), '-987654321098.765432');
+    assert.equal(decimalValue(0n, 18, 6).toString(), '0.000000');
+    assert.equal(decimalValue( 987654321098765432n, 18, 6).toString(),  '987654321098.765432');
+    assert.equal(decimalValue(-987654321098765432n, 18, 6).toString(), '-987654321098.765432');
 
-    assert.equal(decimalNumber(38, 10, 0).toString(), '0.0000000000');
-    assert.equal(decimalBigint(38, 10,  98765432109876543210987654321098765432n).toString(),  '9876543210987654321098765432.1098765432');
-    assert.equal(decimalBigint(38, 10, -98765432109876543210987654321098765432n).toString(), '-9876543210987654321098765432.1098765432');
+    assert.equal(decimalValue(0n, 38, 10).toString(), '0.0000000000');
+    assert.equal(decimalValue( 98765432109876543210987654321098765432n, 38, 10).toString(),  '9876543210987654321098765432.1098765432');
+    assert.equal(decimalValue(-98765432109876543210987654321098765432n, 38, 10).toString(), '-9876543210987654321098765432.1098765432');
 
     // interval
     assert.equal(intervalValue(0, 0, 0n).toString(), '00:00:00');
@@ -900,7 +904,7 @@ describe('api', () => {
     assert.equal(DuckDBTimestampValue.NegInf.toString(), '-infinity');
 
     // time tz
-    assert.equal(timeTZValue(0, 0).toString(), '00:00:00');
+    assert.equal(timeTZValue(0n, 0).toString(), '00:00:00');
     // assert.equal(DuckDBTimeTZValue.Max.toString(), '24:00:00-15:59:59'); 
     assert.equal(DuckDBTimeTZValue.Max.toString(), '24:00:00'); // TODO TZ
     // assert.equal(DuckDBTimeTZValue.Max.toString(), '00:00:00+15:59:59'); 
@@ -918,5 +922,27 @@ describe('api', () => {
     // uuid
     assert.equal(uuidValue(0n).toString(), '00000000-0000-0000-0000-000000000000');
     assert.equal(uuidValue(2n ** 128n - 1n).toString(), 'ffffffff-ffff-ffff-ffff-ffffffffffff');
+  });
+  test('date isFinite', () => {
+    assert.isTrue(DuckDBDateValue.Epoch.isFinite);
+    assert.isTrue(DuckDBDateValue.Max.isFinite);
+    assert.isTrue(DuckDBDateValue.Min.isFinite);
+    assert.isFalse(DuckDBDateValue.PosInf.isFinite);
+    assert.isFalse(DuckDBDateValue.NegInf.isFinite);
+  });
+  test('value conversion', () => {
+    const dateParts: DateParts = { year: 2024, month: 6, day: 3 };
+    const timeParts: TimeParts = { hour: 12, min: 34, sec: 56, micros: 789123 };
+    const timeTZParts: TimeTZParts = { time: timeParts, offset: DuckDBTimeTZValue.MinOffset };
+    const timestampParts: TimestampParts = { date: dateParts, time: timeParts };
+
+    assert.deepEqual(DuckDBDateValue.fromParts(dateParts).toParts(), dateParts);
+    assert.deepEqual(DuckDBTimeValue.fromParts(timeParts).toParts(), timeParts);
+    assert.deepEqual(DuckDBTimeTZValue.fromParts(timeTZParts).toParts(), timeTZParts);
+    assert.deepEqual(DuckDBTimestampValue.fromParts(timestampParts).toParts(), timestampParts);
+    assert.deepEqual(DuckDBTimestampTZValue.fromParts(timestampParts).toParts(), timestampParts);
+
+    assert.deepEqual(DuckDBDecimalValue.fromDouble(3.14159, 6, 5), decimalValue(314159n, 6, 5));
+    assert.deepEqual(decimalValue(314159n, 6, 5).toDouble(), 3.14159);
   });
 });

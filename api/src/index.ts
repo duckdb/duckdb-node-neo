@@ -1,3 +1,9 @@
+export {
+  hugeint_to_double,
+  double_to_hugeint,
+  uhugeint_to_double,
+  double_to_uhugeint,
+} from '@duckdb/node-bindings';
 export * from './DuckDBAppender';
 export * from './DuckDBConnection';
 export * from './DuckDBDataChunk';
