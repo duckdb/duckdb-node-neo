@@ -163,11 +163,11 @@ function getColumnVector<TValue extends DuckDBValue, TVector extends DuckDBVecto
   columnIndex: number,
   vectorType: new (...args: any[]) => TVector
 ): TVector {
-  const column = chunk.getColumn(columnIndex);
-  if (!isVectorType<TValue, TVector>(column, vectorType)) {
+  const columnVector = chunk.getColumnVector(columnIndex);
+  if (!isVectorType<TValue, TVector>(columnVector, vectorType)) {
     assert.fail(`expected column ${columnIndex} to be a ${vectorType}`);
   }
-  return column;
+  return columnVector;
 }
 
 function assertVectorValues<TValue extends DuckDBValue>(
@@ -944,5 +944,17 @@ describe('api', () => {
 
     assert.deepEqual(DuckDBDecimalValue.fromDouble(3.14159, 6, 5), decimalValue(314159n, 6, 5));
     assert.deepEqual(decimalValue(314159n, 6, 5).toDouble(), 3.14159);
+  });
+  test('result inspection conveniences', async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.run('select i::int as a, i::int + 10 as b from range(3) t(i)');
+      assert.deepEqual(result.columnNames(), ['a', 'b']);
+      assert.deepEqual(result.columnTypes(), [DuckDBIntegerType.instance, DuckDBIntegerType.instance]);
+      const chunks = await result.fetchAllChunks();
+      const chunkColumns = chunks.map(chunk => chunk.getColumns());
+      assert.deepEqual(chunkColumns, [[[0, 1, 2], [10, 11, 12]]]);
+      const chunkRows = chunks.map(chunk => chunk.getRows());
+      assert.deepEqual(chunkRows, [[[0, 10], [1, 11], [2, 12]]]);
+    });
   });
 });

@@ -6,7 +6,7 @@ export async function runSql(connection: DuckDBConnection, sql: string): Promise
   let nullCount = 0;
   let chunk = await result.fetchChunk();
   while (chunk.rowCount > 0) {
-    const col0 = chunk.getColumn(0);
+    const col0 = chunk.getColumnVector(0);
     for (let i = 0; i < col0.itemCount; i++) {
       if (col0.getItem(i) === null) {
         nullCount++;
