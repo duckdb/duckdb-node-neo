@@ -115,7 +115,6 @@ import {
   timestampTZValue,
   timestampValue,
   unionValue,
-  uuidValue,
   version
 } from '../src';
 
@@ -920,8 +919,8 @@ describe('api', () => {
     assert.equal(unionValue('b', 'duck').toString(), 'duck');
 
     // uuid
-    assert.equal(uuidValue(0n).toString(), '00000000-0000-0000-0000-000000000000');
-    assert.equal(uuidValue(2n ** 128n - 1n).toString(), 'ffffffff-ffff-ffff-ffff-ffffffffffff');
+    assert.equal(DuckDBUUIDValue.Min.toString(), '00000000-0000-0000-0000-000000000000');
+    assert.equal(DuckDBUUIDValue.Max.toString(), 'ffffffff-ffff-ffff-ffff-ffffffffffff');
   });
   test('date isFinite', () => {
     assert.isTrue(DuckDBDateValue.Epoch.isFinite);
