@@ -4,6 +4,7 @@ import { DuckDBValue } from './values';
 
 export class DuckDBDataChunk {
   public readonly chunk: duckdb.DataChunk;
+  private readonly vectors: DuckDBVector[] = [];
   constructor(chunk: duckdb.DataChunk) {
     this.chunk = chunk;
   }
@@ -17,11 +18,15 @@ export class DuckDBDataChunk {
     return duckdb.data_chunk_get_column_count(this.chunk);
   }
   public getColumnVector(columnIndex: number): DuckDBVector {
-    // TODO: cache vectors?
-    return DuckDBVector.create(
+    if (this.vectors[columnIndex]) {
+      return this.vectors[columnIndex];
+    }
+    const vector = DuckDBVector.create(
       duckdb.data_chunk_get_vector(this.chunk, columnIndex),
       this.rowCount
     );
+    this.vectors[columnIndex] = vector;
+    return vector;
   }
   public getColumnValues(columnIndex: number): DuckDBValue[] {
     return this.getColumnVector(columnIndex).toArray();

@@ -1,5 +1,6 @@
 import duckdb from '@duckdb/node-bindings';
 import { DuckDBResult } from './DuckDBResult';
+import { DuckDBResultReader } from './DuckDBResultReader';
 
 // Values match similar enum in C API.
 export enum DuckDBPendingResultState {
@@ -34,5 +35,18 @@ export class DuckDBPendingResult {
   }
   public async getResult(): Promise<DuckDBResult> {
     return new DuckDBResult(await duckdb.execute_pending(this.pending_result));
+  }
+  public async read(): Promise<DuckDBResultReader> {
+    return new DuckDBResultReader(await this.getResult());
+  }
+  public async readAll(): Promise<DuckDBResultReader> {
+    const reader = new DuckDBResultReader(await this.getResult());
+    await reader.readAll();
+    return reader;
+  }
+  public async readUntil(targetRowCount: number): Promise<DuckDBResultReader> {
+    const reader = new DuckDBResultReader(await this.getResult());
+    await reader.readUntil(targetRowCount);
+    return reader;
   }
 }

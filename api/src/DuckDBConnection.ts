@@ -4,6 +4,7 @@ import { DuckDBExtractedStatements } from './DuckDBExtractedStatements';
 import { DuckDBInstance } from './DuckDBInstance';
 import { DuckDBPreparedStatement } from './DuckDBPreparedStatement';
 import { DuckDBResult } from './DuckDBResult';
+import { DuckDBResultReader } from './DuckDBResultReader';
 
 export class DuckDBConnection {
   private readonly connection: duckdb.Connection;
@@ -23,6 +24,19 @@ export class DuckDBConnection {
   }
   public async run(sql: string): Promise<DuckDBResult> {
     return new DuckDBResult(await duckdb.query(this.connection, sql));
+  }
+  public async runAndRead(sql: string): Promise<DuckDBResultReader> {
+    return new DuckDBResultReader(await this.run(sql));
+  }
+  public async runAndReadAll(sql: string): Promise<DuckDBResultReader> {
+    const reader = new DuckDBResultReader(await this.run(sql));
+    await reader.readAll();
+    return reader;
+  }
+  public async runAndReadUntil(sql: string, targetRowCount: number): Promise<DuckDBResultReader> {
+    const reader = new DuckDBResultReader(await this.run(sql));
+    await reader.readUntil(targetRowCount);
+    return reader;
   }
   public async prepare(sql: string): Promise<DuckDBPreparedStatement> {
     return new DuckDBPreparedStatement(
