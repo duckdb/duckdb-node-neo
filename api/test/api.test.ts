@@ -957,4 +957,21 @@ describe('api', () => {
       assert.deepEqual(chunkRows, [[[0, 10], [1, 11], [2, 12]]]);
     });
   });
+  test('result reader', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll('select i::int as a, i::int + 10000 as b from range(5000) t(i)');
+      assert.deepEqual(reader.columnNames(), ['a', 'b']);
+      assert.deepEqual(reader.columnTypes(), [DuckDBIntegerType.instance, DuckDBIntegerType.instance]);
+      const columns = reader.getColumns();
+      assert.equal(columns.length, 2);
+      assert.equal(columns[0][0], 0);
+      assert.equal(columns[0][4999], 4999);
+      assert.equal(columns[1][0], 10000);
+      assert.equal(columns[1][4999], 14999);
+      const rows = reader.getRows();
+      assert.equal(rows.length, 5000);
+      assert.deepEqual(rows[0], [0, 10000]);
+      assert.deepEqual(rows[4999], [4999, 14999]);
+    });
+  });
 });

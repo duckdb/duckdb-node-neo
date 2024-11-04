@@ -1,6 +1,7 @@
 import duckdb from '@duckdb/node-bindings';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBResult } from './DuckDBResult';
+import { DuckDBResultReader } from './DuckDBResultReader';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { StatementType } from './enums';
 import {
@@ -114,6 +115,19 @@ export class DuckDBPreparedStatement {
     return new DuckDBResult(
       await duckdb.execute_prepared(this.prepared_statement)
     );
+  }
+  public async runAndRead(): Promise<DuckDBResultReader> {
+    return new DuckDBResultReader(await this.run());
+  }
+  public async runAndReadAll(): Promise<DuckDBResultReader> {
+    const reader = new DuckDBResultReader(await this.run());
+    await reader.readAll();
+    return reader;
+  }
+  public async runAndReadUntil(targetRowCount: number): Promise<DuckDBResultReader> {
+    const reader = new DuckDBResultReader(await this.run());
+    await reader.readUntil(targetRowCount);
+    return reader;
   }
   public start(): DuckDBPendingResult {
     return new DuckDBPendingResult(

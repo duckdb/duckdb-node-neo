@@ -3,7 +3,9 @@ import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
+import { DuckDBVector } from './DuckDBVector';
 import { ResultReturnType, StatementType } from './enums';
+import { DuckDBValue } from './values';
 
 export class DuckDBResult {
   private readonly result: duckdb.Result;
@@ -69,5 +71,46 @@ export class DuckDBResult {
       }
       chunks.push(chunk);
     }
+  }
+  public async getColumns(): Promise<DuckDBValue[][]> {
+    const chunks = await this.fetchAllChunks();
+    if (chunks.length === 0) {
+      return [];
+    }
+    const firstChunk = chunks[0];
+    const columns: DuckDBValue[][] = [];
+    const columnCount = this.columnCount;
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+      columns.push(firstChunk.getColumnValues(columnIndex));
+    } 
+    for (let chunkIndex = 1; chunkIndex < chunks.length; chunkIndex++) {
+      for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+        const vector = chunks[chunkIndex].getColumnVector(columnIndex);
+        for (let itemIndex = 0; itemIndex < vector.itemCount; itemIndex++) {
+          columns[columnIndex].push(vector.getItem(itemIndex));
+        }
+      }
+    }
+    return columns;
+  }
+  public async getRows(): Promise<DuckDBValue[][]> {
+    const chunks = await this.fetchAllChunks();
+    const rows: DuckDBValue[][] = [];
+    for (const chunk of chunks) {
+      const chunkVectors: DuckDBVector[] = [];
+      const columnCount = chunk.columnCount;
+      for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+        chunkVectors.push(chunk.getColumnVector(columnIndex));
+      }
+      const rowCount = chunk.rowCount;
+      for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+        const row: DuckDBValue[] = [];
+        for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+          row.push(chunkVectors[columnIndex].getItem(rowIndex));
+        }
+        rows.push(row);
+      }
+    }
+    return rows;
   }
 }
