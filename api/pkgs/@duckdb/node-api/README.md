@@ -146,6 +146,36 @@ for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
 }
 ```
 
+### Result Reader
+
+Run and read all data:
+```ts
+const reader = await connection.runAndReadAll('from test_all_types()');
+const rows = reader.getRows();
+// OR: const columns = reader.getColumns();
+```
+
+Run and read up to (at lesat) some number of rows:
+```ts
+const reader = await connection.runAndReadUtil('from range(5000)', 1000);
+const rows = reader.getRows();
+// rows.length === 2048. (Rows are read in chunks of 2048.)
+```
+
+Read rows incrementally:
+```ts
+const reader = await connection.runAndRead('from range(5000)');
+reader.readUntil(2000);
+// reader.currentRowCount === 2048 (Rows are read in chunks of 2048.)
+// reader.done === false
+reader.readUntil(4000);
+// reader.currentRowCount === 4096
+// reader.done === false
+reader.readUntil(6000);
+// reader.currentRowCount === 5000
+// reader.done === true
+```
+
 ### Inspect Data Types
 
 ```ts
