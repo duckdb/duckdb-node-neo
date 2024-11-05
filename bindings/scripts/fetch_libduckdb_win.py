@@ -1,7 +1,7 @@
 import os
 from fetch_libduckdb import fetch_libduckdb
 
-zip_url = "https://github.com/duckdb/duckdb/releases/download/v1.1.2/libduckdb-windows-amd64.zip"
+zip_url = "https://github.com/duckdb/duckdb/releases/download/v1.1.3/libduckdb-windows-amd64.zip"
 output_dir = os.path.join(os.path.dirname(__file__), "..", "libduckdb")
 files = [
   "duckdb.h",
