@@ -67,8 +67,8 @@ export class DuckDBBigIntType extends BaseDuckDBType<DuckDBTypeId.BIGINT> {
   public static create(alias?: string): DuckDBBigIntType {
     return alias ? new DuckDBBigIntType(alias) : DuckDBBigIntType.instance;
   }
-  public static readonly Max = 2n ** 63n - 1n;
-  public static readonly Min = -(2n ** 63n);
+  public static readonly Max: bigint = 2n ** 63n - 1n;
+  public static readonly Min: bigint = -(2n ** 63n);
 }
 
 export class DuckDBUTinyIntType extends BaseDuckDBType<DuckDBTypeId.UTINYINT> {
@@ -115,8 +115,8 @@ export class DuckDBUBigIntType extends BaseDuckDBType<DuckDBTypeId.UBIGINT> {
   public static create(alias?: string): DuckDBUBigIntType {
     return alias ? new DuckDBUBigIntType(alias) : DuckDBUBigIntType.instance;
   }
-  public static readonly Max = 2n ** 64n - 1n;
-  public static readonly Min = 0n;
+  public static readonly Max: bigint = 2n ** 64n - 1n;
+  public static readonly Min: bigint = 0n;
 }
 
 export class DuckDBFloatType extends BaseDuckDBType<DuckDBTypeId.FLOAT> {
@@ -194,8 +194,8 @@ export class DuckDBHugeIntType extends BaseDuckDBType<DuckDBTypeId.HUGEINT> {
   public static create(alias?: string): DuckDBHugeIntType {
     return alias ? new DuckDBHugeIntType(alias) : DuckDBHugeIntType.instance;
   }
-  public static readonly Max = 2n ** 127n - 1n;
-  public static readonly Min = -(2n ** 127n);
+  public static readonly Max: bigint = 2n ** 127n - 1n;
+  public static readonly Min: bigint = -(2n ** 127n);
 }
 
 export class DuckDBUHugeIntType extends BaseDuckDBType<DuckDBTypeId.UHUGEINT> {
@@ -206,8 +206,8 @@ export class DuckDBUHugeIntType extends BaseDuckDBType<DuckDBTypeId.UHUGEINT> {
   public static create(alias?: string): DuckDBUHugeIntType {
     return alias ? new DuckDBUHugeIntType(alias) : DuckDBUHugeIntType.instance;
   }
-  public static readonly Max = 2n ** 128n - 1n;
-  public static readonly Min = 0n;
+  public static readonly Max: bigint = 2n ** 128n - 1n;
+  public static readonly Min: bigint = 0n;
 }
 
 export class DuckDBVarCharType extends BaseDuckDBType<DuckDBTypeId.VARCHAR> {
