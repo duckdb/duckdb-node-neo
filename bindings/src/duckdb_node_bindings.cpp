@@ -9,6 +9,8 @@
 
 #include "duckdb.h"
 
+#define DEFAULT_DUCKDB_API "node-neo-bindings"
+
 // Conversion betweeen structs and objects
 
 Napi::Object MakeDateObject(Napi::Env env, duckdb_date date) {
@@ -495,18 +497,25 @@ protected:
     if (path_) {
       path = path_->c_str();
     }
-    if (config_ != nullptr) {
-      char *error = nullptr;
-      if (duckdb_open_ext(path, &database_, config_, &error)) {
-        if (error != nullptr) {
-          SetError(error);
-          duckdb_free(error);
-        } else {
-          SetError("Failed to open");
-        }
+    duckdb_config cfg = config_;
+    // If no config was provided, create one with the default duckdb_api value.
+    if (cfg == nullptr) {
+      if (duckdb_create_config(&cfg)) {
+        duckdb_destroy_config(&cfg);
+        SetError("Failed to create config");
+        return;
       }
-    } else {
-      if (duckdb_open(path, &database_)) {
+      if (duckdb_set_config(cfg, "duckdb_api", DEFAULT_DUCKDB_API)) {
+        SetError("Failed to set duckdb_api");
+        return;
+      }
+    }
+    char *error = nullptr;
+    if (duckdb_open_ext(path, &database_, cfg, &error)) {
+      if (error != nullptr) {
+        SetError(error);
+        duckdb_free(error);
+      } else {
         SetError("Failed to open");
       }
     }
@@ -1169,6 +1178,10 @@ private:
     if (duckdb_create_config(&config)) {
       duckdb_destroy_config(&config);
       throw Napi::Error::New(env, "Failed to create config");
+    }
+    // Set the default duckdb_api value for the bindings. Can be overridden.
+    if (duckdb_set_config(config, "duckdb_api", DEFAULT_DUCKDB_API)) {
+      throw Napi::Error::New(env, "Failed to set duckdb_api");
     }
     return CreateExternalForConfig(env, config);
   }

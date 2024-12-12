@@ -10,16 +10,16 @@ export class DuckDBInstance {
     path?: string,
     options?: Record<string, string>
   ): Promise<DuckDBInstance> {
+    const config = duckdb.create_config();
+    // Set the default duckdb_api value for the api. Can be overridden.
+    duckdb.set_config(config, 'duckdb_api', 'node-neo-api');
     if (options) {
-      const config = duckdb.create_config();
       for (const optionName in options) {
         const optionValue = String(options[optionName]);
         duckdb.set_config(config, optionName, optionValue);
       }
-      return new DuckDBInstance(await duckdb.open(path, config));
-    } else {
-      return new DuckDBInstance(await duckdb.open(path));
     }
+    return new DuckDBInstance(await duckdb.open(path, config));
   }
   public async connect(): Promise<DuckDBConnection> {
     return new DuckDBConnection(await duckdb.connect(this.db));
