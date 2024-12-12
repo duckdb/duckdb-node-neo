@@ -66,7 +66,7 @@ function getStringBytes(dv: DataView, offset: number): Uint8Array {
   if (lengthInBytes <= 12) {
     return new Uint8Array(dv.buffer, dv.byteOffset + offset + 4, lengthInBytes);
   } else {
-    return duckdb.get_data_from_pointer(dv.buffer, dv.byteOffset + offset + 8, lengthInBytes);
+    return duckdb.get_data_from_pointer(dv.buffer as ArrayBuffer, dv.byteOffset + offset + 8, lengthInBytes);
   }
 }
 
