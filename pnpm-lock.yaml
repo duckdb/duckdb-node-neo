@@ -59,6 +59,9 @@ importers:
       '@duckdb/node-bindings-darwin-arm64':
         specifier: workspace:*
         version: link:../node-bindings-darwin-arm64
+      '@duckdb/node-bindings-linux-arm64':
+        specifier: workspace:*
+        version: link:../node-bindings-linux-arm64
       '@duckdb/node-bindings-linux-x64':
         specifier: workspace:*
         version: link:../node-bindings-linux-x64
@@ -67,6 +70,8 @@ importers:
         version: link:../node-bindings-win32-x64
 
   bindings/pkgs/@duckdb/node-bindings-darwin-arm64: {}
+
+  bindings/pkgs/@duckdb/node-bindings-linux-arm64: {}
 
   bindings/pkgs/@duckdb/node-bindings-linux-x64: {}
 
