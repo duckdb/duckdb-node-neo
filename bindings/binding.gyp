@@ -4,7 +4,7 @@
       'target_name': 'fetch_libduckdb',
       'type': 'none',
       'conditions': [
-        ['OS=="linux"', {
+        ['OS=="linux" and target_arch=="x64"', {
           'variables': {
             'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_amd64.py',
           },
@@ -14,7 +14,7 @@
             'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_osx_universal.py',
           },
         }],
-        ['OS=="win"', {
+        ['OS=="win" and target_arch=="x64"', {
           'variables': {
             'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_windows_amd64.py',
           },
@@ -39,7 +39,7 @@
       'sources': ['src/duckdb_node_bindings.cpp'],
       'include_dirs': ['<(module_root_dir)/libduckdb'],
       'conditions': [
-        ['OS=="linux"', {
+        ['OS=="linux" and target_arch=="x64"', {
           'link_settings': {
             'libraries': [
               '-lduckdb',
@@ -73,7 +73,7 @@
             },
           ],
         }],
-        ['OS=="win"', {
+        ['OS=="win" and target_arch=="x64"', {
           'link_settings': {
             'libraries': [
               '<(module_root_dir)/libduckdb/duckdb.lib',
@@ -93,7 +93,7 @@
       'type': 'none',
       'dependencies': ['duckdb'],
       'conditions': [
-        ['OS=="linux"', {
+        ['OS=="linux" and target_arch=="x64"', {
           'copies': [
             {
               'files': ['<(module_root_dir)/build/Release/duckdb.node'],
@@ -109,7 +109,7 @@
             },
           ],
         }],
-        ['OS=="win"', {
+        ['OS=="win" and target_arch=="x64"', {
           'copies': [
             {
               'files': ['<(module_root_dir)/build/Release/duckdb.node'],

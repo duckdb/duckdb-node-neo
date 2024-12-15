@@ -8,8 +8,8 @@ on:
         type: boolean
         required: true
         default: true
-      linux:
-        description: 'Run on Linux'
+      linux_x64:
+        description: 'Run on Linux x64'
         type: boolean
         required: true
         default: false
@@ -19,27 +19,27 @@ on:
         required: true
         default: false
       publish_bindings:
-        description: 'Publish Bindings (from Linux)'
+        description: 'Publish Bindings (from Linux x64)'
         type: boolean
         required: true
         default: false
       publish_api:
-        description: 'Publish API (from Linux)'
+        description: 'Publish API (from Linux x64)'
         type: boolean
         required: true
         default: false
-      macos:
-        description: 'Run on Mac OS'
+      macos_arm64:
+        description: 'Run on Mac OS X arm64'
         type: boolean
         required: true
         default: false
       publish_darwin_arm64:
-        description: 'Publish Bindings for Darwin ARM64'
+        description: 'Publish Bindings for Darwin arm64'
         type: boolean
         required: true
         default: false
-      windows:
-        description: 'Run on Windows'
+      windows_x64:
+        description: 'Run on Windows x64'
         type: boolean
         required: true
         default: false
@@ -56,10 +56,10 @@ concurrency:
 
 jobs:
 
-  linux:
-    name: Linux
+  linux_x64:
+    name: Linux x64
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_x64 }}
     steps:
       - uses: actions/checkout@v4
       
@@ -111,10 +111,10 @@ jobs:
         env:
           NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
-  macos:
-    name: Mac OS X
+  macos_arm64:
+    name: Mac OS X arm64
     runs-on: macos-latest
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos_arm64 }}
     steps:
       - uses: actions/checkout@v4
       
@@ -145,17 +145,17 @@ jobs:
         if: ${{ inputs.publish_darwin_arm64 }}
         run: git status
       
-      - name: Publish - Bindings - Darwin ARM64
+      - name: Publish - Bindings - Darwin arm64
         if: ${{ inputs.publish_darwin_arm64 }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-darwin-arm64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
           NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
-  windows:
-    name: Windows
+  windows_x64:
+    name: Windows x64
     runs-on: windows-latest
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_x64 }}
     steps:
       - uses: actions/checkout@v4
       
