@@ -123,9 +123,6 @@ jobs:
     env:
       TARGET_ARCH: ${{ 'arm64' }}
     steps:
-      - name: Echo TARGET_ARGH
-        run: echo $TARGET_ARCH
-
       - uses: actions/checkout@v4
       
       - uses: pnpm/action-setup@v3
@@ -138,8 +135,6 @@ jobs:
       - name: Bindings - Build
         working-directory: bindings
         run: pnpm run build
-        env:
-          TARGET_ARCH: ${{ 'arm64' }}
       
       - name: Bindings - Test
         working-directory: bindings
