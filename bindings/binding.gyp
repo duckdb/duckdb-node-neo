@@ -9,7 +9,7 @@
             'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_amd64.py',
           },
         }],
-        ['OS=="linux" and target_arch=="amd64"', {
+        ['OS=="linux" and target_arch=="arm64"', {
           'variables': {
             'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_aarch64.py',
           },
