@@ -9,6 +9,11 @@
             'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_amd64.py',
           },
         }],
+        ['OS=="linux" and target_arch=="amd64"', {
+          'variables': {
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_aarch64.py',
+          },
+        }],
         ['OS=="mac"', {
           'variables': {
             'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_osx_universal.py',
@@ -51,6 +56,21 @@
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
+            },
+          ],
+        }],
+        ['OS=="linux" and target_arch=="arm64"', {
+          'link_settings': {
+            'libraries': [
+              '-lduckdb',
+              '-L<(module_root_dir)/libduckdb',
+              '-Wl,-rpath,\'$$ORIGIN\'',
+            ],
+          },
+          'copies': [
+            {
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
             },
           ],
         }],
@@ -98,6 +118,14 @@
             {
               'files': ['<(module_root_dir)/build/Release/duckdb.node'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
+            },
+          ],
+        }],
+        ['OS=="linux" and target_arch=="arm64"', {
+          'copies': [
+            {
+              'files': ['<(module_root_dir)/build/Release/duckdb.node'],
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
             },
           ],
         }],

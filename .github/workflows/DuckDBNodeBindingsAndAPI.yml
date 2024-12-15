@@ -28,6 +28,11 @@ on:
         type: boolean
         required: true
         default: false
+      linux_arm64:
+        description: 'Run on Linux arm64'
+        type: boolean
+        required: true
+        default: false
       macos_arm64:
         description: 'Run on Mac OS X arm64'
         type: boolean
@@ -110,6 +115,30 @@ jobs:
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
           NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
+
+  linux_arm64:
+    name: Linux arm64
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64 }}
+    env:
+      TARGET_ARCH: 'arm64'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
+      - name: Workspace - Install
+        run: pnpm install --ignore-scripts
+
+      - name: Bindings - Build
+        working-directory: bindings
+        run: pnpm run build
+      
+      - name: Bindings - Test
+        working-directory: bindings
+        run: pnpm test
 
   macos_arm64:
     name: Mac OS X arm64

@@ -5,6 +5,7 @@
   "types": "./duckdb.d.ts",
   "optionalDependencies": {
     "@duckdb/node-bindings-darwin-arm64": "workspace:*",
+    "@duckdb/node-bindings-linux-arm64": "workspace:*",
     "@duckdb/node-bindings-linux-x64": "workspace:*",
     "@duckdb/node-bindings-win32-x64": "workspace:*"
   },

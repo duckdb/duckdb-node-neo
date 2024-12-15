@@ -28,6 +28,7 @@ Some features are not yet complete:
 ### Supported Platforms
 
 - Linux x64
+- Linux arm64
 - Mac OS X (Darwin) arm64 (Apple Silicon)
 - Windows (Win32) x64
 
