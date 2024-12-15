@@ -6,17 +6,17 @@
       'conditions': [
         ['OS=="linux"', {
           'variables': {
-            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux.py',
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_amd64.py',
           },
         }],
         ['OS=="mac"', {
           'variables': {
-            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_mac.py',
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_osx_universal.py',
           },
         }],
         ['OS=="win"', {
           'variables': {
-            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_win.py',
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_windows_amd64.py',
           },
         }],
       ],
