@@ -121,7 +121,9 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64 }}
     env:
-      TARGET_ARCH: ${{ 'arm64' }}
+      TARGET_ARCH: arm64
+      CC: aarch64-linux-gnu-gcc
+      CXX: aarch64-linux-gnu-g++
     steps:
       - uses: actions/checkout@v4
       
