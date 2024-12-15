@@ -33,6 +33,11 @@ on:
         type: boolean
         required: true
         default: false
+      publish_linux_arm64:
+        description: 'Publish Bindings for Linux arm64'
+        type: boolean
+        required: true
+        default: false
       macos_arm64:
         description: 'Run on Mac OS X arm64'
         type: boolean
@@ -141,9 +146,16 @@ jobs:
         working-directory: bindings
         run: pnpm run build
       
-      - name: Bindings - Test
-        working-directory: bindings
-        run: pnpm test
+      - name: Git Status
+        if: ${{ inputs.publish_linux_arm64 }}
+        run: git status
+      
+      - name: Publish - Bindings - Linux arm64
+        if: ${{ inputs.publish_linux_arm64 }}
+        working-directory: bindings/pkgs/@duckdb/node-bindings-linux-arm64
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
   macos_arm64:
     name: Mac OS X arm64
