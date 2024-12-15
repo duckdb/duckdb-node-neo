@@ -126,7 +126,7 @@ jobs:
       CXX: aarch64-linux-gnu-g++
     steps:
       - name: Install aarch64 compilers
-        run: apt install binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+        run: sudo apt install binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
       
       - uses: actions/checkout@v4
       
