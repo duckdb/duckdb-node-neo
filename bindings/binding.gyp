@@ -74,7 +74,7 @@
             },
           ],
         }],
-        ['OS=="mac"', {
+        ['OS=="mac" and target_arch=="arm64"', {
           'cflags+': ['-fvisibility=hidden'],
           'xcode_settings': {
             'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES', # -fvisibility=hidden
@@ -90,6 +90,25 @@
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.dylib'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-darwin-arm64',
+            },
+          ],
+        }],
+        ['OS=="mac" and target_arch=="x64"', {
+          'cflags+': ['-fvisibility=hidden'],
+          'xcode_settings': {
+            'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES', # -fvisibility=hidden
+          },
+          'link_settings': {
+            'libraries': [
+              '-lduckdb',
+              '-L<(module_root_dir)/libduckdb',
+              '-Wl,-rpath,@loader_path',
+            ],
+          },
+          'copies': [
+            {
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.dylib'],
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-darwin-x64',
             },
           ],
         }],
@@ -129,11 +148,19 @@
             },
           ],
         }],
-        ['OS=="mac"', {
+        ['OS=="mac" and target_arch=="arm64"', {
           'copies': [
             {
               'files': ['<(module_root_dir)/build/Release/duckdb.node'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-darwin-arm64',
+            },
+          ],
+        }],
+        ['OS=="mac" and target_arch=="x64"', {
+          'copies': [
+            {
+              'files': ['<(module_root_dir)/build/Release/duckdb.node'],
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-darwin-x64',
             },
           ],
         }],

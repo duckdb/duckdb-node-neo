@@ -53,6 +53,11 @@ on:
       #   type: boolean
       #   required: true
       #   default: false
+      macos_x64:
+        description: 'Run on Mac OS X x64'
+        type: boolean
+        required: true
+        default: false
       windows_x64:
         description: 'Run on Windows x64'
         type: boolean
@@ -199,6 +204,47 @@ jobs:
       - name: Publish - Bindings - Darwin arm64
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-darwin-arm64
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
+  
+  macos_x64:
+    name: Mac OS X x64
+    runs-on: macos-13
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos_x64 }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Workspace - Install
+        run: pnpm install --ignore-scripts
+
+      - name: Bindings - Build
+        working-directory: bindings
+        run: pnpm run build
+      
+      - name: Bindings - Test
+        working-directory: bindings
+        run: pnpm test
+      
+      - name: API - Build
+        working-directory: api
+        run: pnpm run build
+      
+      - name: API - Test
+        working-directory: api
+        run: pnpm test
+      
+      - name: Git Status
+        if: ${{ inputs.publish }}
+        run: git status
+      
+      - name: Publish - Bindings - Darwin x64
+        if: ${{ inputs.publish }}
+        working-directory: bindings/pkgs/@duckdb/node-bindings-darwin-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
           NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}

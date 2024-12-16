@@ -30,6 +30,7 @@ Some features are not yet complete:
 - Linux arm64 (experimental)
 - Linux x64
 - Mac OS X (Darwin) arm64 (Apple Silicon)
+- Mac OS X (Darwin) x64 (Intel)
 - Windows (Win32) x64
 
 ## Examples
