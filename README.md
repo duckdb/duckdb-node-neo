@@ -9,7 +9,8 @@
 - [@duckdb/node-api](api/pkgs/@duckdb/node-api/README.md)
 - [@duckdb/node-bindings](bindings/pkgs/@duckdb/node-bindings/README.md)
 - [@duckdb/node-bindings-darwin-arm64](bindings/pkgs/@duckdb/node-bindings-darwin-arm64/README.md)
-- [@duckdb/node-bindings-linux-arm64](bindings/pkgs/@duckdb/node-bindings-linux-x64/README.md)
+- [@duckdb/node-bindings-darwin-x64](bindings/pkgs/@duckdb/node-bindings-darwin-x64/README.md)
+- [@duckdb/node-bindings-linux-arm64](bindings/pkgs/@duckdb/node-bindings-linux-arm64/README.md)
 - [@duckdb/node-bindings-linux-x64](bindings/pkgs/@duckdb/node-bindings-linux-x64/README.md)
 - [@duckdb/node-bindings-win32-x64](bindings/pkgs/@duckdb/node-bindings-win32-x64/README.md)
 
@@ -18,7 +19,8 @@
 - [@duckdb/node-api](https://www.npmjs.com/package/@duckdb/node-api)
 - [@duckdb/node-bindings](https://www.npmjs.com/package/@duckdb/node-bindings)
 - [@duckdb/node-bindings-darwin-arm64](https://www.npmjs.com/package/@duckdb/node-bindings-darwin-arm64)
-- [@duckdb/node-bindings-linux-arm64](https://www.npmjs.com/package/@duckdb/node-bindings-linux-x64)
+- [@duckdb/node-bindings-darwin-x64](https://www.npmjs.com/package/@duckdb/node-bindings-darwin-x64)
+- [@duckdb/node-bindings-linux-arm64](https://www.npmjs.com/package/@duckdb/node-bindings-linux-arm64)
 - [@duckdb/node-bindings-linux-x64](https://www.npmjs.com/package/@duckdb/node-bindings-linux-x64)
 - [@duckdb/node-bindings-win32-x64](https://www.npmjs.com/package/@duckdb/node-bindings-win32-x64)
 
