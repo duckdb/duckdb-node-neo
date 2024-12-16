@@ -38,6 +38,9 @@ importers:
       '@duckdb/node-bindings':
         specifier: workspace:*
         version: link:pkgs/@duckdb/node-bindings
+      cross-replace:
+        specifier: ^0.2.0
+        version: 0.2.0
       node-addon-api:
         specifier: ^8.3.0
         version: 8.3.0
@@ -59,6 +62,9 @@ importers:
       '@duckdb/node-bindings-darwin-arm64':
         specifier: workspace:*
         version: link:../node-bindings-darwin-arm64
+      '@duckdb/node-bindings-linux-arm64':
+        specifier: workspace:*
+        version: link:../node-bindings-linux-arm64
       '@duckdb/node-bindings-linux-x64':
         specifier: workspace:*
         version: link:../node-bindings-linux-x64
@@ -67,6 +73,8 @@ importers:
         version: link:../node-bindings-win32-x64
 
   bindings/pkgs/@duckdb/node-bindings-darwin-arm64: {}
+
+  bindings/pkgs/@duckdb/node-bindings-linux-arm64: {}
 
   bindings/pkgs/@duckdb/node-bindings-linux-x64: {}
 
@@ -429,6 +437,10 @@ packages:
 
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
+
+  cross-replace@0.2.0:
+    resolution: {integrity: sha512-LF8ZXUDGw5yy8YHPzw4RbOtJJG6NVxpxvEAJZwJgMyLV/wBJonG39vWBDS168nS4ImYP59mPkXj/5ezMOAuzwQ==}
+    hasBin: true
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -1173,6 +1185,10 @@ snapshots:
       color-name: 1.1.4
 
   color-name@1.1.4: {}
+
+  cross-replace@0.2.0:
+    dependencies:
+      cross-spawn: 7.0.6
 
   cross-spawn@7.0.6:
     dependencies:

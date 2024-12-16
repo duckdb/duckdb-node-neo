@@ -3,6 +3,11 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      publish:
+        description: 'Publish'
+        type: boolean
+        required: true
+        default: false
       publish_dry_run:
         description: 'Publish Dry Run'
         type: boolean
@@ -13,41 +18,51 @@ on:
         type: boolean
         required: true
         default: false
-      publish_linux_x64:
-        description: 'Publish Bindings for Linux x64'
+      # publish_linux_x64:
+      #   description: 'Publish Bindings for Linux x64'
+      #   type: boolean
+      #   required: true
+      #   default: false
+      # publish_bindings:
+      #   description: 'Publish Bindings (from Linux x64)'
+      #   type: boolean
+      #   required: true
+      #   default: false
+      # publish_api:
+      #   description: 'Publish API (from Linux x64)'
+      #   type: boolean
+      #   required: true
+      #   default: false
+      linux_arm64:
+        description: 'Run on Linux arm64'
         type: boolean
         required: true
         default: false
-      publish_bindings:
-        description: 'Publish Bindings (from Linux x64)'
-        type: boolean
-        required: true
-        default: false
-      publish_api:
-        description: 'Publish API (from Linux x64)'
-        type: boolean
-        required: true
-        default: false
+      # publish_linux_arm64:
+      #   description: 'Publish Bindings for Linux arm64'
+      #   type: boolean
+      #   required: true
+      #   default: false
       macos_arm64:
         description: 'Run on Mac OS X arm64'
         type: boolean
         required: true
         default: false
-      publish_darwin_arm64:
-        description: 'Publish Bindings for Darwin arm64'
-        type: boolean
-        required: true
-        default: false
+      # publish_darwin_arm64:
+      #   description: 'Publish Bindings for Darwin arm64'
+      #   type: boolean
+      #   required: true
+      #   default: false
       windows_x64:
         description: 'Run on Windows x64'
         type: boolean
         required: true
         default: false
-      publish_win32_x64:
-        description: 'Publish Bindings for Win32 x64'
-        type: boolean
-        required: true
-        default: false
+      # publish_win32_x64:
+      #   description: 'Publish Bindings for Win32 x64'
+      #   type: boolean
+      #   required: true
+      #   default: false
   repository_dispatch:
 
 concurrency:
@@ -87,26 +102,62 @@ jobs:
         run: pnpm test
       
       - name: Git Status
-        if: ${{ inputs.publish_linux_x64 || inputs.publish_bindings || inputs.publish_api }}
+        if: ${{ inputs.publish }}
         run: git status
       
       - name: Publish - Bindings - Linux x64
-        if: ${{ inputs.publish_linux_x64 }}
+        if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-linux-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
           NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
       
       - name: Publish - Bindings
-        if: ${{ inputs.publish_bindings }}
+        if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
           NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
       - name: Publish - API
-        if: ${{ inputs.publish_api }}
+        if: ${{ inputs.publish }}
         working-directory: api/pkgs/@duckdb/node-api
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
+
+  linux_arm64:
+    name: Linux arm64
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64 }}
+    env:
+      TARGET_ARCH: arm64
+      CC: aarch64-linux-gnu-gcc
+      CXX: aarch64-linux-gnu-g++
+    steps:
+      - name: Install aarch64 compilers
+        run: sudo apt install binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+      
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
+      - name: Workspace - Install
+        run: pnpm install --ignore-scripts
+
+      - name: Bindings - Build
+        working-directory: bindings
+        run: pnpm run build
+      
+      - name: Git Status
+        if: ${{ inputs.publish }}
+        run: git status
+      
+      - name: Publish - Bindings - Linux arm64
+        if: ${{ inputs.publish }}
+        working-directory: bindings/pkgs/@duckdb/node-bindings-linux-arm64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
           NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
@@ -142,11 +193,11 @@ jobs:
         run: pnpm test
       
       - name: Git Status
-        if: ${{ inputs.publish_darwin_arm64 }}
+        if: ${{ inputs.publish }}
         run: git status
       
       - name: Publish - Bindings - Darwin arm64
-        if: ${{ inputs.publish_darwin_arm64 }}
+        if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-darwin-arm64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:
@@ -183,11 +234,11 @@ jobs:
         run: pnpm test
       
       - name: Git Status
-        if: ${{ inputs.publish_win32_x64 }}
+        if: ${{ inputs.publish }}
         run: git status
       
       - name: Publish - Bindings - Win32 x64
-        if: ${{ inputs.publish_win32_x64 }}
+        if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-win32-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
         env:

@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "build": "npm run build:package && npm run build:test",
-    "build:package": "node-gyp configure && node-gyp build",
+    "build:package": "cross-replace node-gyp configure --verbose --arch=$TARGET_ARCH && node-gyp build --verbose --arch=$TARGET_ARCH",
     "build:test": "tsc -b test",
     "clean": "npm run clean:gyp && npm run clean:libduckdb && npm run clean:package",
     "clean:gyp": "node-gyp clean",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@duckdb/node-bindings": "workspace:*",
+    "cross-replace": "^0.2.0",
     "node-addon-api": "^8.3.0",
     "node-gyp": "^10.3.1",
     "rimraf": "^5.0.10",
