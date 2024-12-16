@@ -48,6 +48,7 @@ Change version in:
 - `api/pkgs/@duckdb/node-api/package.json`
 - `bindings/pkgs/@duckdb/node-bindings/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-darwin-arm64/package.json`
+- `bindings/pkgs/@duckdb/node-bindings-darwin-x64/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-linux-arm64/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-linux-x64/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-win32-x64/package.json`
