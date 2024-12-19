@@ -129,7 +129,7 @@ const columns = chunk.getColumns();
 Read chunk data (row-major):
 ```ts
 // array of rows, each as an array of values
-const columns = chunk.getRows(); 
+const rows = chunk.getRows(); 
 ```
 
 Read chunk data (one value at a time)
@@ -157,7 +157,7 @@ const rows = reader.getRows();
 // OR: const columns = reader.getColumns();
 ```
 
-Run and read up to (at lesat) some number of rows:
+Run and read up to (at least) some number of rows:
 ```ts
 const reader = await connection.runAndReadUtil('from range(5000)', 1000);
 const rows = reader.getRows();
