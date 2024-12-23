@@ -94,6 +94,14 @@ prepared.bindInteger(2, 42);
 const result = await prepared.run();
 ```
 
+### Stream Results
+
+Streaming results evaluate lazily when rows are read.
+
+```ts
+const result = await connection.stream('from range(10_000)');
+```
+
 ### Inspect Result
 
 Get column names and types:
@@ -101,6 +109,38 @@ Get column names and types:
 const columnNames = result.columnNames();
 const columnTypes = result.columnTypes();
 ```
+
+### Result Reader
+
+Run and read all data:
+```ts
+const reader = await connection.runAndReadAll('from test_all_types()');
+const rows = reader.getRows();
+// OR: const columns = reader.getColumns();
+```
+
+Stream and read up to (at least) some number of rows:
+```ts
+const reader = await connection.streamAndReadUntil('from range(5000)', 1000);
+const rows = reader.getRows();
+// rows.length === 2048. (Rows are read in chunks of 2048.)
+```
+
+Read rows incrementally:
+```ts
+const reader = await connection.streamAndRead('from range(5000)');
+reader.readUntil(2000);
+// reader.currentRowCount === 2048 (Rows are read in chunks of 2048.)
+// reader.done === false
+reader.readUntil(4000);
+// reader.currentRowCount === 4096
+// reader.done === false
+reader.readUntil(6000);
+// reader.currentRowCount === 5000
+// reader.done === true
+```
+
+### Read chunks
 
 Fetch all chunks:
 ```ts
@@ -117,6 +157,16 @@ while (true) {
     break;
   }
   chunks.push(chunk);
+}
+```
+
+For materialized (non-streaming) results, chunks can be read by index:
+```ts
+const rowCount = result.rowCount;
+const chunkCount = result.chunkCount;
+for (let i = 0; i < chunkCount; i++) {
+  const chunk = result.getChunk(i);
+  // ...
 }
 ```
 
@@ -146,36 +196,6 @@ for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
   }
   columns.push(columnValues);
 }
-```
-
-### Result Reader
-
-Run and read all data:
-```ts
-const reader = await connection.runAndReadAll('from test_all_types()');
-const rows = reader.getRows();
-// OR: const columns = reader.getColumns();
-```
-
-Run and read up to (at least) some number of rows:
-```ts
-const reader = await connection.runAndReadUtil('from range(5000)', 1000);
-const rows = reader.getRows();
-// rows.length === 2048. (Rows are read in chunks of 2048.)
-```
-
-Read rows incrementally:
-```ts
-const reader = await connection.runAndRead('from range(5000)');
-reader.readUntil(2000);
-// reader.currentRowCount === 2048 (Rows are read in chunks of 2048.)
-// reader.done === false
-reader.readUntil(4000);
-// reader.currentRowCount === 4096
-// reader.done === false
-reader.readUntil(6000);
-// reader.currentRowCount === 5000
-// reader.done === true
 ```
 
 ### Inspect Data Types

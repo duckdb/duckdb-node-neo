@@ -1,4 +1,5 @@
 import duckdb from '@duckdb/node-bindings';
+import { DuckDBMaterializedResult } from './DuckDBMaterializedResult';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
@@ -111,10 +112,8 @@ export class DuckDBPreparedStatement {
   // public bindValue(parameterIndex: number, value: Value) {
   //   duckdb.bind_value(this.prepared_statement, parameterIndex, value);
   // }
-  public async run(): Promise<DuckDBResult> {
-    return new DuckDBResult(
-      await duckdb.execute_prepared(this.prepared_statement)
-    );
+  public async run(): Promise<DuckDBMaterializedResult> {
+    return new DuckDBMaterializedResult(await duckdb.execute_prepared(this.prepared_statement));
   }
   public async runAndRead(): Promise<DuckDBResultReader> {
     return new DuckDBResultReader(await this.run());
@@ -129,9 +128,30 @@ export class DuckDBPreparedStatement {
     await reader.readUntil(targetRowCount);
     return reader;
   }
+  public async stream(): Promise<DuckDBResult> {
+    return new DuckDBResult(await duckdb.execute_prepared_streaming(this.prepared_statement));
+  }
+  public async streamAndRead(): Promise<DuckDBResultReader> {
+    return new DuckDBResultReader(await this.stream());
+  }
+  public async streamAndReadAll(): Promise<DuckDBResultReader> {
+    const reader = new DuckDBResultReader(await this.stream());
+    await reader.readAll();
+    return reader;
+  }
+  public async streamAndReadUntil(targetRowCount: number): Promise<DuckDBResultReader> {
+    const reader = new DuckDBResultReader(await this.stream());
+    await reader.readUntil(targetRowCount);
+    return reader;
+  }
   public start(): DuckDBPendingResult {
     return new DuckDBPendingResult(
       duckdb.pending_prepared(this.prepared_statement)
+    );
+  }
+  public startStream(): DuckDBPendingResult {
+    return new DuckDBPendingResult(
+      duckdb.pending_prepared_streaming(this.prepared_statement)
     );
   }
 }

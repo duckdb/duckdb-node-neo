@@ -8,7 +8,7 @@ import { ResultReturnType, StatementType } from './enums';
 import { DuckDBValue } from './values';
 
 export class DuckDBResult {
-  private readonly result: duckdb.Result;
+  protected readonly result: duckdb.Result;
   constructor(result: duckdb.Result) {
     this.result = result;
   }
@@ -55,6 +55,9 @@ export class DuckDBResult {
       columnTypes.push(this.columnType(columnIndex));
     }
     return columnTypes;
+  }
+  public get isStreaming(): boolean {
+    return duckdb.result_is_streaming(this.result);
   }
   public get rowsChanged(): number {
     return duckdb.rows_changed(this.result);
