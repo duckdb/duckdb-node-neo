@@ -19,12 +19,12 @@ suite('appender', () => {
       await expectResult(createResult, {
         statementType: duckdb.StatementType.CREATE,
         resultType: duckdb.ResultType.NOTHING,
+        chunkCount: 0,
+        rowCount: 0,
         columns: [
           { name: 'Count', logicalType: BIGINT },
         ],
-        chunks: [
-          { columnCount: 0, rowCount: 0, vectors: [] },
-        ],
+        chunks: [],
       });
 
       const appender = duckdb.appender_create(connection, 'main', 'appender_target');
@@ -43,6 +43,8 @@ suite('appender', () => {
 
       const result = await duckdb.query(connection, 'from appender_target');
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 3,
         columns: [
           { name: 'i', logicalType: INTEGER },
         ],
@@ -81,12 +83,12 @@ suite('appender', () => {
       await expectResult(createResult, {
         statementType: duckdb.StatementType.CREATE,
         resultType: duckdb.ResultType.NOTHING,
+        chunkCount: 0,
+        rowCount: 0,
         columns: [
           { name: 'Count', logicalType: BIGINT },
         ],
-        chunks: [
-          { columnCount: 0, rowCount: 0, vectors: [] },
-        ],
+        chunks: [],
       });
 
 
@@ -150,6 +152,8 @@ suite('appender', () => {
 
       const result = await duckdb.query(connection, 'from appender_target');
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'bool', logicalType: BOOLEAN },
           { name: 'int8', logicalType: TINYINT },
@@ -210,12 +214,12 @@ suite('appender', () => {
       await expectResult(createResult, {
         statementType: duckdb.StatementType.CREATE,
         resultType: duckdb.ResultType.NOTHING,
+        chunkCount: 0,
+        rowCount: 0,
         columns: [
           { name: 'Count', logicalType: BIGINT },
         ],
-        chunks: [
-          { columnCount: 0, rowCount: 0, vectors: [] },
-        ],
+        chunks: [],
       });
 
       const appender = duckdb.appender_create(connection, 'main', 'appender_target');
@@ -223,11 +227,16 @@ suite('appender', () => {
 
       const source_result = await duckdb.query(connection, 'select int, varchar from test_all_types()');
       const source_chunk = await duckdb.fetch_chunk(source_result);
-      duckdb.append_data_chunk(appender, source_chunk);
+      expect(source_chunk).toBeDefined();
+      if (source_chunk) {
+        duckdb.append_data_chunk(appender, source_chunk);
+      }
       duckdb.appender_flush(appender);
 
       const result = await duckdb.query(connection, 'from appender_target');
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 3,
         columns: [
           { name: 'i', logicalType: INTEGER },
           { name: 'v', logicalType: VARCHAR },

@@ -13,11 +13,31 @@ suite('pending', () => {
       const pending = duckdb.pending_prepared(prepared);
       const result = await duckdb.execute_pending(pending);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'a', logicalType: INTEGER },
         ],
         chunks: [
           { rowCount: 1, vectors: [data(4, [true], [11])]},
+        ],
+      });
+    });
+  });
+  test('streaming', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await duckdb.prepare(connection, 'select n::integer as int from range(5000) t(n)');
+      const pending = duckdb.pending_prepared_streaming(prepared);
+      const result = await duckdb.execute_pending(pending);
+      await expectResult(result, {
+        isStreaming: true,
+        columns: [
+          { name: 'int', logicalType: INTEGER },
+        ],
+        chunks: [
+          { rowCount: 2048, vectors: [data(4, null, Array.from({ length: 2048 }).map((_, i) => i))]},
+          { rowCount: 2048, vectors: [data(4, null, Array.from({ length: 2048 }).map((_, i) => 2048 + i))]},
+          { rowCount: 904, vectors: [data(4, null, Array.from({ length: 904 }).map((_, i) => 4096 + i))]},
         ],
       });
     });
@@ -33,6 +53,8 @@ suite('pending', () => {
       }
       const result = await duckdb.execute_pending(pending);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'count', logicalType: BIGINT },
         ],

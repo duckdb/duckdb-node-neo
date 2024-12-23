@@ -244,6 +244,9 @@ class DuckDBValidity {
   public static fromVector(vector: duckdb.Vector, itemCount: number): DuckDBValidity {
     const bigintCount = Math.ceil(itemCount / 64);
     const bytes = duckdb.vector_get_validity(vector, bigintCount * 8);
+    if (!bytes) {
+      return new DuckDBValidity(null, 0);
+    }
     const bigints = new BigUint64Array(bytes.buffer, bytes.byteOffset, bigintCount);
     return new DuckDBValidity(bigints, 0);
   }

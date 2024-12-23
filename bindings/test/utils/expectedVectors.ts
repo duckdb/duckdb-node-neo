@@ -11,7 +11,7 @@ import {
 
 export function array(
   itemCount: number,
-  validity: boolean[],
+  validity: boolean[] | null,
   child: ExpectedVector
 ): ExpectedArrayVector {
   return {
@@ -24,7 +24,7 @@ export function array(
 
 export function data(
   itemBytes: number,
-  validity: boolean[],
+  validity: boolean[] | null,
   values: any[]
 ): ExpectedDataVector {
   return {
@@ -36,7 +36,7 @@ export function data(
 }
 
 export function list(
-  validity: boolean[],
+  validity: boolean[] | null,
   entries: (ExpectedListEntry | null)[],
   childItemCount: number,
   child: ExpectedVector
@@ -51,7 +51,7 @@ export function list(
 }
 
 export function map(
-  validity: boolean[],
+  validity: boolean[] | null,
   entries: (ExpectedListEntry | null)[],
   keys: ExpectedVector,
   values: ExpectedVector
@@ -67,7 +67,7 @@ export function map(
 
 export function struct(
   itemCount: number,
-  validity: boolean[],
+  validity: boolean[] | null,
   children: ExpectedVector[]
 ): ExpectedStructVector {
   return {

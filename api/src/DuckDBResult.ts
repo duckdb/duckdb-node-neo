@@ -59,14 +59,15 @@ export class DuckDBResult {
   public get rowsChanged(): number {
     return duckdb.rows_changed(this.result);
   }
-  public async fetchChunk(): Promise<DuckDBDataChunk> {
-    return new DuckDBDataChunk(await duckdb.fetch_chunk(this.result));
+  public async fetchChunk(): Promise<DuckDBDataChunk | null> {
+    const chunk = await duckdb.fetch_chunk(this.result);
+    return chunk ? new DuckDBDataChunk(chunk) : null;
   }
   public async fetchAllChunks(): Promise<DuckDBDataChunk[]> {
     const chunks: DuckDBDataChunk[] = [];
     while (true) {
       const chunk = await this.fetchChunk();
-      if (chunk.rowCount === 0) {
+      if (!chunk || chunk.rowCount === 0) {
         return chunks;
       }
       chunks.push(chunk);

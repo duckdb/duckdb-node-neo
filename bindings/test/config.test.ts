@@ -24,6 +24,8 @@ suite('config', () => {
     const connection = await duckdb.connect(db);
     const result = await duckdb.query(connection, `select current_setting('duckdb_api') as duckdb_api`);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'duckdb_api', logicalType: { typeId: duckdb.Type.VARCHAR } },
         ],
@@ -38,6 +40,8 @@ suite('config', () => {
     const connection = await duckdb.connect(db);
     const result = await duckdb.query(connection, `select current_setting('duckdb_api') as duckdb_api`);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'duckdb_api', logicalType: { typeId: duckdb.Type.VARCHAR } },
         ],
@@ -53,6 +57,8 @@ suite('config', () => {
     const connection = await duckdb.connect(db);
     const result = await duckdb.query(connection, `select current_setting('duckdb_api') as duckdb_api`);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'duckdb_api', logicalType: { typeId: duckdb.Type.VARCHAR } },
         ],

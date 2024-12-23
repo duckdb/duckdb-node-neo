@@ -49,6 +49,8 @@ suite('query', () => {
     await withConnection(async (connection) => {
       const result = await duckdb.query(connection, 'select 17 as seventeen');
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'seventeen', logicalType: { typeId: duckdb.Type.INTEGER } },
         ],
@@ -68,6 +70,8 @@ suite('query', () => {
       const result = await duckdb.query(connection, `from test_all_types(use_large_enum=${useLargeEnum})`);
       const validity = [true, true, false];
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 3,
         columns: [
           { name: 'bool', logicalType: BOOLEAN },
           { name: 'tinyint', logicalType: TINYINT },
@@ -264,17 +268,19 @@ suite('query', () => {
       await expectResult(createResult, {
         statementType: duckdb.StatementType.CREATE,
         resultType: duckdb.ResultType.NOTHING,
+        chunkCount: 0,
+        rowCount: 0,
         columns: [
           { name: 'Count', logicalType: BIGINT },
         ],
-        chunks: [
-          { columnCount: 0, rowCount: 0, vectors: [] },
-        ],
+        chunks: [],
       });
       const insertResult = await duckdb.query(connection, 'insert into test_create_and_insert from range(17)');
       await expectResult(insertResult, {
         statementType: duckdb.StatementType.INSERT,
         resultType: duckdb.ResultType.CHANGED_ROWS,
+        chunkCount: 1,
+        rowCount: 1,
         rowsChanged: 17,
         columns: [
           { name: 'Count', logicalType: BIGINT },

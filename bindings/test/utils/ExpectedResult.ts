@@ -16,6 +16,9 @@ export interface ExpectedChunk {
 export interface ExpectedResult {
   statementType?: duckdb.StatementType;
   resultType?: duckdb.ResultType;
+  isStreaming?: boolean;
+  chunkCount?: number;
+  rowCount?: number;
   rowsChanged?: number;
   columns: ExpectedColumn[];
   chunks: ExpectedChunk[];

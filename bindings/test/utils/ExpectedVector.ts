@@ -1,13 +1,13 @@
 export interface ExpectedArrayVector {
   kind: 'array';
   itemCount: number;
-  validity: boolean[];
+  validity: boolean[] | null;
   child: ExpectedVector;
 }
 
 export interface ExpectedDataVector {
   kind: 'data';
-  validity: boolean[];
+  validity: boolean[] | null;
   itemBytes: number;
   values: any[];
 }
@@ -16,7 +16,7 @@ export type ExpectedListEntry = [bigint, bigint] | null;
 
 export interface ExpectedListVector {
   kind: 'list';
-  validity: boolean[];
+  validity: boolean[] | null;
   entries: (ExpectedListEntry | null)[];
   childItemCount: number;
   child: ExpectedVector;
@@ -24,7 +24,7 @@ export interface ExpectedListVector {
 
 export interface ExpectedMapVector {
   kind: 'map';
-  validity: boolean[];
+  validity: boolean[] | null;
   entries: (ExpectedListEntry | null)[];
   keys: ExpectedVector;
   values: ExpectedVector;
@@ -33,7 +33,7 @@ export interface ExpectedMapVector {
 export interface ExpectedStructVector {
   kind: 'struct';
   itemCount: number;
-  validity: boolean[];
+  validity: boolean[] | null;
   children: ExpectedVector[];
 }
 

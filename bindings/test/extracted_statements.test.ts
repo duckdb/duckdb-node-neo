@@ -26,6 +26,8 @@ suite('extracted statements', () => {
       const prepared = await duckdb.prepare_extracted_statement(connection, extracted_statements, 0);
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'a', logicalType: INTEGER },
         ],
@@ -45,6 +47,8 @@ suite('extracted statements', () => {
       const prepared0 = await duckdb.prepare_extracted_statement(connection, extracted_statements, 0);
       const result0 = await duckdb.execute_prepared(prepared0);
       await expectResult(result0, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'a', logicalType: INTEGER },
         ],
@@ -56,6 +60,8 @@ suite('extracted statements', () => {
       const prepared1 = await duckdb.prepare_extracted_statement(connection, extracted_statements, 1);
       const result1 = await duckdb.execute_prepared(prepared1);
       await expectResult(result1, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'b', logicalType: INTEGER },
         ],
@@ -67,6 +73,8 @@ suite('extracted statements', () => {
       const prepared2 = await duckdb.prepare_extracted_statement(connection, extracted_statements, 2);
       const result2 = await duckdb.execute_prepared(prepared2);
       await expectResult(result2, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'c', logicalType: INTEGER },
         ],
