@@ -336,9 +336,12 @@ describe('api', () => {
     const result = await connection.run('select 42 as num');
     assertColumns(result, [{ name: 'num', type: DuckDBIntegerType.instance }]);
     const chunk = await result.fetchChunk();
-    assert.strictEqual(chunk.columnCount, 1);
-    assert.strictEqual(chunk.rowCount, 1);
-    assertValues<number, DuckDBIntegerVector>(chunk, 0, DuckDBIntegerVector, [42]);
+    assert.isDefined(chunk);
+    if (chunk) {
+      assert.strictEqual(chunk.columnCount, 1);
+      assert.strictEqual(chunk.rowCount, 1);
+      assertValues<number, DuckDBIntegerVector>(chunk, 0, DuckDBIntegerVector, [42]);
+    }
   });
   test('should support running prepared statements', async () => {
     await withConnection(async (connection) => {
@@ -360,12 +363,15 @@ describe('api', () => {
         { name: 'd', type: DuckDBIntegerType.instance },
       ]);
       const chunk = await result.fetchChunk();
-      assert.strictEqual(chunk.columnCount, 4);
-      assert.strictEqual(chunk.rowCount, 1);
-      assertValues<number, DuckDBIntegerVector>(chunk, 0, DuckDBIntegerVector, [10]);
-      assertValues<string, DuckDBVarCharVector>(chunk, 1, DuckDBVarCharVector, ['abc']);
-      assertValues<boolean, DuckDBBooleanVector>(chunk, 2, DuckDBBooleanVector, [true]);
-      assertValues<number, DuckDBIntegerVector>(chunk, 3, DuckDBIntegerVector, [null]);
+      assert.isDefined(chunk);
+      if (chunk) {
+        assert.strictEqual(chunk.columnCount, 4);
+        assert.strictEqual(chunk.rowCount, 1);
+        assertValues<number, DuckDBIntegerVector>(chunk, 0, DuckDBIntegerVector, [10]);
+        assertValues<string, DuckDBVarCharVector>(chunk, 1, DuckDBVarCharVector, ['abc']);
+        assertValues<boolean, DuckDBBooleanVector>(chunk, 2, DuckDBBooleanVector, [true]);
+        assertValues<number, DuckDBIntegerVector>(chunk, 3, DuckDBIntegerVector, [null]);
+      }
     });
   });
   test('should support starting prepared statements and running them incrementally', async () => {
@@ -386,9 +392,12 @@ describe('api', () => {
         { name: 'int', type: DuckDBIntegerType.instance },
       ]);
       const chunk = await result.fetchChunk();
-      assert.strictEqual(chunk.columnCount, 1);
-      assert.strictEqual(chunk.rowCount, 3);
-      assertValues(chunk, 0, DuckDBIntegerVector, [DuckDBIntegerType.Min, DuckDBIntegerType.Max, null]);
+      assert.isDefined(chunk);
+      if (chunk) {
+        assert.strictEqual(chunk.columnCount, 1);
+        assert.strictEqual(chunk.rowCount, 3);
+        assertValues(chunk, 0, DuckDBIntegerVector, [DuckDBIntegerType.Min, DuckDBIntegerType.Max, null]);
+      }
     });
   });
   test('should support streaming results from prepared statements', async () => {
@@ -402,7 +411,7 @@ describe('api', () => {
       const chunks: DuckDBDataChunk[] = [];
       let currentChunk: DuckDBDataChunk | null = null;
       currentChunk = await result.fetchChunk();
-      while (currentChunk.rowCount > 0) {
+      while (currentChunk && currentChunk.rowCount > 0) {
         chunks.push(currentChunk);
         currentChunk = await result.fetchChunk();
       }
@@ -497,280 +506,283 @@ describe('api', () => {
       ]);
 
       const chunk = await result.fetchChunk();
-      assert.strictEqual(chunk.columnCount, 54);
-      assert.strictEqual(chunk.rowCount, 3);
+      assert.isDefined(chunk);
+      if (chunk) {
+        assert.strictEqual(chunk.columnCount, 54);
+        assert.strictEqual(chunk.rowCount, 3);
 
-      assertValues(chunk, 0, DuckDBBooleanVector, [false, true, null]);
-      assertValues(chunk, 1, DuckDBTinyIntVector, [DuckDBTinyIntType.Min, DuckDBTinyIntType.Max, null]);
-      assertValues(chunk, 2, DuckDBSmallIntVector, [DuckDBSmallIntType.Min, DuckDBSmallIntType.Max, null]);
-      assertValues(chunk, 3, DuckDBIntegerVector, [DuckDBIntegerType.Min, DuckDBIntegerType.Max, null]);
-      assertValues(chunk, 4, DuckDBBigIntVector, [DuckDBBigIntType.Min, DuckDBBigIntType.Max, null]);
-      assertValues(chunk, 5, DuckDBHugeIntVector, [DuckDBHugeIntType.Min, DuckDBHugeIntType.Max, null]);
-      assertValues(chunk, 6, DuckDBUHugeIntVector, [DuckDBUHugeIntType.Min, DuckDBUHugeIntType.Max, null]);
-      assertValues(chunk, 7, DuckDBUTinyIntVector, [DuckDBUTinyIntType.Min, DuckDBUTinyIntType.Max, null]);
-      assertValues(chunk, 8, DuckDBUSmallIntVector, [DuckDBUSmallIntType.Min, DuckDBUSmallIntType.Max, null]);
-      assertValues(chunk, 9, DuckDBUIntegerVector, [DuckDBUIntegerType.Min, DuckDBUIntegerType.Max, null]);
-      assertValues(chunk, 10, DuckDBUBigIntVector, [DuckDBUBigIntType.Min, DuckDBUBigIntType.Max, null]);
-      assertValues(chunk, 11, DuckDBVarIntVector, [DuckDBVarIntType.Min, DuckDBVarIntType.Max, null]);
-      assertValues(chunk, 12, DuckDBDateVector, [DuckDBDateValue.Min, DuckDBDateValue.Max, null]);
-      assertValues(chunk, 13, DuckDBTimeVector, [DuckDBTimeValue.Min, DuckDBTimeValue.Max, null]);
-      assertValues(chunk, 14, DuckDBTimestampVector,
-        [DuckDBTimestampValue.Min, DuckDBTimestampValue.Max, null]);
-      assertValues(chunk, 15, DuckDBTimestampSecondsVector,
-        [DuckDBTimestampSecondsValue.Min, DuckDBTimestampSecondsValue.Max, null]);
-      assertValues(chunk, 16, DuckDBTimestampMillisecondsVector,
-        [DuckDBTimestampMillisecondsValue.Min, DuckDBTimestampMillisecondsValue.Max, null]);
-      assertValues(chunk, 17, DuckDBTimestampNanosecondsVector,
-        [DuckDBTimestampNanosecondsValue.Min, DuckDBTimestampNanosecondsValue.Max, null]);
-      assertValues(chunk, 18, DuckDBTimeTZVector, [DuckDBTimeTZValue.Min, DuckDBTimeTZValue.Max, null]);
-      assertValues(chunk, 19, DuckDBTimestampTZVector,
-        [DuckDBTimestampTZValue.Min, DuckDBTimestampTZValue.Max, null]);
-      assertValues(chunk, 20, DuckDBFloatVector, [DuckDBFloatType.Min, DuckDBFloatType.Max, null]);
-      assertValues(chunk, 21, DuckDBDoubleVector, [DuckDBDoubleType.Min, DuckDBDoubleType.Max, null]);
-      assertValues(chunk, 22, DuckDBDecimal2Vector, [
-        decimalValue(-9999n, 4, 1),
-        decimalValue( 9999n, 4, 1),
-        null,
-      ]);
-      assertValues(chunk, 23, DuckDBDecimal4Vector, [
-        decimalValue(-999999999n, 9, 4),
-        decimalValue( 999999999n, 9, 4),
-        null,
-      ]);
-      assertValues(chunk, 24, DuckDBDecimal8Vector, [
-        decimalValue(-BI_18_9s, 18, 6),
-        decimalValue( BI_18_9s, 18, 6),
-        null,
-      ]);
-      assertValues(chunk, 25, DuckDBDecimal16Vector, [
-        decimalValue(-BI_38_9s, 38, 10),
-        decimalValue( BI_38_9s, 38, 10),
-        null,
-      ]);
-      assertValues(chunk, 26, DuckDBUUIDVector, [DuckDBUUIDValue.Min, DuckDBUUIDValue.Max, null]);
-      assertValues(chunk, 27, DuckDBIntervalVector, [
-        intervalValue(0, 0, 0n),
-        intervalValue(999, 999, 999999999n),
-        null,
-      ]);
-      assertValues<string, DuckDBVarCharVector>(chunk, 28, DuckDBVarCharVector, ['🦆🦆🦆🦆🦆🦆', 'goo\0se', null]);
-      assertValues(chunk, 29, DuckDBBlobVector, [
-        DuckDBBlobValue.fromString('thisisalongblob\x00withnullbytes'),
-        DuckDBBlobValue.fromString('\x00\x00\x00a'),
-        null,
-      ]);
-      assertValues(chunk, 30, DuckDBBitVector, [
-        bitValue('0010001001011100010101011010111'),
-        bitValue('10101'),
-        null,
-      ]);
-      assertValues(chunk, 31, DuckDBEnum1Vector, [
-        smallEnumValues[0],
-        smallEnumValues[smallEnumValues.length - 1],
-        null,
-      ]);
-      assertValues(chunk, 32, DuckDBEnum2Vector, [
-        mediumEnumValues[0],
-        mediumEnumValues[mediumEnumValues.length - 1],
-        null,
-      ]);
-      assertValues(chunk, 33, DuckDBEnum4Vector, [
-        largeEnumValues[0],
-        largeEnumValues[largeEnumValues.length - 1],
-        null,
-      ]);
-      // int_array
-      assertValues(chunk, 34, DuckDBListVector, [
-        listValue([]),
-        listValue([42, 999, null, null, -42]),
-        null,
-      ]);
-      // double_array
-      assertValues(chunk, 35, DuckDBListVector, [
-        listValue([]),
-        listValue([42.0, NaN, Infinity, -Infinity, null, -42.0]),
-        null,
-      ]);
-      // date_array
-      assertValues(chunk, 36, DuckDBListVector, [
-        listValue([]),
-        listValue([dateValue(0), DuckDBDateValue.PosInf, DuckDBDateValue.NegInf, null, dateValue(19124)]),
-        null,
-      ]);
-      // timestamp_array
-      assertValues(chunk, 37, DuckDBListVector, [
-        listValue([]),
-        listValue([
-          DuckDBTimestampValue.Epoch,
-          DuckDBTimestampValue.PosInf,
-          DuckDBTimestampValue.NegInf,
+        assertValues(chunk, 0, DuckDBBooleanVector, [false, true, null]);
+        assertValues(chunk, 1, DuckDBTinyIntVector, [DuckDBTinyIntType.Min, DuckDBTinyIntType.Max, null]);
+        assertValues(chunk, 2, DuckDBSmallIntVector, [DuckDBSmallIntType.Min, DuckDBSmallIntType.Max, null]);
+        assertValues(chunk, 3, DuckDBIntegerVector, [DuckDBIntegerType.Min, DuckDBIntegerType.Max, null]);
+        assertValues(chunk, 4, DuckDBBigIntVector, [DuckDBBigIntType.Min, DuckDBBigIntType.Max, null]);
+        assertValues(chunk, 5, DuckDBHugeIntVector, [DuckDBHugeIntType.Min, DuckDBHugeIntType.Max, null]);
+        assertValues(chunk, 6, DuckDBUHugeIntVector, [DuckDBUHugeIntType.Min, DuckDBUHugeIntType.Max, null]);
+        assertValues(chunk, 7, DuckDBUTinyIntVector, [DuckDBUTinyIntType.Min, DuckDBUTinyIntType.Max, null]);
+        assertValues(chunk, 8, DuckDBUSmallIntVector, [DuckDBUSmallIntType.Min, DuckDBUSmallIntType.Max, null]);
+        assertValues(chunk, 9, DuckDBUIntegerVector, [DuckDBUIntegerType.Min, DuckDBUIntegerType.Max, null]);
+        assertValues(chunk, 10, DuckDBUBigIntVector, [DuckDBUBigIntType.Min, DuckDBUBigIntType.Max, null]);
+        assertValues(chunk, 11, DuckDBVarIntVector, [DuckDBVarIntType.Min, DuckDBVarIntType.Max, null]);
+        assertValues(chunk, 12, DuckDBDateVector, [DuckDBDateValue.Min, DuckDBDateValue.Max, null]);
+        assertValues(chunk, 13, DuckDBTimeVector, [DuckDBTimeValue.Min, DuckDBTimeValue.Max, null]);
+        assertValues(chunk, 14, DuckDBTimestampVector,
+          [DuckDBTimestampValue.Min, DuckDBTimestampValue.Max, null]);
+        assertValues(chunk, 15, DuckDBTimestampSecondsVector,
+          [DuckDBTimestampSecondsValue.Min, DuckDBTimestampSecondsValue.Max, null]);
+        assertValues(chunk, 16, DuckDBTimestampMillisecondsVector,
+          [DuckDBTimestampMillisecondsValue.Min, DuckDBTimestampMillisecondsValue.Max, null]);
+        assertValues(chunk, 17, DuckDBTimestampNanosecondsVector,
+          [DuckDBTimestampNanosecondsValue.Min, DuckDBTimestampNanosecondsValue.Max, null]);
+        assertValues(chunk, 18, DuckDBTimeTZVector, [DuckDBTimeTZValue.Min, DuckDBTimeTZValue.Max, null]);
+        assertValues(chunk, 19, DuckDBTimestampTZVector,
+          [DuckDBTimestampTZValue.Min, DuckDBTimestampTZValue.Max, null]);
+        assertValues(chunk, 20, DuckDBFloatVector, [DuckDBFloatType.Min, DuckDBFloatType.Max, null]);
+        assertValues(chunk, 21, DuckDBDoubleVector, [DuckDBDoubleType.Min, DuckDBDoubleType.Max, null]);
+        assertValues(chunk, 22, DuckDBDecimal2Vector, [
+          decimalValue(-9999n, 4, 1),
+          decimalValue( 9999n, 4, 1),
           null,
-          // 1652372625 is 2022-05-12 16:23:45
-          timestampValue(1652372625n * 1000n * 1000n),
-        ]),
-        null,
-      ]);
-      // timestamptz_array
-      assertValues(chunk, 38, DuckDBListVector, [
-        listValue([]),
-        listValue([
-          DuckDBTimestampTZValue.Epoch,
-          DuckDBTimestampTZValue.PosInf,
-          DuckDBTimestampTZValue.NegInf,
+        ]);
+        assertValues(chunk, 23, DuckDBDecimal4Vector, [
+          decimalValue(-999999999n, 9, 4),
+          decimalValue( 999999999n, 9, 4),
           null,
-          // 1652397825 = 1652372625 + 25200, 25200 = 7 * 60 * 60 = 7 hours in seconds
-          // This 7 hour difference is hard coded into test_all_types (value is 2022-05-12 16:23:45-07)
-          timestampTZValue(1652397825n * 1000n * 1000n),
-        ]),
-        null,
-      ]);
-      // varchar_array
-      assertValues(chunk, 39, DuckDBListVector, [
-        listValue([]),
-        // Note that the string 'goose' in varchar_array does NOT have an embedded null character.
-        listValue(['🦆🦆🦆🦆🦆🦆', 'goose', null, '']),
-        null,
-      ]);
-      // nested_int_array
-      assertValues(chunk, 40, DuckDBListVector, [
-        listValue([]),
-        listValue([
+        ]);
+        assertValues(chunk, 24, DuckDBDecimal8Vector, [
+          decimalValue(-BI_18_9s, 18, 6),
+          decimalValue( BI_18_9s, 18, 6),
+          null,
+        ]);
+        assertValues(chunk, 25, DuckDBDecimal16Vector, [
+          decimalValue(-BI_38_9s, 38, 10),
+          decimalValue( BI_38_9s, 38, 10),
+          null,
+        ]);
+        assertValues(chunk, 26, DuckDBUUIDVector, [DuckDBUUIDValue.Min, DuckDBUUIDValue.Max, null]);
+        assertValues(chunk, 27, DuckDBIntervalVector, [
+          intervalValue(0, 0, 0n),
+          intervalValue(999, 999, 999999999n),
+          null,
+        ]);
+        assertValues<string, DuckDBVarCharVector>(chunk, 28, DuckDBVarCharVector, ['🦆🦆🦆🦆🦆🦆', 'goo\0se', null]);
+        assertValues(chunk, 29, DuckDBBlobVector, [
+          DuckDBBlobValue.fromString('thisisalongblob\x00withnullbytes'),
+          DuckDBBlobValue.fromString('\x00\x00\x00a'),
+          null,
+        ]);
+        assertValues(chunk, 30, DuckDBBitVector, [
+          bitValue('0010001001011100010101011010111'),
+          bitValue('10101'),
+          null,
+        ]);
+        assertValues(chunk, 31, DuckDBEnum1Vector, [
+          smallEnumValues[0],
+          smallEnumValues[smallEnumValues.length - 1],
+          null,
+        ]);
+        assertValues(chunk, 32, DuckDBEnum2Vector, [
+          mediumEnumValues[0],
+          mediumEnumValues[mediumEnumValues.length - 1],
+          null,
+        ]);
+        assertValues(chunk, 33, DuckDBEnum4Vector, [
+          largeEnumValues[0],
+          largeEnumValues[largeEnumValues.length - 1],
+          null,
+        ]);
+        // int_array
+        assertValues(chunk, 34, DuckDBListVector, [
           listValue([]),
           listValue([42, 999, null, null, -42]),
           null,
+        ]);
+        // double_array
+        assertValues(chunk, 35, DuckDBListVector, [
           listValue([]),
-          listValue([42, 999, null, null, -42]),
-        ]),
-        null,
-      ]);
-      assertValues(chunk, 41, DuckDBStructVector, [
-        structValue({ 'a': null, 'b': null }),
-        structValue({ 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }),
-        null,
-      ]);
-      // struct_of_arrays
-      assertValues(chunk, 42, DuckDBStructVector, [
-        structValue({ 'a': null, 'b': null }),
-        structValue({
-          'a': listValue([42, 999, null, null, -42]),
-          'b': listValue(['🦆🦆🦆🦆🦆🦆', 'goose', null, '']),
-        }),
-        null,
-      ]);
-      // array_of_structs
-      assertValues(chunk, 43, DuckDBListVector, [
-        listValue([]),
-        listValue([
+          listValue([42.0, NaN, Infinity, -Infinity, null, -42.0]),
+          null,
+        ]);
+        // date_array
+        assertValues(chunk, 36, DuckDBListVector, [
+          listValue([]),
+          listValue([dateValue(0), DuckDBDateValue.PosInf, DuckDBDateValue.NegInf, null, dateValue(19124)]),
+          null,
+        ]);
+        // timestamp_array
+        assertValues(chunk, 37, DuckDBListVector, [
+          listValue([]),
+          listValue([
+            DuckDBTimestampValue.Epoch,
+            DuckDBTimestampValue.PosInf,
+            DuckDBTimestampValue.NegInf,
+            null,
+            // 1652372625 is 2022-05-12 16:23:45
+            timestampValue(1652372625n * 1000n * 1000n),
+          ]),
+          null,
+        ]);
+        // timestamptz_array
+        assertValues(chunk, 38, DuckDBListVector, [
+          listValue([]),
+          listValue([
+            DuckDBTimestampTZValue.Epoch,
+            DuckDBTimestampTZValue.PosInf,
+            DuckDBTimestampTZValue.NegInf,
+            null,
+            // 1652397825 = 1652372625 + 25200, 25200 = 7 * 60 * 60 = 7 hours in seconds
+            // This 7 hour difference is hard coded into test_all_types (value is 2022-05-12 16:23:45-07)
+            timestampTZValue(1652397825n * 1000n * 1000n),
+          ]),
+          null,
+        ]);
+        // varchar_array
+        assertValues(chunk, 39, DuckDBListVector, [
+          listValue([]),
+          // Note that the string 'goose' in varchar_array does NOT have an embedded null character.
+          listValue(['🦆🦆🦆🦆🦆🦆', 'goose', null, '']),
+          null,
+        ]);
+        // nested_int_array
+        assertValues(chunk, 40, DuckDBListVector, [
+          listValue([]),
+          listValue([
+            listValue([]),
+            listValue([42, 999, null, null, -42]),
+            null,
+            listValue([]),
+            listValue([42, 999, null, null, -42]),
+          ]),
+          null,
+        ]);
+        assertValues(chunk, 41, DuckDBStructVector, [
           structValue({ 'a': null, 'b': null }),
           structValue({ 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }),
           null,
-        ]),
-        null,
-      ]);
-      assertValues(chunk, 44, DuckDBMapVector, [
-        mapValue([]),
-        mapValue([{ key: 'key1', value: '🦆🦆🦆🦆🦆🦆' }, { key: 'key2', value: 'goose' }]),
-        null,
-      ]);
-      assertValues<DuckDBValue, DuckDBUnionVector>(chunk, 45, DuckDBUnionVector, [
-        unionValue('name', 'Frank'),
-        unionValue('age', 5),
-        null,
-      ]);
-      // fixed_int_array
-      assertValues(chunk, 46, DuckDBArrayVector, [
-        arrayValue([null, 2, 3]),
-        arrayValue([4, 5, 6]),
-        null,
-      ]);
-      // fixed_varchar_array
-      assertValues(chunk, 47, DuckDBArrayVector, [
-        arrayValue(['a', null, 'c']),
-        arrayValue(['d', 'e', 'f']),
-        null,
-      ]);
-      // fixed_nested_int_array
-      assertValues(chunk, 48, DuckDBArrayVector, [
-        arrayValue([
-          arrayValue([null, 2, 3]),
+        ]);
+        // struct_of_arrays
+        assertValues(chunk, 42, DuckDBStructVector, [
+          structValue({ 'a': null, 'b': null }),
+          structValue({
+            'a': listValue([42, 999, null, null, -42]),
+            'b': listValue(['🦆🦆🦆🦆🦆🦆', 'goose', null, '']),
+          }),
           null,
-          arrayValue([null, 2, 3]),
-        ]),
-        arrayValue([
-          arrayValue([4, 5, 6]),
+        ]);
+        // array_of_structs
+        assertValues(chunk, 43, DuckDBListVector, [
+          listValue([]),
+          listValue([
+            structValue({ 'a': null, 'b': null }),
+            structValue({ 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }),
+            null,
+          ]),
+          null,
+        ]);
+        assertValues(chunk, 44, DuckDBMapVector, [
+          mapValue([]),
+          mapValue([{ key: 'key1', value: '🦆🦆🦆🦆🦆🦆' }, { key: 'key2', value: 'goose' }]),
+          null,
+        ]);
+        assertValues<DuckDBValue, DuckDBUnionVector>(chunk, 45, DuckDBUnionVector, [
+          unionValue('name', 'Frank'),
+          unionValue('age', 5),
+          null,
+        ]);
+        // fixed_int_array
+        assertValues(chunk, 46, DuckDBArrayVector, [
           arrayValue([null, 2, 3]),
           arrayValue([4, 5, 6]),
-        ]),
-        null,
-      ]);
-      // fixed_nested_varchar_array
-      assertValues(chunk, 49, DuckDBArrayVector, [
-        arrayValue([
-          arrayValue(['a', null, 'c']),
           null,
-          arrayValue(['a', null, 'c']),
-        ]),
-        arrayValue([
-          arrayValue(['d', 'e', 'f']),
+        ]);
+        // fixed_varchar_array
+        assertValues(chunk, 47, DuckDBArrayVector, [
           arrayValue(['a', null, 'c']),
           arrayValue(['d', 'e', 'f']),
-        ]),
-        null,
-      ]);
-      // fixed_struct_array
-      assertValues(chunk, 50, DuckDBArrayVector, [
-        arrayValue([
-          structValue({ 'a': null, 'b': null }),
-          structValue({ 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }),
-          structValue({ 'a': null, 'b': null }),
-        ]),
-        arrayValue([
-          structValue({ 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }),
-          structValue({ 'a': null, 'b': null }),
-          structValue({ 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }),
-        ]),
-        null,
-      ]);
-      // struct_of_fixed_array
-      assertValues(chunk, 51, DuckDBStructVector, [
-        structValue({
-          'a': arrayValue([null, 2, 3]),
-          'b': arrayValue(['a', null, 'c']),
-        }),
-        structValue({
-          'a': arrayValue([4, 5, 6]),
-          'b': arrayValue(['d', 'e', 'f']),
-        }),
-        null,
-      ]);
-      // fixed_array_of_int_list
-      assertValues(chunk, 52, DuckDBArrayVector, [
-        arrayValue([
-          listValue([]),
-          listValue([42, 999, null, null, -42]),
-          listValue([]),
-        ]),
-        arrayValue([
-          listValue([42, 999, null, null, -42]),
-          listValue([]),
-          listValue([42, 999, null, null, -42]),
-        ]),
-        null,
-      ]);
-      // list_of_fixed_int_array
-      assertValues(chunk, 53, DuckDBListVector, [
-        listValue([
-          arrayValue([null, 2, 3]),
-          arrayValue([4, 5, 6]),
-          arrayValue([null, 2, 3]),
-        ]),
-        listValue([
-          arrayValue([4, 5, 6]),
-          arrayValue([null, 2, 3]),
-          arrayValue([4, 5, 6]),
-        ]),
-        null,
-      ]);
+          null,
+        ]);
+        // fixed_nested_int_array
+        assertValues(chunk, 48, DuckDBArrayVector, [
+          arrayValue([
+            arrayValue([null, 2, 3]),
+            null,
+            arrayValue([null, 2, 3]),
+          ]),
+          arrayValue([
+            arrayValue([4, 5, 6]),
+            arrayValue([null, 2, 3]),
+            arrayValue([4, 5, 6]),
+          ]),
+          null,
+        ]);
+        // fixed_nested_varchar_array
+        assertValues(chunk, 49, DuckDBArrayVector, [
+          arrayValue([
+            arrayValue(['a', null, 'c']),
+            null,
+            arrayValue(['a', null, 'c']),
+          ]),
+          arrayValue([
+            arrayValue(['d', 'e', 'f']),
+            arrayValue(['a', null, 'c']),
+            arrayValue(['d', 'e', 'f']),
+          ]),
+          null,
+        ]);
+        // fixed_struct_array
+        assertValues(chunk, 50, DuckDBArrayVector, [
+          arrayValue([
+            structValue({ 'a': null, 'b': null }),
+            structValue({ 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }),
+            structValue({ 'a': null, 'b': null }),
+          ]),
+          arrayValue([
+            structValue({ 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }),
+            structValue({ 'a': null, 'b': null }),
+            structValue({ 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }),
+          ]),
+          null,
+        ]);
+        // struct_of_fixed_array
+        assertValues(chunk, 51, DuckDBStructVector, [
+          structValue({
+            'a': arrayValue([null, 2, 3]),
+            'b': arrayValue(['a', null, 'c']),
+          }),
+          structValue({
+            'a': arrayValue([4, 5, 6]),
+            'b': arrayValue(['d', 'e', 'f']),
+          }),
+          null,
+        ]);
+        // fixed_array_of_int_list
+        assertValues(chunk, 52, DuckDBArrayVector, [
+          arrayValue([
+            listValue([]),
+            listValue([42, 999, null, null, -42]),
+            listValue([]),
+          ]),
+          arrayValue([
+            listValue([42, 999, null, null, -42]),
+            listValue([]),
+            listValue([42, 999, null, null, -42]),
+          ]),
+          null,
+        ]);
+        // list_of_fixed_int_array
+        assertValues(chunk, 53, DuckDBListVector, [
+          listValue([
+            arrayValue([null, 2, 3]),
+            arrayValue([4, 5, 6]),
+            arrayValue([null, 2, 3]),
+          ]),
+          listValue([
+            arrayValue([4, 5, 6]),
+            arrayValue([null, 2, 3]),
+            arrayValue([4, 5, 6]),
+          ]),
+          null,
+        ]);
+      }
     });
   });
   test('values toString', () => {
@@ -979,9 +991,12 @@ describe('api', () => {
     const result = await connection.run(`select current_setting('duckdb_api') as duckdb_api`);
     assertColumns(result, [{ name: 'duckdb_api', type: DuckDBVarCharType.instance }]);
     const chunk = await result.fetchChunk();
-    assert.strictEqual(chunk.columnCount, 1);
-    assert.strictEqual(chunk.rowCount, 1);
-    assertValues<string, DuckDBVarCharVector>(chunk, 0, DuckDBVarCharVector, ['node-neo-api']);
+    assert.isDefined(chunk);
+    if (chunk) {
+      assert.strictEqual(chunk.columnCount, 1);
+      assert.strictEqual(chunk.rowCount, 1);
+      assertValues<string, DuckDBVarCharVector>(chunk, 0, DuckDBVarCharVector, ['node-neo-api']);
+    }
   });
   test('default duckdb_api with explicit options', async () => {
     const instance = await DuckDBInstance.create(undefined, {});
@@ -989,9 +1004,12 @@ describe('api', () => {
     const result = await connection.run(`select current_setting('duckdb_api') as duckdb_api`);
     assertColumns(result, [{ name: 'duckdb_api', type: DuckDBVarCharType.instance }]);
     const chunk = await result.fetchChunk();
-    assert.strictEqual(chunk.columnCount, 1);
-    assert.strictEqual(chunk.rowCount, 1);
-    assertValues<string, DuckDBVarCharVector>(chunk, 0, DuckDBVarCharVector, ['node-neo-api']);
+    assert.isDefined(chunk);
+    if (chunk) {
+      assert.strictEqual(chunk.columnCount, 1);
+      assert.strictEqual(chunk.rowCount, 1);
+      assertValues<string, DuckDBVarCharVector>(chunk, 0, DuckDBVarCharVector, ['node-neo-api']);
+    }
   });
   test('overriding duckdb_api', async () => {
     const instance = await DuckDBInstance.create(undefined, { 'duckdb_api': 'custom-duckdb-api' });
@@ -999,8 +1017,11 @@ describe('api', () => {
     const result = await connection.run(`select current_setting('duckdb_api') as duckdb_api`);
     assertColumns(result, [{ name: 'duckdb_api', type: DuckDBVarCharType.instance }]);
     const chunk = await result.fetchChunk();
-    assert.strictEqual(chunk.columnCount, 1);
-    assert.strictEqual(chunk.rowCount, 1);
-    assertValues<string, DuckDBVarCharVector>(chunk, 0, DuckDBVarCharVector, ['custom-duckdb-api']);
+    assert.isDefined(chunk);
+    if (chunk) {
+      assert.strictEqual(chunk.columnCount, 1);
+      assert.strictEqual(chunk.rowCount, 1);
+      assertValues<string, DuckDBVarCharVector>(chunk, 0, DuckDBVarCharVector, ['custom-duckdb-api']);
+    }
   });
 });

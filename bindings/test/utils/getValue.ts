@@ -84,7 +84,7 @@ function getBuffer(dv: DataView, offset: number): Buffer {
   return Buffer.from(getStringBytes(dv, offset));
 }
 
-export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Array, dv: DataView, index: number): any {
+export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Array | null, dv: DataView, index: number): any {
   if (!isValid(validity, index)) {
     return null;
   }
@@ -200,7 +200,7 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
   }
 }
 
-export function getListEntry(validity: BigUint64Array, dv: DataView, index: number): [bigint, bigint] | null {
+export function getListEntry(validity: BigUint64Array | null, dv: DataView, index: number): [bigint, bigint] | null {
   if (!isValid(validity, index)) {
     return null;
   }

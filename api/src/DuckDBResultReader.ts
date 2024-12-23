@@ -124,7 +124,7 @@ export class DuckDBResultReader {
       )
     ) {
       const chunk = await this.result.fetchChunk();
-      if (chunk.rowCount > 0) {
+      if (chunk && chunk.rowCount > 0) {
         this.updateChunkSizeRuns(chunk);
         this.chunks.push(chunk);
         this.currentRowCount_ += chunk.rowCount;

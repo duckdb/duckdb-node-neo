@@ -8,7 +8,7 @@ import { ResultReturnType, StatementType } from './enums';
 import { DuckDBValue } from './values';
 
 export class DuckDBResult {
-  private readonly result: duckdb.Result;
+  protected readonly result: duckdb.Result;
   constructor(result: duckdb.Result) {
     this.result = result;
   }
@@ -56,17 +56,21 @@ export class DuckDBResult {
     }
     return columnTypes;
   }
+  public get isStreaming(): boolean {
+    return duckdb.result_is_streaming(this.result);
+  }
   public get rowsChanged(): number {
     return duckdb.rows_changed(this.result);
   }
-  public async fetchChunk(): Promise<DuckDBDataChunk> {
-    return new DuckDBDataChunk(await duckdb.fetch_chunk(this.result));
+  public async fetchChunk(): Promise<DuckDBDataChunk | null> {
+    const chunk = await duckdb.fetch_chunk(this.result);
+    return chunk ? new DuckDBDataChunk(chunk) : null;
   }
   public async fetchAllChunks(): Promise<DuckDBDataChunk[]> {
     const chunks: DuckDBDataChunk[] = [];
     while (true) {
       const chunk = await this.fetchChunk();
-      if (chunk.rowCount === 0) {
+      if (!chunk || chunk.rowCount === 0) {
         return chunks;
       }
       chunks.push(chunk);

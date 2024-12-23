@@ -652,6 +652,37 @@ private:
 
 };
 
+class ExecutePreparedStreamingWorker : public PromiseWorker {
+
+public:
+
+  ExecutePreparedStreamingWorker(Napi::Env env, duckdb_prepared_statement prepared_statement)
+    : PromiseWorker(env), prepared_statement_(prepared_statement) {
+  }
+
+protected:
+
+  void Execute() override {
+    result_ptr_ = reinterpret_cast<duckdb_result*>(duckdb_malloc(sizeof(duckdb_result)));
+    if (duckdb_execute_prepared_streaming(prepared_statement_, result_ptr_)) {
+      SetError(duckdb_result_error(result_ptr_));
+      duckdb_destroy_result(result_ptr_);
+      duckdb_free(result_ptr_);
+      result_ptr_ = nullptr;
+    }
+  }
+
+  Napi::Value Result() override {
+    return CreateExternalForResult(Env(), result_ptr_);
+  }
+
+private:
+
+  duckdb_prepared_statement prepared_statement_;
+  duckdb_result *result_ptr_;
+
+};
+
 class ExtractStatementsWorker : public PromiseWorker {
 
 public:
@@ -755,6 +786,9 @@ protected:
 
   void Execute() override {
     data_chunk_ = duckdb_fetch_chunk(*result_ptr_);
+    // if (!data_chunk_) {
+    //   SetError("Failed to fetch chunk");
+    // }
   }
 
   Napi::Value Result() override {
@@ -901,7 +935,11 @@ public:
       InstanceMethod("result_statement_type", &DuckDBNodeAddon::result_statement_type),
       InstanceMethod("column_logical_type", &DuckDBNodeAddon::column_logical_type),
       InstanceMethod("column_count", &DuckDBNodeAddon::column_count),
+      InstanceMethod("row_count", &DuckDBNodeAddon::row_count),
       InstanceMethod("rows_changed", &DuckDBNodeAddon::rows_changed),
+      InstanceMethod("result_get_chunk", &DuckDBNodeAddon::result_get_chunk),
+      InstanceMethod("result_is_streaming", &DuckDBNodeAddon::result_is_streaming),
+      InstanceMethod("result_chunk_count", &DuckDBNodeAddon::result_chunk_count),
       InstanceMethod("result_return_type", &DuckDBNodeAddon::result_return_type),
 
       InstanceMethod("vector_size", &DuckDBNodeAddon::vector_size),
@@ -955,12 +993,14 @@ public:
       InstanceMethod("bind_blob", &DuckDBNodeAddon::bind_blob),
       InstanceMethod("bind_null", &DuckDBNodeAddon::bind_null),
       InstanceMethod("execute_prepared", &DuckDBNodeAddon::execute_prepared),
+      InstanceMethod("execute_prepared_streaming", &DuckDBNodeAddon::execute_prepared_streaming),
       
       InstanceMethod("extract_statements", &DuckDBNodeAddon::extract_statements),
       InstanceMethod("prepare_extracted_statement", &DuckDBNodeAddon::prepare_extracted_statement),
       InstanceMethod("extract_statements_error", &DuckDBNodeAddon::extract_statements_error),
 
       InstanceMethod("pending_prepared", &DuckDBNodeAddon::pending_prepared),
+      InstanceMethod("pending_prepared_streaming", &DuckDBNodeAddon::pending_prepared_streaming),
       InstanceMethod("pending_error", &DuckDBNodeAddon::pending_error),
       InstanceMethod("pending_execute_task", &DuckDBNodeAddon::pending_execute_task),
       InstanceMethod("pending_execute_check_state", &DuckDBNodeAddon::pending_execute_check_state),
@@ -1288,7 +1328,16 @@ private:
   }
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
+
   // DUCKDB_API idx_t duckdb_row_count(duckdb_result *result);
+  // function row_count(result: Result): number
+  Napi::Value row_count(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto row_count = duckdb_row_count(result_ptr);
+    return Napi::Number::New(env, row_count);
+  }
+
   // #endif
 
   // DUCKDB_API idx_t duckdb_rows_changed(duckdb_result *result);
@@ -1312,9 +1361,38 @@ private:
   // not exposed: query, execute_prepared, and execute_pending reject promise with error
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
+
   // DUCKDB_API duckdb_data_chunk duckdb_result_get_chunk(duckdb_result result, idx_t chunk_index);
+  // function result_get_chunk(result: Result, chunkIndex: number): DataChunk
+  Napi::Value result_get_chunk(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto chunk_index = info[1].As<Napi::Number>().Uint32Value();
+    auto chunk = duckdb_result_get_chunk(*result_ptr, chunk_index);
+    if (!chunk) {
+      throw Napi::Error::New(env, "Failed to get data chunk. Only supported for materialized results.");
+    }
+    return CreateExternalForDataChunk(env, chunk);
+  }
+
   // DUCKDB_API bool duckdb_result_is_streaming(duckdb_result result);
+  // function result_is_streaming(result: Result): boolean
+  Napi::Value result_is_streaming(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto is_streaming = duckdb_result_is_streaming(*result_ptr);
+    return Napi::Boolean::New(env, is_streaming);
+  }
+
   // DUCKDB_API idx_t duckdb_result_chunk_count(duckdb_result result);
+  // function result_chunk_count(result: Result): number
+  Napi::Value result_chunk_count(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_ptr = GetResultFromExternal(env, info[0]);
+    auto chunk_count = duckdb_result_chunk_count(*result_ptr);
+    return Napi::Number::New(env, chunk_count);
+  }
+
   // #endif
 
   // DUCKDB_API duckdb_result_type duckdb_result_return_type(duckdb_result result);
@@ -1936,7 +2014,17 @@ private:
   }
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
+
   // DUCKDB_API duckdb_state duckdb_execute_prepared_streaming(duckdb_prepared_statement prepared_statement, duckdb_result *out_result);
+  // function execute_prepared_streaming(prepared_statement: PreparedStatement): Promise<Result>
+  Napi::Value execute_prepared_streaming(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto worker = new ExecutePreparedStreamingWorker(env, prepared_statement);
+    worker->Queue();
+    return worker->Promise();
+  }
+
   // #endif
 
   // DUCKDB_API idx_t duckdb_extract_statements(duckdb_connection connection, const char *query, duckdb_extracted_statements *out_extracted_statements);
@@ -1989,7 +2077,21 @@ private:
   }
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
+
   // DUCKDB_API duckdb_state duckdb_pending_prepared_streaming(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result);
+  // function pending_prepared_streaming(prepared_statement: PreparedStatement): PendingResult
+  Napi::Value pending_prepared_streaming(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    duckdb_pending_result pending_result;
+    if (duckdb_pending_prepared_streaming(prepared_statement, &pending_result)) {
+      std::string error = duckdb_pending_error(pending_result);
+      duckdb_destroy_pending(&pending_result);
+      throw Napi::Error::New(env, error);
+    }
+    return CreateExternalForPendingResult(env, pending_result);
+  }
+
   // #endif
 
   // DUCKDB_API void duckdb_destroy_pending(duckdb_pending_result *pending_result);
@@ -2903,6 +3005,9 @@ private:
     auto vector = GetVectorFromExternal(env, info[0]);
     auto byte_count = info[1].As<Napi::Number>().Uint32Value();
     uint64_t *data = duckdb_vector_get_validity(vector);
+    if (!data) {
+      return env.Null();
+    }
     return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(data), byte_count);
   }
 
@@ -2987,10 +3092,10 @@ private:
   }
 
   // DUCKDB_API bool duckdb_validity_row_is_valid(uint64_t *validity, idx_t row);
-  // function validity_row_is_valid(validity: Uint8Array, row_index: number): boolean
+  // function validity_row_is_valid(validity: Uint8Array | null, row_index: number): boolean
   Napi::Value validity_row_is_valid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto validity = reinterpret_cast<uint64_t*>(info[0].As<Napi::Uint8Array>().Data());
+    auto validity = info[0].IsNull() ? nullptr : reinterpret_cast<uint64_t*>(info[0].As<Napi::Uint8Array>().Data());
     auto row_index = info[1].As<Napi::Number>().Uint32Value();
     auto valid = duckdb_validity_row_is_valid(validity, row_index);
     return Napi::Boolean::New(env, valid);
@@ -3501,7 +3606,7 @@ private:
   // #endif
 
   // DUCKDB_API duckdb_data_chunk duckdb_fetch_chunk(duckdb_result result);
-  // function fetch_chunk(result: Result): Promise<DataChunk>
+  // function fetch_chunk(result: Result): Promise<DataChunk | null>
   Napi::Value fetch_chunk(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto result_ptr = GetResultFromExternal(env, info[0]);
@@ -3546,7 +3651,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   372 total functions
 
-  200 instance methods
+  206 instance methods
     1 unimplemented logical type functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
@@ -3562,7 +3667,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
     8 unimplemented tasks functions
    12 unimplemented cast function functions
    26 functions not exposed
-+  47 deprecated functions
++  41 unimplemented deprecated functions (of 47)
   ---
   372 functions accounted for
 

@@ -37,10 +37,13 @@ export function expectVector(vector: duckdb.Vector, expectedVector: ExpectedVect
   }
 }
 
-function getVectorValidity(vector: duckdb.Vector, itemCount: number): { validity: BigUint64Array, validityBytes: Uint8Array } {
+function getVectorValidity(vector: duckdb.Vector, itemCount: number): { validity: BigUint64Array | null, validityBytes: Uint8Array | null } {
   const validityUInt64Count = Math.ceil(itemCount / 64);
   const validityByteCount = validityUInt64Count * 8;
   const validityBytes = duckdb.vector_get_validity(vector, validityByteCount);
+  if (!validityBytes) {
+    return { validity: null, validityBytes: null };
+  }
   const validity = new BigUint64Array(validityBytes.buffer, 0, validityUInt64Count);
   return { validity, validityBytes };
 }
@@ -59,7 +62,7 @@ function expectArrayVector(vector: duckdb.Vector, expectedVector: ExpectedArrayV
   const itemCount = expectedVector.itemCount;
   const { validity, validityBytes } = getVectorValidity(vector, itemCount);
   for (let row = 0; row < itemCount; row++) {
-    expectValidity(validityBytes, validity, row, expectedVector.validity[row], `${vectorName} row[${row}]`);
+    expectValidity(validityBytes, validity, row, expectedVector.validity ? expectedVector.validity[row] : true, `${vectorName} row[${row}]`);
   }
 
   const childVector = duckdb.array_vector_get_child(vector);
@@ -71,7 +74,7 @@ function expectDataVector(vector: duckdb.Vector, expectedVector: ExpectedDataVec
   const { validity, validityBytes } = getVectorValidity(vector, itemCount);
   const dv = getVectorData(vector, itemCount, expectedVector.itemBytes);
   for (let row = 0; row < itemCount; row++) {
-    expectValidity(validityBytes, validity, row, expectedVector.validity[row], `${vectorName} row[${row}]`);
+    expectValidity(validityBytes, validity, row, expectedVector.validity ? expectedVector.validity[row] : true, `${vectorName} row[${row}]`);
     expect(getValue(expectedLogicalType, validity, dv, row), `${vectorName} row[${row}]`).toStrictEqual(expectedVector.values[row]);
   }
 }
@@ -86,7 +89,7 @@ function expectListVector(vector: duckdb.Vector, expectedVector: ExpectedListVec
   const { validity, validityBytes } = getVectorValidity(vector, itemCount);
   const entriesDV = getVectorData(vector, itemCount, 16);
   for (let row = 0; row < itemCount; row++) {
-    expectValidity(validityBytes, validity, row, expectedVector.validity[row], `${vectorName} row[${row}]`);
+    expectValidity(validityBytes, validity, row, expectedVector.validity ? expectedVector.validity[row] : true, `${vectorName} row[${row}]`);
     expect(getListEntry(validity, entriesDV, row)).toStrictEqual(expectedVector.entries[row]);
   }
 
@@ -106,7 +109,7 @@ function expectMapVector(vector: duckdb.Vector, expectedVector: ExpectedMapVecto
   const { validity, validityBytes } = getVectorValidity(vector, itemCount);
   const entriesDV = getVectorData(vector, itemCount, 16);
   for (let row = 0; row < itemCount; row++) {
-    expectValidity(validityBytes, validity, row, expectedVector.validity[row], `${vectorName} row[${row}]`);
+    expectValidity(validityBytes, validity, row, expectedVector.validity ? expectedVector.validity[row] : true, `${vectorName} row[${row}]`);
     expect(getListEntry(validity, entriesDV, row)).toStrictEqual(expectedVector.entries[row]);
   }
 
@@ -128,7 +131,7 @@ function expectStructVector(vector: duckdb.Vector, expectedVector: ExpectedStruc
   const itemCount = expectedVector.itemCount;
   const { validity, validityBytes } = getVectorValidity(vector, itemCount);
   for (let row = 0; row < itemCount; row++) {
-    expectValidity(validityBytes, validity, row, expectedVector.validity[row], `${vectorName} row[${row}]`);
+    expectValidity(validityBytes, validity, row, expectedVector.validity ? expectedVector.validity[row] : true, `${vectorName} row[${row}]`);
   }
 
   for (let i = 0; i < expectedVector.children.length; i++) {

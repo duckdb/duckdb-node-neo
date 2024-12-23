@@ -288,7 +288,10 @@ export function column_logical_type(result: Result, column_index: number): Logic
 export function column_count(result: Result): number;
 
 // #ifndef DUCKDB_API_NO_DEPRECATED
+
 // DUCKDB_API idx_t duckdb_row_count(duckdb_result *result);
+export function row_count(result: Result): number;
+
 // #endif
 
 // DUCKDB_API idx_t duckdb_rows_changed(duckdb_result *result);
@@ -306,9 +309,16 @@ export function rows_changed(result: Result): number;
 // not exposed: query, execute_prepared, and execute_pending reject promise with error
 
 // #ifndef DUCKDB_API_NO_DEPRECATED
+
 // DUCKDB_API duckdb_data_chunk duckdb_result_get_chunk(duckdb_result result, idx_t chunk_index);
+export function result_get_chunk(result: Result, chunkIndex: number): DataChunk;
+
 // DUCKDB_API bool duckdb_result_is_streaming(duckdb_result result);
+export function result_is_streaming(result: Result): boolean;
+
 // DUCKDB_API idx_t duckdb_result_chunk_count(duckdb_result result);
+export function result_chunk_count(result: Result): number;
+
 // #endif
 
 // DUCKDB_API duckdb_result_type duckdb_result_return_type(duckdb_result result);
@@ -510,7 +520,10 @@ export function bind_null(prepared_statement: PreparedStatement, index: number):
 export function execute_prepared(prepared_statement: PreparedStatement): Promise<Result>;
 
 // #ifndef DUCKDB_API_NO_DEPRECATED
+
 // DUCKDB_API duckdb_state duckdb_execute_prepared_streaming(duckdb_prepared_statement prepared_statement, duckdb_result *out_result);
+export function execute_prepared_streaming(prepared_statement: PreparedStatement): Promise<Result>;
+
 // #endif
 
 // DUCKDB_API idx_t duckdb_extract_statements(duckdb_connection connection, const char *query, duckdb_extracted_statements *out_extracted_statements);
@@ -529,7 +542,10 @@ export function extract_statements_error(extracted_statements: ExtractedStatemen
 export function pending_prepared(prepared_statement: PreparedStatement): PendingResult;
 
 // #ifndef DUCKDB_API_NO_DEPRECATED
+
 // DUCKDB_API duckdb_state duckdb_pending_prepared_streaming(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result);
+export function pending_prepared_streaming(prepared_statement: PreparedStatement): PendingResult;
+
 // #endif
 
 // DUCKDB_API void duckdb_destroy_pending(duckdb_pending_result *pending_result);
@@ -845,7 +861,7 @@ export function struct_vector_get_child(vector: Vector, index: number): Vector;
 export function array_vector_get_child(vector: Vector): Vector;
 
 // DUCKDB_API bool duckdb_validity_row_is_valid(uint64_t *validity, idx_t row);
-export function validity_row_is_valid(validity: Uint8Array, row_index: number): boolean;
+export function validity_row_is_valid(validity: Uint8Array | null, row_index: number): boolean;
 
 // DUCKDB_API void duckdb_validity_set_row_validity(uint64_t *validity, idx_t row, bool valid);
 export function validity_set_row_validity(validity: Uint8Array, row_index: number, valid: boolean): void;
@@ -1072,7 +1088,7 @@ export function append_data_chunk(appender: Appender, chunk: DataChunk): void;
 // #endif
 
 // DUCKDB_API duckdb_data_chunk duckdb_fetch_chunk(duckdb_result result);
-export function fetch_chunk(result: Result): Promise<DataChunk>;
+export function fetch_chunk(result: Result): Promise<DataChunk | null>;
 
 // DUCKDB_API duckdb_cast_function duckdb_create_cast_function();
 // DUCKDB_API void duckdb_cast_function_set_source_type(duckdb_cast_function cast_function, duckdb_logical_type source_type);

@@ -1,4 +1,5 @@
 import duckdb from '@duckdb/node-bindings';
+import { createResult } from './createResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
 
@@ -34,7 +35,7 @@ export class DuckDBPendingResult {
     }
   }
   public async getResult(): Promise<DuckDBResult> {
-    return new DuckDBResult(await duckdb.execute_pending(this.pending_result));
+    return createResult(await duckdb.execute_pending(this.pending_result));
   }
   public async read(): Promise<DuckDBResultReader> {
     return new DuckDBResultReader(await this.getResult());

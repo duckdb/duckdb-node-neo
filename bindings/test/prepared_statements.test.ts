@@ -39,6 +39,8 @@ suite('prepared statements', () => {
       expect(duckdb.prepared_statement_type(prepared)).toBe(duckdb.StatementType.SELECT);
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'seventeen', logicalType: INTEGER },
         ],
@@ -66,6 +68,8 @@ suite('prepared statements', () => {
 
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'a', logicalType: INTEGER },
           { name: 'b', logicalType: INTEGER },
@@ -94,6 +98,8 @@ suite('prepared statements', () => {
 
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'two', logicalType: INTEGER },
           { name: 'one', logicalType: INTEGER },
@@ -124,6 +130,8 @@ suite('prepared statements', () => {
 
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'a', logicalType: INTEGER },
           { name: 'b', logicalType: INTEGER },
@@ -153,6 +161,8 @@ suite('prepared statements', () => {
 
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'a', logicalType: INTEGER },
           { name: 'b', logicalType: INTEGER },
@@ -259,6 +269,8 @@ suite('prepared statements', () => {
 
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'boolean', logicalType: BOOLEAN },
           { name: 'int8', logicalType: TINYINT },
@@ -346,6 +358,8 @@ suite('prepared statements', () => {
 
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
         columns: [
           { name: 'struct', logicalType: STRUCT(ENTRY('a', INTEGER), ENTRY('b', VARCHAR)) },
           { name: 'list', logicalType: LIST(INTEGER) },
@@ -360,6 +374,23 @@ suite('prepared statements', () => {
               array(1, [true], data(4, [true], [42])),
             ]
           },
+        ],
+      });
+    });
+  });
+  test('streaming', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await duckdb.prepare(connection, 'select n::integer as int from range(5000) t(n)');
+      const result = await duckdb.execute_prepared_streaming(prepared);
+      await expectResult(result, {
+        isStreaming: true,
+        columns: [
+          { name: 'int', logicalType: INTEGER },
+        ],
+        chunks: [
+          { rowCount: 2048, vectors: [data(4, null, Array.from({ length: 2048 }).map((_, i) => i))]},
+          { rowCount: 2048, vectors: [data(4, null, Array.from({ length: 2048 }).map((_, i) => 2048 + i))]},
+          { rowCount: 904, vectors: [data(4, null, Array.from({ length: 904 }).map((_, i) => 4096 + i))]},
         ],
       });
     });
