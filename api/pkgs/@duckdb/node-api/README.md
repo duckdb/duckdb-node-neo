@@ -79,6 +79,21 @@ const instance = await DuckDBInstance.create('my_duckdb.db', {
 const connection = await instance.connect();
 ```
 
+### Disconnect
+
+Connections will be disconnected automatically soon after their reference
+is dropped, but you can also disconnect explicitly if and when you want:
+
+```ts
+connection.disconnect();
+```
+
+or, equivalently:
+
+```ts
+connection.close();
+```
+
 ### Run SQL
 
 ```ts
