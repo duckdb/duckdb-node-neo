@@ -246,7 +246,7 @@ export function interrupt(connection: Connection): void;
 export function query_progress(connection: Connection): QueryProgress;
 
 // DUCKDB_API void duckdb_disconnect(duckdb_connection *connection);
-// not exposed: disconnected in finalizer
+export function disconnect(connection: Connection): void;
 
 // DUCKDB_API const char *duckdb_library_version();
 export function library_version(): string;

@@ -343,6 +343,21 @@ describe('api', () => {
       assertValues<number, DuckDBIntegerVector>(chunk, 0, DuckDBIntegerVector, [42]);
     }
   });
+  test('disconnecting connections', async () => {
+    const instance = await DuckDBInstance.create();
+    const connection = await instance.connect();
+    const prepared1 = await connection.prepare('select 1');
+    assert.isDefined(prepared1);
+    connection.disconnect();
+    try {
+      await connection.prepare('select 2');
+      assert.fail('should throw');
+    } catch (err) {
+      assert.deepEqual(err, new Error('Failed to prepare: connection disconnected'));
+    }
+    // ensure double-disconnect doesn't break anything
+    connection.disconnect();
+  });
   test('should support running prepared statements', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare('select $num as a, $str as b, $bool as c, $null as d');

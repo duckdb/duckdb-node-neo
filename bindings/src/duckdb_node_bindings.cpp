@@ -266,23 +266,36 @@ duckdb_config GetConfigFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_config>(env, ConfigTypeTag, value, "Invalid config argument");
 }
 
+typedef struct {
+  duckdb_connection connection;
+} duckdb_connection_holder;
+
 static const napi_type_tag ConnectionTypeTag = {
   0x922B9BF54AB04DFC, 0x8A258578D371DB71
 };
 
-void FinalizeConnection(Napi::BasicEnv, duckdb_connection connection) {
-  if (connection) {
-    duckdb_disconnect(&connection);
-    connection = nullptr;
-  }
+void FinalizeConnection(Napi::BasicEnv, duckdb_connection_holder *connection_holder_ptr) {
+  // duckdb_disconnect is a no-op if already disconnected
+  duckdb_disconnect(&connection_holder_ptr->connection);
+  duckdb_free(connection_holder_ptr);
 }
 
-Napi::External<_duckdb_connection> CreateExternalForConnection(Napi::Env env, duckdb_connection connection) {
-  return CreateExternal<_duckdb_connection>(env, ConnectionTypeTag, connection, FinalizeConnection);
+duckdb_connection_holder *CreateConnectionHolder(duckdb_connection connection) {
+  auto connection_holder_ptr = reinterpret_cast<duckdb_connection_holder*>(duckdb_malloc(sizeof(duckdb_connection_holder)));
+  connection_holder_ptr->connection = connection;
+  return connection_holder_ptr;
+}
+
+Napi::External<duckdb_connection_holder> CreateExternalForConnection(Napi::Env env, duckdb_connection connection) {
+  return CreateExternal<duckdb_connection_holder>(env, ConnectionTypeTag, CreateConnectionHolder(connection), FinalizeConnection);
+}
+
+duckdb_connection_holder *GetConnectionHolderFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<duckdb_connection_holder>(env, ConnectionTypeTag, value, "Invalid connection argument");
 }
 
 duckdb_connection GetConnectionFromExternal(Napi::Env env, Napi::Value value) {
-  return GetDataFromExternal<_duckdb_connection>(env, ConnectionTypeTag, value, "Invalid connection argument");
+  return GetConnectionHolderFromExternal(env, value)->connection;
 }
 
 static const napi_type_tag DatabaseTypeTag = {
@@ -529,7 +542,7 @@ private:
 
   std::optional<std::string> path_;
   duckdb_config config_;
-  duckdb_database database_;
+  duckdb_database database_ = nullptr;
 
 };
 
@@ -556,7 +569,7 @@ protected:
 private:
 
   duckdb_database database_;
-  duckdb_connection connection_;
+  duckdb_connection connection_ = nullptr;
 
 };
 
@@ -571,6 +584,10 @@ public:
 protected:
 
   void Execute() override {
+    if (!connection_) {
+      SetError("Failed to query: connection disconnected");
+      return;
+    }
     result_ptr_ = reinterpret_cast<duckdb_result*>(duckdb_malloc(sizeof(duckdb_result)));
     if (duckdb_query(connection_, query_.c_str(), result_ptr_)) {
       SetError(duckdb_result_error(result_ptr_));
@@ -588,7 +605,7 @@ private:
 
   duckdb_connection connection_;
   std::string query_;
-  duckdb_result *result_ptr_;
+  duckdb_result *result_ptr_ = nullptr;
 
 };
 
@@ -603,9 +620,17 @@ public:
 protected:
 
   void Execute() override {
+    if (!connection_) {
+      SetError("Failed to prepare: connection disconnected");
+      return;
+    }
     if (duckdb_prepare(connection_, query_.c_str(), &prepared_statement_)) {
-      SetError(duckdb_prepare_error(prepared_statement_));
-      duckdb_destroy_prepare(&prepared_statement_);
+      if (prepared_statement_) {
+        SetError(duckdb_prepare_error(prepared_statement_));
+        duckdb_destroy_prepare(&prepared_statement_);
+      } else {
+        SetError("Failed to prepare");
+      }
     }
   }
 
@@ -617,7 +642,7 @@ private:
 
   duckdb_connection connection_;
   std::string query_;
-  duckdb_prepared_statement prepared_statement_;
+  duckdb_prepared_statement prepared_statement_ = nullptr;
 
 };
 
@@ -648,7 +673,7 @@ protected:
 private:
 
   duckdb_prepared_statement prepared_statement_;
-  duckdb_result *result_ptr_;
+  duckdb_result *result_ptr_ = nullptr;
 
 };
 
@@ -694,6 +719,10 @@ public:
 protected:
 
   void Execute() override {
+    if (!connection_) {
+      SetError("Failed to extract statements: connection disconnected");
+      return;
+    }
     statement_count_ = duckdb_extract_statements(connection_, query_.c_str(), &extracted_statements_);
   }
 
@@ -708,8 +737,8 @@ private:
 
   duckdb_connection connection_;
   std::string query_;
-  duckdb_extracted_statements extracted_statements_;
-  idx_t statement_count_;
+  duckdb_extracted_statements extracted_statements_ = nullptr;
+  idx_t statement_count_ = 0;
 
 };
 
@@ -724,9 +753,17 @@ public:
 protected:
 
   void Execute() override {
+    if (!connection_) {
+      SetError("Failed to prepare extracted statement: connection disconnected");
+      return;
+    }
     if (duckdb_prepare_extracted_statement(connection_, extracted_statements_, index_, &prepared_statement_)) {
-      SetError(duckdb_prepare_error(prepared_statement_));
-      duckdb_destroy_prepare(&prepared_statement_);
+      if (prepared_statement_) {
+        SetError(duckdb_prepare_error(prepared_statement_));
+        duckdb_destroy_prepare(&prepared_statement_);
+      } else {
+        SetError("Failed to prepare extracted statement");
+      }
     }
   }
 
@@ -739,7 +776,7 @@ private:
   duckdb_connection connection_;
   duckdb_extracted_statements extracted_statements_;
   idx_t index_;
-  duckdb_prepared_statement prepared_statement_;
+  duckdb_prepared_statement prepared_statement_ = nullptr;
 
 };
 
@@ -770,7 +807,7 @@ protected:
 private:
 
   duckdb_pending_result pending_result_;
-  duckdb_result *result_ptr_;
+  duckdb_result *result_ptr_ = nullptr;
 
 };
 
@@ -786,9 +823,6 @@ protected:
 
   void Execute() override {
     data_chunk_ = duckdb_fetch_chunk(*result_ptr_);
-    // if (!data_chunk_) {
-    //   SetError("Failed to fetch chunk");
-    // }
   }
 
   Napi::Value Result() override {
@@ -798,7 +832,7 @@ protected:
 private:
 
   duckdb_result *result_ptr_;
-  duckdb_data_chunk data_chunk_;
+  duckdb_data_chunk data_chunk_ = nullptr;
 
 };
 
@@ -921,6 +955,7 @@ public:
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
       InstanceMethod("interrupt", &DuckDBNodeAddon::interrupt),
       InstanceMethod("query_progress", &DuckDBNodeAddon::query_progress),
+      InstanceMethod("disconnect", &DuckDBNodeAddon::disconnect),
 
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
 
@@ -1202,7 +1237,14 @@ private:
   }
 
   // DUCKDB_API void duckdb_disconnect(duckdb_connection *connection);
-  // not exposed: disconnected in finalizer
+  // function disconnect(connection: Connection): void
+  Napi::Value disconnect(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto connection_holder_ptr = GetConnectionHolderFromExternal(env, info[0]);
+    // duckdb_disconnect is a no-op if already disconnected
+    duckdb_disconnect(&connection_holder_ptr->connection);
+    return env.Undefined();
+  }
 
   // DUCKDB_API const char *duckdb_library_version();
   // function library_version(): string
@@ -3221,6 +3263,9 @@ private:
   Napi::Value appender_create(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto connection = GetConnectionFromExternal(env, info[0]);
+    if (!connection) {
+      throw Napi::Error::New(env, "Failed to create appender: connection disconnected");
+    }
     std::string schema = info[1].As<Napi::String>();
     std::string table = info[2].As<Napi::String>();
     duckdb_appender appender;
