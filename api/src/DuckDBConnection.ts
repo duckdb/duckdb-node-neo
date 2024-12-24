@@ -18,6 +18,13 @@ export class DuckDBConnection {
   ): Promise<DuckDBConnection> {
     return instance.connect();
   }
+  /** Same as disconnect. */
+  public close() {
+    return this.disconnect();
+  }
+  public disconnect() {
+    return duckdb.disconnect(this.connection);
+  }
   public interrupt() {
     duckdb.interrupt(this.connection);
   }
