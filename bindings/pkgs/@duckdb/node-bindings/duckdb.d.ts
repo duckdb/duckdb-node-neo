@@ -1110,3 +1110,23 @@ export function fetch_chunk(result: Result): Promise<DataChunk | null>;
  * Used to read from `duckdb_string_t`s with non-inlined data that are embedded in VARCHAR, BLOB, and BIT vectors.
  */
 export function get_data_from_pointer(array_buffer: ArrayBuffer, pointer_offset: number, byte_count: number): Uint8Array;
+
+// ADDED
+/** 
+ * Copy `source_byte_count` bytes from `source_buffer` at `source_byte_offset` into `target_vector` at `target_byte_offset`.
+ * 
+ * Used to write to data chunks.
+ *
+ * Performs an efficient-but-unsafe memory copy. Use with care.
+ */
+export function copy_data_to_vector(target_vector: Vector, target_byte_offset: number, source_buffer: ArrayBuffer, source_byte_offset: number, source_byte_count: number): void;
+
+// ADDED
+/** 
+ * Copy `source_byte_count` bytes from `source_buffer` at `source_byte_offset` into the validity of `target_vector` at `target_byte_offset`.
+ * 
+ * Used to write to data chunks.
+ *
+ * Performs an efficient-but-unsafe memory copy. Use with care.
+ */
+export function copy_data_to_vector_validity(target_vector: Vector, target_byte_offset: number, source_buffer: ArrayBuffer, source_byte_offset: number, source_byte_count: number): void;

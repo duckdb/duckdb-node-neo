@@ -23,7 +23,7 @@ suite('data chunk', () => {
     duckdb.data_chunk_reset(chunk);
     expect(duckdb.data_chunk_get_size(chunk)).toBe(0);
   });
-  test('write vector validity', () => {
+  test('write vector validity bit-by-bit', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
     const chunk = duckdb.create_data_chunk([int_type]);
     duckdb.data_chunk_set_size(chunk, 3);
@@ -37,6 +37,41 @@ suite('data chunk', () => {
     expect(validity[0]).toBe(0b11111111);
     duckdb.validity_set_row_invalid(validity, 2);
     expect(validity[0]).toBe(0b11111011);
+  });
+  test('write vector validity bulk', () => {
+    const source_buffer = new ArrayBuffer(8);
+    const source_array = new BigUint64Array(source_buffer);
+    source_array[0] = 0xfedcba9876543210n;
+
+    const integer_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    const chunk = duckdb.create_data_chunk([integer_type]);
+    duckdb.data_chunk_set_size(chunk, 3);
+    const vector = duckdb.data_chunk_get_vector(chunk, 0);
+    duckdb.vector_ensure_validity_writable(vector);
+    duckdb.copy_data_to_vector_validity(vector, 0, source_buffer, 0, source_buffer.byteLength);
+
+    const validity_bytes = duckdb.vector_get_validity(vector, 8);
+    const validity_array = new BigUint64Array(validity_bytes.buffer, validity_bytes.byteOffset, 1);
+    expect(validity_array[0]).toBe(0xfedcba9876543210n);
+  });
+  test('write integer vector', () => {
+    const source_buffer = new ArrayBuffer(3 * 4);
+    const source_dv = new DataView(source_buffer);
+    source_dv.setInt32(0, 42, true);
+    source_dv.setInt32(4, 12345, true);
+    source_dv.setInt32(8, 67890, true);
+
+    const integer_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    const chunk = duckdb.create_data_chunk([integer_type]);
+    duckdb.data_chunk_set_size(chunk, 3);
+    const vector = duckdb.data_chunk_get_vector(chunk, 0);
+    duckdb.copy_data_to_vector(vector, 0, source_buffer, 0, source_buffer.byteLength);
+
+    const vector_data = duckdb.vector_get_data(vector, 3 * 4);
+    const vector_dv = new DataView(vector_data.buffer, vector_data.byteOffset, vector_data.byteLength);
+    expect(vector_dv.getInt32(0, true)).toBe(42);
+    expect(vector_dv.getInt32(4, true)).toBe(12345);
+    expect(vector_dv.getInt32(8, true)).toBe(67890);
   });
   test('write string vector', () => {
     const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
