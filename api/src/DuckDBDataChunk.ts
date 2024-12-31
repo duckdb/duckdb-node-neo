@@ -1,4 +1,5 @@
 import duckdb from '@duckdb/node-bindings';
+import { DuckDBType } from './DuckDBType';
 import { DuckDBVector } from './DuckDBVector';
 import { DuckDBValue } from './values';
 
@@ -8,8 +9,8 @@ export class DuckDBDataChunk {
   constructor(chunk: duckdb.DataChunk) {
     this.chunk = chunk;
   }
-  public static create(logical_types: duckdb.LogicalType[]): DuckDBDataChunk {
-    return new DuckDBDataChunk(duckdb.create_data_chunk(logical_types));
+  public static create(types: DuckDBType[]): DuckDBDataChunk {
+    return new DuckDBDataChunk(duckdb.create_data_chunk(types.map(t => t.toLogicalType().logical_type)));
   }
   public reset() {
     duckdb.data_chunk_reset(this.chunk);

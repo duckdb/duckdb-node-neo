@@ -1,3 +1,5 @@
+import duckdb from '@duckdb/node-bindings';
+import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { quotedIdentifier, quotedString } from './sql';
 
@@ -10,6 +12,13 @@ export abstract class BaseDuckDBType<T extends DuckDBTypeId> {
   }
   public toString(): string {
     return DuckDBTypeId[this.typeId];
+  }
+  public toLogicalType(): DuckDBLogicalType {
+    const logicalType = DuckDBLogicalType.create(duckdb.create_logical_type(this.typeId as number as duckdb.Type));
+    if (this.alias) {
+      logicalType.alias = this.alias;
+    }
+    return logicalType;
   }
 }
 
@@ -241,6 +250,13 @@ export class DuckDBDecimalType extends BaseDuckDBType<DuckDBTypeId.DECIMAL> {
   public toString(): string {
     return `DECIMAL(${this.width},${this.scale})`;
   }
+  public override toLogicalType(): DuckDBLogicalType {
+    const logicalType = DuckDBLogicalType.createDecimal(this.width, this.scale);
+    if (this.alias) {
+      logicalType.alias = this.alias;
+    }
+    return logicalType;
+  }
   public static readonly default = new DuckDBDecimalType(18, 3);
 }
 
@@ -285,6 +301,13 @@ export class DuckDBEnumType extends BaseDuckDBType<DuckDBTypeId.ENUM> {
   public toString(): string {
     return `ENUM(${this.values.map(quotedString).join(', ')})`;
   }
+  public override toLogicalType(): DuckDBLogicalType {
+    const logicalType = DuckDBLogicalType.createEnum(this.values);
+    if (this.alias) {
+      logicalType.alias = this.alias;
+    }
+    return logicalType;
+  }
 }
 
 export class DuckDBListType extends BaseDuckDBType<DuckDBTypeId.LIST> {
@@ -295,6 +318,13 @@ export class DuckDBListType extends BaseDuckDBType<DuckDBTypeId.LIST> {
   }
   public toString(): string {
     return `${this.valueType}[]`;
+  }
+  public override toLogicalType(): DuckDBLogicalType {
+    const logicalType = DuckDBLogicalType.createList(this.valueType.toLogicalType());
+    if (this.alias) {
+      logicalType.alias = this.alias;
+    }
+    return logicalType;
   }
 }
 
@@ -320,6 +350,13 @@ export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
     }
     return `STRUCT(${parts.join(', ')})`;
   }
+  public override toLogicalType(): DuckDBLogicalType {
+    const logicalType = DuckDBLogicalType.createStruct(this.entryNames, this.entryTypes.map(t => t.toLogicalType()));
+    if (this.alias) {
+      logicalType.alias = this.alias;
+    }
+    return logicalType;
+  }
 }
 
 export class DuckDBMapType extends BaseDuckDBType<DuckDBTypeId.MAP> {
@@ -333,6 +370,13 @@ export class DuckDBMapType extends BaseDuckDBType<DuckDBTypeId.MAP> {
   public toString(): string {
     return `MAP(${this.keyType}, ${this.valueType})`;
   }
+  public override toLogicalType(): DuckDBLogicalType {
+    const logicalType = DuckDBLogicalType.createMap(this.keyType.toLogicalType(), this.valueType.toLogicalType());
+    if (this.alias) {
+      logicalType.alias = this.alias;
+    }
+    return logicalType;
+  }
 }
 
 export class DuckDBArrayType extends BaseDuckDBType<DuckDBTypeId.ARRAY> {
@@ -345,6 +389,13 @@ export class DuckDBArrayType extends BaseDuckDBType<DuckDBTypeId.ARRAY> {
   }
   public toString(): string {
     return `${this.valueType}[${this.length}]`;
+  }
+  public override toLogicalType(): DuckDBLogicalType {
+    const logicalType = DuckDBLogicalType.createArray(this.valueType.toLogicalType(), this.length);
+    if (this.alias) {
+      logicalType.alias = this.alias;
+    }
+    return logicalType;
   }
 }
 
@@ -379,6 +430,13 @@ export class DuckDBUnionType extends BaseDuckDBType<DuckDBTypeId.UNION> {
       parts.push(`${quotedIdentifier(this.memberTags[i])} ${this.memberTypes[i]}`);
     }
     return `UNION(${parts.join(', ')})`;
+  }
+  public override toLogicalType(): DuckDBLogicalType {
+    const logicalType = DuckDBLogicalType.createUnion(this.memberTags, this.memberTypes.map(t => t.toLogicalType()));
+    if (this.alias) {
+      logicalType.alias = this.alias;
+    }
+    return logicalType;
   }
 }
 
