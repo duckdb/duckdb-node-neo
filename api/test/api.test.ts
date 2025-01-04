@@ -40,7 +40,6 @@ import {
   DuckDBIntervalType,
   DuckDBIntervalVector,
   DuckDBListType,
-  DuckDBListValue,
   DuckDBListVector,
   DuckDBMapType,
   DuckDBMapVector,
@@ -1160,9 +1159,9 @@ describe('api', () => {
       const chunk = DuckDBDataChunk.create([new DuckDBListType(DuckDBIntegerType.instance)]);
       chunk.rowCount = 4;
       const vector = chunk.getColumnVector(0) as DuckDBListVector;
-      vector.setItem(0, new DuckDBListValue([10, 11, 12]));
-      vector.setItem(1, new DuckDBListValue([]));
-      vector.setItem(2, new DuckDBListValue([100, 200]));
+      vector.setItem(0, listValue([10, 11, 12]));
+      vector.setItem(1, listValue([]));
+      vector.setItem(2, listValue([100, 200]));
       vector.setItem(3, null);
       vector.flush();
       await connection.run('create table target(col0 integer[])');
@@ -1172,9 +1171,60 @@ describe('api', () => {
       const result = await connection.runAndReadAll('from target');
       assert.equal(result.columnCount, 1);
       assert.equal(result.currentRowCount, 4);
-      assert.deepEqual(result.value(0, 0), new DuckDBListValue([10, 11, 12]));
-      assert.deepEqual(result.value(0, 1), new DuckDBListValue([]));
-      assert.deepEqual(result.value(0, 2), new DuckDBListValue([100, 200]));
+      assert.deepEqual(result.value(0, 0), listValue([10, 11, 12]));
+      assert.deepEqual(result.value(0, 1), listValue([]));
+      assert.deepEqual(result.value(0, 2), listValue([100, 200]));
+      assert.equal(result.value(0, 3), null);
+    });
+  });
+  test('create and append data chunk with arrays', async () => {
+    await withConnection(async (connection) => {
+      const chunk = DuckDBDataChunk.create([new DuckDBArrayType(DuckDBIntegerType.instance, 3)]);
+      chunk.rowCount = 4;
+      const vector = chunk.getColumnVector(0) as DuckDBArrayVector;
+      vector.setItem(0, arrayValue([10, 11, 12]));
+      vector.setItem(1, arrayValue([20, 21, 22]));
+      vector.setItem(2, arrayValue([30, 31, 32]));
+      vector.setItem(3, null);
+      vector.flush();
+      await connection.run('create table target(col0 integer[3])');
+      const appender = await connection.createAppender('main', 'target');
+      appender.appendDataChunk(chunk);
+      appender.flush();
+      const result = await connection.runAndReadAll('from target');
+      assert.equal(result.columnCount, 1);
+      assert.equal(result.currentRowCount, 4);
+      assert.deepEqual(result.value(0, 0), arrayValue([10, 11, 12]));
+      assert.deepEqual(result.value(0, 1), arrayValue([20, 21, 22]));
+      assert.deepEqual(result.value(0, 2), arrayValue([30, 31, 32]));
+      assert.equal(result.value(0, 3), null);
+    });
+  });
+  test('create and append data chunk with structs', async () => {
+    await withConnection(async (connection) => {
+      const chunk = DuckDBDataChunk.create([
+        new DuckDBStructType(
+          ['num', 'str'],
+          [DuckDBIntegerType.instance, DuckDBVarCharType.instance]
+        ),
+      ]);
+      chunk.rowCount = 4;
+      const vector = chunk.getColumnVector(0) as DuckDBStructVector;
+      vector.setItem(0, structValue({ 'num': 10, 'str': 'walk' }));
+      vector.setItem(1, structValue({ 'num': 11, 'str': 'swim' }));
+      vector.setItem(2, structValue({ 'num': 12, 'str': 'fly' }));
+      vector.setItem(3, null);
+      vector.flush();
+      await connection.run('create table target(col0 struct(num integer, str varchar))');
+      const appender = await connection.createAppender('main', 'target');
+      appender.appendDataChunk(chunk);
+      appender.flush();
+      const result = await connection.runAndReadAll('from target');
+      assert.equal(result.columnCount, 1);
+      assert.equal(result.currentRowCount, 4);
+      assert.deepEqual(result.value(0, 0), structValue({ 'num': 10, 'str': 'walk' }));
+      assert.deepEqual(result.value(0, 1), structValue({ 'num': 11, 'str': 'swim' }));
+      assert.deepEqual(result.value(0, 2), structValue({ 'num': 12, 'str': 'fly' }));
       assert.equal(result.value(0, 3), null);
     });
   });

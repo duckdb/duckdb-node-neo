@@ -465,8 +465,13 @@ export class DuckDBBooleanVector extends DuckDBVector<boolean> {
   public override getItem(itemIndex: number): boolean | null {
     return this.validity.itemValid(itemIndex) ? getBoolean(this.dataView, itemIndex * duckdb.sizeof_bool) : null;
   }
-  public override setItem(_itemIndex: number, _value: boolean | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: boolean | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -503,8 +508,13 @@ export class DuckDBTinyIntVector extends DuckDBVector<number> {
   public override getItem(itemIndex: number): number | null {
     return this.validity.itemValid(itemIndex) ? this.items[itemIndex] : null;
   }
-  public override setItem(_itemIndex: number, _value: number | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: number | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -537,8 +547,13 @@ export class DuckDBSmallIntVector extends DuckDBVector<number> {
   public override getItem(itemIndex: number): number | null {
     return this.validity.itemValid(itemIndex) ? this.items[itemIndex] : null;
   }
-  public override setItem(_itemIndex: number, _value: number | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: number | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -614,8 +629,13 @@ export class DuckDBBigIntVector extends DuckDBVector<bigint> {
   public override getItem(itemIndex: number): bigint | null {
     return this.validity.itemValid(itemIndex) ? this.items[itemIndex] : null;
   }
-  public override setItem(_itemIndex: number, _value: bigint | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: bigint | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -648,8 +668,13 @@ export class DuckDBUTinyIntVector extends DuckDBVector<number> {
   public override getItem(itemIndex: number): number | null {
     return this.validity.itemValid(itemIndex) ? this.items[itemIndex] : null;
   }
-  public override setItem(_itemIndex: number, _value: number | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: number | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -682,8 +707,13 @@ export class DuckDBUSmallIntVector extends DuckDBVector<number> {
   public override getItem(itemIndex: number): number | null {
     return this.validity.itemValid(itemIndex) ? this.items[itemIndex] : null;
   }
-  public override setItem(_itemIndex: number, _value: number | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: number | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -716,8 +746,13 @@ export class DuckDBUIntegerVector extends DuckDBVector<number> {
   public override getItem(itemIndex: number): number | null {
     return this.validity.itemValid(itemIndex) ? this.items[itemIndex] : null;
   }
-  public override setItem(_itemIndex: number, _value: number | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: number | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -750,8 +785,13 @@ export class DuckDBUBigIntVector extends DuckDBVector<bigint> {
   public override getItem(itemIndex: number): bigint | null {
     return this.validity.itemValid(itemIndex) ? this.items[itemIndex] : null;
   }
-  public override setItem(_itemIndex: number, _value: bigint | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: bigint | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -784,8 +824,13 @@ export class DuckDBFloatVector extends DuckDBVector<number> {
   public override getItem(itemIndex: number): number | null {
     return this.validity.itemValid(itemIndex) ? this.items[itemIndex] : null;
   }
-  public override setItem(_itemIndex: number, _value: number | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: number | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -818,8 +863,13 @@ export class DuckDBDoubleVector extends DuckDBVector<number> {
   public override getItem(itemIndex: number): number | null {
     return this.validity.itemValid(itemIndex) ? this.items[itemIndex] : null;
   }
-  public override setItem(_itemIndex: number, _value: number | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: number | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -852,8 +902,13 @@ export class DuckDBTimestampVector extends DuckDBVector<DuckDBTimestampValue> {
   public override getItem(itemIndex: number): DuckDBTimestampValue | null {
     return this.validity.itemValid(itemIndex) ? new DuckDBTimestampValue(this.items[itemIndex]) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBTimestampValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBTimestampValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -886,8 +941,13 @@ export class DuckDBDateVector extends DuckDBVector<DuckDBDateValue> {
   public override getItem(itemIndex: number): DuckDBDateValue | null {
     return this.validity.itemValid(itemIndex) ? new DuckDBDateValue(this.items[itemIndex]) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBDateValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBDateValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -920,8 +980,13 @@ export class DuckDBTimeVector extends DuckDBVector<DuckDBTimeValue> {
   public override getItem(itemIndex: number): DuckDBTimeValue | null {
     return this.validity.itemValid(itemIndex) ? new DuckDBTimeValue(this.items[itemIndex]) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBTimeValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBTimeValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -963,8 +1028,13 @@ export class DuckDBIntervalVector extends DuckDBVector<DuckDBIntervalValue> {
     const micros = getInt64(this.dataView, itemStart + 8);
     return new DuckDBIntervalValue(months, days, micros);
   }
-  public override setItem(_itemIndex: number, _value: DuckDBIntervalValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBIntervalValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1008,8 +1078,13 @@ export class DuckDBHugeIntVector extends DuckDBVector<bigint> {
       ? duckdb.hugeint_to_double(getInt128(this.dataView, itemIndex * 16))
       : null;
   }
-  public override setItem(_itemIndex: number, _value: bigint | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: bigint | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1053,8 +1128,13 @@ export class DuckDBUHugeIntVector extends DuckDBVector<bigint> {
       ? duckdb.uhugeint_to_double(getUInt128(this.dataView, itemIndex * 16))
       : null;
   }
-  public override setItem(_itemIndex: number, _value: bigint | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: bigint | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1205,8 +1285,13 @@ export class DuckDBDecimal2Vector extends DuckDBVector<DuckDBDecimalValue> {
   public getScaledValue(itemIndex: number): number | null {
     return this.validity.itemValid(itemIndex) ? getInt16(this.dataView, itemIndex * 2) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBDecimalValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBDecimalValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1251,8 +1336,13 @@ export class DuckDBDecimal4Vector extends DuckDBVector<DuckDBDecimalValue> {
   public getScaledValue(itemIndex: number): number | null {
     return this.validity.itemValid(itemIndex) ? getInt32(this.dataView, itemIndex * 4) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBDecimalValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBDecimalValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1297,8 +1387,13 @@ export class DuckDBDecimal8Vector extends DuckDBVector<DuckDBDecimalValue> {
   public getScaledValue(itemIndex: number): bigint | null {
     return this.validity.itemValid(itemIndex) ? getInt64(this.dataView, itemIndex * 8) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBDecimalValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBDecimalValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1343,8 +1438,13 @@ export class DuckDBDecimal16Vector extends DuckDBVector<DuckDBDecimalValue> {
   public getScaledValue(itemIndex: number): bigint | null {
     return this.validity.itemValid(itemIndex) ? getInt128(this.dataView, itemIndex * 16) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBDecimalValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBDecimalValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1382,8 +1482,13 @@ export class DuckDBTimestampSecondsVector extends DuckDBVector<DuckDBTimestampSe
   public override getItem(itemIndex: number): DuckDBTimestampSecondsValue | null {
     return this.validity.itemValid(itemIndex) ? new DuckDBTimestampSecondsValue(this.items[itemIndex]) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBTimestampSecondsValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBTimestampSecondsValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1416,8 +1521,13 @@ export class DuckDBTimestampMillisecondsVector extends DuckDBVector<DuckDBTimest
   public override getItem(itemIndex: number): DuckDBTimestampMillisecondsValue | null {
     return this.validity.itemValid(itemIndex) ? new DuckDBTimestampMillisecondsValue(this.items[itemIndex]) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBTimestampMillisecondsValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBTimestampMillisecondsValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1450,8 +1560,13 @@ export class DuckDBTimestampNanosecondsVector extends DuckDBVector<DuckDBTimesta
   public override getItem(itemIndex: number): DuckDBTimestampNanosecondsValue | null {
     return this.validity.itemValid(itemIndex) ? new DuckDBTimestampNanosecondsValue(this.items[itemIndex]) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBTimestampNanosecondsValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBTimestampNanosecondsValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1486,8 +1601,13 @@ export class DuckDBEnum1Vector extends DuckDBVector<string> {
   public override getItem(itemIndex: number): string | null {
     return this.validity.itemValid(itemIndex) ? this.enumType.values[this.items[itemIndex]] : null;
   }
-  public override setItem(_itemIndex: number, _value: string | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: string | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1522,8 +1642,13 @@ export class DuckDBEnum2Vector extends DuckDBVector<string> {
   public override getItem(itemIndex: number): string | null {
     return this.validity.itemValid(itemIndex) ? this.enumType.values[this.items[itemIndex]] : null;
   }
-  public override setItem(_itemIndex: number, _value: string | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: string | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1558,8 +1683,13 @@ export class DuckDBEnum4Vector extends DuckDBVector<string> {
   public override getItem(itemIndex: number): string | null {
     return this.validity.itemValid(itemIndex) ? this.enumType.values[this.items[itemIndex]] : null;
   }
-  public override setItem(_itemIndex: number, _value: string | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: string | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -1706,22 +1836,42 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
   private readonly _itemCount: number;
   private readonly entryVectors: readonly DuckDBVector[];
   private readonly validity: DuckDBValidity;
-  constructor(structType: DuckDBStructType, itemCount: number, entryVectors: readonly DuckDBVector[], validity: DuckDBValidity) {
+  private readonly vector: duckdb.Vector;
+  constructor(
+    structType: DuckDBStructType,
+    itemCount: number,
+    entryVectors: readonly DuckDBVector[],
+    validity: DuckDBValidity,
+    vector: duckdb.Vector,
+  ) {
     super();
     this.structType = structType;
     this._itemCount = itemCount;
     this.entryVectors = entryVectors;
     this.validity = validity;
+    this.vector = vector;
   }
-  static fromRawVector(structType: DuckDBStructType, vector: duckdb.Vector, itemCount: number): DuckDBStructVector {
+  static fromRawVector(
+    structType: DuckDBStructType,
+    vector: duckdb.Vector,
+    itemCount: number
+  ): DuckDBStructVector {
     const entryCount = structType.entryCount;
     const entryVectors: DuckDBVector[] = [];
     for (let i = 0; i < entryCount; i++) {
       const child_vector = duckdb.struct_vector_get_child(vector, i);
-      entryVectors.push(DuckDBVector.create(child_vector, itemCount, structType.entryTypes[i]));
+      entryVectors.push(
+        DuckDBVector.create(child_vector, itemCount, structType.entryTypes[i])
+      );
     }
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBStructVector(structType, itemCount, entryVectors, validity);
+    return new DuckDBStructVector(
+      structType,
+      itemCount,
+      entryVectors,
+      validity,
+      vector,
+    );
   }
   public override get type(): DuckDBStructType {
     return this.structType;
@@ -1736,28 +1886,54 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
     const entries: { [name: string]: DuckDBValue } = {};
     const entryCount = this.structType.entryCount;
     for (let i = 0; i < entryCount; i++) {
-      entries[this.structType.entryNames[i]] = this.entryVectors[i].getItem(itemIndex);
+      entries[this.structType.entryNames[i]] =
+        this.entryVectors[i].getItem(itemIndex);
     }
     return new DuckDBStructValue(entries);
   }
-  public getItemValue(itemIndex: number, entryIndex: number): DuckDBValue | null {
+  public getItemValue(
+    itemIndex: number,
+    entryIndex: number
+  ): DuckDBValue | null {
     if (!this.validity.itemValid(itemIndex)) {
       return null;
     }
     return this.entryVectors[entryIndex].getItem(itemIndex);
   }
-  public override setItem(_itemIndex: number, _value: DuckDBStructValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBStructValue | null) {
+    if (value != null) {
+      const entryCount = this.structType.entryCount;
+      for (let i = 0; i < entryCount; i++) {
+        this.entryVectors[i].setItem(
+          itemIndex,
+          value.entries[this.structType.entryNames[i]]
+        );
+      }
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
+  }
+  public setItemValue(
+    itemIndex: number,
+    entryIndex: number,
+    value: DuckDBValue
+  ) {
+    return this.entryVectors[entryIndex].setItem(itemIndex, value);
   }
   public override flush() {
-    throw new Error('not yet implemented');
+    for (const entryVector of this.entryVectors) {
+      entryVector.flush();
+    }
+    this.validity.flush(this.vector);
   }
   public override slice(offset: number, length: number): DuckDBStructVector {
     return new DuckDBStructVector(
       this.structType,
       length,
-      this.entryVectors.map(entryVector => entryVector.slice(offset, length)),
+      this.entryVectors.map((entryVector) => entryVector.slice(offset, length)),
       this.validity.slice(offset, length),
+      this.vector,
     );
   }
 }
@@ -1818,17 +1994,20 @@ export class DuckDBMapVector extends DuckDBVector<DuckDBMapValue> {
 export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
   private readonly arrayType: DuckDBArrayType;
   private readonly validity: DuckDBValidity;
+  private readonly vector: duckdb.Vector;
   private readonly childData: DuckDBVector;
   private readonly _itemCount: number;
   constructor(
     arrayType: DuckDBArrayType,
     validity: DuckDBValidity,
+    vector: duckdb.Vector,
     childData: DuckDBVector,
     itemCount: number,
   ) {
     super();
     this.arrayType = arrayType;
     this.validity = validity;
+    this.vector = vector;
     this.childData = childData;
     this._itemCount = itemCount;
   }
@@ -1837,7 +2016,7 @@ export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
     const child_vector = duckdb.array_vector_get_child(vector);
     const childItemsPerArray = DuckDBArrayVector.itemSize(arrayType) * arrayType.length;
     const childData = DuckDBVector.create(child_vector, itemCount * childItemsPerArray, arrayType.valueType);
-    return new DuckDBArrayVector(arrayType, validity, childData, itemCount);
+    return new DuckDBArrayVector(arrayType, validity, vector, childData, itemCount);
   }
   private static itemSize(arrayType: DuckDBArrayType): number {
     if (arrayType.valueType instanceof DuckDBArrayType) {
@@ -1858,16 +2037,26 @@ export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
     }
     return new DuckDBArrayValue(this.childData.slice(itemIndex * this.arrayType.length, this.arrayType.length).toArray());
   }
-  public override setItem(_itemIndex: number, _value: DuckDBArrayValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBArrayValue | null) {
+    if (value != null) {
+      const startIndex = itemIndex * this.arrayType.length;
+      for (let i = 0; i < this.arrayType.length; i++) {
+        this.childData.setItem(startIndex + i, value.items[i]);
+      }
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
-    throw new Error('not yet implemented');
+    this.childData.flush();
+    this.validity.flush(this.vector);
   }
   public override slice(offset: number, length: number): DuckDBArrayVector {
     return new DuckDBArrayVector(
       this.arrayType,
       this.validity.slice(offset, length),
+      this.vector,
       this.childData.slice(offset * this.arrayType.length, length * this.arrayType.length),
       length,
     );
@@ -1899,8 +2088,13 @@ export class DuckDBUUIDVector extends DuckDBVector<DuckDBUUIDValue> {
   public override getItem(itemIndex: number): DuckDBUUIDValue | null { 
     return this.validity.itemValid(itemIndex) ? new DuckDBUUIDValue(getInt128(this.dataView, itemIndex * 16)) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBUUIDValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBUUIDValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -2033,8 +2227,13 @@ export class DuckDBTimeTZVector extends DuckDBVector<DuckDBTimeTZValue> {
   public override getItem(itemIndex: number): DuckDBTimeTZValue | null {
     return this.validity.itemValid(itemIndex) ? DuckDBTimeTZValue.fromBits(this.items[itemIndex]) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBTimeTZValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBTimeTZValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
@@ -2067,8 +2266,13 @@ export class DuckDBTimestampTZVector extends DuckDBVector<DuckDBTimestampTZValue
   public override getItem(itemIndex: number): DuckDBTimestampTZValue | null {
     return this.validity.itemValid(itemIndex) ? new DuckDBTimestampTZValue(this.items[itemIndex]) : null;
   }
-  public override setItem(_itemIndex: number, _value: DuckDBTimestampTZValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBTimestampTZValue | null) {
+    if (value != null) {
+      throw new Error('not yet implemented');
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
   }
   public override flush() {
     throw new Error('not yet implemented');
