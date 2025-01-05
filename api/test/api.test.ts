@@ -103,6 +103,7 @@ import {
   TimestampParts,
   arrayValue,
   bitValue,
+  blobValue,
   configurationOptionDescriptions,
   dateValue,
   decimalValue,
@@ -1136,9 +1137,9 @@ describe('api', () => {
       const chunk = DuckDBDataChunk.create([DuckDBVarCharType.instance]);
       chunk.rowCount = 4;
       const vector = chunk.getColumnVector(0) as DuckDBVarCharVector;
-      vector.setItem(0, 'walk');
-      vector.setItem(1, 'fly');
-      vector.setItem(2, 'swim');
+      vector.setItem(0, 'xyz');
+      vector.setItem(1, 'abcdefghijkl');
+      vector.setItem(2, 'ABCDEFGHIJKLM');
       vector.setItem(3, null);
       vector.flush();
       await connection.run('create table target(col0 varchar)');
@@ -1148,9 +1149,32 @@ describe('api', () => {
       const result = await connection.runAndReadAll('from target');
       assert.equal(result.columnCount, 1);
       assert.equal(result.currentRowCount, 4);
-      assert.equal(result.value(0, 0), 'walk');
-      assert.equal(result.value(0, 1), 'fly');
-      assert.equal(result.value(0, 2), 'swim');
+      assert.equal(result.value(0, 0), 'xyz');
+      assert.equal(result.value(0, 1), 'abcdefghijkl');
+      assert.equal(result.value(0, 2), 'ABCDEFGHIJKLM');
+      assert.equal(result.value(0, 3), null);
+    });
+  });
+  test('create and append data chunk with blobs', async () => {
+    await withConnection(async (connection) => {
+      const chunk = DuckDBDataChunk.create([DuckDBBlobType.instance]);
+      chunk.rowCount = 4;
+      const vector = chunk.getColumnVector(0) as DuckDBBlobVector;
+      vector.setItem(0, blobValue(new Uint8Array([0xAB, 0xCD, 0xEF])));
+      vector.setItem(1, blobValue(new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C])));
+      vector.setItem(2, blobValue(new Uint8Array([0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D])));
+      vector.setItem(3, null);
+      vector.flush();
+      await connection.run('create table target(col0 blob)');
+      const appender = await connection.createAppender('main', 'target');
+      appender.appendDataChunk(chunk);
+      appender.flush();
+      const result = await connection.runAndReadAll('from target');
+      assert.equal(result.columnCount, 1);
+      assert.equal(result.currentRowCount, 4);
+      assert.deepEqual(result.value(0, 0), blobValue(Buffer.from([0xAB, 0xCD, 0xEF])));
+      assert.deepEqual(result.value(0, 1), blobValue(Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C])));
+      assert.deepEqual(result.value(0, 2), blobValue(Buffer.from([0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D])));
       assert.equal(result.value(0, 3), null);
     });
   });
@@ -1177,7 +1201,7 @@ describe('api', () => {
       assert.equal(result.value(0, 3), null);
     });
   });
-  test('create and append data chunk with arrays', async () => {
+  test('create and append data chunk with arrays of integers', async () => {
     await withConnection(async (connection) => {
       const chunk = DuckDBDataChunk.create([new DuckDBArrayType(DuckDBIntegerType.instance, 3)]);
       chunk.rowCount = 4;
@@ -1200,6 +1224,29 @@ describe('api', () => {
       assert.equal(result.value(0, 3), null);
     });
   });
+  test('create and append data chunk with arrays of varchars', async () => {
+    await withConnection(async (connection) => {
+      const chunk = DuckDBDataChunk.create([new DuckDBArrayType(DuckDBVarCharType.instance, 3)]);
+      chunk.rowCount = 4;
+      const vector = chunk.getColumnVector(0) as DuckDBArrayVector;
+      vector.setItem(0, arrayValue(['a', 'b', 'c']));
+      vector.setItem(1, arrayValue(['d', 'e', 'f']));
+      vector.setItem(2, arrayValue(['g', 'h', 'i']));
+      vector.setItem(3, null);
+      vector.flush();
+      await connection.run('create table target(col0 varchar[3])');
+      const appender = await connection.createAppender('main', 'target');
+      appender.appendDataChunk(chunk);
+      appender.flush();
+      const result = await connection.runAndReadAll('from target');
+      assert.equal(result.columnCount, 1);
+      assert.equal(result.currentRowCount, 4);
+      assert.deepEqual(result.value(0, 0), arrayValue(['a', 'b', 'c']));
+      assert.deepEqual(result.value(0, 1), arrayValue(['d', 'e', 'f']));
+      assert.deepEqual(result.value(0, 2), arrayValue(['g', 'h', 'i']));
+      assert.equal(result.value(0, 3), null);
+    });
+  });
   test('create and append data chunk with structs', async () => {
     await withConnection(async (connection) => {
       const chunk = DuckDBDataChunk.create([
@@ -1210,9 +1257,9 @@ describe('api', () => {
       ]);
       chunk.rowCount = 4;
       const vector = chunk.getColumnVector(0) as DuckDBStructVector;
-      vector.setItem(0, structValue({ 'num': 10, 'str': 'walk' }));
-      vector.setItem(1, structValue({ 'num': 11, 'str': 'swim' }));
-      vector.setItem(2, structValue({ 'num': 12, 'str': 'fly' }));
+      vector.setItem(0, structValue({ 'num': 10, 'str': 'xyz' }));
+      vector.setItem(1, structValue({ 'num': 11, 'str': 'abcdefghijkl' }));
+      vector.setItem(2, structValue({ 'num': 12, 'str': 'ABCDEFGHIJKLM' }));
       vector.setItem(3, null);
       vector.flush();
       await connection.run('create table target(col0 struct(num integer, str varchar))');
@@ -1222,9 +1269,9 @@ describe('api', () => {
       const result = await connection.runAndReadAll('from target');
       assert.equal(result.columnCount, 1);
       assert.equal(result.currentRowCount, 4);
-      assert.deepEqual(result.value(0, 0), structValue({ 'num': 10, 'str': 'walk' }));
-      assert.deepEqual(result.value(0, 1), structValue({ 'num': 11, 'str': 'swim' }));
-      assert.deepEqual(result.value(0, 2), structValue({ 'num': 12, 'str': 'fly' }));
+      assert.deepEqual(result.value(0, 0), structValue({ 'num': 10, 'str': 'xyz' }));
+      assert.deepEqual(result.value(0, 1), structValue({ 'num': 11, 'str': 'abcdefghijkl' }));
+      assert.deepEqual(result.value(0, 2), structValue({ 'num': 12, 'str': 'ABCDEFGHIJKLM' }));
       assert.equal(result.value(0, 3), null);
     });
   });

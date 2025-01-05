@@ -1131,6 +1131,7 @@ public:
       InstanceMethod("vector_get_validity", &DuckDBNodeAddon::vector_get_validity),
       InstanceMethod("vector_ensure_validity_writable", &DuckDBNodeAddon::vector_ensure_validity_writable),
       InstanceMethod("vector_assign_string_element", &DuckDBNodeAddon::vector_assign_string_element),
+      InstanceMethod("vector_assign_string_element_len", &DuckDBNodeAddon::vector_assign_string_element_len),
       InstanceMethod("list_vector_get_child", &DuckDBNodeAddon::list_vector_get_child),
       InstanceMethod("list_vector_get_size", &DuckDBNodeAddon::list_vector_get_size),
       InstanceMethod("list_vector_set_size", &DuckDBNodeAddon::list_vector_set_size),
@@ -3076,7 +3077,17 @@ private:
   }
   
   // DUCKDB_API void duckdb_vector_assign_string_element_len(duckdb_vector vector, idx_t index, const char *str, idx_t str_len);
-  // not exposed: JS string includes length
+  // function vector_assign_string_element_len(vector: Vector, index: number, data: Uint8Array): void
+  Napi::Value vector_assign_string_element_len(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto array = info[2].As<Napi::Uint8Array>();
+    auto data = reinterpret_cast<const char *>(array.Data());
+    auto length = array.ByteLength();
+    duckdb_vector_assign_string_element_len(vector, index, data, length);
+    return env.Undefined();
+  }
 
   // DUCKDB_API duckdb_vector duckdb_list_vector_get_child(duckdb_vector vector);
   // function list_vector_get_child(vector: Vector): Vector
@@ -3726,7 +3737,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   374 total functions
 
-  209 instance methods
+  210 instance methods
     1 unimplemented logical type functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
@@ -3741,7 +3752,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
     4 unimplemented table description functions
     8 unimplemented tasks functions
    12 unimplemented cast function functions
-   25 functions not exposed
+   24 functions not exposed
 +  41 unimplemented deprecated functions (of 47)
   ---
   374 functions accounted for

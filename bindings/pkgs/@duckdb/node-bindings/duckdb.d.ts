@@ -840,7 +840,7 @@ export function vector_ensure_validity_writable(vector: Vector): void;
 export function vector_assign_string_element(vector: Vector, index: number, str: string): void;
 
 // DUCKDB_API void duckdb_vector_assign_string_element_len(duckdb_vector vector, idx_t index, const char *str, idx_t str_len);
-// not exposed: JS string includes length
+export function vector_assign_string_element_len(vector: Vector, index: number, data: Uint8Array): void;
 
 // DUCKDB_API duckdb_vector duckdb_list_vector_get_child(duckdb_vector vector);
 export function list_vector_get_child(vector: Vector): Vector;

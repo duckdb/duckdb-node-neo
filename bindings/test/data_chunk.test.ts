@@ -90,6 +90,26 @@ suite('data chunk', () => {
     expect(dv.getUint32(32, true)).toBe('longer than twelve characters'.length);
     expect([data[36], data[37], data[38], data[39]]).toStrictEqual([0x6c, 0x6f, 0x6e, 0x67]); // l, o, n, g
   });
+  test('write blob vector', () => {
+    const blob_type = duckdb.create_logical_type(duckdb.Type.BLOB);
+    const chunk = duckdb.create_data_chunk([blob_type]);
+    duckdb.data_chunk_set_size(chunk, 3);
+    const vector = duckdb.data_chunk_get_vector(chunk, 0);
+    duckdb.vector_assign_string_element_len(vector, 0, new Uint8Array([0xAB, 0xCD, 0xEF]));
+    duckdb.vector_assign_string_element_len(vector, 1,
+      new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C]));
+    duckdb.vector_assign_string_element_len(vector, 2,
+      new Uint8Array([0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D])
+    );
+    const data = duckdb.vector_get_data(vector, 3 * 16);
+    const dv = new DataView(data.buffer);
+    expect(dv.getUint32(0, true)).toBe(3);
+    expect([data[4], data[5], data[6]]).toStrictEqual([0xAB, 0xCD, 0xEF]);
+    expect(dv.getUint32(16, true)).toBe(12);
+    expect([data[20], data[31]]).toStrictEqual([0x01, 0x0C]);
+    expect(dv.getUint32(32, true)).toBe(13);
+    expect([data[36], data[37], data[38], data[39]]).toStrictEqual([0x11, 0x12, 0x13, 0x14]);
+  });
   test('set list vector size', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
     const list_type = duckdb.create_list_type(int_type);
