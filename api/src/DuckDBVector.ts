@@ -158,19 +158,19 @@ function getVarIntFromBytes(bytes: Uint8Array): bigint {
 }
 
 function getBoolean1(dataView: DataView, offset: number): boolean {
-  return getUInt8(dataView, offset) !== 0
+  return getUInt8(dataView, offset) !== 0;
 }
 
 function getBoolean2(dataView: DataView, offset: number): boolean {
-  return getUInt16(dataView, offset) !== 0
+  return getUInt16(dataView, offset) !== 0;
 }
 
 function getBoolean4(dataView: DataView, offset: number): boolean {
-  return getUInt32(dataView, offset) !== 0
+  return getUInt32(dataView, offset) !== 0;
 }
 
 function getBoolean8(dataView: DataView, offset: number): boolean {
-  return getUInt64(dataView, offset) !== BigInt(0)
+  return getUInt64(dataView, offset) !== BigInt(0);
 }
 
 function makeGetBoolean(): (dataView: DataView, offset: number) => boolean {
@@ -189,6 +189,55 @@ function makeGetBoolean(): (dataView: DataView, offset: number) => boolean {
 }
 
 const getBoolean = makeGetBoolean();
+
+function setUInt8(dataView: DataView, offset: number, value: number) {
+  dataView.setUint8(offset, value);
+}
+
+function setUInt16(dataView: DataView, offset: number, value: number) {
+  dataView.setUint16(offset, value, littleEndian);
+}
+
+function setUInt32(dataView: DataView, offset: number, value: number) {
+  dataView.setUint32(offset, value, littleEndian);
+}
+
+function setUInt64(dataView: DataView, offset: number, value: bigint) {
+  dataView.setBigUint64(offset, value, littleEndian);
+}
+
+function setBoolean1(dataView: DataView, offset: number, value: boolean) {
+  setUInt8(dataView, offset, value ? 1 : 0);
+}
+
+function setBoolean2(dataView: DataView, offset: number, value: boolean) {
+  setUInt16(dataView, offset, value ? 1 : 0);
+}
+
+function setBoolean4(dataView: DataView, offset: number, value: boolean) {
+  setUInt32(dataView, offset, value ? 1 : 0);
+}
+
+function setBoolean8(dataView: DataView, offset: number, value: boolean) {
+  setUInt64(dataView, offset, value ? BigInt(1) : BigInt(0));
+}
+
+function makeSetBoolean(): (dataView: DataView, offset: number, value: boolean) => void {
+  switch (duckdb.sizeof_bool) {
+    case 1:
+      return setBoolean1;
+    case 2:
+      return setBoolean2;
+    case 4:
+      return setBoolean4;
+    case 8:
+      return setBoolean8;
+    default:
+      throw new Error(`Unsupported boolean size: ${duckdb.sizeof_bool}`);
+  }
+}
+
+const setBoolean = makeSetBoolean();
 
 function getDecimal2(dataView: DataView, offset: number, type: DuckDBDecimalType): DuckDBDecimalValue {
   const value = getInt16(dataView, offset);
@@ -443,18 +492,20 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
 export class DuckDBBooleanVector extends DuckDBVector<boolean> {
   private readonly dataView: DataView;
   private readonly validity: DuckDBValidity;
+  private readonly vector: duckdb.Vector;
   private readonly _itemCount: number;
-  constructor(dataView: DataView, validity: DuckDBValidity, itemCount: number) {
+  constructor(dataView: DataView, validity: DuckDBValidity, vector: duckdb.Vector, itemCount: number) {
     super();
     this.dataView = dataView;
     this.validity = validity;
+    this.vector = vector;
     this._itemCount = itemCount;
   }
   static fromRawVector(vector: duckdb.Vector, itemCount: number): DuckDBBooleanVector {
     const data = vectorData(vector, itemCount * duckdb.sizeof_bool);
     const dataView = new DataView(data.buffer, data.byteOffset, data.byteLength);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBBooleanVector(dataView, validity, itemCount);
+    return new DuckDBBooleanVector(dataView, validity, vector, itemCount);
   }
   public override get type(): DuckDBBooleanType {
     return DuckDBBooleanType.instance;
@@ -467,19 +518,22 @@ export class DuckDBBooleanVector extends DuckDBVector<boolean> {
   }
   public override setItem(itemIndex: number, value: boolean | null) {
     if (value != null) {
-      throw new Error('not yet implemented');
+      setBoolean(this.dataView, itemIndex * duckdb.sizeof_bool, value);
       this.validity.setItemValid(itemIndex, true);
     } else {
       this.validity.setItemValid(itemIndex, false);
     }
   }
   public override flush() {
-    throw new Error('not yet implemented');
+    duckdb.copy_data_to_vector(this.vector, 0,
+      this.dataView.buffer as ArrayBuffer, this.dataView.byteOffset, this.dataView.byteLength);
+    this.validity.flush(this.vector);
   }
   public override slice(offset: number, length: number): DuckDBBooleanVector {
     return new DuckDBBooleanVector(
       new DataView(this.dataView.buffer, this.dataView.byteOffset + offset * duckdb.sizeof_bool, length * duckdb.sizeof_bool),
       this.validity.slice(offset, length),
+      this.vector,
       length,
     );
   }
@@ -488,16 +542,18 @@ export class DuckDBBooleanVector extends DuckDBVector<boolean> {
 export class DuckDBTinyIntVector extends DuckDBVector<number> {
   private readonly items: Int8Array;
   private readonly validity: DuckDBValidity;
-  constructor(items: Int8Array, validity: DuckDBValidity) {
+  private readonly vector: duckdb.Vector;
+  constructor(items: Int8Array, validity: DuckDBValidity, vector: duckdb.Vector) {
     super();
     this.items = items
     this.validity = validity;
+    this.vector = vector;
   }
   static fromRawVector(vector: duckdb.Vector, itemCount: number): DuckDBTinyIntVector {
     const data = vectorData(vector, itemCount * Int8Array.BYTES_PER_ELEMENT);
     const items = new Int8Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBTinyIntVector(items, validity);
+    return new DuckDBTinyIntVector(items, validity, vector);
   }
   public override get type(): DuckDBTinyIntType {
     return DuckDBTinyIntType.instance;
@@ -510,33 +566,41 @@ export class DuckDBTinyIntVector extends DuckDBVector<number> {
   }
   public override setItem(itemIndex: number, value: number | null) {
     if (value != null) {
-      throw new Error('not yet implemented');
+      this.items[itemIndex] = value;
       this.validity.setItemValid(itemIndex, true);
     } else {
       this.validity.setItemValid(itemIndex, false);
     }
   }
   public override flush() {
-    throw new Error('not yet implemented');
+    duckdb.copy_data_to_vector(this.vector, 0,
+      this.items.buffer as ArrayBuffer, this.items.byteOffset, this.items.byteLength);
+    this.validity.flush(this.vector);
   }
   public override slice(offset: number, length: number): DuckDBTinyIntVector {
-    return new DuckDBTinyIntVector(this.items.slice(offset, offset + length), this.validity.slice(offset, length));
+    return new DuckDBTinyIntVector(
+      this.items.slice(offset, offset + length),
+      this.validity.slice(offset, length),
+      this.vector
+    );
   }
 }
 
 export class DuckDBSmallIntVector extends DuckDBVector<number> {
   private readonly items: Int16Array;
   private readonly validity: DuckDBValidity;
-  constructor(items: Int16Array, validity: DuckDBValidity) {
+  private readonly vector: duckdb.Vector;
+  constructor(items: Int16Array, validity: DuckDBValidity, vector: duckdb.Vector) {
     super();
     this.items = items;
     this.validity = validity;
+    this.vector = vector;
   }
   static fromRawVector(vector: duckdb.Vector, itemCount: number): DuckDBSmallIntVector {
     const data = vectorData(vector, itemCount * Int16Array.BYTES_PER_ELEMENT);
     const items = new Int16Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBSmallIntVector(items, validity);
+    return new DuckDBSmallIntVector(items, validity, vector);
   }
   public override get type(): DuckDBSmallIntType {
     return DuckDBSmallIntType.instance;
@@ -549,17 +613,23 @@ export class DuckDBSmallIntVector extends DuckDBVector<number> {
   }
   public override setItem(itemIndex: number, value: number | null) {
     if (value != null) {
-      throw new Error('not yet implemented');
+      this.items[itemIndex] = value;
       this.validity.setItemValid(itemIndex, true);
     } else {
       this.validity.setItemValid(itemIndex, false);
     }
   }
   public override flush() {
-    throw new Error('not yet implemented');
+    duckdb.copy_data_to_vector(this.vector, 0,
+      this.items.buffer as ArrayBuffer, this.items.byteOffset, this.items.byteLength);
+    this.validity.flush(this.vector);
   }
   public override slice(offset: number, length: number): DuckDBSmallIntVector {
-    return new DuckDBSmallIntVector(this.items.slice(offset, offset + length), this.validity.slice(offset, length));
+    return new DuckDBSmallIntVector(
+      this.items.slice(offset, offset + length),
+      this.validity.slice(offset, length),
+      this.vector
+    );
   }
 }
 
@@ -602,7 +672,11 @@ export class DuckDBIntegerVector extends DuckDBVector<number> {
     this.validity.flush(this.vector);
   }
   public override slice(offset: number, length: number): DuckDBIntegerVector {
-    return new DuckDBIntegerVector(this.items.slice(offset, offset + length), this.validity.slice(offset, length), this.vector);
+    return new DuckDBIntegerVector(
+      this.items.slice(offset, offset + length),
+      this.validity.slice(offset, length),
+      this.vector
+    );
   }
 }
 

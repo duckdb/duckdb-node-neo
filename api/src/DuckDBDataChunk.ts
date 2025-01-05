@@ -32,6 +32,16 @@ export class DuckDBDataChunk {
   public getColumnValues(columnIndex: number): DuckDBValue[] {
     return this.getColumnVector(columnIndex).toArray();
   }
+  public setColumnValues(columnIndex: number, values: DuckDBValue[]) {
+    const vector = this.getColumnVector(columnIndex);
+    if (vector.itemCount !== values.length) {
+      throw new Error(`number of values must equal chunk row count`);
+    }
+    for (let i = 0; i < values.length; i++) {
+      vector.setItem(i, values[i]);
+    }
+    vector.flush();
+  }
   public getColumns(): DuckDBValue[][] {
     const columns: DuckDBValue[][] = [];
     const columnCount = this.columnCount;
@@ -39,6 +49,11 @@ export class DuckDBDataChunk {
       columns.push(this.getColumnValues(columnIndex));
     }
     return columns;
+  }
+  public setColumns(columns: DuckDBValue[][]) {
+    for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+      this.setColumnValues(columnIndex, columns[columnIndex]);
+    }
   }
   public getRows(): DuckDBValue[][] {
     const rows: DuckDBValue[][] = [];
@@ -56,6 +71,17 @@ export class DuckDBDataChunk {
       rows.push(row);
     }
     return rows;
+  }
+  public setRows(rows: DuckDBValue[][]) {
+    this.rowCount = rows.length;
+    const columnCount = this.columnCount;
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+      const vector = this.getColumnVector(columnIndex);
+      for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+        vector.setItem(rowIndex, rows[rowIndex][columnIndex]);
+      }
+      vector.flush();
+    }
   }
   public get rowCount(): number {
     return duckdb.data_chunk_get_size(this.chunk);

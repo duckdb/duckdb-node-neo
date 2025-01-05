@@ -1066,54 +1066,60 @@ describe('api', () => {
   });
   test('create and append data chunk', async () => {
     await withConnection(async (connection) => {
+      const values = [42, 12345, null];
+
       const chunk = DuckDBDataChunk.create([DuckDBIntegerType.instance]);
-      chunk.rowCount = 3;
-      const vector = chunk.getColumnVector(0) as DuckDBIntegerVector;
-      vector.setItem(0, 42);
-      vector.setItem(1, 12345);
-      vector.setItem(2, null);
-      vector.flush();
+      chunk.rowCount = values.length;
+      chunk.setColumnValues(0, values);
+
       await connection.run('create table target(col0 int)');
       const appender = await connection.createAppender('main', 'target');
       appender.appendDataChunk(chunk);
       appender.flush();
-      const result = await connection.runAndReadAll('from target');
-      assert.equal(result.columnCount, 1);
-      assert.equal(result.currentRowCount, 3);
-      assert.equal(result.value(0, 0), 42);
-      assert.equal(result.value(0, 1), 12345);
-      assert.equal(result.value(0, 2), null);
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, values.length);
+        assertValues(resultChunk, 0, DuckDBIntegerVector, values);
+      }
     });
   });
   test('create and append data chunk, delayed flush', async () => {
     await withConnection(async (connection) => {
+      const baselineValues = [10, 11, 12];
+      const targetValues = [42, 12345, null];
+
       const chunk = DuckDBDataChunk.create([DuckDBIntegerType.instance]);
-      chunk.rowCount = 3;
+      chunk.rowCount = targetValues.length;
       const vector = chunk.getColumnVector(0) as DuckDBIntegerVector;
 
       // First, set the values to something known as a baseline.
-      vector.setItem(0, 10);
-      vector.setItem(1, 11);
-      vector.setItem(2, 12);
+      for (let i = 0; i < baselineValues.length; i++) {
+        vector.setItem(i, baselineValues[i]);
+      }
       vector.flush();
 
       // Then, set the values to our target, but don't flush (yet).
-      vector.setItem(0, 42);
-      vector.setItem(1, 12345);
-      vector.setItem(2, null);
+      for (let i = 0; i < targetValues.length; i++) {
+        vector.setItem(i, targetValues[i]);
+      }
 
       await connection.run('create table target1(col0 int)');
       const appender1 = await connection.createAppender('main', 'target1');
       appender1.appendDataChunk(chunk);
       appender1.flush();
 
-      const result1 = await connection.runAndReadAll('from target1');
-      assert.equal(result1.columnCount, 1);
-      assert.equal(result1.currentRowCount, 3);
-      // expect our baseline values
-      assert.equal(result1.value(0, 0), 10);
-      assert.equal(result1.value(0, 1), 11);
-      assert.equal(result1.value(0, 2), 12);
+      const result1 = await connection.run('from target1');
+      const result1Chunk = await result1.fetchChunk();
+      assert.isDefined(result1Chunk);
+      if (result1Chunk) {
+        assert.equal(result1Chunk.columnCount, 1);
+        assert.equal(result1Chunk.rowCount, targetValues.length);
+        assertValues(result1Chunk, 0, DuckDBIntegerVector, baselineValues);
+      }
 
       // now flush
       vector.flush();
@@ -1122,157 +1128,272 @@ describe('api', () => {
       const appender2 = await connection.createAppender('main', 'target2');
       appender2.appendDataChunk(chunk);
       appender2.flush();
-      
-      const result2 = await connection.runAndReadAll('from target2');
-      assert.equal(result2.columnCount, 1);
-      assert.equal(result2.currentRowCount, 3);
-      // expect our target values
-      assert.equal(result2.value(0, 0), 42);
-      assert.equal(result2.value(0, 1), 12345);
-      assert.equal(result2.value(0, 2), null);
+
+      const result2 = await connection.run('from target2');
+      const result2Chunk = await result2.fetchChunk();
+      assert.isDefined(result2Chunk);
+      if (result2Chunk) {
+        assert.equal(result2Chunk.columnCount, 1);
+        assert.equal(result2Chunk.rowCount, 3);
+        assertValues(result2Chunk, 0, DuckDBIntegerVector, targetValues);
+      }
     });
   });
   test('create and append data chunk with varchars', async () => {
     await withConnection(async (connection) => {
+      const values = ['xyz', 'abcdefghijkl', 'ABCDEFGHIJKLM', null];
+
       const chunk = DuckDBDataChunk.create([DuckDBVarCharType.instance]);
-      chunk.rowCount = 4;
-      const vector = chunk.getColumnVector(0) as DuckDBVarCharVector;
-      vector.setItem(0, 'xyz');
-      vector.setItem(1, 'abcdefghijkl');
-      vector.setItem(2, 'ABCDEFGHIJKLM');
-      vector.setItem(3, null);
-      vector.flush();
+      chunk.rowCount = values.length;
+      chunk.setColumnValues(0, values);
+
       await connection.run('create table target(col0 varchar)');
       const appender = await connection.createAppender('main', 'target');
       appender.appendDataChunk(chunk);
       appender.flush();
-      const result = await connection.runAndReadAll('from target');
-      assert.equal(result.columnCount, 1);
-      assert.equal(result.currentRowCount, 4);
-      assert.equal(result.value(0, 0), 'xyz');
-      assert.equal(result.value(0, 1), 'abcdefghijkl');
-      assert.equal(result.value(0, 2), 'ABCDEFGHIJKLM');
-      assert.equal(result.value(0, 3), null);
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, values.length);
+        assertValues(resultChunk, 0, DuckDBVarCharVector, values);
+      }
     });
   });
   test('create and append data chunk with blobs', async () => {
     await withConnection(async (connection) => {
+      const values = [
+        blobValue(new Uint8Array([0xAB, 0xCD, 0xEF])),
+        blobValue(new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C])),
+        blobValue(new Uint8Array([0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D])),
+        null,
+      ];
       const chunk = DuckDBDataChunk.create([DuckDBBlobType.instance]);
-      chunk.rowCount = 4;
-      const vector = chunk.getColumnVector(0) as DuckDBBlobVector;
-      vector.setItem(0, blobValue(new Uint8Array([0xAB, 0xCD, 0xEF])));
-      vector.setItem(1, blobValue(new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C])));
-      vector.setItem(2, blobValue(new Uint8Array([0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D])));
-      vector.setItem(3, null);
-      vector.flush();
+      chunk.rowCount = values.length;
+      chunk.setColumnValues(0, values);
+
       await connection.run('create table target(col0 blob)');
       const appender = await connection.createAppender('main', 'target');
       appender.appendDataChunk(chunk);
       appender.flush();
-      const result = await connection.runAndReadAll('from target');
-      assert.equal(result.columnCount, 1);
-      assert.equal(result.currentRowCount, 4);
-      assert.deepEqual(result.value(0, 0), blobValue(Buffer.from([0xAB, 0xCD, 0xEF])));
-      assert.deepEqual(result.value(0, 1), blobValue(Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C])));
-      assert.deepEqual(result.value(0, 2), blobValue(Buffer.from([0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D])));
-      assert.equal(result.value(0, 3), null);
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, values.length);
+        assertValues(resultChunk, 0, DuckDBBlobVector, values);
+      }
     });
   });
   test('create and append data chunk with lists', async () => {
     await withConnection(async (connection) => {
+      const values = [
+        listValue([10, 11, 12]),
+        listValue([]),
+        listValue([100, 200]),
+        null,
+      ];
+
       const chunk = DuckDBDataChunk.create([new DuckDBListType(DuckDBIntegerType.instance)]);
-      chunk.rowCount = 4;
-      const vector = chunk.getColumnVector(0) as DuckDBListVector;
-      vector.setItem(0, listValue([10, 11, 12]));
-      vector.setItem(1, listValue([]));
-      vector.setItem(2, listValue([100, 200]));
-      vector.setItem(3, null);
-      vector.flush();
+      chunk.rowCount = values.length;
+      chunk.setColumnValues(0, values);
+
       await connection.run('create table target(col0 integer[])');
       const appender = await connection.createAppender('main', 'target');
       appender.appendDataChunk(chunk);
       appender.flush();
-      const result = await connection.runAndReadAll('from target');
-      assert.equal(result.columnCount, 1);
-      assert.equal(result.currentRowCount, 4);
-      assert.deepEqual(result.value(0, 0), listValue([10, 11, 12]));
-      assert.deepEqual(result.value(0, 1), listValue([]));
-      assert.deepEqual(result.value(0, 2), listValue([100, 200]));
-      assert.equal(result.value(0, 3), null);
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, values.length);
+        assertValues(resultChunk, 0, DuckDBListVector, values);
+      }
     });
   });
   test('create and append data chunk with arrays of integers', async () => {
     await withConnection(async (connection) => {
+      const values = [
+        arrayValue([10, 11, 12]),
+        arrayValue([20, 21, 22]),
+        arrayValue([30, 31, 32]),
+        null,
+      ];
+
       const chunk = DuckDBDataChunk.create([new DuckDBArrayType(DuckDBIntegerType.instance, 3)]);
-      chunk.rowCount = 4;
-      const vector = chunk.getColumnVector(0) as DuckDBArrayVector;
-      vector.setItem(0, arrayValue([10, 11, 12]));
-      vector.setItem(1, arrayValue([20, 21, 22]));
-      vector.setItem(2, arrayValue([30, 31, 32]));
-      vector.setItem(3, null);
-      vector.flush();
+      chunk.rowCount = values.length;
+      chunk.setColumnValues(0, values);
+
       await connection.run('create table target(col0 integer[3])');
       const appender = await connection.createAppender('main', 'target');
       appender.appendDataChunk(chunk);
       appender.flush();
-      const result = await connection.runAndReadAll('from target');
-      assert.equal(result.columnCount, 1);
-      assert.equal(result.currentRowCount, 4);
-      assert.deepEqual(result.value(0, 0), arrayValue([10, 11, 12]));
-      assert.deepEqual(result.value(0, 1), arrayValue([20, 21, 22]));
-      assert.deepEqual(result.value(0, 2), arrayValue([30, 31, 32]));
-      assert.equal(result.value(0, 3), null);
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, values.length);
+        assertValues(resultChunk, 0, DuckDBArrayVector, values);
+      }
     });
   });
   test('create and append data chunk with arrays of varchars', async () => {
     await withConnection(async (connection) => {
+      const values = [
+        arrayValue(['a', 'b', 'c']),
+        arrayValue(['d', 'e', 'f']),
+        arrayValue(['g', 'h', 'i']),
+        null,
+      ];
+
       const chunk = DuckDBDataChunk.create([new DuckDBArrayType(DuckDBVarCharType.instance, 3)]);
-      chunk.rowCount = 4;
-      const vector = chunk.getColumnVector(0) as DuckDBArrayVector;
-      vector.setItem(0, arrayValue(['a', 'b', 'c']));
-      vector.setItem(1, arrayValue(['d', 'e', 'f']));
-      vector.setItem(2, arrayValue(['g', 'h', 'i']));
-      vector.setItem(3, null);
-      vector.flush();
+      chunk.rowCount = values.length;
+      chunk.setColumnValues(0, values);
+
       await connection.run('create table target(col0 varchar[3])');
       const appender = await connection.createAppender('main', 'target');
       appender.appendDataChunk(chunk);
       appender.flush();
-      const result = await connection.runAndReadAll('from target');
-      assert.equal(result.columnCount, 1);
-      assert.equal(result.currentRowCount, 4);
-      assert.deepEqual(result.value(0, 0), arrayValue(['a', 'b', 'c']));
-      assert.deepEqual(result.value(0, 1), arrayValue(['d', 'e', 'f']));
-      assert.deepEqual(result.value(0, 2), arrayValue(['g', 'h', 'i']));
-      assert.equal(result.value(0, 3), null);
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, values.length);
+        assertValues(resultChunk, 0, DuckDBArrayVector, values);
+      }
     });
   });
   test('create and append data chunk with structs', async () => {
     await withConnection(async (connection) => {
+      const values = [
+        structValue({ 'num': 10, 'str': 'xyz' }),
+        structValue({ 'num': 11, 'str': 'abcdefghijkl' }),
+        structValue({ 'num': 12, 'str': 'ABCDEFGHIJKLM' }),
+        null,
+      ];
+
       const chunk = DuckDBDataChunk.create([
         new DuckDBStructType(
           ['num', 'str'],
           [DuckDBIntegerType.instance, DuckDBVarCharType.instance]
         ),
       ]);
-      chunk.rowCount = 4;
-      const vector = chunk.getColumnVector(0) as DuckDBStructVector;
-      vector.setItem(0, structValue({ 'num': 10, 'str': 'xyz' }));
-      vector.setItem(1, structValue({ 'num': 11, 'str': 'abcdefghijkl' }));
-      vector.setItem(2, structValue({ 'num': 12, 'str': 'ABCDEFGHIJKLM' }));
-      vector.setItem(3, null);
-      vector.flush();
+      chunk.rowCount = values.length;
+      chunk.setColumnValues(0, values);
+
       await connection.run('create table target(col0 struct(num integer, str varchar))');
       const appender = await connection.createAppender('main', 'target');
       appender.appendDataChunk(chunk);
       appender.flush();
-      const result = await connection.runAndReadAll('from target');
-      assert.equal(result.columnCount, 1);
-      assert.equal(result.currentRowCount, 4);
-      assert.deepEqual(result.value(0, 0), structValue({ 'num': 10, 'str': 'xyz' }));
-      assert.deepEqual(result.value(0, 1), structValue({ 'num': 11, 'str': 'abcdefghijkl' }));
-      assert.deepEqual(result.value(0, 2), structValue({ 'num': 12, 'str': 'ABCDEFGHIJKLM' }));
-      assert.equal(result.value(0, 3), null);
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, values.length);
+        assertValues(resultChunk, 0, DuckDBStructVector, values);
+      }
+    });
+  });
+  test('create and append data chunk with all types', async () => {
+    await withConnection(async (connection) => {
+      const types: DuckDBType[] = [
+        DuckDBBooleanType.instance,
+        DuckDBTinyIntType.instance,
+        DuckDBSmallIntType.instance,
+        DuckDBIntegerType.instance,
+      ];
+      const columnData: DuckDBValue[][] = [
+        [false, true, null],
+        [DuckDBTinyIntType.Min, DuckDBTinyIntType.Max, null],
+        [DuckDBSmallIntType.Min, DuckDBSmallIntType.Max, null],
+        [DuckDBIntegerType.Min, DuckDBIntegerType.Max, null],
+      ];
+
+      assert.equal(types.length, columnData.length);
+
+      const chunk = DuckDBDataChunk.create(types);
+      chunk.rowCount = 3;
+      chunk.setColumns(columnData);
+
+      await connection.run('create table target(\
+        bool boolean,\
+        tinyint tinyint,\
+        smallint smallint,\
+        int integer\
+      )');
+      const appender = await connection.createAppender('main', 'target');
+      appender.appendDataChunk(chunk);
+      appender.flush();
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.strictEqual(resultChunk.columnCount, types.length);
+        assert.strictEqual(resultChunk.rowCount, 3);
+        assertValues(resultChunk, 0, DuckDBBooleanVector, columnData[0]);
+        assertValues(resultChunk, 1, DuckDBTinyIntVector, columnData[1]);
+        assertValues(resultChunk, 2, DuckDBSmallIntVector, columnData[2]);
+        assertValues(resultChunk, 3, DuckDBIntegerVector, columnData[3]);
+      }
+    });
+  });
+  test('create and append data chunk with rows', async () => {
+    await withConnection(async (connection) => {
+      const types: DuckDBType[] = [
+        DuckDBBooleanType.instance,
+        DuckDBTinyIntType.instance,
+        DuckDBSmallIntType.instance,
+        DuckDBIntegerType.instance,
+      ];
+      const columnData: DuckDBValue[][] = [
+        [false, true, null],
+        [DuckDBTinyIntType.Min, DuckDBTinyIntType.Max, null],
+        [DuckDBSmallIntType.Min, DuckDBSmallIntType.Max, null],
+        [DuckDBIntegerType.Min, DuckDBIntegerType.Max, null],
+      ];
+      const rows: DuckDBValue[][] = [
+        [false, DuckDBTinyIntType.Min, DuckDBSmallIntType.Min, DuckDBIntegerType.Min],
+        [true, DuckDBTinyIntType.Max, DuckDBSmallIntType.Max, DuckDBIntegerType.Max],
+        [null, null, null, null],
+      ];
+
+      const chunk = DuckDBDataChunk.create(types);
+      chunk.setRows(rows);
+
+      await connection.run('create table target(\
+        bool boolean,\
+        tinyint tinyint,\
+        smallint smallint,\
+        int integer\
+      )');
+      const appender = await connection.createAppender('main', 'target');
+      appender.appendDataChunk(chunk);
+      appender.flush();
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.strictEqual(resultChunk.columnCount, types.length);
+        assert.strictEqual(resultChunk.rowCount, 3);
+        assertValues(resultChunk, 0, DuckDBBooleanVector, columnData[0]);
+        assertValues(resultChunk, 1, DuckDBTinyIntVector, columnData[1]);
+        assertValues(resultChunk, 2, DuckDBSmallIntVector, columnData[2]);
+        assertValues(resultChunk, 3, DuckDBIntegerVector, columnData[3]);
+      }
     });
   });
 });
