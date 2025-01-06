@@ -19,6 +19,10 @@ export class DuckDBBlobValue {
   }
 }
 
-export function blobValue(bytes: Uint8Array): DuckDBBlobValue {
-  return new DuckDBBlobValue(bytes);
+export function blobValue(input: Uint8Array | string): DuckDBBlobValue {
+  if (typeof input === 'string') {
+    return DuckDBBlobValue.fromString(input);
+  }
+  return new DuckDBBlobValue(input);
 }
+

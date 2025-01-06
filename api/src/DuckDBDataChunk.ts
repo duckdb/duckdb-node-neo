@@ -9,7 +9,7 @@ export class DuckDBDataChunk {
   constructor(chunk: duckdb.DataChunk) {
     this.chunk = chunk;
   }
-  public static create(types: DuckDBType[]): DuckDBDataChunk {
+  public static create(types: readonly DuckDBType[]): DuckDBDataChunk {
     return new DuckDBDataChunk(duckdb.create_data_chunk(types.map(t => t.toLogicalType().logical_type)));
   }
   public reset() {
@@ -32,7 +32,7 @@ export class DuckDBDataChunk {
   public getColumnValues(columnIndex: number): DuckDBValue[] {
     return this.getColumnVector(columnIndex).toArray();
   }
-  public setColumnValues(columnIndex: number, values: DuckDBValue[]) {
+  public setColumnValues(columnIndex: number, values: readonly DuckDBValue[]) {
     const vector = this.getColumnVector(columnIndex);
     if (vector.itemCount !== values.length) {
       throw new Error(`number of values must equal chunk row count`);
@@ -50,7 +50,7 @@ export class DuckDBDataChunk {
     }
     return columns;
   }
-  public setColumns(columns: DuckDBValue[][]) {
+  public setColumns(columns: readonly (readonly DuckDBValue[])[]) {
     for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
       this.setColumnValues(columnIndex, columns[columnIndex]);
     }
@@ -72,7 +72,7 @@ export class DuckDBDataChunk {
     }
     return rows;
   }
-  public setRows(rows: DuckDBValue[][]) {
+  public setRows(rows: readonly (readonly DuckDBValue[])[]) {
     this.rowCount = rows.length;
     const columnCount = this.columnCount;
     for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {

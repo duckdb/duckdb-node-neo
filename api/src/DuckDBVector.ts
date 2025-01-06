@@ -398,13 +398,13 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
           if (width <= 0) {
             throw new Error(`DECIMAL width not positive: ${width}`);
           } else if (width <= 4) {
-            return DuckDBDecimal2Vector.fromRawVector(vectorType, vector, itemCount);
-          } else if (width <= 9) {
-            return DuckDBDecimal4Vector.fromRawVector(vectorType, vector, itemCount);
-          } else if (width <= 18) {
-            return DuckDBDecimal8Vector.fromRawVector(vectorType, vector, itemCount);
-          } else if (width <= 38) {
             return DuckDBDecimal16Vector.fromRawVector(vectorType, vector, itemCount);
+          } else if (width <= 9) {
+            return DuckDBDecimal32Vector.fromRawVector(vectorType, vector, itemCount);
+          } else if (width <= 18) {
+            return DuckDBDecimal64Vector.fromRawVector(vectorType, vector, itemCount);
+          } else if (width <= 38) {
+            return DuckDBDecimal128Vector.fromRawVector(vectorType, vector, itemCount);
           } else {
             throw new Error(`DECIMAL width too large: ${width}`);
           }
@@ -421,11 +421,11 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
         const { internalTypeId } = vectorType;
         switch (internalTypeId) {
           case DuckDBTypeId.UTINYINT:
-            return DuckDBEnum1Vector.fromRawVector(vectorType, vector, itemCount);
+            return DuckDBEnum8Vector.fromRawVector(vectorType, vector, itemCount);
           case DuckDBTypeId.USMALLINT:
-            return DuckDBEnum2Vector.fromRawVector(vectorType, vector, itemCount);
+            return DuckDBEnum16Vector.fromRawVector(vectorType, vector, itemCount);
           case DuckDBTypeId.UINTEGER:
-            return DuckDBEnum4Vector.fromRawVector(vectorType, vector, itemCount);
+            return DuckDBEnum32Vector.fromRawVector(vectorType, vector, itemCount);
           default:
             throw new Error(`unsupported ENUM internal type: ${internalTypeId}`);
         }
@@ -683,16 +683,18 @@ export class DuckDBIntegerVector extends DuckDBVector<number> {
 export class DuckDBBigIntVector extends DuckDBVector<bigint> {
   private readonly items: BigInt64Array;
   private readonly validity: DuckDBValidity;
-  constructor(items: BigInt64Array, validity: DuckDBValidity) {
+  private readonly vector: duckdb.Vector;
+  constructor(items: BigInt64Array, validity: DuckDBValidity, vector: duckdb.Vector) {
     super();
     this.items = items;
     this.validity = validity;
+    this.vector = vector;
   }
   static fromRawVector(vector: duckdb.Vector, itemCount: number): DuckDBBigIntVector {
     const data = vectorData(vector, itemCount * BigInt64Array.BYTES_PER_ELEMENT);
     const items = new BigInt64Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBBigIntVector(items, validity);
+    return new DuckDBBigIntVector(items, validity, vector);
   }
   public override get type(): DuckDBBigIntType {
     return DuckDBBigIntType.instance;
@@ -705,17 +707,23 @@ export class DuckDBBigIntVector extends DuckDBVector<bigint> {
   }
   public override setItem(itemIndex: number, value: bigint | null) {
     if (value != null) {
-      throw new Error('not yet implemented');
+      this.items[itemIndex] = value;
       this.validity.setItemValid(itemIndex, true);
     } else {
       this.validity.setItemValid(itemIndex, false);
     }
   }
   public override flush() {
-    throw new Error('not yet implemented');
+    duckdb.copy_data_to_vector(this.vector, 0,
+      this.items.buffer as ArrayBuffer, this.items.byteOffset, this.items.byteLength);
+    this.validity.flush(this.vector);
   }
   public override slice(offset: number, length: number): DuckDBBigIntVector {
-    return new DuckDBBigIntVector(this.items.slice(offset, offset + length), this.validity.slice(offset, length));
+    return new DuckDBBigIntVector(
+      this.items.slice(offset, offset + length),
+      this.validity.slice(offset, length),
+      this.vector
+    );
   }
 }
 
@@ -1350,7 +1358,7 @@ export class DuckDBBlobVector extends DuckDBVector<DuckDBBlobValue> {
   }
 }
 
-export class DuckDBDecimal2Vector extends DuckDBVector<DuckDBDecimalValue> {
+export class DuckDBDecimal16Vector extends DuckDBVector<DuckDBDecimalValue> {
   private readonly decimalType: DuckDBDecimalType;
   private readonly dataView: DataView;
   private readonly validity: DuckDBValidity;
@@ -1362,11 +1370,11 @@ export class DuckDBDecimal2Vector extends DuckDBVector<DuckDBDecimalValue> {
     this.validity = validity;
     this._itemCount = itemCount;
   }
-  static fromRawVector(decimalType: DuckDBDecimalType, vector: duckdb.Vector, itemCount: number): DuckDBDecimal2Vector {
+  static fromRawVector(decimalType: DuckDBDecimalType, vector: duckdb.Vector, itemCount: number): DuckDBDecimal16Vector {
     const data = vectorData(vector, itemCount * 2);
     const dataView = new DataView(data.buffer, data.byteOffset, data.byteLength);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBDecimal2Vector(decimalType, dataView, validity, itemCount);
+    return new DuckDBDecimal16Vector(decimalType, dataView, validity, itemCount);
   }
   public override get type(): DuckDBDecimalType {
     return this.decimalType;
@@ -1391,8 +1399,8 @@ export class DuckDBDecimal2Vector extends DuckDBVector<DuckDBDecimalValue> {
   public override flush() {
     throw new Error('not yet implemented');
   }
-  public override slice(offset: number, length: number): DuckDBDecimal2Vector {
-    return new DuckDBDecimal2Vector(
+  public override slice(offset: number, length: number): DuckDBDecimal16Vector {
+    return new DuckDBDecimal16Vector(
       this.decimalType,
       new DataView(this.dataView.buffer, this.dataView.byteOffset + offset * 2, length * 2),
       this.validity.slice(offset, length),
@@ -1401,7 +1409,7 @@ export class DuckDBDecimal2Vector extends DuckDBVector<DuckDBDecimalValue> {
   }
 }
 
-export class DuckDBDecimal4Vector extends DuckDBVector<DuckDBDecimalValue> {
+export class DuckDBDecimal32Vector extends DuckDBVector<DuckDBDecimalValue> {
   private readonly decimalType: DuckDBDecimalType;
   private readonly dataView: DataView;
   private readonly validity: DuckDBValidity;
@@ -1413,11 +1421,11 @@ export class DuckDBDecimal4Vector extends DuckDBVector<DuckDBDecimalValue> {
     this.validity = validity;
     this._itemCount = itemCount;
   }
-  static fromRawVector(decimalType: DuckDBDecimalType, vector: duckdb.Vector, itemCount: number): DuckDBDecimal4Vector {
+  static fromRawVector(decimalType: DuckDBDecimalType, vector: duckdb.Vector, itemCount: number): DuckDBDecimal32Vector {
     const data = vectorData(vector, itemCount * 4);
     const dataView = new DataView(data.buffer, data.byteOffset, data.byteLength);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBDecimal4Vector(decimalType, dataView, validity, itemCount);
+    return new DuckDBDecimal32Vector(decimalType, dataView, validity, itemCount);
   }
   public override get type(): DuckDBDecimalType {
     return this.decimalType;
@@ -1442,8 +1450,8 @@ export class DuckDBDecimal4Vector extends DuckDBVector<DuckDBDecimalValue> {
   public override flush() {
     throw new Error('not yet implemented');
   }
-  public override slice(offset: number, length: number): DuckDBDecimal4Vector {
-    return new DuckDBDecimal4Vector(
+  public override slice(offset: number, length: number): DuckDBDecimal32Vector {
+    return new DuckDBDecimal32Vector(
       this.decimalType,
       new DataView(this.dataView.buffer, this.dataView.byteOffset + offset * 4, length * 4),
       this.validity.slice(offset, length),
@@ -1452,7 +1460,7 @@ export class DuckDBDecimal4Vector extends DuckDBVector<DuckDBDecimalValue> {
   }
 }
 
-export class DuckDBDecimal8Vector extends DuckDBVector<DuckDBDecimalValue> {
+export class DuckDBDecimal64Vector extends DuckDBVector<DuckDBDecimalValue> {
   private readonly decimalType: DuckDBDecimalType;
   private readonly dataView: DataView;
   private readonly validity: DuckDBValidity;
@@ -1464,11 +1472,11 @@ export class DuckDBDecimal8Vector extends DuckDBVector<DuckDBDecimalValue> {
     this.validity = validity;
     this._itemCount = itemCount;
   }
-  static fromRawVector(decimalType: DuckDBDecimalType, vector: duckdb.Vector, itemCount: number): DuckDBDecimal8Vector {
+  static fromRawVector(decimalType: DuckDBDecimalType, vector: duckdb.Vector, itemCount: number): DuckDBDecimal64Vector {
     const data = vectorData(vector, itemCount * 8);
     const dataView = new DataView(data.buffer, data.byteOffset, data.byteLength);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBDecimal8Vector(decimalType, dataView, validity, itemCount);
+    return new DuckDBDecimal64Vector(decimalType, dataView, validity, itemCount);
   }
   public override get type(): DuckDBDecimalType {
     return this.decimalType;
@@ -1493,8 +1501,8 @@ export class DuckDBDecimal8Vector extends DuckDBVector<DuckDBDecimalValue> {
   public override flush() {
     throw new Error('not yet implemented');
   }
-  public override slice(offset: number, length: number): DuckDBDecimal8Vector {
-    return new DuckDBDecimal8Vector(
+  public override slice(offset: number, length: number): DuckDBDecimal64Vector {
+    return new DuckDBDecimal64Vector(
       this.decimalType,
       new DataView(this.dataView.buffer, this.dataView.byteOffset + offset * 8, length * 8),
       this.validity.slice(offset, length),
@@ -1503,7 +1511,7 @@ export class DuckDBDecimal8Vector extends DuckDBVector<DuckDBDecimalValue> {
   }
 }
 
-export class DuckDBDecimal16Vector extends DuckDBVector<DuckDBDecimalValue> {
+export class DuckDBDecimal128Vector extends DuckDBVector<DuckDBDecimalValue> {
   private readonly decimalType: DuckDBDecimalType;
   private readonly dataView: DataView;
   private readonly validity: DuckDBValidity;
@@ -1515,11 +1523,11 @@ export class DuckDBDecimal16Vector extends DuckDBVector<DuckDBDecimalValue> {
     this.validity = validity;
     this._itemCount = itemCount;
   }
-  static fromRawVector(decimalType: DuckDBDecimalType, vector: duckdb.Vector, itemCount: number): DuckDBDecimal16Vector {
+  static fromRawVector(decimalType: DuckDBDecimalType, vector: duckdb.Vector, itemCount: number): DuckDBDecimal128Vector {
     const data = vectorData(vector, itemCount * 16);
     const dataView = new DataView(data.buffer, data.byteOffset, data.byteLength);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBDecimal16Vector(decimalType, dataView, validity, itemCount);
+    return new DuckDBDecimal128Vector(decimalType, dataView, validity, itemCount);
   }
   public override get type(): DuckDBDecimalType {
     return this.decimalType;
@@ -1544,8 +1552,8 @@ export class DuckDBDecimal16Vector extends DuckDBVector<DuckDBDecimalValue> {
   public override flush() {
     throw new Error('not yet implemented');
   }
-  public override slice(offset: number, length: number): DuckDBDecimal16Vector {
-    return new DuckDBDecimal16Vector(
+  public override slice(offset: number, length: number): DuckDBDecimal128Vector {
+    return new DuckDBDecimal128Vector(
       this.decimalType,
       new DataView(this.dataView.buffer, this.dataView.byteOffset + offset * 16, length * 16),
       this.validity.slice(offset, length),
@@ -1671,7 +1679,7 @@ export class DuckDBTimestampNanosecondsVector extends DuckDBVector<DuckDBTimesta
   }
 }
 
-export class DuckDBEnum1Vector extends DuckDBVector<string> {
+export class DuckDBEnum8Vector extends DuckDBVector<string> {
   private readonly enumType: DuckDBEnumType;
   private readonly items: Uint8Array;
   private readonly validity: DuckDBValidity;
@@ -1681,11 +1689,11 @@ export class DuckDBEnum1Vector extends DuckDBVector<string> {
     this.items = items
     this.validity = validity;
   }
-  static fromRawVector(enumType: DuckDBEnumType, vector: duckdb.Vector, itemCount: number): DuckDBEnum1Vector {
+  static fromRawVector(enumType: DuckDBEnumType, vector: duckdb.Vector, itemCount: number): DuckDBEnum8Vector {
     const data = vectorData(vector, itemCount);
     const items = new Uint8Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBEnum1Vector(enumType, items, validity);
+    return new DuckDBEnum8Vector(enumType, items, validity);
   }
   public override get type(): DuckDBEnumType {
     return this.enumType;
@@ -1707,12 +1715,12 @@ export class DuckDBEnum1Vector extends DuckDBVector<string> {
   public override flush() {
     throw new Error('not yet implemented');
   }
-  public override slice(offset: number, length: number): DuckDBEnum1Vector {
-    return new DuckDBEnum1Vector(this.enumType, this.items.slice(offset, offset + length), this.validity.slice(offset, length));
+  public override slice(offset: number, length: number): DuckDBEnum8Vector {
+    return new DuckDBEnum8Vector(this.enumType, this.items.slice(offset, offset + length), this.validity.slice(offset, length));
   }
 }
 
-export class DuckDBEnum2Vector extends DuckDBVector<string> {
+export class DuckDBEnum16Vector extends DuckDBVector<string> {
   private readonly enumType: DuckDBEnumType;
   private readonly items: Uint16Array;
   private readonly validity: DuckDBValidity;
@@ -1722,11 +1730,11 @@ export class DuckDBEnum2Vector extends DuckDBVector<string> {
     this.items = items
     this.validity = validity;
   }
-  static fromRawVector(enumType: DuckDBEnumType, vector: duckdb.Vector, itemCount: number): DuckDBEnum2Vector {
+  static fromRawVector(enumType: DuckDBEnumType, vector: duckdb.Vector, itemCount: number): DuckDBEnum16Vector {
     const data = vectorData(vector, itemCount * 2);
     const items = new Uint16Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBEnum2Vector(enumType, items, validity);
+    return new DuckDBEnum16Vector(enumType, items, validity);
   }
   public override get type(): DuckDBEnumType {
     return this.enumType;
@@ -1748,12 +1756,12 @@ export class DuckDBEnum2Vector extends DuckDBVector<string> {
   public override flush() {
     throw new Error('not yet implemented');
   }
-  public override slice(offset: number, length: number): DuckDBEnum2Vector {
-    return new DuckDBEnum2Vector(this.enumType, this.items.slice(offset, offset + length), this.validity.slice(offset, length));
+  public override slice(offset: number, length: number): DuckDBEnum16Vector {
+    return new DuckDBEnum16Vector(this.enumType, this.items.slice(offset, offset + length), this.validity.slice(offset, length));
   }
 }
 
-export class DuckDBEnum4Vector extends DuckDBVector<string> {
+export class DuckDBEnum32Vector extends DuckDBVector<string> {
   private readonly enumType: DuckDBEnumType;
   private readonly items: Uint32Array;
   private readonly validity: DuckDBValidity;
@@ -1763,11 +1771,11 @@ export class DuckDBEnum4Vector extends DuckDBVector<string> {
     this.items = items
     this.validity = validity;
   }
-  static fromRawVector(enumType: DuckDBEnumType, vector: duckdb.Vector, itemCount: number): DuckDBEnum4Vector {
+  static fromRawVector(enumType: DuckDBEnumType, vector: duckdb.Vector, itemCount: number): DuckDBEnum32Vector {
     const data = vectorData(vector, itemCount * 4);
     const items = new Uint32Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBEnum4Vector(enumType, items, validity);
+    return new DuckDBEnum32Vector(enumType, items, validity);
   }
   public override get type(): DuckDBEnumType {
     return this.enumType;
@@ -1789,8 +1797,8 @@ export class DuckDBEnum4Vector extends DuckDBVector<string> {
   public override flush() {
     throw new Error('not yet implemented');
   }
-  public override slice(offset: number, length: number): DuckDBEnum4Vector {
-    return new DuckDBEnum4Vector(this.enumType, this.items.slice(offset, offset + length), this.validity.slice(offset, length));
+  public override slice(offset: number, length: number): DuckDBEnum32Vector {
+    return new DuckDBEnum32Vector(this.enumType, this.items.slice(offset, offset + length), this.validity.slice(offset, length));
   }
 }
 
