@@ -1304,7 +1304,7 @@ describe('api', () => {
   });
   test('create and append data chunk with all types', async () => {
     await withConnection(async (connection) => {
-      const columnCount = 5;
+      const columnCount = 11;
       const types = testAllTypesColumnTypes.slice(0, columnCount);
       const columns = testAllTypesColumns.slice(0, columnCount);
       const columnNamesAndTypes = testAllTypesColumnsNamesAndTypes.slice(
@@ -1336,7 +1336,19 @@ describe('api', () => {
         assertValues(resultChunk, 2, DuckDBSmallIntVector, columns[2]);
         assertValues(resultChunk, 3, DuckDBIntegerVector, columns[3]);
         assertValues(resultChunk, 4, DuckDBBigIntVector, columns[4]);
+        assertValues(resultChunk, 5, DuckDBHugeIntVector, columns[5]);
+        assertValues(resultChunk, 6, DuckDBUHugeIntVector, columns[6]);
+        assertValues(resultChunk, 7, DuckDBUTinyIntVector, columns[7]);
+        assertValues(resultChunk, 8, DuckDBUSmallIntVector, columns[8]);
+        assertValues(resultChunk, 9, DuckDBUIntegerVector, columns[9]);
+        assertValues(resultChunk, 10, DuckDBUBigIntVector, columns[10]);
+        // assertValues(resultChunk, 11, DuckDBVarIntVector, columns[11]); // See https://github.com/duckdb/duckdb/pull/15670
+
+        // assertValues(resultChunk, 20, DuckDBFloatVector, columns[20]);
+        // assertValues(resultChunk, 21, DuckDBDoubleVector, columns[21]);
       }
+
+      // }
     });
   });
 });
