@@ -485,6 +485,7 @@ export const TIMESTAMP_NS = DuckDBTimestampNanosecondsType.instance;
 
 export class DuckDBEnumType extends BaseDuckDBType<DuckDBTypeId.ENUM> {
   public readonly values: readonly string[];
+  public readonly valueIndexes: Readonly<Record<string, number>>;
   public readonly internalTypeId: DuckDBTypeId;
   public constructor(
     values: readonly string[],
@@ -493,7 +494,15 @@ export class DuckDBEnumType extends BaseDuckDBType<DuckDBTypeId.ENUM> {
   ) {
     super(DuckDBTypeId.ENUM, alias);
     this.values = values;
+    const valueIndexes: Record<string, number> = {};
+    for (let i = 0; i < values.length; i++) {
+      valueIndexes[values[i]] = i;
+    }
+    this.valueIndexes = valueIndexes;
     this.internalTypeId = internalTypeId;
+  }
+  public indexForValue(value: string): number {
+    return this.valueIndexes[value];
   }
   public toString(): string {
     return `ENUM(${this.values.map(quotedString).join(', ')})`;

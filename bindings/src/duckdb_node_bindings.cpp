@@ -3072,7 +3072,9 @@ private:
     auto vector = GetVectorFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     std::string str = info[2].As<Napi::String>();
-    duckdb_vector_assign_string_element(vector, index, str.c_str());
+    auto size = str.size();
+    // Use the _len variant to handle embedded null characters.
+    duckdb_vector_assign_string_element_len(vector, index, str.c_str(), size);
     return env.Undefined();
   }
   

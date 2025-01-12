@@ -1304,7 +1304,7 @@ describe('api', () => {
   });
   test('create and append data chunk with all types', async () => {
     await withConnection(async (connection) => {
-      const columnCount = 12;
+      const columnCount = 44;
       const types = testAllTypesColumnTypes.slice(0, columnCount);
       const columns = testAllTypesColumns.slice(0, columnCount);
       const columnNamesAndTypes = testAllTypesColumnsNamesAndTypes.slice(
@@ -1347,12 +1347,54 @@ describe('api', () => {
         assertValues(resultChunk, 9, DuckDBUIntegerVector, columns[9]);
         assertValues(resultChunk, 10, DuckDBUBigIntVector, columns[10]);
         assertValues(resultChunk, 11, DuckDBBooleanVector, columns[11]); // workaround until VARINT is fixed (in 1.2.0)
-
-        // assertValues(resultChunk, 20, DuckDBFloatVector, columns[20]);
-        // assertValues(resultChunk, 21, DuckDBDoubleVector, columns[21]);
+        assertValues(resultChunk, 12, DuckDBDateVector, columns[12]);
+        assertValues(resultChunk, 13, DuckDBTimeVector, columns[13]);
+        assertValues(resultChunk, 14, DuckDBTimestampVector, columns[14]);
+        assertValues(
+          resultChunk,
+          15,
+          DuckDBTimestampSecondsVector,
+          columns[15]
+        );
+        assertValues(
+          resultChunk,
+          16,
+          DuckDBTimestampMillisecondsVector,
+          columns[16]
+        );
+        assertValues(
+          resultChunk,
+          17,
+          DuckDBTimestampNanosecondsVector,
+          columns[17]
+        );
+        assertValues(resultChunk, 18, DuckDBTimeTZVector, columns[18]);
+        assertValues(resultChunk, 19, DuckDBTimestampTZVector, columns[19]);
+        assertValues(resultChunk, 20, DuckDBFloatVector, columns[20]);
+        assertValues(resultChunk, 21, DuckDBDoubleVector, columns[21]);
+        assertValues(resultChunk, 22, DuckDBDecimal16Vector, columns[22]);
+        assertValues(resultChunk, 23, DuckDBDecimal32Vector, columns[23]);
+        assertValues(resultChunk, 24, DuckDBDecimal64Vector, columns[24]);
+        assertValues(resultChunk, 25, DuckDBDecimal128Vector, columns[25]);
+        assertValues(resultChunk, 26, DuckDBUUIDVector, columns[26]);
+        assertValues(resultChunk, 27, DuckDBIntervalVector, columns[27]);
+        assertValues(resultChunk, 28, DuckDBVarCharVector, columns[28]);
+        assertValues(resultChunk, 29, DuckDBBlobVector, columns[29]);
+        assertValues(resultChunk, 30, DuckDBBitVector, columns[30]);
+        assertValues(resultChunk, 31, DuckDBEnum8Vector, columns[31]);
+        assertValues(resultChunk, 32, DuckDBEnum16Vector, columns[32]);
+        assertValues(resultChunk, 33, DuckDBEnum32Vector, columns[33]);
+        assertValues(resultChunk, 34, DuckDBListVector, columns[34]); // int_array
+        assertValues(resultChunk, 35, DuckDBListVector, columns[35]); // double_array
+        assertValues(resultChunk, 36, DuckDBListVector, columns[36]); // date_array
+        assertValues(resultChunk, 37, DuckDBListVector, columns[37]); // timestamp_array
+        assertValues(resultChunk, 38, DuckDBListVector, columns[38]); // timestamptz_array
+        assertValues(resultChunk, 39, DuckDBListVector, columns[39]); // varchar_array
+        assertValues(resultChunk, 40, DuckDBListVector, columns[40]); // nested_int_array
+        assertValues(resultChunk, 41, DuckDBStructVector, columns[41]);
+        assertValues(resultChunk, 42, DuckDBStructVector, columns[42]); // struct_of_arrays
+        assertValues(resultChunk, 43, DuckDBListVector, columns[43]); // array_of_structs
       }
-
-      // }
     });
   });
 });
