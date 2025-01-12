@@ -1304,13 +1304,17 @@ describe('api', () => {
   });
   test('create and append data chunk with all types', async () => {
     await withConnection(async (connection) => {
-      const columnCount = 11;
+      const columnCount = 12;
       const types = testAllTypesColumnTypes.slice(0, columnCount);
       const columns = testAllTypesColumns.slice(0, columnCount);
       const columnNamesAndTypes = testAllTypesColumnsNamesAndTypes.slice(
         0,
         columnCount
       );
+      // workaround until VARINT is fixed (in 1.2.0)
+      types[11] = BOOLEAN;
+      columns[11] = [false, true, null];
+      columnNamesAndTypes[11] = { name: 'varint_as_bool', type: BOOLEAN };
 
       const chunk = DuckDBDataChunk.create(types);
       chunk.rowCount = 3;
@@ -1342,7 +1346,7 @@ describe('api', () => {
         assertValues(resultChunk, 8, DuckDBUSmallIntVector, columns[8]);
         assertValues(resultChunk, 9, DuckDBUIntegerVector, columns[9]);
         assertValues(resultChunk, 10, DuckDBUBigIntVector, columns[10]);
-        // assertValues(resultChunk, 11, DuckDBVarIntVector, columns[11]); // See https://github.com/duckdb/duckdb/pull/15670
+        assertValues(resultChunk, 11, DuckDBBooleanVector, columns[11]); // workaround until VARINT is fixed (in 1.2.0)
 
         // assertValues(resultChunk, 20, DuckDBFloatVector, columns[20]);
         // assertValues(resultChunk, 21, DuckDBDoubleVector, columns[21]);
