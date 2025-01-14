@@ -1,4 +1,5 @@
 import duckdb from '@duckdb/node-bindings';
+import { DuckDBType } from './DuckDBType';
 import { DuckDBVector } from './DuckDBVector';
 import { DuckDBValue } from './values';
 
@@ -8,8 +9,12 @@ export class DuckDBDataChunk {
   constructor(chunk: duckdb.DataChunk) {
     this.chunk = chunk;
   }
-  public static create(logical_types: duckdb.LogicalType[]): DuckDBDataChunk {
-    return new DuckDBDataChunk(duckdb.create_data_chunk(logical_types));
+  public static create(types: readonly DuckDBType[], rowCount?: number): DuckDBDataChunk {
+    const chunk = new DuckDBDataChunk(duckdb.create_data_chunk(types.map(t => t.toLogicalType().logical_type)));
+    if (rowCount != undefined) {
+      chunk.rowCount = rowCount;
+    }
+    return chunk;
   }
   public reset() {
     duckdb.data_chunk_reset(this.chunk);
@@ -31,6 +36,16 @@ export class DuckDBDataChunk {
   public getColumnValues(columnIndex: number): DuckDBValue[] {
     return this.getColumnVector(columnIndex).toArray();
   }
+  public setColumnValues(columnIndex: number, values: readonly DuckDBValue[]) {
+    const vector = this.getColumnVector(columnIndex);
+    if (vector.itemCount !== values.length) {
+      throw new Error(`number of values must equal chunk row count`);
+    }
+    for (let i = 0; i < values.length; i++) {
+      vector.setItem(i, values[i]);
+    }
+    vector.flush();
+  }
   public getColumns(): DuckDBValue[][] {
     const columns: DuckDBValue[][] = [];
     const columnCount = this.columnCount;
@@ -38,6 +53,14 @@ export class DuckDBDataChunk {
       columns.push(this.getColumnValues(columnIndex));
     }
     return columns;
+  }
+  public setColumns(columns: readonly (readonly DuckDBValue[])[]) {
+    if (columns.length > 0) {
+      this.rowCount = columns[0].length;
+    }
+    for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+      this.setColumnValues(columnIndex, columns[columnIndex]);
+    }
   }
   public getRows(): DuckDBValue[][] {
     const rows: DuckDBValue[][] = [];
@@ -55,6 +78,17 @@ export class DuckDBDataChunk {
       rows.push(row);
     }
     return rows;
+  }
+  public setRows(rows: readonly (readonly DuckDBValue[])[]) {
+    this.rowCount = rows.length;
+    const columnCount = this.columnCount;
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+      const vector = this.getColumnVector(columnIndex);
+      for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+        vector.setItem(rowIndex, rows[rowIndex][columnIndex]);
+      }
+      vector.flush();
+    }
   }
   public get rowCount(): number {
     return duckdb.data_chunk_get_size(this.chunk);

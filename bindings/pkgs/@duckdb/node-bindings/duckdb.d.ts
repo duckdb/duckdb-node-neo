@@ -840,7 +840,7 @@ export function vector_ensure_validity_writable(vector: Vector): void;
 export function vector_assign_string_element(vector: Vector, index: number, str: string): void;
 
 // DUCKDB_API void duckdb_vector_assign_string_element_len(duckdb_vector vector, idx_t index, const char *str, idx_t str_len);
-// not exposed: JS string includes length
+export function vector_assign_string_element_len(vector: Vector, index: number, data: Uint8Array): void;
 
 // DUCKDB_API duckdb_vector duckdb_list_vector_get_child(duckdb_vector vector);
 export function list_vector_get_child(vector: Vector): Vector;
@@ -1110,3 +1110,23 @@ export function fetch_chunk(result: Result): Promise<DataChunk | null>;
  * Used to read from `duckdb_string_t`s with non-inlined data that are embedded in VARCHAR, BLOB, and BIT vectors.
  */
 export function get_data_from_pointer(array_buffer: ArrayBuffer, pointer_offset: number, byte_count: number): Uint8Array;
+
+// ADDED
+/** 
+ * Copy `source_byte_count` bytes from `source_buffer` at `source_byte_offset` into `target_vector` at `target_byte_offset`.
+ * 
+ * Used to write to data chunks.
+ *
+ * Performs an efficient-but-unsafe memory copy. Use with care.
+ */
+export function copy_data_to_vector(target_vector: Vector, target_byte_offset: number, source_buffer: ArrayBuffer, source_byte_offset: number, source_byte_count: number): void;
+
+// ADDED
+/** 
+ * Copy `source_byte_count` bytes from `source_buffer` at `source_byte_offset` into the validity of `target_vector` at `target_byte_offset`.
+ * 
+ * Used to write to data chunks.
+ *
+ * Performs an efficient-but-unsafe memory copy. Use with care.
+ */
+export function copy_data_to_vector_validity(target_vector: Vector, target_byte_offset: number, source_buffer: ArrayBuffer, source_byte_offset: number, source_byte_count: number): void;

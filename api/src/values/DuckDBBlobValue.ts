@@ -1,6 +1,5 @@
+import { bytesFromString } from '../conversion/bytesFromString';
 import { stringFromBlob } from '../conversion/stringFromBlob';
-
-const textEncoder = new TextEncoder();
 
 export class DuckDBBlobValue {
   public readonly bytes: Uint8Array;
@@ -15,10 +14,14 @@ export class DuckDBBlobValue {
   }
 
   public static fromString(str: string): DuckDBBlobValue {
-    return new DuckDBBlobValue(Buffer.from(textEncoder.encode(str)));
+    return new DuckDBBlobValue(Buffer.from(bytesFromString(str)));
   }
 }
 
-export function blobValue(bytes: Uint8Array): DuckDBBlobValue {
-  return new DuckDBBlobValue(bytes);
+export function blobValue(input: Uint8Array | string): DuckDBBlobValue {
+  if (typeof input === 'string') {
+    return DuckDBBlobValue.fromString(input);
+  }
+  return new DuckDBBlobValue(input);
 }
+

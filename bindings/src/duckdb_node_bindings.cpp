@@ -1131,6 +1131,7 @@ public:
       InstanceMethod("vector_get_validity", &DuckDBNodeAddon::vector_get_validity),
       InstanceMethod("vector_ensure_validity_writable", &DuckDBNodeAddon::vector_ensure_validity_writable),
       InstanceMethod("vector_assign_string_element", &DuckDBNodeAddon::vector_assign_string_element),
+      InstanceMethod("vector_assign_string_element_len", &DuckDBNodeAddon::vector_assign_string_element_len),
       InstanceMethod("list_vector_get_child", &DuckDBNodeAddon::list_vector_get_child),
       InstanceMethod("list_vector_get_size", &DuckDBNodeAddon::list_vector_get_size),
       InstanceMethod("list_vector_set_size", &DuckDBNodeAddon::list_vector_set_size),
@@ -1174,6 +1175,8 @@ public:
       InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
 
       InstanceMethod("get_data_from_pointer", &DuckDBNodeAddon::get_data_from_pointer),
+      InstanceMethod("copy_data_to_vector", &DuckDBNodeAddon::copy_data_to_vector),
+      InstanceMethod("copy_data_to_vector_validity", &DuckDBNodeAddon::copy_data_to_vector_validity),
     });
   }
 
@@ -3069,12 +3072,24 @@ private:
     auto vector = GetVectorFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     std::string str = info[2].As<Napi::String>();
-    duckdb_vector_assign_string_element(vector, index, str.c_str());
+    auto size = str.size();
+    // Use the _len variant to handle embedded null characters.
+    duckdb_vector_assign_string_element_len(vector, index, str.c_str(), size);
     return env.Undefined();
   }
   
   // DUCKDB_API void duckdb_vector_assign_string_element_len(duckdb_vector vector, idx_t index, const char *str, idx_t str_len);
-  // not exposed: JS string includes length
+  // function vector_assign_string_element_len(vector: Vector, index: number, data: Uint8Array): void
+  Napi::Value vector_assign_string_element_len(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto array = info[2].As<Napi::Uint8Array>();
+    auto data = reinterpret_cast<const char *>(array.Data());
+    auto length = array.ByteLength();
+    duckdb_vector_assign_string_element_len(vector, index, data, length);
+    return env.Undefined();
+  }
 
   // DUCKDB_API duckdb_vector duckdb_list_vector_get_child(duckdb_vector vector);
   // function list_vector_get_child(vector: Vector): Vector
@@ -3685,6 +3700,34 @@ private:
     return Napi::Buffer<uint8_t>::NewOrCopy(env, pointer, byte_count);
   }
 
+  // ADDED
+  // function copy_data_to_vector(target_vector: Vector, target_byte_offset: number, source_buffer: ArrayBuffer, source_byte_offset: number, source_byte_count: number): void
+  Napi::Value copy_data_to_vector(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto target_vector = GetVectorFromExternal(env, info[0]);
+    auto target_byte_offset = info[1].As<Napi::Number>().Uint32Value();
+    auto source_data = reinterpret_cast<uint8_t*>(info[2].As<Napi::ArrayBuffer>().Data());
+    auto source_byte_offset = info[3].As<Napi::Number>().Uint32Value();
+    auto source_byte_count = info[4].As<Napi::Number>().Uint32Value();
+    auto target_data = reinterpret_cast<uint8_t*>(duckdb_vector_get_data(target_vector));
+    memcpy(target_data + target_byte_offset, source_data + source_byte_offset, source_byte_count);
+    return env.Undefined();
+  }
+
+  // ADDED
+  // function copy_data_to_vector_validity(target_vector: Vector, target_byte_offset: number, source_buffer: ArrayBuffer, source_byte_offset: number, source_byte_count: number): void
+  Napi::Value copy_data_to_vector_validity(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto target_vector = GetVectorFromExternal(env, info[0]);
+    auto target_byte_offset = info[1].As<Napi::Number>().Uint32Value();
+    auto source_data = reinterpret_cast<uint8_t*>(info[2].As<Napi::ArrayBuffer>().Data());
+    auto source_byte_offset = info[3].As<Napi::Number>().Uint32Value();
+    auto source_byte_count = info[4].As<Napi::Number>().Uint32Value();
+    auto target_data = reinterpret_cast<uint8_t*>(duckdb_vector_get_validity(target_vector));
+    memcpy(target_data + target_byte_offset, source_data + source_byte_offset, source_byte_count);
+    return env.Undefined();
+  }
+
 };
 
 NODE_API_ADDON(DuckDBNodeAddon)
@@ -3692,11 +3735,11 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
   371 duckdb api functions
-+   1 added function
++   3 added functions
   ---
-  372 total functions
+  374 total functions
 
-  206 instance methods
+  210 instance methods
     1 unimplemented logical type functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
@@ -3711,9 +3754,9 @@ NODE_API_ADDON(DuckDBNodeAddon)
     4 unimplemented table description functions
     8 unimplemented tasks functions
    12 unimplemented cast function functions
-   26 functions not exposed
+   24 functions not exposed
 +  41 unimplemented deprecated functions (of 47)
   ---
-  372 functions accounted for
+  374 functions accounted for
 
 */
