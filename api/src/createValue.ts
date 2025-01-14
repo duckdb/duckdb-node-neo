@@ -2,9 +2,12 @@ import duckdb, { Value } from '@duckdb/node-bindings';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import {
+  DuckDBArrayValue,
   DuckDBBlobValue,
   DuckDBDateValue,
   DuckDBIntervalValue,
+  DuckDBListValue,
+  DuckDBStructValue,
   DuckDBTimestampTZValue,
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
@@ -120,13 +123,33 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
     case DuckDBTypeId.ENUM:
       throw new Error(`not yet implemented for ENUM`); // TODO: implement when available in 1.2.0
     case DuckDBTypeId.LIST:
-      throw new Error(`not yet implemented for LIST`); // TODO (need toLogicalType)
+      if (input instanceof DuckDBListValue) {
+        return duckdb.create_list_value(
+          type.valueType.toLogicalType().logical_type,
+          input.items.map((item) => createValue(type.valueType, item))
+        );
+      }
+      throw new Error(`input is not a DuckDBListValue`);
     case DuckDBTypeId.STRUCT:
-      throw new Error(`not yet implemented for STRUCT`); // TODO (need toLogicalType)
+      if (input instanceof DuckDBStructValue) {
+        return duckdb.create_struct_value(
+          type.toLogicalType().logical_type,
+          Object.values(input.entries).map((value, i) =>
+            createValue(type.entryTypes[i], value)
+          )
+        );
+      }
+      throw new Error(`input is not a DuckDBStructValue`);
     case DuckDBTypeId.MAP:
       throw new Error(`not yet implemented for MAP`); // TODO: implement when available, hopefully in 1.2.0
     case DuckDBTypeId.ARRAY:
-      throw new Error(`not yet implemented for ARRAY`); // TODO (need toLogicalType)
+      if (input instanceof DuckDBArrayValue) {
+        return duckdb.create_array_value(
+          type.valueType.toLogicalType().logical_type,
+          input.items.map((item) => createValue(type.valueType, item))
+        );
+      }
+      throw new Error(`input is not a DuckDBArrayValue`);
     case DuckDBTypeId.UUID:
       throw new Error(`not yet implemented for UUID`); // TODO: implement when available in 1.2.0
     case DuckDBTypeId.UNION:
