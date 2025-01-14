@@ -3283,7 +3283,6 @@ export class DuckDBUnionVector extends DuckDBVector<DuckDBUnionValue> {
   public override setItem(itemIndex: number, value: DuckDBUnionValue | null) {
     if (value != null) {
       const memberIndex = this.unionType.memberIndexForTag(value.tag);
-      console.log({ value, memberIndex });
       this.structVector.setItemValue(itemIndex, 0, memberIndex);
       const entryIndex = memberIndex + 1;
       this.structVector.setItemValue(itemIndex, entryIndex, value.value);
