@@ -1,15 +1,19 @@
 import duckdb from '@duckdb/node-bindings';
+import { createValue } from './createValue';
 import { DuckDBMaterializedResult } from './DuckDBMaterializedResult';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
+import { DuckDBTimestampTZType, DuckDBTimeTZType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { StatementType } from './enums';
 import {
   DuckDBDateValue,
   DuckDBDecimalValue,
   DuckDBIntervalValue,
+  DuckDBTimestampTZValue,
   DuckDBTimestampValue,
+  DuckDBTimeTZValue,
   DuckDBTimeValue,
 } from './values';
 
@@ -87,11 +91,16 @@ export class DuckDBPreparedStatement {
   public bindTime(parameterIndex: number, value: DuckDBTimeValue) {
     duckdb.bind_time(this.prepared_statement, parameterIndex, value);
   }
+  public bindTimeTZ(parameterIndex: number, value: DuckDBTimeTZValue) {
+    duckdb.bind_value(this.prepared_statement, parameterIndex, createValue(DuckDBTimeTZType.instance, value));
+  }
   public bindTimestamp(parameterIndex: number, value: DuckDBTimestampValue) {
     duckdb.bind_timestamp(this.prepared_statement, parameterIndex, value);
   }
-  // TODO: bind TIMESTAMPS_S/_MS/_NS?
-  // TODO: bind TIME_TZ/TIMESTAMP_TZ?
+  public bindTimestampTZ(parameterIndex: number, value: DuckDBTimestampTZValue) {
+    duckdb.bind_value(this.prepared_statement, parameterIndex, createValue(DuckDBTimestampTZType.instance, value));
+  }
+  // TODO: bind TIMESTAMPS_S/_MS/_NS?  
   public bindInterval(parameterIndex: number, value: DuckDBIntervalValue) {
     duckdb.bind_interval(this.prepared_statement, parameterIndex, value);
   }
@@ -108,10 +117,6 @@ export class DuckDBPreparedStatement {
   public bindNull(parameterIndex: number) {
     duckdb.bind_null(this.prepared_statement, parameterIndex);
   }
-  // TODO: expose bindValue, or implement bindList, bindStruct, etc.?
-  // public bindValue(parameterIndex: number, value: Value) {
-  //   duckdb.bind_value(this.prepared_statement, parameterIndex, value);
-  // }
   public async run(): Promise<DuckDBMaterializedResult> {
     return new DuckDBMaterializedResult(await duckdb.execute_prepared(this.prepared_statement));
   }
