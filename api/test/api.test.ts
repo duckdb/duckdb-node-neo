@@ -1122,6 +1122,17 @@ describe('api', () => {
     assert.equal(vector.getItem(1), 12345);
     assert.equal(vector.getItem(2), null);
   });
+  test('write list vector', () => {
+    const chunk = DuckDBDataChunk.create([LIST(INTEGER)], 3);
+    const vector = chunk.getColumnVector(0) as DuckDBListVector;
+    assert.equal(vector.itemCount, 3);
+    vector.setItem(0, listValue([10, 11, 12]));
+    vector.setItem(1, listValue([20, 21, 22]));
+    vector.setItem(2, null);
+    assert.deepEqual(vector.getItem(0), listValue([10, 11, 12]));
+    assert.deepEqual(vector.getItem(1), listValue([20, 21, 22]));
+    assert.equal(vector.getItem(2), null);
+  });
   test('create and append data chunk', async () => {
     await withConnection(async (connection) => {
       const values = [42, 12345, null];
@@ -1277,6 +1288,52 @@ describe('api', () => {
         assert.equal(resultChunk.columnCount, 1);
         assert.equal(resultChunk.rowCount, values.length);
         assertValues(resultChunk, 0, DuckDBListVector, values);
+      }
+    });
+  });
+  test('create and append data chunk , modify nested list vector', async () => {
+    await withConnection(async (connection) => {
+      const originalValues = [
+        listValue([
+          listValue([110, 111]),
+          listValue([]),
+          listValue([130]),
+        ]),
+        listValue([]),
+        listValue([
+          listValue([310, 311, 312]),
+          listValue([320, 321]),
+          listValue([330, 331, 332, 333]),
+        ]),
+      ];
+
+      const chunk = DuckDBDataChunk.create([LIST(LIST(INTEGER))], originalValues.length);
+      chunk.setColumnValues(0, originalValues);
+
+      const outerListVector = chunk.getColumnVector(0) as DuckDBListVector;
+      const innerListVector = outerListVector.getItemVector(2) as DuckDBListVector;
+      innerListVector.setItem(1, listValue([350, 351, 352, 353, 354]));
+      innerListVector.flush();
+
+      const modifiedValues = [...originalValues];
+      modifiedValues[2] = listValue([
+        listValue([310, 311, 312]),
+        listValue([350, 351, 352, 353, 354]),
+        listValue([330, 331, 332, 333]),
+      ]);
+
+      await connection.run('create table target(col0 integer[][])');
+      const appender = await connection.createAppender('main', 'target');
+      appender.appendDataChunk(chunk);
+      appender.flush();
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, modifiedValues.length);
+        assertValues(resultChunk, 0, DuckDBListVector, modifiedValues);
       }
     });
   });
