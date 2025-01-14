@@ -1,16 +1,31 @@
 import duckdb from '@duckdb/node-bindings';
+import { createValue } from './createValue';
 import { DuckDBMaterializedResult } from './DuckDBMaterializedResult';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
+import {
+  DuckDBArrayType,
+  DuckDBListType,
+  DuckDBStructType,
+  DuckDBType,
+  TIMESTAMPTZ,
+  TIMETZ,
+} from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { StatementType } from './enums';
 import {
+  DuckDBArrayValue,
   DuckDBDateValue,
   DuckDBDecimalValue,
   DuckDBIntervalValue,
+  DuckDBListValue,
+  DuckDBStructValue,
+  DuckDBTimestampTZValue,
   DuckDBTimestampValue,
+  DuckDBTimeTZValue,
   DuckDBTimeValue,
+  DuckDBValue,
 } from './values';
 
 export class DuckDBPreparedStatement {
@@ -87,11 +102,19 @@ export class DuckDBPreparedStatement {
   public bindTime(parameterIndex: number, value: DuckDBTimeValue) {
     duckdb.bind_time(this.prepared_statement, parameterIndex, value);
   }
+  public bindTimeTZ(parameterIndex: number, value: DuckDBTimeTZValue) {
+    this.bindValue(parameterIndex, value, TIMETZ);
+  }
   public bindTimestamp(parameterIndex: number, value: DuckDBTimestampValue) {
     duckdb.bind_timestamp(this.prepared_statement, parameterIndex, value);
   }
-  // TODO: bind TIMESTAMPS_S/_MS/_NS?
-  // TODO: bind TIME_TZ/TIMESTAMP_TZ?
+  public bindTimestampTZ(
+    parameterIndex: number,
+    value: DuckDBTimestampTZValue
+  ) {
+    this.bindValue(parameterIndex, value, TIMESTAMPTZ);
+  }
+  // TODO: bind TIMESTAMPS_S/_MS/_NS
   public bindInterval(parameterIndex: number, value: DuckDBIntervalValue) {
     duckdb.bind_interval(this.prepared_statement, parameterIndex, value);
   }
@@ -101,19 +124,49 @@ export class DuckDBPreparedStatement {
   public bindBlob(parameterIndex: number, value: Uint8Array) {
     duckdb.bind_blob(this.prepared_statement, parameterIndex, value);
   }
-  // TODO: bind ENUM?
-  // TODO: bind nested types? (ARRAY, LIST, STRUCT, MAP, UNION) (using bindValue?)
-  // TODO: bind UUID?
-  // TODO: bind BIT?
+  // TODO: bind ENUM
+  public bindArray(
+    parameterIndex: number,
+    value: DuckDBArrayValue,
+    type: DuckDBArrayType
+  ) {
+    this.bindValue(parameterIndex, value, type);
+  }
+  public bindList(
+    parameterIndex: number,
+    value: DuckDBListValue,
+    type: DuckDBListType
+  ) {
+    this.bindValue(parameterIndex, value, type);
+  }
+  public bindStruct(
+    parameterIndex: number,
+    value: DuckDBStructValue,
+    type: DuckDBStructType
+  ) {
+    this.bindValue(parameterIndex, value, type);
+  }
+  // TODO: bind MAP, UNION
+  // TODO: bind UUID
+  // TODO: bind BIT
   public bindNull(parameterIndex: number) {
     duckdb.bind_null(this.prepared_statement, parameterIndex);
   }
-  // TODO: expose bindValue, or implement bindList, bindStruct, etc.?
-  // public bindValue(parameterIndex: number, value: Value) {
-  //   duckdb.bind_value(this.prepared_statement, parameterIndex, value);
-  // }
+  public bindValue(
+    parameterIndex: number,
+    value: DuckDBValue,
+    type: DuckDBType
+  ) {
+    duckdb.bind_value(
+      this.prepared_statement,
+      parameterIndex,
+      createValue(type, value)
+    );
+  }
   public async run(): Promise<DuckDBMaterializedResult> {
-    return new DuckDBMaterializedResult(await duckdb.execute_prepared(this.prepared_statement));
+    return new DuckDBMaterializedResult(
+      await duckdb.execute_prepared(this.prepared_statement)
+    );
   }
   public async runAndRead(): Promise<DuckDBResultReader> {
     return new DuckDBResultReader(await this.run());
@@ -123,13 +176,17 @@ export class DuckDBPreparedStatement {
     await reader.readAll();
     return reader;
   }
-  public async runAndReadUntil(targetRowCount: number): Promise<DuckDBResultReader> {
+  public async runAndReadUntil(
+    targetRowCount: number
+  ): Promise<DuckDBResultReader> {
     const reader = new DuckDBResultReader(await this.run());
     await reader.readUntil(targetRowCount);
     return reader;
   }
   public async stream(): Promise<DuckDBResult> {
-    return new DuckDBResult(await duckdb.execute_prepared_streaming(this.prepared_statement));
+    return new DuckDBResult(
+      await duckdb.execute_prepared_streaming(this.prepared_statement)
+    );
   }
   public async streamAndRead(): Promise<DuckDBResultReader> {
     return new DuckDBResultReader(await this.stream());
@@ -139,7 +196,9 @@ export class DuckDBPreparedStatement {
     await reader.readAll();
     return reader;
   }
-  public async streamAndReadUntil(targetRowCount: number): Promise<DuckDBResultReader> {
+  public async streamAndReadUntil(
+    targetRowCount: number
+  ): Promise<DuckDBResultReader> {
     const reader = new DuckDBResultReader(await this.stream());
     await reader.readUntil(targetRowCount);
     return reader;
