@@ -110,6 +110,22 @@ prepared.bindList(3, listValue([10, 11, 12]), LIST(INTEGER));
 const result = await prepared.run();
 ```
 
+or:
+
+```ts
+const prepared = await connection.prepare('select $a, $b, $c');
+prepared.bind({
+  'a': 'duck',
+  'b': 42,
+  'c': listValue([10, 11, 12]),
+}, {
+  'a': VARCHAR,
+  'b': INTEGER,
+  'c': LIST(INTEGER),
+});
+const result = await prepared.run();
+```
+
 ### Stream Results
 
 Streaming results evaluate lazily when rows are read.

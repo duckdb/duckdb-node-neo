@@ -14,6 +14,7 @@ import {
 } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { StatementType } from './enums';
+import { typeForValue } from './typeForValue';
 import {
   DuckDBArrayValue,
   DuckDBDateValue,
@@ -162,6 +163,20 @@ export class DuckDBPreparedStatement {
       parameterIndex,
       createValue(type, value)
     );
+  }
+  public bind(values: DuckDBValue[] | Record<string, DuckDBValue>, types?: DuckDBType[] | Record<string, DuckDBType>) {
+    if (Array.isArray(values)) {
+      const typesIsArray = Array.isArray(types);
+      for (let i = 0; i < values.length; i++) {
+        this.bindValue(i + 1, values[i], typesIsArray ? types[i] : typeForValue(values[i]));
+      }
+    } else {
+      const typesIsRecord = types && !Array.isArray(types);
+      for (const key in values) {
+        const index = this.parameterIndex(key);
+        this.bindValue(index, values[key], typesIsRecord ? types[key] : typeForValue(values[key]));
+      }
+    }
   }
   public async run(): Promise<DuckDBMaterializedResult> {
     return new DuckDBMaterializedResult(

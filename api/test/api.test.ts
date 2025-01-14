@@ -477,6 +477,86 @@ describe('api', () => {
       }
     });
   });
+  test('should support prepare statement bind with list', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare(
+        'select $1 as a, $2 as b, $3 as c'
+      );
+      prepared.bind([42, 'duck', listValue([10, 11, 12])]);
+      const result = await prepared.run();
+      assertColumns(result, [
+        { name: 'a', type: DOUBLE },
+        { name: 'b', type: VARCHAR },
+        { name: 'c', type: LIST(DOUBLE) },
+      ]);
+      const chunk = await result.fetchChunk();
+      assert.isDefined(chunk);
+      if (chunk) {
+        assert.strictEqual(chunk.columnCount, 3);
+        assert.strictEqual(chunk.rowCount, 1);
+        assertValues<number, DuckDBDoubleVector>(
+          chunk,
+          0,
+          DuckDBDoubleVector,
+          [42]
+        );
+        assertValues<string, DuckDBVarCharVector>(
+          chunk,
+          1,
+          DuckDBVarCharVector,
+          ['duck']
+        );
+        assertValues(
+          chunk,
+          2,
+          DuckDBListVector,
+          [listValue([10, 11, 12])]
+        );
+      }
+    });
+  });
+  test('should support prepare statement bind with object', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare(
+        'select $a as a, $b as b, $c as c'
+      );
+      prepared.bind({
+        a: 42,
+        b: 'duck',
+        c: listValue([10, 11, 12]),
+      });
+      const result = await prepared.run();
+      assertColumns(result, [
+        { name: 'a', type: DOUBLE },
+        { name: 'b', type: VARCHAR },
+        { name: 'c', type: LIST(DOUBLE) },
+      ]);
+      const chunk = await result.fetchChunk();
+      assert.isDefined(chunk);
+      if (chunk) {
+        assert.strictEqual(chunk.columnCount, 3);
+        assert.strictEqual(chunk.rowCount, 1);
+        assertValues<number, DuckDBDoubleVector>(
+          chunk,
+          0,
+          DuckDBDoubleVector,
+          [42]
+        );
+        assertValues<string, DuckDBVarCharVector>(
+          chunk,
+          1,
+          DuckDBVarCharVector,
+          ['duck']
+        );
+        assertValues(
+          chunk,
+          2,
+          DuckDBListVector,
+          [listValue([10, 11, 12])]
+        );
+      }
+    });
+  });
   test('should support starting prepared statements and running them incrementally', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare(
