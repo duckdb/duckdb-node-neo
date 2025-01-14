@@ -1304,13 +1304,10 @@ describe('api', () => {
   });
   test('create and append data chunk with all types', async () => {
     await withConnection(async (connection) => {
-      const columnCount = 44;
-      const types = testAllTypesColumnTypes.slice(0, columnCount);
-      const columns = testAllTypesColumns.slice(0, columnCount);
-      const columnNamesAndTypes = testAllTypesColumnsNamesAndTypes.slice(
-        0,
-        columnCount
-      );
+      const types = [...testAllTypesColumnTypes];
+      const columns = [...testAllTypesColumns];
+      const columnNamesAndTypes = [...testAllTypesColumnsNamesAndTypes];
+      
       // workaround until VARINT is fixed (in 1.2.0)
       types[11] = BOOLEAN;
       columns[11] = [false, true, null];
@@ -1322,7 +1319,7 @@ describe('api', () => {
 
       await connection.run(
         `create table target(${columnNamesAndTypes
-          .map(({ name, type }) => `${name} ${type}`)
+          .map(({ name, type }) => `"${name.replace(`"`, `""`)}" ${type}`)
           .join(', ')})`
       );
       const appender = await connection.createAppender('main', 'target');
@@ -1394,6 +1391,16 @@ describe('api', () => {
         assertValues(resultChunk, 41, DuckDBStructVector, columns[41]);
         assertValues(resultChunk, 42, DuckDBStructVector, columns[42]); // struct_of_arrays
         assertValues(resultChunk, 43, DuckDBListVector, columns[43]); // array_of_structs
+        assertValues(resultChunk, 44, DuckDBMapVector, columns[44]);
+        assertValues(resultChunk, 45, DuckDBUnionVector, columns[45]);
+        assertValues(resultChunk, 46, DuckDBArrayVector, columns[46]); // fixed_int_array
+        assertValues(resultChunk, 47, DuckDBArrayVector, columns[47]); // fixed_varchar_array
+        assertValues(resultChunk, 48, DuckDBArrayVector, columns[48]); // fixed_nested_int_array
+        assertValues(resultChunk, 49, DuckDBArrayVector, columns[49]); // fixed_nested_varchar_array
+        assertValues(resultChunk, 50, DuckDBArrayVector, columns[50]); // fixed_struct_array
+        assertValues(resultChunk, 51, DuckDBStructVector, columns[51]); // struct_of_fixed_array
+        assertValues(resultChunk, 52, DuckDBArrayVector, columns[52]); // fixed_array_of_int_list
+        assertValues(resultChunk, 53, DuckDBListVector, columns[53]); // list_of_fixed_int_array
       }
     });
   });

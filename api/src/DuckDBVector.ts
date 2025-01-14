@@ -60,6 +60,8 @@ import {
   DuckDBUUIDValue,
   DuckDBUnionValue,
   DuckDBValue,
+  listValue,
+  structValue,
 } from './values';
 
 const littleEndian = os.endianness() === 'LE';
@@ -3038,11 +3040,22 @@ export class DuckDBMapVector extends DuckDBVector<DuckDBMapValue> {
     }
     return new DuckDBMapValue(entries);
   }
-  public override setItem(_itemIndex: number, _value: DuckDBMapValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBMapValue | null) {
+    if (value != null) {
+      this.listVector.setItem(
+        itemIndex,
+        listValue(
+          value.entries.map((entry) =>
+            structValue({ 'key': entry.key, 'value': entry.value })
+          )
+        )
+      );
+    } else {
+      this.listVector.setItem(itemIndex, null);
+    }
   }
   public override flush() {
-    throw new Error('not yet implemented');
+    this.listVector.flush();
   }
   public override slice(offset: number, length: number): DuckDBMapVector {
     return new DuckDBMapVector(
@@ -3125,6 +3138,10 @@ export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
       }
       this.validity.setItemValid(itemIndex, true);
     } else {
+      const startIndex = itemIndex * this.arrayType.length;
+      for (let i = 0; i < this.arrayType.length; i++) {
+        this.childData.setItem(startIndex + i, null);
+      }
       this.validity.setItemValid(itemIndex, false);
     }
   }
@@ -3263,11 +3280,26 @@ export class DuckDBUnionVector extends DuckDBVector<DuckDBUnionValue> {
     const value = this.structVector.getItemValue(itemIndex, entryIndex);
     return new DuckDBUnionValue(tag, value);
   }
-  public override setItem(_itemIndex: number, _value: DuckDBUnionValue | null) {
-    throw new Error('not yet implemented');
+  public override setItem(itemIndex: number, value: DuckDBUnionValue | null) {
+    if (value != null) {
+      const memberIndex = this.unionType.memberIndexForTag(value.tag);
+      console.log({ value, memberIndex });
+      this.structVector.setItemValue(itemIndex, 0, memberIndex);
+      const entryIndex = memberIndex + 1;
+      this.structVector.setItemValue(itemIndex, entryIndex, value.value);
+      for (let i = 1; i <= this.unionType.memberCount; i++) {
+        if (i !== entryIndex) {
+          this.structVector.setItemValue(itemIndex, i, null);
+        }
+      }
+    } else {
+      for (let i = 0; i <= this.unionType.memberCount; i++) {
+        this.structVector.setItemValue(itemIndex, i, null);
+      }
+    }
   }
   public override flush() {
-    throw new Error('not yet implemented');
+    this.structVector.flush();
   }
   public override slice(offset: number, length: number): DuckDBUnionVector {
     return new DuckDBUnionVector(

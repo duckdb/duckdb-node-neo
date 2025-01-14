@@ -704,6 +704,7 @@ export const UUID = DuckDBUUIDType.instance;
 
 export class DuckDBUnionType extends BaseDuckDBType<DuckDBTypeId.UNION> {
   public readonly memberTags: readonly string[];
+  public readonly tagMemberIndexes: Readonly<Record<string, number>>;
   public readonly memberTypes: readonly DuckDBType[];
   public constructor(
     memberTags: readonly string[],
@@ -716,7 +717,15 @@ export class DuckDBUnionType extends BaseDuckDBType<DuckDBTypeId.UNION> {
         tags length (${memberTags.length}) does not match valueTypes length (${memberTypes.length})`);
     }
     this.memberTags = memberTags;
+    const tagMemberIndexes: Record<string, number> = {};
+    for (let i = 0; i < memberTags.length; i++) {
+      tagMemberIndexes[memberTags[i]] = i;
+    }
+    this.tagMemberIndexes = tagMemberIndexes;
     this.memberTypes = memberTypes;
+  }
+  public memberIndexForTag(tag: string): number {
+    return this.tagMemberIndexes[tag];
   }
   public get memberCount() {
     return this.memberTags.length;
