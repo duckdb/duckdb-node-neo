@@ -985,8 +985,7 @@ describe('api', () => {
     }
   });
   test('write integer vector', () => {
-    const chunk = DuckDBDataChunk.create([INTEGER]);
-    chunk.rowCount = 3;
+    const chunk = DuckDBDataChunk.create([INTEGER], 3);
     const vector = chunk.getColumnVector(0) as DuckDBIntegerVector;
     assert.equal(vector.itemCount, 3);
     vector.setItem(0, 42);
@@ -997,8 +996,7 @@ describe('api', () => {
     assert.equal(vector.getItem(2), 67890);
   });
   test('write integer vector with nulls', () => {
-    const chunk = DuckDBDataChunk.create([INTEGER]);
-    chunk.rowCount = 3;
+    const chunk = DuckDBDataChunk.create([INTEGER], 3);
     const vector = chunk.getColumnVector(0) as DuckDBIntegerVector;
     assert.equal(vector.itemCount, 3);
     vector.setItem(0, 42);
@@ -1012,8 +1010,7 @@ describe('api', () => {
     await withConnection(async (connection) => {
       const values = [42, 12345, null];
 
-      const chunk = DuckDBDataChunk.create([INTEGER]);
-      chunk.rowCount = values.length;
+      const chunk = DuckDBDataChunk.create([INTEGER], values.length);
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 int)');
@@ -1036,8 +1033,7 @@ describe('api', () => {
       const baselineValues = [10, 11, 12];
       const targetValues = [42, 12345, null];
 
-      const chunk = DuckDBDataChunk.create([INTEGER]);
-      chunk.rowCount = targetValues.length;
+      const chunk = DuckDBDataChunk.create([INTEGER], targetValues.length);
       const vector = chunk.getColumnVector(0) as DuckDBIntegerVector;
 
       // First, set the values to something known as a baseline.
@@ -1087,8 +1083,7 @@ describe('api', () => {
     await withConnection(async (connection) => {
       const values = ['xyz', 'abcdefghijkl', 'ABCDEFGHIJKLM', null];
 
-      const chunk = DuckDBDataChunk.create([VARCHAR]);
-      chunk.rowCount = values.length;
+      const chunk = DuckDBDataChunk.create([VARCHAR], values.length);
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 varchar)');
@@ -1124,8 +1119,7 @@ describe('api', () => {
         ),
         null,
       ];
-      const chunk = DuckDBDataChunk.create([BLOB]);
-      chunk.rowCount = values.length;
+      const chunk = DuckDBDataChunk.create([BLOB], values.length);
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 blob)');
@@ -1152,8 +1146,7 @@ describe('api', () => {
         null,
       ];
 
-      const chunk = DuckDBDataChunk.create([LIST(INTEGER)]);
-      chunk.rowCount = values.length;
+      const chunk = DuckDBDataChunk.create([LIST(INTEGER)], values.length);
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 integer[])');
@@ -1180,8 +1173,7 @@ describe('api', () => {
         null,
       ];
 
-      const chunk = DuckDBDataChunk.create([ARRAY(INTEGER, 3)]);
-      chunk.rowCount = values.length;
+      const chunk = DuckDBDataChunk.create([ARRAY(INTEGER, 3)], values.length);
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 integer[3])');
@@ -1208,8 +1200,7 @@ describe('api', () => {
         null,
       ];
 
-      const chunk = DuckDBDataChunk.create([ARRAY(VARCHAR, 3)]);
-      chunk.rowCount = values.length;
+      const chunk = DuckDBDataChunk.create([ARRAY(VARCHAR, 3)], values.length);
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 varchar[3])');
@@ -1238,8 +1229,7 @@ describe('api', () => {
 
       const chunk = DuckDBDataChunk.create([
         STRUCT({ 'num': INTEGER, 'str': VARCHAR }),
-      ]);
-      chunk.rowCount = values.length;
+      ], values.length);
       chunk.setColumnValues(0, values);
 
       await connection.run(
@@ -1307,14 +1297,13 @@ describe('api', () => {
       const types = [...testAllTypesColumnTypes];
       const columns = [...testAllTypesColumns];
       const columnNamesAndTypes = [...testAllTypesColumnsNamesAndTypes];
-      
+
       // workaround until VARINT is fixed (in 1.2.0)
       types[11] = BOOLEAN;
       columns[11] = [false, true, null];
       columnNamesAndTypes[11] = { name: 'varint_as_bool', type: BOOLEAN };
 
       const chunk = DuckDBDataChunk.create(types);
-      chunk.rowCount = 3;
       chunk.setColumns(columns);
 
       await connection.run(

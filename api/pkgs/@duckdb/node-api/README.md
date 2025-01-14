@@ -18,8 +18,8 @@ available separately as [@duckdb/duckdb-bindings](https://www.npmjs.com/package/
 ### Roadmap
 
 Some features are not yet complete:
-- Appending and binding advanced data types. (Additional DuckDB C API support needed.)
-- Writing to data chunk vectors. (Needs special handling in Node.)
+- Binding advanced data types. (Additional DuckDB C API support needed.)
+- Appending advanced data types row-by-row. Appending data chunks recommended instead.
 - User-defined types & functions. (Support for this was added to the DuckDB C API in v1.1.0.)
 - Profiling info (Added in v1.1.0)
 - Table description (Added in v1.1.0)
@@ -410,6 +410,31 @@ appender.appendVarchar('goose');
 appender.endRow();
 
 appender.close(); // also flushes
+```
+
+### Append Data Chunk
+
+```ts
+await connection.run(
+  `create or replace table target_table(i integer, v varchar)`
+);
+
+const appender = await connection.createAppender('main', 'target_table');
+
+const chunk = DuckDBDataChunk.create([INTEGER, VARCHAR]);
+chunk.setColumns([
+  [42, 123, 17],
+  ['duck', 'mallad', 'goose'],
+]);
+// OR:
+// chunk.setRows([
+//   [42, 'duck'],
+//   [123, 'mallard'],
+//   [17, 'goose'],
+// ]);
+
+appender.appendDataChunk(chunk);
+appender.flush();
 ```
 
 ### Extract Statements

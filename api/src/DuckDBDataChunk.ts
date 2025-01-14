@@ -9,8 +9,12 @@ export class DuckDBDataChunk {
   constructor(chunk: duckdb.DataChunk) {
     this.chunk = chunk;
   }
-  public static create(types: readonly DuckDBType[]): DuckDBDataChunk {
-    return new DuckDBDataChunk(duckdb.create_data_chunk(types.map(t => t.toLogicalType().logical_type)));
+  public static create(types: readonly DuckDBType[], rowCount?: number): DuckDBDataChunk {
+    const chunk = new DuckDBDataChunk(duckdb.create_data_chunk(types.map(t => t.toLogicalType().logical_type)));
+    if (rowCount != undefined) {
+      chunk.rowCount = rowCount;
+    }
+    return chunk;
   }
   public reset() {
     duckdb.data_chunk_reset(this.chunk);
@@ -51,6 +55,9 @@ export class DuckDBDataChunk {
     return columns;
   }
   public setColumns(columns: readonly (readonly DuckDBValue[])[]) {
+    if (columns.length > 0) {
+      this.rowCount = columns[0].length;
+    }
     for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
       this.setColumnValues(columnIndex, columns[columnIndex]);
     }
