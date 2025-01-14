@@ -388,7 +388,7 @@ describe('api', () => {
     // ensure double-disconnect doesn't break anything
     connection.disconnect();
   });
-  test.only('should support running prepared statements', async () => {
+  test('should support running prepared statements', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare(
         'select $num as a, $str as b, $bool as c, $timetz as d, $list as e, $struct as f, $array as g, $null as h'
