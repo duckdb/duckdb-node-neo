@@ -103,9 +103,10 @@ const result = await connection.run('from test_all_types()');
 ### Parameterize SQL
 
 ```ts
-const prepared = await connection.prepare('select $1, $2');
+const prepared = await connection.prepare('select $1, $2, $3');
 prepared.bindVarchar(1, 'duck');
 prepared.bindInteger(2, 42);
+prepared.bindList(3, listValue([10, 11, 12]), LIST(INTEGER));
 const result = await prepared.run();
 ```
 
