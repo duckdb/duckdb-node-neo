@@ -9,8 +9,13 @@ export class DuckDBDataChunk {
   constructor(chunk: duckdb.DataChunk) {
     this.chunk = chunk;
   }
-  public static create(types: readonly DuckDBType[], rowCount?: number): DuckDBDataChunk {
-    const chunk = new DuckDBDataChunk(duckdb.create_data_chunk(types.map(t => t.toLogicalType().logical_type)));
+  public static create(
+    types: readonly DuckDBType[],
+    rowCount?: number
+  ): DuckDBDataChunk {
+    const chunk = new DuckDBDataChunk(
+      duckdb.create_data_chunk(types.map((t) => t.toLogicalType().logical_type))
+    );
     if (rowCount != undefined) {
       chunk.rowCount = rowCount;
     }
@@ -39,7 +44,14 @@ export class DuckDBDataChunk {
     this.vectors[columnIndex] = vector;
     return vector;
   }
-  public visitColumnValues(columnIndex: number, visitValue: (value: DuckDBValue, rowIndex?: number, columnIndex?: number) => void) {
+  public visitColumnValues(
+    columnIndex: number,
+    visitValue: (
+      value: DuckDBValue,
+      rowIndex: number,
+      columnIndex: number
+    ) => void
+  ) {
     const vector = this.getColumnVector(columnIndex);
     for (let rowIndex = 0; rowIndex < vector.itemCount; rowIndex++) {
       visitValue(vector.getItem(rowIndex), rowIndex, columnIndex);
@@ -47,7 +59,7 @@ export class DuckDBDataChunk {
   }
   public getColumnValues(columnIndex: number): DuckDBValue[] {
     const values: DuckDBValue[] = [];
-    this.visitColumnValues(columnIndex, value => values.push(value));
+    this.visitColumnValues(columnIndex, (value) => values.push(value));
     return values;
   }
   public setColumnValues(columnIndex: number, values: readonly DuckDBValue[]) {
@@ -60,7 +72,9 @@ export class DuckDBDataChunk {
     }
     vector.flush();
   }
-  public visitColumns(visitColumn: (column: DuckDBValue[], columnIndex?: number) => void) {
+  public visitColumns(
+    visitColumn: (column: DuckDBValue[], columnIndex: number) => void
+  ) {
     const columnCount = this.columnCount;
     for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
       visitColumn(this.getColumnValues(columnIndex), columnIndex);
@@ -68,7 +82,7 @@ export class DuckDBDataChunk {
   }
   public getColumns(): DuckDBValue[][] {
     const columns: DuckDBValue[][] = [];
-    this.visitColumns(column => columns.push(column));
+    this.visitColumns((column) => columns.push(column));
     return columns;
   }
   public setColumns(columns: readonly (readonly DuckDBValue[])[]) {
@@ -79,24 +93,41 @@ export class DuckDBDataChunk {
       this.setColumnValues(columnIndex, columns[columnIndex]);
     }
   }
-  public visitColumnMajor(visitValue: (value: DuckDBValue, rowIndex?: number, columnIndex?: number) => void) {
+  public visitColumnMajor(
+    visitValue: (
+      value: DuckDBValue,
+      rowIndex: number,
+      columnIndex: number
+    ) => void
+  ) {
     const columnCount = this.columnCount;
     for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
       this.visitColumnValues(columnIndex, visitValue);
     }
   }
-  public visitRowValues(rowIndex: number, visitValue: (value: DuckDBValue, rowIndex?: number, columnIndex?: number) => void) {
+  public visitRowValues(
+    rowIndex: number,
+    visitValue: (
+      value: DuckDBValue,
+      rowIndex: number,
+      columnIndex: number
+    ) => void
+  ) {
     const columnCount = this.columnCount;
     for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-      visitValue(this.getColumnVector(columnIndex).getItem(rowIndex), rowIndex, columnIndex);
+      visitValue(
+        this.getColumnVector(columnIndex).getItem(rowIndex),
+        rowIndex,
+        columnIndex
+      );
     }
   }
   public getRowValues(rowIndex: number): DuckDBValue[] {
     const values: DuckDBValue[] = [];
-    this.visitRowValues(rowIndex, value => values.push(value));
+    this.visitRowValues(rowIndex, (value) => values.push(value));
     return values;
   }
-  public visitRows(visitRow: (row: DuckDBValue[], rowIndex?: number) => void) {
+  public visitRows(visitRow: (row: DuckDBValue[], rowIndex: number) => void) {
     const rowCount = this.rowCount;
     for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
       visitRow(this.getRowValues(rowIndex), rowIndex);
@@ -104,7 +135,7 @@ export class DuckDBDataChunk {
   }
   public getRows(): DuckDBValue[][] {
     const rows: DuckDBValue[][] = [];
-    this.visitRows(row => rows.push(row));
+    this.visitRows((row) => rows.push(row));
     return rows;
   }
   public setRows(rows: readonly (readonly DuckDBValue[])[]) {
@@ -118,12 +149,22 @@ export class DuckDBDataChunk {
       vector.flush();
     }
   }
-  public visitRowMajor(visitValue: (value: DuckDBValue, rowIndex?: number, columnIndex?: number) => void) {
+  public visitRowMajor(
+    visitValue: (
+      value: DuckDBValue,
+      rowIndex: number,
+      columnIndex: number
+    ) => void
+  ) {
     const rowCount = this.rowCount;
     const columnCount = this.columnCount;
     for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
       for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-        visitValue(this.getColumnVector(columnIndex).getItem(rowIndex), rowIndex, columnIndex);
+        visitValue(
+          this.getColumnVector(columnIndex).getItem(rowIndex),
+          rowIndex,
+          columnIndex
+        );
       }
     }
   }

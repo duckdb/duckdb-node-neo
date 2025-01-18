@@ -5,6 +5,8 @@ import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { ResultReturnType, StatementType } from './enums';
 import { getColumnsFromChunks } from './getColumnsFromChunks';
+import { getColumnsObjectFromChunks } from './getColumnsObjectFromChunks';
+import { getRowObjectsFromChunks } from './getRowObjectsFromChunks';
 import { getRowsFromChunks } from './getRowsFromChunks';
 import { DuckDBValue } from './values';
 
@@ -43,6 +45,9 @@ export class DuckDBResultReader {
   }
   public columnNames(): string[] {
     return this.result.columnNames();
+  }
+  public deduplicatedColumnNames(): string[] {
+    return this.result.deduplicatedColumnNames();
   }
   public columnTypeId(columnIndex: number): DuckDBTypeId {
     return this.result.columnTypeId(columnIndex);
@@ -99,10 +104,10 @@ export class DuckDBResultReader {
     }
     // We didn't find our row. It must have been out of range.
     throw Error(
-      `Row index ${rowIndex} requested, but only ${this.currentRowCount_} row have been read so far.`,
+      `Row index ${rowIndex} requested, but only ${this.currentRowCount_} row have been read so far.`
     );
   }
-  
+
   /** Read all rows. */
   public async readAll(): Promise<void> {
     return this.fetchChunks();
@@ -121,7 +126,8 @@ export class DuckDBResultReader {
     while (
       !(
         this.done_ ||
-        (targetRowCount !== undefined && this.currentRowCount_ >= targetRowCount)
+        (targetRowCount !== undefined &&
+          this.currentRowCount_ >= targetRowCount)
       )
     ) {
       const chunk = await this.result.fetchChunk();
@@ -157,8 +163,15 @@ export class DuckDBResultReader {
     return getColumnsFromChunks(this.chunks);
   }
 
+  public getColumnsObject(): Record<string, DuckDBValue[]> {
+    return getColumnsObjectFromChunks(this.chunks, this.deduplicatedColumnNames());
+  }
+
   public getRows(): DuckDBValue[][] {
     return getRowsFromChunks(this.chunks);
   }
 
+  public getRowObjecs(): Record<string, DuckDBValue>[] {
+    return getRowObjectsFromChunks(this.chunks, this.deduplicatedColumnNames());
+  }
 }
