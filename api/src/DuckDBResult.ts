@@ -5,6 +5,8 @@ import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { ResultReturnType, StatementType } from './enums';
 import { getColumnsFromChunks } from './getColumnsFromChunks';
+import { getColumnsObjectFromChunks } from './getColumnsObjectFromChunks';
+import { getRowObjectsFromChunks } from './getRowObjectsFromChunks';
 import { getRowsFromChunks } from './getRowsFromChunks';
 import { DuckDBValue } from './values';
 
@@ -32,6 +34,22 @@ export class DuckDBResult {
       columnNames.push(this.columnName(columnIndex));
     }
     return columnNames;
+  }
+  public deduplicatedColumnNames(): string[] {
+    const outputColumnNames: string[] = [];
+    const columnCount = this.columnCount;
+    const columnNameCount: { [columnName: string]: number } = {};
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+      const inputColumnName = this.columnName(columnIndex);
+      const nameCount = (columnNameCount[inputColumnName] || 0) + 1;
+      columnNameCount[inputColumnName] = nameCount;
+      if (nameCount > 1) {
+        outputColumnNames.push(`${inputColumnName}:${nameCount - 1}`);
+      } else {
+        outputColumnNames.push(inputColumnName);
+      }
+    }
+    return outputColumnNames;
   }
   public columnTypeId(columnIndex: number): DuckDBTypeId {
     return duckdb.column_type(
@@ -81,8 +99,16 @@ export class DuckDBResult {
     const chunks = await this.fetchAllChunks();
     return getColumnsFromChunks(chunks);
   }
+  public async getColumnsObject(): Promise<Record<string, DuckDBValue[]>> {
+    const chunks = await this.fetchAllChunks();
+    return getColumnsObjectFromChunks(chunks, this.deduplicatedColumnNames());
+  }
   public async getRows(): Promise<DuckDBValue[][]> {
     const chunks = await this.fetchAllChunks();
     return getRowsFromChunks(chunks);
+  }
+  public async getRowObjects(): Promise<Record<string, DuckDBValue>[]> {
+    const chunks = await this.fetchAllChunks();
+    return getRowObjectsFromChunks(chunks, this.deduplicatedColumnNames());
   }
 }

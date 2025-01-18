@@ -1028,6 +1028,26 @@ describe('api', () => {
       ]);
     });
   });
+  test('row and column objects', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(
+        'select i::int as a, i::int + 10 as b, (i + 100)::varchar as a from range(3) t(i)'
+      );
+      assert.deepEqual(reader.columnNames(), ['a', 'b', 'a']);
+      assert.deepEqual(reader.deduplicatedColumnNames(), ['a', 'b', 'a:1']);
+      assert.deepEqual(reader.columnTypes(), [INTEGER, INTEGER, VARCHAR]);
+      assert.deepEqual(reader.getRowObjecs(), [
+        { 'a': 0, 'b': 10, 'a:1': '100' },
+        { 'a': 1, 'b': 11, 'a:1': '101' },
+        { 'a': 2, 'b': 12, 'a:1': '102' },
+      ]);
+      assert.deepEqual(reader.getColumnsObject(), {
+        'a': [0, 1, 2],
+        'b': [10, 11, 12],
+        'a:1': ['100', '101', '102'],
+      });
+    });
+  });
   test('result reader', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
