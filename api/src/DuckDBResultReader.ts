@@ -3,8 +3,9 @@ import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
-import { DuckDBVector } from './DuckDBVector';
 import { ResultReturnType, StatementType } from './enums';
+import { getColumnsFromChunks } from './getColumnsFromChunks';
+import { getRowsFromChunks } from './getRowsFromChunks';
 import { DuckDBValue } from './values';
 
 interface ChunkSizeRun {
@@ -153,44 +154,11 @@ export class DuckDBResultReader {
   }
 
   public getColumns(): DuckDBValue[][] {
-    if (this.chunks.length === 0) {
-      return [];
-    }
-    const firstChunk = this.chunks[0];
-    const columns: DuckDBValue[][] = [];
-    const columnCount = this.columnCount;
-    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-      columns.push(firstChunk.getColumnValues(columnIndex));
-    } 
-    for (let chunkIndex = 1; chunkIndex < this.chunks.length; chunkIndex++) {
-      for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-        const vector = this.chunks[chunkIndex].getColumnVector(columnIndex);
-        for (let itemIndex = 0; itemIndex < vector.itemCount; itemIndex++) {
-          columns[columnIndex].push(vector.getItem(itemIndex));
-        }
-      }
-    }
-    return columns;
+    return getColumnsFromChunks(this.chunks);
   }
 
   public getRows(): DuckDBValue[][] {
-    const rows: DuckDBValue[][] = [];
-    for (const chunk of this.chunks) {
-      const chunkVectors: DuckDBVector[] = [];
-      const columnCount = chunk.columnCount;
-      for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-        chunkVectors.push(chunk.getColumnVector(columnIndex));
-      }
-      const rowCount = chunk.rowCount;
-      for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-        const row: DuckDBValue[] = [];
-        for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-          row.push(chunkVectors[columnIndex].getItem(rowIndex));
-        }
-        rows.push(row);
-      }
-    }
-    return rows;
+    return getRowsFromChunks(this.chunks);
   }
 
 }
