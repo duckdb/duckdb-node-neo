@@ -485,19 +485,19 @@ describe('api', () => {
       prepared.bind([42, 'duck', listValue([10, 11, 12])]);
       const result = await prepared.run();
       assertColumns(result, [
-        { name: 'a', type: DOUBLE },
+        { name: 'a', type: INTEGER },
         { name: 'b', type: VARCHAR },
-        { name: 'c', type: LIST(DOUBLE) },
+        { name: 'c', type: LIST(INTEGER) },
       ]);
       const chunk = await result.fetchChunk();
       assert.isDefined(chunk);
       if (chunk) {
         assert.strictEqual(chunk.columnCount, 3);
         assert.strictEqual(chunk.rowCount, 1);
-        assertValues<number, DuckDBDoubleVector>(
+        assertValues<number, DuckDBIntegerVector>(
           chunk,
           0,
-          DuckDBDoubleVector,
+          DuckDBIntegerVector,
           [42]
         );
         assertValues<string, DuckDBVarCharVector>(
@@ -518,41 +518,67 @@ describe('api', () => {
   test('should support prepare statement bind with object', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare(
-        'select $a as a, $b as b, $c as c'
+        'select $a as a, $b as b, $c as c, $d as d, $e as e, $f as f'
       );
       prepared.bind({
         a: 42,
-        b: 'duck',
-        c: listValue([10, 11, 12]),
+        b: 42.3,
+        c: 'duck',
+        d: listValue([10, 11, 12]),
+        e: arrayValue([10.1, 11.2, 12.3]),
+        f: arrayValue([10, 11, 12]),
+      }, {
+        f: ARRAY(FLOAT, 2),
       });
       const result = await prepared.run();
       assertColumns(result, [
-        { name: 'a', type: DOUBLE },
-        { name: 'b', type: VARCHAR },
-        { name: 'c', type: LIST(DOUBLE) },
+        { name: 'a', type: INTEGER },
+        { name: 'b', type: DOUBLE },
+        { name: 'c', type: VARCHAR },
+        { name: 'd', type: LIST(INTEGER) },
+        { name: 'e', type: ARRAY(DOUBLE, 3) },
+        { name: 'f', type: ARRAY(FLOAT, 3) },
       ]);
       const chunk = await result.fetchChunk();
       assert.isDefined(chunk);
       if (chunk) {
-        assert.strictEqual(chunk.columnCount, 3);
+        assert.strictEqual(chunk.columnCount, 6);
         assert.strictEqual(chunk.rowCount, 1);
-        assertValues<number, DuckDBDoubleVector>(
+        assertValues<number, DuckDBIntegerVector>(
           chunk,
           0,
-          DuckDBDoubleVector,
+          DuckDBIntegerVector,
           [42]
+        );
+        assertValues<number, DuckDBDoubleVector>(
+          chunk,
+          1,
+          DuckDBDoubleVector,
+          [42.3]
         );
         assertValues<string, DuckDBVarCharVector>(
           chunk,
-          1,
+          2,
           DuckDBVarCharVector,
           ['duck']
         );
         assertValues(
           chunk,
-          2,
+          3,
           DuckDBListVector,
           [listValue([10, 11, 12])]
+        );
+        assertValues(
+          chunk,
+          4,
+          DuckDBArrayVector,
+          [arrayValue([10.1, 11.2, 12.3])]
+        );
+        assertValues(
+          chunk,
+          5,
+          DuckDBArrayVector,
+          [arrayValue([10, 11, 12])]
         );
       }
     });

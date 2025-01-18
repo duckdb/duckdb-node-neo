@@ -164,17 +164,28 @@ export class DuckDBPreparedStatement {
       createValue(type, value)
     );
   }
-  public bind(values: DuckDBValue[] | Record<string, DuckDBValue>, types?: DuckDBType[] | Record<string, DuckDBType>) {
+  public bind(
+    values: DuckDBValue[] | Record<string, DuckDBValue>,
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+  ) {
     if (Array.isArray(values)) {
       const typesIsArray = Array.isArray(types);
       for (let i = 0; i < values.length; i++) {
-        this.bindValue(i + 1, values[i], typesIsArray ? types[i] : typeForValue(values[i]));
+        this.bindValue(
+          i + 1,
+          values[i],
+          typesIsArray ? types[i] : typeForValue(values[i])
+        );
       }
     } else {
       const typesIsRecord = types && !Array.isArray(types);
       for (const key in values) {
         const index = this.parameterIndex(key);
-        this.bindValue(index, values[key], typesIsRecord ? types[key] : typeForValue(values[key]));
+        let type = typesIsRecord ? types[key] : undefined;
+        if (type === undefined) {
+          type = typeForValue(values[key]);
+        }
+        this.bindValue(index, values[key], type);
       }
     }
   }
