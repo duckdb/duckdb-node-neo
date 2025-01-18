@@ -9,6 +9,7 @@ import {
   DOUBLE,
   DuckDBType,
   HUGEINT,
+  INTEGER,
   INTERVAL,
   LIST,
   MAP,
@@ -55,7 +56,11 @@ export function typeForValue(value: DuckDBValue): DuckDBType {
       case 'boolean':
         return BOOLEAN;
       case 'number':
-        return DOUBLE;
+        if (Math.round(value) === value) {
+          return INTEGER;
+        } else {
+          return DOUBLE;
+        }
       case 'bigint':
         return HUGEINT;
       case 'string':
