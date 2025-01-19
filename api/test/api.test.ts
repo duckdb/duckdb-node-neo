@@ -113,7 +113,11 @@ import {
   ColumnNameAndType,
   testAllTypesColumnTypes,
   testAllTypesColumns,
+  testAllTypesColumnsJson,
   testAllTypesColumnsNamesAndTypes,
+  testAllTypesColumnsObjectJson,
+  testAllTypesRowObjectsJson,
+  testAllTypesRowsJson,
 } from './util/testAllTypes';
 
 async function sleep(ms: number): Promise<void> {
@@ -407,7 +411,11 @@ describe('api', () => {
       prepared.bindBoolean(3, true);
       prepared.bindTimeTZ(4, TIMETZ.max);
       prepared.bindList(5, listValue([100, 200, 300]), LIST(INTEGER));
-      prepared.bindStruct(6, structValue({ 'a': 42, 'b': 'duck' }), STRUCT({ 'a': INTEGER, 'b': VARCHAR }));
+      prepared.bindStruct(
+        6,
+        structValue({ 'a': 42, 'b': 'duck' }),
+        STRUCT({ 'a': INTEGER, 'b': VARCHAR })
+      );
       prepared.bindArray(7, arrayValue([100, 200, 300]), ARRAY(INTEGER, 3));
       prepared.bindNull(8);
       const result = await prepared.run();
@@ -444,30 +452,14 @@ describe('api', () => {
           DuckDBBooleanVector,
           [true]
         );
-        assertValues(
-          chunk,
-          3,
-          DuckDBTimeTZVector,
-          [TIMETZ.max]
-        );
-        assertValues(
-          chunk,
-          4,
-          DuckDBListVector,
-          [listValue([100, 200, 300])]
-        );
-        assertValues(
-          chunk,
-          5,
-          DuckDBStructVector,
-          [structValue({ 'a': 42, 'b': 'duck' })]
-        );
-        assertValues(
-          chunk,
-          6,
-          DuckDBArrayVector,
-          [arrayValue([100, 200, 300])]
-        );
+        assertValues(chunk, 3, DuckDBTimeTZVector, [TIMETZ.max]);
+        assertValues(chunk, 4, DuckDBListVector, [listValue([100, 200, 300])]);
+        assertValues(chunk, 5, DuckDBStructVector, [
+          structValue({ 'a': 42, 'b': 'duck' }),
+        ]);
+        assertValues(chunk, 6, DuckDBArrayVector, [
+          arrayValue([100, 200, 300]),
+        ]);
         assertValues<number, DuckDBIntegerVector>(
           chunk,
           7,
@@ -506,12 +498,7 @@ describe('api', () => {
           DuckDBVarCharVector,
           ['duck']
         );
-        assertValues(
-          chunk,
-          2,
-          DuckDBListVector,
-          [listValue([10, 11, 12])]
-        );
+        assertValues(chunk, 2, DuckDBListVector, [listValue([10, 11, 12])]);
       }
     });
   });
@@ -520,16 +507,19 @@ describe('api', () => {
       const prepared = await connection.prepare(
         'select $a as a, $b as b, $c as c, $d as d, $e as e, $f as f'
       );
-      prepared.bind({
-        a: 42,
-        b: 42.3,
-        c: 'duck',
-        d: listValue([10, 11, 12]),
-        e: arrayValue([10.1, 11.2, 12.3]),
-        f: arrayValue([10, 11, 12]),
-      }, {
-        f: ARRAY(FLOAT, 2),
-      });
+      prepared.bind(
+        {
+          a: 42,
+          b: 42.3,
+          c: 'duck',
+          d: listValue([10, 11, 12]),
+          e: arrayValue([10.1, 11.2, 12.3]),
+          f: arrayValue([10, 11, 12]),
+        },
+        {
+          f: ARRAY(FLOAT, 2),
+        }
+      );
       const result = await prepared.run();
       assertColumns(result, [
         { name: 'a', type: INTEGER },
@@ -550,36 +540,20 @@ describe('api', () => {
           DuckDBIntegerVector,
           [42]
         );
-        assertValues<number, DuckDBDoubleVector>(
-          chunk,
-          1,
-          DuckDBDoubleVector,
-          [42.3]
-        );
+        assertValues<number, DuckDBDoubleVector>(chunk, 1, DuckDBDoubleVector, [
+          42.3,
+        ]);
         assertValues<string, DuckDBVarCharVector>(
           chunk,
           2,
           DuckDBVarCharVector,
           ['duck']
         );
-        assertValues(
-          chunk,
-          3,
-          DuckDBListVector,
-          [listValue([10, 11, 12])]
-        );
-        assertValues(
-          chunk,
-          4,
-          DuckDBArrayVector,
-          [arrayValue([10.1, 11.2, 12.3])]
-        );
-        assertValues(
-          chunk,
-          5,
-          DuckDBArrayVector,
-          [arrayValue([10, 11, 12])]
-        );
+        assertValues(chunk, 3, DuckDBListVector, [listValue([10, 11, 12])]);
+        assertValues(chunk, 4, DuckDBArrayVector, [
+          arrayValue([10.1, 11.2, 12.3]),
+        ]);
+        assertValues(chunk, 5, DuckDBArrayVector, [arrayValue([10, 11, 12])]);
       }
     });
   });
@@ -1062,7 +1036,7 @@ describe('api', () => {
       assert.deepEqual(reader.columnNames(), ['a', 'b', 'a']);
       assert.deepEqual(reader.deduplicatedColumnNames(), ['a', 'b', 'a:1']);
       assert.deepEqual(reader.columnTypes(), [INTEGER, INTEGER, VARCHAR]);
-      assert.deepEqual(reader.getRowObjecs(), [
+      assert.deepEqual(reader.getRowObjects(), [
         { 'a': 0, 'b': 10, 'a:1': '100' },
         { 'a': 1, 'b': 11, 'a:1': '101' },
         { 'a': 2, 'b': 12, 'a:1': '102' },
@@ -1072,6 +1046,34 @@ describe('api', () => {
         'b': [10, 11, 12],
         'a:1': ['100', '101', '102'],
       });
+    });
+  });
+  test('columns json', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(`from test_all_types()`);
+      const columnsJson = reader.getColumnsJson();
+      assert.deepEqual(columnsJson, testAllTypesColumnsJson);
+    });
+  });
+  test('columns object json', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(`from test_all_types()`);
+      const columnsJson = reader.getColumnsObjectJson();
+      assert.deepEqual(columnsJson, testAllTypesColumnsObjectJson);
+    });
+  });
+  test('rows json', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(`from test_all_types()`);
+      const rowsJson = reader.getRowsJson();
+      assert.deepEqual(rowsJson, testAllTypesRowsJson);
+    });
+  });
+  test('row objects json', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(`from test_all_types()`);
+      const rowObjectsJson = reader.getRowObjectsJson();
+      assert.deepEqual(rowObjectsJson, testAllTypesRowObjectsJson);
     });
   });
   test('result reader', async () => {
@@ -1340,11 +1342,7 @@ describe('api', () => {
   test('create and append data chunk , modify nested list vector', async () => {
     await withConnection(async (connection) => {
       const originalValues = [
-        listValue([
-          listValue([110, 111]),
-          listValue([]),
-          listValue([130]),
-        ]),
+        listValue([listValue([110, 111]), listValue([]), listValue([130])]),
         listValue([]),
         listValue([
           listValue([310, 311, 312]),
@@ -1353,11 +1351,16 @@ describe('api', () => {
         ]),
       ];
 
-      const chunk = DuckDBDataChunk.create([LIST(LIST(INTEGER))], originalValues.length);
+      const chunk = DuckDBDataChunk.create(
+        [LIST(LIST(INTEGER))],
+        originalValues.length
+      );
       chunk.setColumnValues(0, originalValues);
 
       const outerListVector = chunk.getColumnVector(0) as DuckDBListVector;
-      const innerListVector = outerListVector.getItemVector(2) as DuckDBListVector;
+      const innerListVector = outerListVector.getItemVector(
+        2
+      ) as DuckDBListVector;
       innerListVector.setItem(1, listValue([350, 351, 352, 353, 354]));
       innerListVector.flush();
 
@@ -1446,9 +1449,10 @@ describe('api', () => {
         null,
       ];
 
-      const chunk = DuckDBDataChunk.create([
-        STRUCT({ 'num': INTEGER, 'str': VARCHAR }),
-      ], values.length);
+      const chunk = DuckDBDataChunk.create(
+        [STRUCT({ 'num': INTEGER, 'str': VARCHAR })],
+        values.length
+      );
       chunk.setColumnValues(0, values);
 
       await connection.run(
