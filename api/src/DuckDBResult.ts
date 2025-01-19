@@ -3,6 +3,11 @@ import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
+import { DuckDBValueToJsonConverter, Json } from './DuckDBValueToJsonConverter';
+import { convertColumnsFromChunks } from './convertColumnsFromChunks';
+import { convertColumnsObjectFromChunks } from './convertColumnsObjectFromChunks';
+import { convertRowObjectsFromChunks } from './convertRowObjectsFromChunks';
+import { convertRowsFromChunks } from './convertRowsFromChunks';
 import { ResultReturnType, StatementType } from './enums';
 import { getColumnsFromChunks } from './getColumnsFromChunks';
 import { getColumnsObjectFromChunks } from './getColumnsObjectFromChunks';
@@ -99,16 +104,40 @@ export class DuckDBResult {
     const chunks = await this.fetchAllChunks();
     return getColumnsFromChunks(chunks);
   }
+  public async getColumnsJson(): Promise<Json[][]> {
+    const chunks = await this.fetchAllChunks();
+    return convertColumnsFromChunks(chunks, DuckDBValueToJsonConverter.default);
+  }
   public async getColumnsObject(): Promise<Record<string, DuckDBValue[]>> {
     const chunks = await this.fetchAllChunks();
     return getColumnsObjectFromChunks(chunks, this.deduplicatedColumnNames());
+  }
+  public async getColumnsObjectJson(): Promise<Record<string, Json[]>> {
+    const chunks = await this.fetchAllChunks();
+    return convertColumnsObjectFromChunks(
+      chunks,
+      this.deduplicatedColumnNames(),
+      DuckDBValueToJsonConverter.default
+    );
   }
   public async getRows(): Promise<DuckDBValue[][]> {
     const chunks = await this.fetchAllChunks();
     return getRowsFromChunks(chunks);
   }
+  public async getRowsJson(): Promise<Json[][]> {
+    const chunks = await this.fetchAllChunks();
+    return convertRowsFromChunks(chunks, DuckDBValueToJsonConverter.default);
+  }
   public async getRowObjects(): Promise<Record<string, DuckDBValue>[]> {
     const chunks = await this.fetchAllChunks();
     return getRowObjectsFromChunks(chunks, this.deduplicatedColumnNames());
+  }
+  public async getRowObjectsJson(): Promise<Record<string, Json>[]> {
+    const chunks = await this.fetchAllChunks();
+    return convertRowObjectsFromChunks(
+      chunks,
+      this.deduplicatedColumnNames(),
+      DuckDBValueToJsonConverter.default
+    );
   }
 }

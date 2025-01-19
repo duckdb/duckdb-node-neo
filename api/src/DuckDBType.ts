@@ -576,6 +576,7 @@ export function LIST(valueType: DuckDBType, alias?: string): DuckDBListType {
 export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
   public readonly entryNames: readonly string[];
   public readonly entryTypes: readonly DuckDBType[];
+  public readonly entryIndexes: Readonly<Record<string, number>>;
   public constructor(
     entryNames: readonly string[],
     entryTypes: readonly DuckDBType[],
@@ -588,9 +589,20 @@ export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
     }
     this.entryNames = entryNames;
     this.entryTypes = entryTypes;
+    const entryIndexes: Record<string, number> = {};
+    for (let i = 0; i < entryNames.length; i++) {
+      entryIndexes[entryNames[i]] = i;
+    }
+    this.entryIndexes = entryIndexes;
   }
   public get entryCount() {
     return this.entryNames.length;
+  }
+  public indexForEntry(entryName: string): number {
+    return this.entryIndexes[entryName];
+  }
+  public typeForEntry(entryName: string): DuckDBType {
+    return this.entryTypes[this.entryIndexes[entryName]];
   }
   public toString(): string {
     const parts: string[] = [];
@@ -726,6 +738,9 @@ export class DuckDBUnionType extends BaseDuckDBType<DuckDBTypeId.UNION> {
   }
   public memberIndexForTag(tag: string): number {
     return this.tagMemberIndexes[tag];
+  }
+  public memberTypeForTag(tag: string): DuckDBType {
+    return this.memberTypes[this.tagMemberIndexes[tag]];
   }
   public get memberCount() {
     return this.memberTags.length;

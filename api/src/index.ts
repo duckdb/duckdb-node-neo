@@ -16,6 +16,8 @@ export * from './DuckDBPreparedStatement';
 export * from './DuckDBResult';
 export * from './DuckDBType';
 export * from './DuckDBTypeId';
+export * from './DuckDBValueConverter';
+export * from './DuckDBValueToJsonConverter';
 export * from './DuckDBVector';
 export * from './configurationOptionDescriptions';
 export * from './enums';

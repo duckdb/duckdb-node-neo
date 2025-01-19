@@ -1,8 +1,13 @@
+import { convertColumnsFromChunks } from './convertColumnsFromChunks';
+import { convertColumnsObjectFromChunks } from './convertColumnsObjectFromChunks';
+import { convertRowObjectsFromChunks } from './convertRowObjectsFromChunks';
+import { convertRowsFromChunks } from './convertRowsFromChunks';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
+import { DuckDBValueToJsonConverter, Json } from './DuckDBValueToJsonConverter';
 import { ResultReturnType, StatementType } from './enums';
 import { getColumnsFromChunks } from './getColumnsFromChunks';
 import { getColumnsObjectFromChunks } from './getColumnsObjectFromChunks';
@@ -163,15 +168,48 @@ export class DuckDBResultReader {
     return getColumnsFromChunks(this.chunks);
   }
 
+  public getColumnsJson(): Json[][] {
+    return convertColumnsFromChunks(
+      this.chunks,
+      DuckDBValueToJsonConverter.default
+    );
+  }
+
   public getColumnsObject(): Record<string, DuckDBValue[]> {
-    return getColumnsObjectFromChunks(this.chunks, this.deduplicatedColumnNames());
+    return getColumnsObjectFromChunks(
+      this.chunks,
+      this.deduplicatedColumnNames()
+    );
+  }
+
+  public getColumnsObjectJson(): Record<string, Json[]> {
+    return convertColumnsObjectFromChunks(
+      this.chunks,
+      this.deduplicatedColumnNames(),
+      DuckDBValueToJsonConverter.default
+    );
   }
 
   public getRows(): DuckDBValue[][] {
     return getRowsFromChunks(this.chunks);
   }
 
-  public getRowObjecs(): Record<string, DuckDBValue>[] {
+  public getRowsJson(): Json[][] {
+    return convertRowsFromChunks(
+      this.chunks,
+      DuckDBValueToJsonConverter.default
+    );
+  }
+
+  public getRowObjects(): Record<string, DuckDBValue>[] {
     return getRowObjectsFromChunks(this.chunks, this.deduplicatedColumnNames());
+  }
+
+  public getRowObjectsJson(): Record<string, Json>[] {
+    return convertRowObjectsFromChunks(
+      this.chunks,
+      this.deduplicatedColumnNames(),
+      DuckDBValueToJsonConverter.default
+    );
   }
 }
