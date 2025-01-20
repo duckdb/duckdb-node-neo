@@ -140,6 +140,16 @@ const result = await connection.run('select $a, $b, $c', {
 });
 ```
 
+Unspecified types will be inferred:
+
+```ts
+const result = await connection.run('select $a, $b, $c', {
+  'a': 'duck',
+  'b': 42,
+  'c': listValue([10, 11, 12]),
+});
+```
+
 ### Stream Results
 
 Streaming results evaluate lazily when rows are read.
@@ -148,7 +158,7 @@ Streaming results evaluate lazily when rows are read.
 const result = await connection.stream('from range(10_000)');
 ```
 
-### Inspect Result
+### Inspect Result Metadata
 
 Get column names and types:
 ```ts
@@ -156,7 +166,7 @@ const columnNames = result.columnNames();
 const columnTypes = result.columnTypes();
 ```
 
-### Result Reader
+### Read Result Data
 
 Run and read all data:
 ```ts
@@ -167,7 +177,10 @@ const rows = reader.getRows();
 
 Stream and read up to (at least) some number of rows:
 ```ts
-const reader = await connection.streamAndReadUntil('from range(5000)', 1000);
+const reader = await connection.streamAndReadUntil(
+  'from range(5000)',
+  1000
+);
 const rows = reader.getRows();
 // rows.length === 2048. (Rows are read in chunks of 2048.)
 ```
@@ -186,7 +199,183 @@ reader.readUntil(6000);
 // reader.done === true
 ```
 
-### Read chunks
+### Get Result Data
+
+Result data can be retrieved in a variety of forms:
+
+```ts
+const reader = await connection.runAndReadAll(
+  'from range(3) select range::int as i, 10 + i as n'
+);
+
+const rows = reader.getRows();
+// [ [0, 10], [1, 11], [2, 12] ]
+
+const rowObjects = reader.getRowObjects();
+// [ { i: 0, n: 10 }, { i: 1, n: 11 }, { i: 2, n: 12 } ]
+
+const columns = reader.getColumns();
+// [ [0, 1, 2], [10, 11, 12] ]
+
+const columnsObject = reader.getColumnsObject();
+// { i: [0, 1, 2], n: [10, 11, 12] }
+```
+
+### Convert Result Data to JSON
+
+By default, data values that cannot be represented as JS primitives
+are returned as rich JS objects; see `Inspect Data Values` below.
+
+To retrieve data in a form that can be losslessly serialized to JSON,
+use the `Json` forms of the above result data methods:
+
+```ts
+const reader = await connection.runAndReadAll(
+  'from test_all_types() select bigint, date, interval limit 2'
+);
+
+const rows = reader.getRowsJson();
+// [
+//   [
+//     "-9223372036854775808",
+//     "5877642-06-25 (BC)",
+//     { "months": 0, "days": 0, "micros": "0" }
+//   ],
+//   [
+//     "9223372036854775807",
+//     "5881580-07-10",
+//     { "months": 999, "days": 999, "micros": "999999999" }
+//   ]
+// ]
+
+const rowObjects = reader.getRowObjectsJson();
+// [
+//   {
+//     "bigint": "-9223372036854775808",
+//     "date": "5877642-06-25 (BC)",
+//     "interval": { "months": 0, "days": 0, "micros": "0" }
+//   },
+//   {
+//     "bigint": "9223372036854775807",
+//     "date": "5881580-07-10",
+//     "interval": { "months": 999, "days": 999, "micros": "999999999" }
+//   }
+// ]
+
+const columns = reader.getColumnsJson();
+// [
+//   [ "-9223372036854775808", "9223372036854775807" ],
+//   [ "5877642-06-25 (BC)", "5881580-07-10" ],
+//   [
+//     { "months": 0, "days": 0, "micros": "0" },
+//     { "months": 999, "days": 999, "micros": "999999999" }
+//   ]
+// ]
+
+const columnsObject = reader.getColumnsObjectJson();
+// {
+//   "bigint": [ "-9223372036854775808", "9223372036854775807" ],
+//   "date": [ "5877642-06-25 (BC)", "5881580-07-10" ],
+//   "interval": [
+//     { "months": 0, "days": 0, "micros": "0" },
+//     { "months": 999, "days": 999, "micros": "999999999" }
+//   ]
+// }
+```
+
+These methods handle nested types as well:
+
+```ts
+const reader = await connection.runAndReadAll(
+  'from test_all_types() select int_array, struct, map, "union" limit 2'
+);
+
+const rows = reader.getRowsJson();
+// [
+//   [
+//     [],
+//     { "a": null, "b": null },
+//     [],
+//     { "tag": "name", "value": "Frank" }
+//   ],
+//   [
+//     [ 42, 999, null, null, -42],
+//     { "a": 42, "b": "🦆🦆🦆🦆🦆🦆" },
+//     [
+//       { "key": "key1", "value": "🦆🦆🦆🦆🦆🦆" },
+//       { "key": "key2", "value": "goose" }
+//     ],
+//     { "tag": "age", "value": 5 }
+//   ]
+// ]
+
+const rowObjects = reader.getRowObjectsJson();
+// [
+//   {
+//     "int_array": [],
+//     "struct": { "a": null, "b": null },
+//     "map": [],
+//     "union": { "tag": "name", "value": "Frank" }
+//   },
+//   {
+//     "int_array": [ 42, 999, null, null, -42 ],
+//     "struct": { "a": 42, "b": "🦆🦆🦆🦆🦆🦆" },
+//     "map": [
+//       { "key": "key1", "value": "🦆🦆🦆🦆🦆🦆" },
+//       { "key": "key2", "value": "goose" }
+//     ],
+//     "union": { "tag": "age", "value": 5 }
+//   }
+// ]
+
+const columns = reader.getColumnsJson();
+// [
+//   [
+//     [],
+//     [42, 999, null, null, -42]
+//   ],
+//   [
+//     { "a": null, "b": null },
+//     { "a": 42, "b": "🦆🦆🦆🦆🦆🦆" }
+//   ],
+//   [
+//     [],
+//     [
+//       { "key": "key1", "value": "🦆🦆🦆🦆🦆🦆" },
+//       { "key": "key2", "value": "goose"}
+//     ]
+//   ],
+//   [
+//     { "tag": "name", "value": "Frank" },
+//     { "tag": "age", "value": 5 }
+//   ]
+// ]
+
+const columnsObject = reader.getColumnsObjectJson();
+// {
+//   "int_array": [
+//     [],
+//     [42, 999, null, null, -42]
+//   ],
+//   "struct": [
+//     { "a": null, "b": null },
+//     { "a": 42, "b": "🦆🦆🦆🦆🦆🦆" }
+//   ],
+//   "map": [
+//     [],
+//     [
+//       { "key": "key1", "value": "🦆🦆🦆🦆🦆🦆" },
+//       { "key": "key2", "value": "goose" }
+//     ]
+//   ],
+//   "union": [
+//     { "tag": "name", "value": "Frank" },
+//     { "tag": "age", "value": 5 }
+//   ]
+// }
+```
+
+### Fetch Chunks
 
 Fetch all chunks:
 ```ts
@@ -216,19 +405,18 @@ for (let i = 0; i < chunkCount; i++) {
 }
 ```
 
-Read chunk data (column-major):
+Get chunk data:
 ```ts
-// array of columns, each as an array of values
-const columns = chunk.getColumns(); 
+const rows = chunk.getRows();
+
+const rowObjects = chunk.getRowObjects();
+
+const columns = chunk.getColumns();
+
+const columnsObject = chunk.getColumnsObject();
 ```
 
-Read chunk data (row-major):
-```ts
-// array of rows, each as an array of values
-const rows = chunk.getRows(); 
-```
-
-Read chunk data (one value at a time)
+Get chunk data (one value at a time)
 ```ts
 const columns = [];
 const columnCount = chunk.columnCount;
