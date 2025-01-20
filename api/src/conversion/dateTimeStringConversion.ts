@@ -3,7 +3,7 @@ const MILLISECONDS_PER_DAY_NUM = 86400000; // 1000 * 60 * 60 * 24
 
 const MICROSECONDS_PER_SECOND = 1000000n;
 const MICROSECONDS_PER_MILLISECOND = 1000n;
-const NANOSECONDS_PER_SECOND = 1000000000n
+const NANOSECONDS_PER_SECOND = 1000000000n;
 const SECONDS_PER_MINUTE = 60n;
 const MINUTES_PER_HOUR = 60n;
 const MICROSECONDS_PER_DAY = 86400000000n; // 24 * 60 * 60 * 1000000
@@ -15,7 +15,7 @@ const POSITIVE_INFINITY_TIMESTAMP = 9223372036854775807n; // 2^63-1
 export function getDuckDBDateStringFromYearMonthDay(
   year: number,
   month: number,
-  dayOfMonth: number,
+  dayOfMonth: number
 ): string {
   const yearStr = String(Math.abs(year)).padStart(4, '0');
   const monthStr = String(month).padStart(2, '0');
@@ -48,11 +48,70 @@ export function getDuckDBDateStringFromDays(days: number): string {
   return getDuckDBDateStringFromYearMonthDay(year, month, dayOfMonth);
 }
 
+export function getTimezoneOffsetString(
+  timezoneOffsetInMinutes?: number
+): string | undefined {
+  if (timezoneOffsetInMinutes === undefined) {
+    return undefined;
+  }
+  const negative = timezoneOffsetInMinutes < 0;
+  const positiveMinutes = Math.abs(timezoneOffsetInMinutes);
+  const minutesPart = positiveMinutes % 60;
+  const hoursPart = Math.floor(positiveMinutes / 60);
+  const minutesStr =
+    minutesPart !== 0 ? String(minutesPart).padStart(2, '0') : '';
+  const hoursStr = String(hoursPart).padStart(2, '0');
+  return `${negative ? '-' : '+'}${hoursStr}${
+    minutesStr ? `:${minutesStr}` : ''
+  }`;
+}
+
+export function getAbsoluteOffsetStringFromParts(
+  hoursPart: number,
+  minutesPart: number,
+  secondsPart: number
+): string {
+  const hoursStr = String(hoursPart).padStart(2, '0');
+  const minutesStr =
+    minutesPart !== 0 || secondsPart !== 0
+      ? String(minutesPart).padStart(2, '0')
+      : '';
+  const secondsStr =
+    secondsPart !== 0 ? String(secondsPart).padStart(2, '0') : '';
+  let result = hoursStr;
+  if (minutesStr) {
+    result += `:${minutesStr}`;
+    if (secondsStr) {
+      result += `:${secondsStr}`;
+    }
+  }
+  return result;
+}
+
+export function getOffsetStringFromAbsoluteSeconds(
+  absoluteOffsetInSeconds: number
+): string {
+  const secondsPart = absoluteOffsetInSeconds % 60;
+  const minutes = Math.floor(absoluteOffsetInSeconds / 60);
+  const minutesPart = minutes % 60;
+  const hoursPart = Math.floor(minutes / 60);
+  return getAbsoluteOffsetStringFromParts(hoursPart, minutesPart, secondsPart);
+}
+
+export function getOffsetStringFromSeconds(offsetInSeconds: number): string {
+  const negative = offsetInSeconds < 0;
+  const absoluteOffsetInSeconds = negative ? -offsetInSeconds : offsetInSeconds;
+  const absoluteString = getOffsetStringFromAbsoluteSeconds(
+    absoluteOffsetInSeconds
+  );
+  return `${negative ? '-' : '+'}${absoluteString}`;
+}
+
 export function getDuckDBTimeStringFromParts(
   hoursPart: bigint,
   minutesPart: bigint,
   secondsPart: bigint,
-  microsecondsPart: bigint,
+  microsecondsPart: bigint
 ): string {
   const hoursStr = String(hoursPart).padStart(2, '0');
   const minutesStr = String(minutesPart).padStart(2, '0');
@@ -69,7 +128,7 @@ export function getDuckDBTimeStringFromPartsNS(
   hoursPart: bigint,
   minutesPart: bigint,
   secondsPart: bigint,
-  nanosecondsPart: bigint,
+  nanosecondsPart: bigint
 ): string {
   const hoursStr = String(hoursPart).padStart(2, '0');
   const minutesStr = String(minutesPart).padStart(2, '0');
@@ -83,7 +142,7 @@ export function getDuckDBTimeStringFromPartsNS(
 }
 
 export function getDuckDBTimeStringFromPositiveMicroseconds(
-  positiveMicroseconds: bigint,
+  positiveMicroseconds: bigint
 ): string {
   const microsecondsPart = positiveMicroseconds % MICROSECONDS_PER_SECOND;
   const seconds = positiveMicroseconds / MICROSECONDS_PER_SECOND;
@@ -95,12 +154,12 @@ export function getDuckDBTimeStringFromPositiveMicroseconds(
     hoursPart,
     minutesPart,
     secondsPart,
-    microsecondsPart,
+    microsecondsPart
   );
 }
 
 export function getDuckDBTimeStringFromPositiveNanoseconds(
-  positiveNanoseconds: bigint,
+  positiveNanoseconds: bigint
 ): string {
   const nanosecondsPart = positiveNanoseconds % NANOSECONDS_PER_SECOND;
   const seconds = positiveNanoseconds / NANOSECONDS_PER_SECOND;
@@ -112,12 +171,12 @@ export function getDuckDBTimeStringFromPositiveNanoseconds(
     hoursPart,
     minutesPart,
     secondsPart,
-    nanosecondsPart,
+    nanosecondsPart
   );
 }
 
 export function getDuckDBTimeStringFromMicrosecondsInDay(
-  microsecondsInDay: bigint,
+  microsecondsInDay: bigint
 ): string {
   const positiveMicroseconds =
     microsecondsInDay < 0
@@ -127,7 +186,7 @@ export function getDuckDBTimeStringFromMicrosecondsInDay(
 }
 
 export function getDuckDBTimeStringFromNanosecondsInDay(
-  nanosecondsInDay: bigint,
+  nanosecondsInDay: bigint
 ): string {
   const positiveNanoseconds =
     nanosecondsInDay < 0
@@ -137,7 +196,7 @@ export function getDuckDBTimeStringFromNanosecondsInDay(
 }
 
 export function getDuckDBTimeStringFromMicroseconds(
-  microseconds: bigint,
+  microseconds: bigint
 ): string {
   const negative = microseconds < 0;
   const positiveMicroseconds = negative ? -microseconds : microseconds;
@@ -149,32 +208,29 @@ export function getDuckDBTimeStringFromMicroseconds(
 export function getDuckDBTimestampStringFromDaysAndMicroseconds(
   days: bigint,
   microsecondsInDay: bigint,
-  timezone?: string | null,
+  timezonePart?: string
 ): string {
   // This conversion of BigInt to Number is safe, because the largest absolute value that `days` can has is 106751991,
   // which fits without loss of precision in a JS Number. (106751991 = (2^63-1) / MICROSECONDS_PER_DAY)
   const dateStr = getDuckDBDateStringFromDays(Number(days));
   const timeStr = getDuckDBTimeStringFromMicrosecondsInDay(microsecondsInDay);
-  const timezoneStr = timezone ? ` ${timezone}` : '';
-  return `${dateStr} ${timeStr}${timezoneStr}`;
+  return `${dateStr} ${timeStr}${timezonePart ?? ''}`;
 }
 
 export function getDuckDBTimestampStringFromDaysAndNanoseconds(
   days: bigint,
-  nanosecondsInDay: bigint,
-  timezone?: string | null,
+  nanosecondsInDay: bigint
 ): string {
   // This conversion of BigInt to Number is safe, because the largest absolute value that `days` can has is 106751
   // which fits without loss of precision in a JS Number. (106751 = (2^63-1) / NANOSECONDS_PER_DAY)
   const dateStr = getDuckDBDateStringFromDays(Number(days));
   const timeStr = getDuckDBTimeStringFromNanosecondsInDay(nanosecondsInDay);
-  const timezoneStr = timezone ? ` ${timezone}` : '';
-  return `${dateStr} ${timeStr}${timezoneStr}`;
+  return `${dateStr} ${timeStr}`;
 }
 
 export function getDuckDBTimestampStringFromMicroseconds(
   microseconds: bigint,
-  timezone?: string | null,
+  timezoneOffsetInMinutes?: number
 ): string {
   // Note that -infinity and infinity are only representable in TIMESTAMP (and TIMESTAMPTZ), not the other timestamp
   // variants. This is by-design and matches DuckDB.
@@ -184,8 +240,15 @@ export function getDuckDBTimestampStringFromMicroseconds(
   if (microseconds === POSITIVE_INFINITY_TIMESTAMP) {
     return 'infinity';
   }
-  let days = microseconds / MICROSECONDS_PER_DAY;
-  let microsecondsPart = microseconds % MICROSECONDS_PER_DAY;
+  const offsetMicroseconds =
+    timezoneOffsetInMinutes !== undefined
+      ? microseconds +
+        BigInt(timezoneOffsetInMinutes) *
+          MICROSECONDS_PER_SECOND *
+          SECONDS_PER_MINUTE
+      : microseconds;
+  let days = offsetMicroseconds / MICROSECONDS_PER_DAY;
+  let microsecondsPart = offsetMicroseconds % MICROSECONDS_PER_DAY;
   if (microsecondsPart < 0) {
     days--;
     microsecondsPart += MICROSECONDS_PER_DAY;
@@ -193,33 +256,26 @@ export function getDuckDBTimestampStringFromMicroseconds(
   return getDuckDBTimestampStringFromDaysAndMicroseconds(
     days,
     microsecondsPart,
-    timezone,
+    getTimezoneOffsetString(timezoneOffsetInMinutes)
   );
 }
 
-export function getDuckDBTimestampStringFromSeconds(
-  seconds: bigint,
-  timezone?: string | null,
-): string {
+export function getDuckDBTimestampStringFromSeconds(seconds: bigint): string {
   return getDuckDBTimestampStringFromMicroseconds(
-    seconds * MICROSECONDS_PER_SECOND,
-    timezone,
+    seconds * MICROSECONDS_PER_SECOND
   );
 }
 
 export function getDuckDBTimestampStringFromMilliseconds(
-  milliseconds: bigint,
-  timezone?: string | null,
+  milliseconds: bigint
 ): string {
   return getDuckDBTimestampStringFromMicroseconds(
-    milliseconds * MICROSECONDS_PER_MILLISECOND,
-    timezone,
+    milliseconds * MICROSECONDS_PER_MILLISECOND
   );
 }
 
 export function getDuckDBTimestampStringFromNanoseconds(
-  nanoseconds: bigint,
-  timezone?: string | null,
+  nanoseconds: bigint
 ): string {
   let days = nanoseconds / NANOSECONDS_PER_DAY;
   let nanosecondsPart = nanoseconds % NANOSECONDS_PER_DAY;
@@ -227,11 +283,7 @@ export function getDuckDBTimestampStringFromNanoseconds(
     days--;
     nanosecondsPart += NANOSECONDS_PER_DAY;
   }
-  return getDuckDBTimestampStringFromDaysAndNanoseconds(
-    days,
-    nanosecondsPart,
-    timezone,
-  );
+  return getDuckDBTimestampStringFromDaysAndNanoseconds(days, nanosecondsPart);
 }
 
 // Assumes baseUnit can be pluralized by adding an 's'.
@@ -242,7 +294,7 @@ function numberAndUnit(value: number, baseUnit: string): string {
 export function getDuckDBIntervalString(
   months: number,
   days: number,
-  microseconds: bigint,
+  microseconds: bigint
 ): string {
   const parts: string[] = [];
   if (months !== 0) {

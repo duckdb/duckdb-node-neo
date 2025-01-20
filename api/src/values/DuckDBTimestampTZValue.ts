@@ -3,6 +3,9 @@ import { getDuckDBTimestampStringFromMicroseconds } from '../conversion/dateTime
 import { DuckDBTimestampValue } from './DuckDBTimestampValue';
 
 export class DuckDBTimestampTZValue implements Timestamp {
+  public static timezoneOffsetInMinutes: number =
+    -new Date().getTimezoneOffset();
+
   public readonly micros: bigint;
 
   public constructor(micros: bigint) {
@@ -10,8 +13,10 @@ export class DuckDBTimestampTZValue implements Timestamp {
   }
 
   public toString(): string {
-    // TODO: adjust micros for local timezone offset, and pass in timezone string
-    return getDuckDBTimestampStringFromMicroseconds(this.micros);
+    return getDuckDBTimestampStringFromMicroseconds(
+      this.micros,
+      DuckDBTimestampTZValue.timezoneOffsetInMinutes
+    );
   }
 
   public toParts(): TimestampParts {
@@ -23,10 +28,18 @@ export class DuckDBTimestampTZValue implements Timestamp {
   }
 
   public static readonly Epoch = new DuckDBTimestampTZValue(0n);
-  public static readonly Max = new DuckDBTimestampTZValue(DuckDBTimestampValue.Max.micros);
-  public static readonly Min = new DuckDBTimestampTZValue(DuckDBTimestampValue.Min.micros);
-  public static readonly PosInf = new DuckDBTimestampTZValue(DuckDBTimestampValue.PosInf.micros);
-  public static readonly NegInf = new DuckDBTimestampTZValue(DuckDBTimestampValue.NegInf.micros);
+  public static readonly Max = new DuckDBTimestampTZValue(
+    DuckDBTimestampValue.Max.micros
+  );
+  public static readonly Min = new DuckDBTimestampTZValue(
+    DuckDBTimestampValue.Min.micros
+  );
+  public static readonly PosInf = new DuckDBTimestampTZValue(
+    DuckDBTimestampValue.PosInf.micros
+  );
+  public static readonly NegInf = new DuckDBTimestampTZValue(
+    DuckDBTimestampValue.NegInf.micros
+  );
 }
 
 export function timestampTZValue(micros: bigint): DuckDBTimestampTZValue {

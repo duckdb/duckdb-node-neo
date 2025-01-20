@@ -1,4 +1,4 @@
-import { assert, describe, test } from 'vitest';
+import { assert, beforeAll, describe, test } from 'vitest';
 import {
   ANY,
   ARRAY,
@@ -111,13 +111,13 @@ import {
 } from '../src';
 import {
   ColumnNameAndType,
-  testAllTypesColumnTypes,
-  testAllTypesColumns,
-  testAllTypesColumnsJson,
-  testAllTypesColumnsNamesAndTypes,
-  testAllTypesColumnsObjectJson,
-  testAllTypesRowObjectsJson,
-  testAllTypesRowsJson,
+  createTestAllTypesColumnTypes,
+  createTestAllTypesColumns,
+  createTestAllTypesColumnsJson,
+  createTestAllTypesColumnsNamesAndTypes,
+  createTestAllTypesColumnsObjectJson,
+  createTestAllTypesRowObjectsJson,
+  createTestAllTypesRowsJson,
 } from './util/testAllTypes';
 
 async function sleep(ms: number): Promise<void> {
@@ -228,6 +228,10 @@ function bigints(start: bigint, end: bigint) {
 }
 
 describe('api', () => {
+  beforeAll(() => {
+    // Set this to a constant so tests don't depend on the local timezone.
+    DuckDBTimestampTZValue.timezoneOffsetInMinutes = -330;
+  });
   test('should expose version', () => {
     const ver = version();
     assert.ok(ver.startsWith('v'), `version starts with 'v'`);
@@ -635,13 +639,15 @@ describe('api', () => {
       const result = await connection.run(
         'from test_all_types(use_large_enum=true)'
       );
-      assertColumns(result, testAllTypesColumnsNamesAndTypes);
+      assertColumns(result, createTestAllTypesColumnsNamesAndTypes());
 
       const chunk = await result.fetchChunk();
       assert.isDefined(chunk);
       if (chunk) {
         assert.strictEqual(chunk.columnCount, 54);
         assert.strictEqual(chunk.rowCount, 3);
+
+        const testAllTypesColumns = createTestAllTypesColumns();
 
         assertValues(chunk, 0, DuckDBBooleanVector, testAllTypesColumns[0]);
         assertValues(chunk, 1, DuckDBTinyIntVector, testAllTypesColumns[1]);
@@ -926,11 +932,15 @@ describe('api', () => {
     assert.equal(TIMESTAMP_S.min.toString(), '290309-12-22 (BC) 00:00:00');
 
     // timestamp tz
-    assert.equal(TIMESTAMPTZ.epoch.toString(), '1970-01-01 00:00:00');
-    // assert.equal(TIMESTAMPTZ.max.toString(), '294247-01-09 20:00:54.775806-08'); // in PST
-    assert.equal(TIMESTAMPTZ.max.toString(), '294247-01-10 04:00:54.775806'); // TODO TZ
-    // assert.equal(TIMESTAMPTZ.min.toString(), '290309-12-21 (BC) 16:00:00-08'); // in PST
-    assert.equal(TIMESTAMPTZ.min.toString(), '290309-12-22 (BC) 00:00:00'); // TODO TZ
+    assert.equal(TIMESTAMPTZ.epoch.toString(), '1969-12-31 18:30:00-05:30');
+    assert.equal(
+      TIMESTAMPTZ.max.toString(),
+      '294247-01-09 22:30:54.775806-05:30'
+    );
+    assert.equal(
+      TIMESTAMPTZ.min.toString(),
+      '290309-12-21 (BC) 18:30:00-05:30'
+    );
     assert.equal(TIMESTAMPTZ.posInf.toString(), 'infinity');
     assert.equal(TIMESTAMPTZ.negInf.toString(), '-infinity');
 
@@ -942,11 +952,16 @@ describe('api', () => {
     assert.equal(TIMESTAMP.negInf.toString(), '-infinity');
 
     // time tz
-    assert.equal(timeTZValue(0n, 0).toString(), '00:00:00');
-    // assert.equal(TIMETZ.max.toString(), '24:00:00-15:59:59');
-    assert.equal(TIMETZ.max.toString(), '24:00:00'); // TODO TZ
-    // assert.equal(TIMETZ.min.toString(), '00:00:00+15:59:59');
-    assert.equal(TIMETZ.min.toString(), '00:00:00'); // TODO TZ
+    assert.equal(timeTZValue(0n, 0).toString(), '00:00:00+00');
+    assert.equal(
+      timeTZValue(
+        (((12n * 60n + 34n) * 60n + 56n) * 1000n + 789n) * 1000n,
+        -((7 * 60 + 9) * 60)
+      ).toString(),
+      '12:34:56.789-07:09'
+    );
+    assert.equal(TIMETZ.max.toString(), '24:00:00-15:59:59');
+    assert.equal(TIMETZ.min.toString(), '00:00:00+15:59:59');
 
     // time
     assert.equal(TIME.max.toString(), '24:00:00');
@@ -1052,28 +1067,28 @@ describe('api', () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(`from test_all_types()`);
       const columnsJson = reader.getColumnsJson();
-      assert.deepEqual(columnsJson, testAllTypesColumnsJson);
+      assert.deepEqual(columnsJson, createTestAllTypesColumnsJson());
     });
   });
   test('columns object json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(`from test_all_types()`);
       const columnsJson = reader.getColumnsObjectJson();
-      assert.deepEqual(columnsJson, testAllTypesColumnsObjectJson);
+      assert.deepEqual(columnsJson, createTestAllTypesColumnsObjectJson());
     });
   });
   test('rows json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(`from test_all_types()`);
       const rowsJson = reader.getRowsJson();
-      assert.deepEqual(rowsJson, testAllTypesRowsJson);
+      assert.deepEqual(rowsJson, createTestAllTypesRowsJson());
     });
   });
   test('row objects json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(`from test_all_types()`);
       const rowObjectsJson = reader.getRowObjectsJson();
-      assert.deepEqual(rowObjectsJson, testAllTypesRowObjectsJson);
+      assert.deepEqual(rowObjectsJson, createTestAllTypesRowObjectsJson());
     });
   });
   test('result reader', async () => {
@@ -1339,7 +1354,7 @@ describe('api', () => {
       }
     });
   });
-  test('create and append data chunk , modify nested list vector', async () => {
+  test('create and append data chunk, modify nested list vector', async () => {
     await withConnection(async (connection) => {
       const originalValues = [
         listValue([listValue([110, 111]), listValue([]), listValue([130])]),
@@ -1517,9 +1532,10 @@ describe('api', () => {
   });
   test('create and append data chunk with all types', async () => {
     await withConnection(async (connection) => {
-      const types = [...testAllTypesColumnTypes];
-      const columns = [...testAllTypesColumns];
-      const columnNamesAndTypes = [...testAllTypesColumnsNamesAndTypes];
+      const types = createTestAllTypesColumnTypes() as DuckDBType[];
+      const columns = createTestAllTypesColumns() as (readonly DuckDBValue[])[];
+      const columnNamesAndTypes =
+        createTestAllTypesColumnsNamesAndTypes() as ColumnNameAndType[];
 
       // workaround until VARINT is fixed (in 1.2.0)
       types[11] = BOOLEAN;
