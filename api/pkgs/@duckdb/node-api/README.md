@@ -605,6 +605,38 @@ if (columnType.typeId === DuckDBTypeId.UUID) {
 // other possible values are: null, boolean, number, bigint, or string
 ```
 
+### Displaying Timezones
+
+Converting a TIMESTAMP_TZ value to a string depends on a timezone offset.
+By default, this is set to the offset for the local timezone when the Node
+process is started.
+
+To change it, set the `timezoneOffsetInMinutes`
+property of `DuckDBTimestampTZValue`:
+
+```ts
+DuckDBTimestampTZValue.timezoneOffsetInMinutes = -8 * 60;
+const pst = DuckDBTimestampTZValue.Epoch.toString();
+// 1969-12-31 16:00:00-08
+
+DuckDBTimestampTZValue.timezoneOffsetInMinutes = +1 * 60;
+const cet = DuckDBTimestampTZValue.Epoch.toString();
+// 1970-01-01 01:00:00+01
+```
+
+Note that the timezone offset used for this string
+conversion is distinct from the `TimeZone` setting of DuckDB.
+
+The following sets this offset to match the `TimeZone` setting of DuckDB:
+
+```ts
+const reader = await connection.runAndReadAll(
+  `select (timezone(current_timestamp) / 60)::int`
+);
+DuckDBTimestampTZValue.timezoneOffsetInMinutes =
+  reader.getColumns()[0][0];
+```
+
 ### Append To Table
 
 ```ts
@@ -697,4 +729,185 @@ while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
 console.log('ready');
 const result = await pending.getResult();
 // ...
+```
+
+### Ways to run SQL
+
+```ts
+// Run to completion but don't yet retrieve any rows.
+// Optionally take values to bind to SQL parameters,
+// and (optionally) types of those parameters,
+// either as an array (for positional parameters),
+// or an object keyed by parameter name.
+const result = await connection.run(sql);
+const result = await connection.run(sql, values);
+const result = await connection.run(sql, values, types);
+
+// Run to completion but don't yet retrieve any rows.
+// Wrap in a DuckDBDataReader for convenient data retrieval.
+const reader = await connection.runAndRead(sql);
+const reader = await connection.runAndRead(sql, values);
+const reader = await connection.runAndRead(sql, values, types);
+
+// Run to completion, wrap in a reader, and read all rows.
+const reader = await connection.runAndReadAll(sql);
+const reader = await connection.runAndReadAll(sql, values);
+const reader = await connection.runAndReadAll(sql, values, types);
+
+// Run to completion, wrap in a reader, and read at least
+// the given number of rows. (Rows are read in chunks, so more than
+// the target may be read.)
+const reader = await connection.runAndReadUntil(sql, targetRowCount);
+const reader =
+  await connection.runAndReadAll(sql, targetRowCount, values);
+const reader =
+  await connection.runAndReadAll(sql, targetRowCount, values, types);
+
+// Create a streaming result and don't yet retrieve any rows.
+const result = await connection.stream(sql);
+const result = await connection.stream(sql, values);
+const result = await connection.stream(sql, values, types);
+
+// Create a streaming result and don't yet retrieve any rows.
+// Wrap in a DuckDBDataReader for convenient data retrieval.
+const reader = await connection.streamAndRead(sql);
+const reader = await connection.streamAndRead(sql, values);
+const reader = await connection.streamAndRead(sql, values, types);
+
+// Create a streaming result, wrap in a reader, and read all rows.
+const reader = await connection.streamAndReadAll(sql);
+const reader = await connection.streamAndReadAll(sql, values);
+const reader = await connection.streamAndReadAll(sql, values, types);
+
+// Create a streaming result, wrap in a reader, and read at least
+// the given number of rows.
+const reader = await connection.streamAndReadUntil(sql, targetRowCount);
+const reader =
+  await connection.streamAndReadUntil(sql, targetRowCount, values);
+const reader =
+  await connection.streamAndReadUntil(sql, targetRowCount, values, types);
+
+// Prepared Statements
+
+// Prepare a possibly-parametered SQL statement to run later.
+const prepared = await connection.prepare(sql);
+
+// Bind values to the parameters.
+prepared.bind(values);
+prepared.bind(values, types);
+
+// Run the prepared statement. These mirror the methods on the connection.
+const result = prepared.run();
+
+const reader = prepared.runAndRead();
+const reader = prepared.runAndReadAll();
+const reader = prepared.runAndReadUntil(targetRowCount);
+
+const result = prepared.stream();
+
+const reader = prepared.streamAndRead();
+const reader = prepared.streamAndReadAll();
+const reader = prepared.streamAndReadUntil(targetRowCount);
+
+// Pending Results
+
+// Create a pending result.
+const pending = await connection.start(sql);
+const pending = await connection.start(sql, values);
+const pending = await connection.start(sql, values, types);
+
+// Create a pending, streaming result.
+const pending = await connection.startStream(sql);
+const pending = await connection.startStream(sql, values);
+const pending = await connection.startStream(sql, values, types);
+
+// Create a pending result from a prepared statement.
+const pending = await prepared.start();
+const pending = await prepared.startStream();
+
+while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
+  // optionally sleep or do other work between tasks
+}
+
+// Retrieve the result. If not yet READY, will run until it is.
+const result = await pending.getResult();
+
+const reader = await pending.read();
+const reader = await pending.readAll();
+const reader = await pending.readUntil(targetRowCount);
+```
+
+### Ways to get result data
+
+```ts
+// From a result
+
+// Asynchronously retrieve data for all rows:
+const columns = await result.getColumns();
+const columnsJson = await result.getColumnsJson();
+const columnsObject = await result.getColumnsObject();
+const columnsObjectJson = await result.getColumnsObjectJson();
+const rows = await result.getRows();
+const rowsJson = await result.getRowsJson();
+const rowObjects = await result.getRowObjects();
+const rowObjectsJson = await result.getRowObjectsJson();
+
+// From a reader
+
+// First, (asynchronously) read some rows:
+await reader.readAll();
+// or:
+await reader.readUntil(targetRowCount);
+
+// Then, (synchronously) get result data for the rows read:
+const columns = reader.getColumns();
+const columnsJson = reader.getColumnsJson();
+const columnsObject = reader.getColumnsObject();
+const columnsObjectJson = reader.getColumnsObjectJson();
+const rows = reader.getRows();
+const rowsJson = reader.getRowsJson();
+const rowObjects = reader.getRowObjects();
+const rowObjectsJson = reader.getRowObjectsJson();
+
+// Individual values can also be read directly:
+const value = reader.value(columnIndex, rowIndex);
+
+// Using chunks
+
+// If desired, one or more chunks can be fetched from a result:
+const chunk = await result.fetchChunk();
+const chunks = await result.fetchAllChunks();
+
+// And then data can be retrieved from each chunk:
+const columnValues = chunk.getColumnValues(columnIndex);
+const columns = chunk.getColumns();
+const rowValues = chunk.getRowValues(rowIndex);
+const rows = chunk.getRows();
+
+// Or, values can be visited:
+chunk.visitColumnValues(columnIndex,
+  (value, rowIndex, columnIndex, type) => { /* ... */ }
+);
+chunk.visitColumns((column, columnIndex, type) => { /* ... */ });
+chunk.visitColumnMajor(
+  (value, rowIndex, columnIndex, type) => { /* ... */ }
+);
+chunk.visitRowValues(rowIndex,
+  (value, rowIndex, columnIndex, type) => { /* ... */ }
+);
+chunk.visitRows((row, rowIndex) => { /* ... */ });
+chunk.visitRowMajor(
+  (value, rowIndex, columnIndex, type) => { /* ... */ }
+);
+
+// Or converted:
+// The `converter` argument implements `DuckDBValueConverter`,
+// which has the single method convertValue(value, type).
+const columnValues = chunk.convertColumnValues(columnIndex, converter);
+const columns = chunk.convertColumns(converter);
+const rowValues = chunk.convertRowValues(rowIndex, converter);
+const rows = chunk.convertRows(converter);
+
+// The reader abstracts these low-level chunk manipulations
+// and is recommended for most cases.
 ```
