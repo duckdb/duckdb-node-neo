@@ -145,8 +145,8 @@ export class DuckDBLogicalType {
   public get alias(): string | undefined {
     return duckdb.logical_type_get_alias(this.logical_type) || undefined;
   }
-  public set alias(newAlias: string) {
-    duckdb.logical_type_set_alias(this.logical_type, newAlias);
+  public set alias(newAlias: string | null | undefined) {
+    duckdb.logical_type_set_alias(this.logical_type, newAlias || '');
   }
   public asType(): DuckDBType {
     const alias = this.alias;
