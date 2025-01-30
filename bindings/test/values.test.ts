@@ -25,7 +25,7 @@ import {
   UINTEGER,
   USMALLINT,
   UTINYINT,
-  VARCHAR,
+  VARCHAR
 } from './utils/expectedLogicalTypes';
 
 suite('values', () => {
@@ -96,13 +96,13 @@ suite('values', () => {
     expect(duckdb.get_uhugeint(uhugeint_value)).toBe(input);
   });
   test('float', () => {
-    const input = 3.4028234663852886e+38;
+    const input = 3.4028234663852886e38;
     const float_value = duckdb.create_float(input);
     expectLogicalType(duckdb.get_value_type(float_value), FLOAT);
     expect(duckdb.get_float(float_value)).toBe(input);
   });
   test('double', () => {
-    const input = 1.7976931348623157e+308;
+    const input = 1.7976931348623157e308;
     const double_value = duckdb.create_double(input);
     expectLogicalType(duckdb.get_value_type(double_value), DOUBLE);
     expect(duckdb.get_double(double_value)).toBe(input);
@@ -154,12 +154,23 @@ suite('values', () => {
     const struct_type = duckdb.create_struct_type([int_type], ['a']);
     const int32_value = duckdb.create_int32(42);
     const struct_value = duckdb.create_struct_value(struct_type, [int32_value]);
-    expectLogicalType(duckdb.get_value_type(struct_value), STRUCT(ENTRY('a', INTEGER)));
+    expectLogicalType(
+      duckdb.get_value_type(struct_value),
+      STRUCT(ENTRY('a', INTEGER))
+    );
   });
   test('empty struct', () => {
     const struct_type = duckdb.create_struct_type([], []);
     const struct_value = duckdb.create_struct_value(struct_type, []);
     expectLogicalType(duckdb.get_value_type(struct_value), STRUCT());
+  });
+  test('any struct', () => {
+    const any_type = duckdb.create_logical_type(duckdb.Type.ANY);
+    const struct_type = duckdb.create_struct_type([any_type], ['a']);
+    const int32_value = duckdb.create_int32(42);
+    expect(() =>
+      duckdb.create_struct_value(struct_type, [int32_value])
+    ).toThrowError('Failed to create struct value');
   });
   test('list', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
@@ -172,6 +183,12 @@ suite('values', () => {
     const list_value = duckdb.create_list_value(int_type, []);
     expectLogicalType(duckdb.get_value_type(list_value), LIST(INTEGER));
   });
+  test('any list', () => {
+    const any_type = duckdb.create_logical_type(duckdb.Type.ANY);
+    expect(() => duckdb.create_list_value(any_type, [])).toThrowError(
+      'Failed to create list value'
+    );
+  });
   test('array', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
     const int32_value = duckdb.create_int32(42);
@@ -182,5 +199,11 @@ suite('values', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
     const array_value = duckdb.create_array_value(int_type, []);
     expectLogicalType(duckdb.get_value_type(array_value), ARRAY(INTEGER, 0));
+  });
+  test('any array', () => {
+    const any_type = duckdb.create_logical_type(duckdb.Type.ANY);
+    expect(() => duckdb.create_array_value(any_type, [])).toThrowError(
+      'Failed to create array value'
+    );
   });
 });
