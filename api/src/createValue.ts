@@ -124,6 +124,11 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       throw new Error(`not yet implemented for ENUM`); // TODO: implement when available in 1.2.0
     case DuckDBTypeId.LIST:
       if (input instanceof DuckDBListValue) {
+        if (type.valueType.typeId === DuckDBTypeId.ANY) {
+          throw new Error(
+            'Cannot create lists with item type of ANY. Specify a specific type.'
+          );
+        }
         return duckdb.create_list_value(
           type.valueType.toLogicalType().logical_type,
           input.items.map((item) => createValue(type.valueType, item))
@@ -132,6 +137,11 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       throw new Error(`input is not a DuckDBListValue`);
     case DuckDBTypeId.STRUCT:
       if (input instanceof DuckDBStructValue) {
+        if (type.entryTypes.find((type) => type.typeId === DuckDBTypeId.ANY)) {
+          throw new Error(
+            'Cannot create structs with an entry type of ANY. Specify a specific type.'
+          );
+        }
         return duckdb.create_struct_value(
           type.toLogicalType().logical_type,
           Object.values(input.entries).map((value, i) =>
@@ -144,6 +154,11 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       throw new Error(`not yet implemented for MAP`); // TODO: implement when available, hopefully in 1.2.0
     case DuckDBTypeId.ARRAY:
       if (input instanceof DuckDBArrayValue) {
+        if (type.valueType.typeId === DuckDBTypeId.ANY) {
+          throw new Error(
+            'Cannot create arrays with item type of ANY. Specify a specific type.'
+          );
+        }
         return duckdb.create_array_value(
           type.valueType.toLogicalType().logical_type,
           input.items.map((item) => createValue(type.valueType, item))
@@ -167,7 +182,9 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a DuckDBTimestampTZValue`);
     case DuckDBTypeId.ANY:
-      throw new Error(`cannot create values of type ANY`);
+      throw new Error(
+        `Cannot create values of type ANY. Specify a specific type.`
+      );
     case DuckDBTypeId.VARINT:
       throw new Error(`not yet implemented for VARINT`); // TODO: implement when available in 1.2.0
     case DuckDBTypeId.SQLNULL:

@@ -561,6 +561,58 @@ describe('api', () => {
       }
     });
   });
+  test('should fail gracefully when binding structs contain ANY types to prepared statements', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare('select ?');
+      try {
+        prepared.bindStruct(
+          0,
+          structValue({ 'a': null }),
+          STRUCT({ 'a': ANY })
+        );
+        assert.fail('should throw');
+      } catch (err) {
+        assert.deepEqual(
+          err,
+          new Error(
+            'Cannot create structs with an entry type of ANY. Specify a specific type.'
+          )
+        );
+      }
+    });
+  });
+  test('should fail gracefully when type cannot be inferred when binding lists to prepared statements', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare('select ?');
+      try {
+        prepared.bind([listValue([])]);
+        assert.fail('should throw');
+      } catch (err) {
+        assert.deepEqual(
+          err,
+          new Error(
+            'Cannot create lists with item type of ANY. Specify a specific type.'
+          )
+        );
+      }
+    });
+  });
+  test('should fail gracefully when type cannot be inferred when binding arrays to prepared statements', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare('select ?');
+      try {
+        prepared.bind([arrayValue([])]);
+        assert.fail('should throw');
+      } catch (err) {
+        assert.deepEqual(
+          err,
+          new Error(
+            'Cannot create arrays with item type of ANY. Specify a specific type.'
+          )
+        );
+      }
+    });
+  });
   test('should support starting prepared statements and running them incrementally', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare(

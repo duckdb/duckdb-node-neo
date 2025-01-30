@@ -2591,6 +2591,9 @@ private:
       values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
     }
     auto value = duckdb_create_struct_value(logical_type, values_vector.data());
+    if (!value) {
+      throw Napi::Error::New(env, "Failed to create struct value");
+    }
     return CreateExternalForValue(env, value);
   }
 
@@ -2608,6 +2611,9 @@ private:
       values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
     }
     auto value = duckdb_create_list_value(logical_type, values_vector.data(), values_count);
+    if (!value) {
+      throw Napi::Error::New(env, "Failed to create list value");
+    }
     return CreateExternalForValue(env, value);
   }
 
@@ -2625,6 +2631,9 @@ private:
       values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
     }
     auto value = duckdb_create_array_value(logical_type, values_vector.data(), values_count);
+    if (!value) {
+      throw Napi::Error::New(env, "Failed to create array value");
+    }
     return CreateExternalForValue(env, value);
   }
 
