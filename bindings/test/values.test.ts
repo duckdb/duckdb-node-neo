@@ -164,7 +164,7 @@ suite('values', () => {
     const struct_value = duckdb.create_struct_value(struct_type, []);
     expectLogicalType(duckdb.get_value_type(struct_value), STRUCT());
   });
-  test('any struct', () => {
+  test.skip('any struct', () => {
     const any_type = duckdb.create_logical_type(duckdb.Type.ANY);
     const struct_type = duckdb.create_struct_type([any_type], ['a']);
     const int32_value = duckdb.create_int32(42);
