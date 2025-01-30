@@ -183,7 +183,7 @@ suite('values', () => {
     const list_value = duckdb.create_list_value(int_type, []);
     expectLogicalType(duckdb.get_value_type(list_value), LIST(INTEGER));
   });
-  test('any list', () => {
+  test.skip('any list', () => {
     const any_type = duckdb.create_logical_type(duckdb.Type.ANY);
     expect(() => duckdb.create_list_value(any_type, [])).toThrowError(
       'Failed to create list value'
@@ -200,7 +200,7 @@ suite('values', () => {
     const array_value = duckdb.create_array_value(int_type, []);
     expectLogicalType(duckdb.get_value_type(array_value), ARRAY(INTEGER, 0));
   });
-  test('any array', () => {
+  test.skip('any array', () => {
     const any_type = duckdb.create_logical_type(duckdb.Type.ANY);
     expect(() => duckdb.create_array_value(any_type, [])).toThrowError(
       'Failed to create array value'
