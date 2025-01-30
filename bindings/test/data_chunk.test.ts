@@ -133,4 +133,8 @@ suite('data chunk', () => {
     duckdb.list_vector_set_size(vector, 5);
     expect(duckdb.list_vector_get_size(vector)).toBe(5);
   });
+  test('create no types', () => {
+    const chunk = duckdb.create_data_chunk([]);
+    expect(duckdb.data_chunk_get_column_count(chunk)).toBe(0);
+  });
 });
