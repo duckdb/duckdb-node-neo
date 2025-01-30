@@ -2,16 +2,20 @@ import duckdb from '@duckdb/node-bindings';
 import { expect, suite, test } from 'vitest';
 import { expectLogicalType } from './utils/expectLogicalType';
 import {
+  ARRAY,
   BIGINT,
   BLOB,
   BOOLEAN,
   DATE,
   DOUBLE,
+  ENTRY,
   FLOAT,
   HUGEINT,
   INTEGER,
   INTERVAL,
+  LIST,
   SMALLINT,
+  STRUCT,
   TIME,
   TIME_TZ,
   TIMESTAMP,
@@ -144,5 +148,39 @@ suite('values', () => {
     const varchar_value = duckdb.create_varchar(input);
     expectLogicalType(duckdb.get_value_type(varchar_value), VARCHAR);
     expect(duckdb.get_varchar(varchar_value)).toBe(input);
+  });
+  test('struct', () => {
+    const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    const struct_type = duckdb.create_struct_type([int_type], ['a']);
+    const int32_value = duckdb.create_int32(42);
+    const struct_value = duckdb.create_struct_value(struct_type, [int32_value]);
+    expectLogicalType(duckdb.get_value_type(struct_value), STRUCT(ENTRY('a', INTEGER)));
+  });
+  test('empty struct', () => {
+    const struct_type = duckdb.create_struct_type([], []);
+    const struct_value = duckdb.create_struct_value(struct_type, []);
+    expectLogicalType(duckdb.get_value_type(struct_value), STRUCT());
+  });
+  test('list', () => {
+    const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    const int32_value = duckdb.create_int32(42);
+    const list_value = duckdb.create_list_value(int_type, [int32_value]);
+    expectLogicalType(duckdb.get_value_type(list_value), LIST(INTEGER));
+  });
+  test('empty list', () => {
+    const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    const list_value = duckdb.create_list_value(int_type, []);
+    expectLogicalType(duckdb.get_value_type(list_value), LIST(INTEGER));
+  });
+  test('array', () => {
+    const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    const int32_value = duckdb.create_int32(42);
+    const array_value = duckdb.create_array_value(int_type, [int32_value]);
+    expectLogicalType(duckdb.get_value_type(array_value), ARRAY(INTEGER, 1));
+  });
+  test('empty array', () => {
+    const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    const array_value = duckdb.create_array_value(int_type, []);
+    expectLogicalType(duckdb.get_value_type(array_value), ARRAY(INTEGER, 0));
   });
 });

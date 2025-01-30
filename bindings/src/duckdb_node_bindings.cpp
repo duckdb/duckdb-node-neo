@@ -2584,7 +2584,9 @@ private:
     auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
     auto values_array = info[1].As<Napi::Array>();
     auto values_count = values_array.Length();
-    std::vector<duckdb_value> values_vector(values_count);
+    // If there are no values, we still need a valid data pointer, so create a single element vector containing a null.
+    std::vector<duckdb_value> values_vector(values_count > 0 ? values_count : 1);
+    values_vector[0] = nullptr;
     for (uint32_t i = 0; i < values_count; i++) {
       values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
     }
@@ -2599,7 +2601,9 @@ private:
     auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
     auto values_array = info[1].As<Napi::Array>();
     auto values_count = values_array.Length();
-    std::vector<duckdb_value> values_vector(values_count);
+    // If there are no values, we still need a valid data pointer, so create a single element vector containing a null.
+    std::vector<duckdb_value> values_vector(values_count > 0 ? values_count : 1);
+    values_vector[0] = nullptr;
     for (uint32_t i = 0; i < values_count; i++) {
       values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
     }
@@ -2614,7 +2618,9 @@ private:
     auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
     auto values_array = info[1].As<Napi::Array>();
     auto values_count = values_array.Length();
-    std::vector<duckdb_value> values_vector(values_count);
+    // If there are no values, we still need a valid data pointer, so create a single element vector containing a null.
+    std::vector<duckdb_value> values_vector(values_count > 0 ? values_count : 1);
+    values_vector[0] = nullptr;
     for (uint32_t i = 0; i < values_count; i++) {
       values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
     }
@@ -2722,9 +2728,12 @@ private:
     auto member_types_count = member_types_array.Length();
     auto member_names_count = member_names_array.Length();
     auto member_count = member_types_count < member_names_count ? member_types_count : member_names_count;
-    std::vector<duckdb_logical_type> member_types(member_count);
+    // If there are no members, we still need valid data pointers, so create single element vectors containing nulls.
+    std::vector<duckdb_logical_type> member_types(member_count > 0 ? member_count : 1);
     std::vector<std::string> member_names_strings(member_count);
-    std::vector<const char *> member_names(member_count);
+    std::vector<const char *> member_names(member_count > 0 ? member_count : 1);
+    member_types[0] = nullptr;
+    member_names[0] = nullptr;
     for (uint32_t i = 0; i < member_count; i++) {
       member_types[i] = GetLogicalTypeFromExternal(env, member_types_array.Get(i));
       member_names_strings[i] = member_names_array.Get(i).As<Napi::String>();
@@ -2743,9 +2752,12 @@ private:
     auto member_types_count = member_types_array.Length();
     auto member_names_count = member_names_array.Length();
     auto member_count = member_types_count < member_names_count ? member_types_count : member_names_count;
-    std::vector<duckdb_logical_type> member_types(member_count);
+    // If there are no members, we still need valid data pointers, so create single element vectors containing nulls.
+    std::vector<duckdb_logical_type> member_types(member_count > 0 ? member_count : 1);
     std::vector<std::string> member_names_strings(member_count);
-    std::vector<const char *> member_names(member_count);
+    std::vector<const char *> member_names(member_count > 0 ? member_count : 1);
+    member_types[0] = nullptr;
+    member_names[0] = nullptr;
     for (uint32_t i = 0; i < member_count; i++) {
       member_types[i] = GetLogicalTypeFromExternal(env, member_types_array.Get(i));
       member_names_strings[i] = member_names_array.Get(i).As<Napi::String>();
@@ -2762,7 +2774,9 @@ private:
     auto member_names_array = info[0].As<Napi::Array>();
     auto member_count = member_names_array.Length();
     std::vector<std::string> member_names_strings(member_count);
-    std::vector<const char *> member_names(member_count);
+    // If there are no members, we still need a valid data pointer, so create a single element vector containing a null.
+    std::vector<const char *> member_names(member_count > 0 ? member_count : 1);
+    member_names[0] = nullptr;
     for (uint32_t i = 0; i < member_count; i++) {
       member_names_strings[i] = member_names_array.Get(i).As<Napi::String>();
       member_names[i] = member_names_strings[i].c_str();
@@ -2966,7 +2980,9 @@ private:
     auto env = info.Env();
     auto types_array = info[0].As<Napi::Array>();
     auto types_count = types_array.Length();
-    std::vector<duckdb_logical_type> types(types_count);
+    // If there are no types, we still need a valid data pointer, so create a single element vector containing a null.
+    std::vector<duckdb_logical_type> types(types_count > 0 ? types_count : 1);
+    types[0] = nullptr;
     for (uint32_t i = 0; i < types_count; i++) {
       types[i] = GetLogicalTypeFromExternal(env, types_array.Get(i));
     }

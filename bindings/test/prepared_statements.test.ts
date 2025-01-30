@@ -395,4 +395,51 @@ suite('prepared statements', () => {
       });
     });
   });
+  test('bind empty nested types', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await duckdb.prepare(connection,
+        'select \
+        ? as struct, \
+        ? as list, \
+        ? as array'
+      );
+      const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+      const struct_type = duckdb.create_struct_type([], []);
+      
+      const struct_value = duckdb.create_struct_value(struct_type, []);
+      duckdb.bind_value(prepared, 1, struct_value);
+      expect(duckdb.param_type(prepared, 1)).toBe(duckdb.Type.STRUCT);
+
+      const list_value = duckdb.create_list_value(int_type, []);
+      duckdb.bind_value(prepared, 2, list_value);
+      expect(duckdb.param_type(prepared, 2)).toBe(duckdb.Type.LIST);
+
+      const array_value = duckdb.create_array_value(int_type, []);
+      duckdb.bind_value(prepared, 3, array_value);
+      expect(duckdb.param_type(prepared, 3)).toBe(duckdb.Type.ARRAY);
+
+      // TODO: map value?
+
+      const result = await duckdb.execute_prepared(prepared);
+      await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
+        columns: [
+          { name: 'struct', logicalType: STRUCT() },
+          { name: 'list', logicalType: LIST(INTEGER) },
+          { name: 'array', logicalType: ARRAY(INTEGER, 0) },
+        ],
+        chunks: [
+          {
+            rowCount: 1,
+            vectors: [
+              struct(1, [true], []),
+              list([true], [[0n, 0n]], 0, data(0, null, [])),
+              array(1, [true], data(0, null, [])),
+            ]
+          },
+        ],
+      });
+    });
+  });
 });

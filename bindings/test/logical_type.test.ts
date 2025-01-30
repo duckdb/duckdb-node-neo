@@ -77,6 +77,13 @@ suite('logical_type', () => {
     expect(duckdb.enum_dictionary_value(enum_type, 0)).toBe('enum_0');
     expect(duckdb.enum_dictionary_value(enum_type, 69999)).toBe('enum_69999');
   });
+  test('empty enum', () => {
+    const enum_type = duckdb.create_enum_type([]);
+    expect(duckdb.get_type_id(enum_type)).toBe(duckdb.Type.ENUM);
+    expect(duckdb.logical_type_get_alias(enum_type)).toBeNull();
+    expect(duckdb.enum_internal_type(enum_type)).toBe(duckdb.Type.UTINYINT);
+    expect(duckdb.enum_dictionary_size(enum_type)).toBe(0);
+  });
   test('list', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
     const list_type = duckdb.create_list_type(int_type);
@@ -110,6 +117,12 @@ suite('logical_type', () => {
     const member_type_1 = duckdb.struct_type_child_type(struct_type, 1);
     expect(duckdb.get_type_id(member_type_1)).toBe(duckdb.Type.VARCHAR);
   });
+  test('empty struct', () => {
+    const struct_type = duckdb.create_struct_type([], []);
+    expect(duckdb.get_type_id(struct_type)).toBe(duckdb.Type.STRUCT);
+    expect(duckdb.logical_type_get_alias(struct_type)).toBeNull();
+    expect(duckdb.struct_type_child_count(struct_type)).toBe(0);
+  });
   test('union', () => {
     const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
     const smallint_type = duckdb.create_logical_type(duckdb.Type.SMALLINT);
@@ -123,5 +136,11 @@ suite('logical_type', () => {
     expect(duckdb.get_type_id(member_type_0)).toBe(duckdb.Type.VARCHAR);
     const member_type_1 = duckdb.union_type_member_type(union_type, 1);
     expect(duckdb.get_type_id(member_type_1)).toBe(duckdb.Type.SMALLINT);
+  });
+  test('empty union', () => {
+    const union_type = duckdb.create_union_type([], []);
+    expect(duckdb.get_type_id(union_type)).toBe(duckdb.Type.UNION);
+    expect(duckdb.logical_type_get_alias(union_type)).toBeNull();
+    expect(duckdb.union_type_member_count(union_type)).toBe(0);
   });
 });
