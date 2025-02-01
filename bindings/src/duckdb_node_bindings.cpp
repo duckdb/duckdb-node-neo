@@ -360,14 +360,15 @@ static const napi_type_tag LogicalTypeTypeTag = {
 };
 
 void FinalizeLogicalType(Napi::BasicEnv, duckdb_logical_type logical_type) {
-  if (logical_type) {
-    duckdb_destroy_logical_type(&logical_type);
-    logical_type = nullptr;
-  }
+  duckdb_destroy_logical_type(&logical_type);
 }
 
 Napi::External<_duckdb_logical_type> CreateExternalForLogicalType(Napi::Env env, duckdb_logical_type logical_type) {
   return CreateExternal<_duckdb_logical_type>(env, LogicalTypeTypeTag, logical_type, FinalizeLogicalType);
+}
+
+Napi::External<_duckdb_logical_type> CreateExternalForLogicalTypeWithoutFinalizer(Napi::Env env, duckdb_logical_type logical_type) {
+  return CreateExternalWithoutFinalizer<_duckdb_logical_type>(env, LogicalTypeTypeTag, logical_type);
 }
 
 duckdb_logical_type GetLogicalTypeFromExternal(Napi::Env env, Napi::Value value) {
@@ -2554,7 +2555,7 @@ private:
     auto env = info.Env();
     auto value = GetValueFromExternal(env, info[0]);
     auto logical_type = duckdb_get_value_type(value);
-    return CreateExternalForLogicalType(env, logical_type);
+    return CreateExternalForLogicalTypeWithoutFinalizer(env, logical_type);
   }
 
   // DUCKDB_API duckdb_blob duckdb_get_blob(duckdb_value val);
