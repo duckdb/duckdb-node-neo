@@ -442,4 +442,12 @@ suite('prepared statements', () => {
       });
     });
   });
+  test.skip('run in parallel (throws nondeterministically, as expected)', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await duckdb.prepare(connection, 'select 1');
+      for (let i = 0; i < 1000; i++) {
+        duckdb.execute_prepared(prepared);
+      }
+    });
+  });
 });
