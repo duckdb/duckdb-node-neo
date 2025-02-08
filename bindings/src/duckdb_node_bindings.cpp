@@ -2037,7 +2037,7 @@ private:
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     std::string value = info[2].As<Napi::String>();
-    if (duckdb_bind_varchar(prepared_statement, index, value.c_str())) {
+    if (duckdb_bind_varchar_length(prepared_statement, index, value.c_str(), value.size())) {
       throw Napi::Error::New(env, "Failed to bind varchar");
     }
     return env.Undefined();
@@ -2221,7 +2221,7 @@ private:
   Napi::Value create_varchar(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     std::string text = info[0].As<Napi::String>();
-    auto value = duckdb_create_varchar(text.c_str());
+    auto value = duckdb_create_varchar_length(text.c_str(), text.size());
     return CreateExternalForValue(env, value);
   }
 
@@ -3634,7 +3634,7 @@ private:
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
     std::string str = info[1].As<Napi::String>();
-    if (duckdb_append_varchar(appender, str.c_str())) {
+    if (duckdb_append_varchar_length(appender, str.c_str(), str.size())) {
       throw Napi::Error::New(env, duckdb_appender_error(appender));
     }
     return env.Undefined();

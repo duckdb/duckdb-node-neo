@@ -119,14 +119,12 @@ suite('prepared statements', () => {
       expect(duckdb.parameter_name(prepared, 1)).toBe('x');
       expect(duckdb.bind_parameter_index(prepared, 'x')).toBe(1);
       duckdb.bind_int32(prepared, 1, 11);
-      // param_type doesn't appear to work for named parameters
-      // expect(duckdb.param_type(prepared, 1)).toBe(duckdb.Type.INTEGER);
+      expect(duckdb.param_type(prepared, 1)).toBe(duckdb.Type.INTEGER);
 
       expect(duckdb.parameter_name(prepared, 2)).toBe('y');
       expect(duckdb.bind_parameter_index(prepared, 'y')).toBe(2);
-      duckdb.bind_int32(prepared, 2, 22);
-      // param_type doesn't appear to work for named parameters
-      // expect(duckdb.param_type(prepared, 2)).toBe(duckdb.Type.INTEGER);
+      duckdb.bind_varchar(prepared, 2, 'a');
+      // expect(duckdb.param_type(prepared, 2)).toBe(duckdb.Type.VARCHAR); // TODO 1.2.0 - param_type is returning INVALID for VARCHAR
 
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
@@ -134,10 +132,10 @@ suite('prepared statements', () => {
         rowCount: 1,
         columns: [
           { name: 'a', logicalType: INTEGER },
-          { name: 'b', logicalType: INTEGER },
+          { name: 'b', logicalType: VARCHAR },
         ],
         chunks: [
-          { rowCount: 1, vectors: [data(4, [true], [11]), data(4, [true], [22])] },
+          { rowCount: 1, vectors: [data(4, [true], [11]), data(16, [true], ['a'])] },
         ],
       });
     });
@@ -258,8 +256,8 @@ suite('prepared statements', () => {
       duckdb.bind_interval(prepared, 19, { months: 999, days: 999, micros: 999999999n });
       expect(duckdb.param_type(prepared, 19)).toBe(duckdb.Type.INTERVAL);
 
-      duckdb.bind_varchar(prepared, 20, '🦆🦆🦆🦆🦆🦆');
-      // expect(duckdb.param_type(prepared, 20)).toBe(duckdb.Type.VARCHAR); // TODO 1.2.0 - Why does this check fail?
+      duckdb.bind_varchar(prepared, 20, '🦆🦆🦆\x00🦆🦆🦆');
+      // expect(duckdb.param_type(prepared, 20)).toBe(duckdb.Type.VARCHAR); // TODO 1.2.0 - param_type is returning INVALID for VARCHAR
 
       duckdb.bind_blob(prepared, 21, Buffer.from('thisisalongblob\x00withnullbytes'));
       expect(duckdb.param_type(prepared, 21)).toBe(duckdb.Type.BLOB);
@@ -318,7 +316,7 @@ suite('prepared statements', () => {
               data(8, [true], [9223372036854775806n]),
               data(8, [true], [9223372036854775806n]),
               data(16, [true], [{ months: 999, days: 999, micros: 999999999n }]),
-              data(16, [true], ['🦆🦆🦆🦆🦆🦆']),
+              data(16, [true], ['🦆🦆🦆\x00🦆🦆🦆']),
               data(16, [true], [Buffer.from('thisisalongblob\x00withnullbytes')]),
               data(4, [false], [null]),
             ]
