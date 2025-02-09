@@ -1207,6 +1207,10 @@ public:
 
 private:
 
+  // DUCKDB_API duckdb_instance_cache duckdb_create_instance_cache();
+  // DUCKDB_API duckdb_state duckdb_get_or_create_from_cache(duckdb_instance_cache instance_cache, const char *path, duckdb_database *out_database, duckdb_config config, char **out_error);
+  // DUCKDB_API void duckdb_destroy_instance_cache(duckdb_instance_cache *instance_cache);
+
   // DUCKDB_API duckdb_state duckdb_open(const char *path, duckdb_database *out_database);
   // function open(path: string): Promise<Database>
   Napi::Value open(const Napi::CallbackInfo& info) {
@@ -1622,6 +1626,10 @@ private:
     return Napi::Boolean::New(env, is_finite);
   }
 
+  // DUCKDB_API bool duckdb_is_finite_timestamp_s(duckdb_timestamp_s ts);
+  // DUCKDB_API bool duckdb_is_finite_timestamp_ms(duckdb_timestamp_ms ts);
+  // DUCKDB_API bool duckdb_is_finite_timestamp_ns(duckdb_timestamp_ns ts);
+
   // DUCKDB_API double duckdb_hugeint_to_double(duckdb_hugeint val);
   // function hugeint_to_double(hugeint: bigint): number
   Napi::Value hugeint_to_double(const Napi::CallbackInfo& info) {
@@ -1728,6 +1736,8 @@ private:
     auto type = duckdb_param_type(prepared_statement, index);
     return Napi::Number::New(env, type);
   }
+
+  // DUCKDB_API duckdb_logical_type duckdb_param_logical_type(duckdb_prepared_statement prepared_statement, idx_t param_idx);
 
   // DUCKDB_API duckdb_state duckdb_clear_bindings(duckdb_prepared_statement prepared_statement);
   // function clear_bindings(prepared_statement: PreparedStatement): void
@@ -2337,6 +2347,9 @@ private:
     return CreateExternalForValue(env, value);
   }
 
+  // DUCKDB_API duckdb_value duckdb_create_varint(duckdb_varint input);
+  // DUCKDB_API duckdb_value duckdb_create_decimal(duckdb_decimal input);
+
   // DUCKDB_API duckdb_value duckdb_create_float(float input);
   // function create_float(input: number): Value
   Napi::Value create_float(const Napi::CallbackInfo& info) {
@@ -2391,6 +2404,11 @@ private:
     return CreateExternalForValue(env, value);
   }
 
+  // DUCKDB_API duckdb_value duckdb_create_timestamp_tz(duckdb_timestamp input);
+  // DUCKDB_API duckdb_value duckdb_create_timestamp_s(duckdb_timestamp_s input);
+  // DUCKDB_API duckdb_value duckdb_create_timestamp_ms(duckdb_timestamp_ms input);
+  // DUCKDB_API duckdb_value duckdb_create_timestamp_ns(duckdb_timestamp_ns input);
+
   // DUCKDB_API duckdb_value duckdb_create_interval(duckdb_interval input);
   // function create_interval(input: Interval): Value
   Napi::Value create_interval(const Napi::CallbackInfo& info) {
@@ -2410,6 +2428,9 @@ private:
     auto value = duckdb_create_blob(data, length);
     return CreateExternalForValue(env, value);
   }
+
+  // DUCKDB_API duckdb_value duckdb_create_bit(duckdb_bit input);
+  // DUCKDB_API duckdb_value duckdb_create_uuid(duckdb_uhugeint input);
 
   // DUCKDB_API bool duckdb_get_bool(duckdb_value val);
   // function get_bool(value: Value): boolean
@@ -2510,6 +2531,9 @@ private:
     return MakeBigIntFromUHugeInt(env, uhugeint);
   }
 
+  // DUCKDB_API duckdb_varint duckdb_get_varint(duckdb_value val);
+  // DUCKDB_API duckdb_decimal duckdb_get_decimal(duckdb_value val);
+
   // DUCKDB_API float duckdb_get_float(duckdb_value val);
   // function get_float(value: Value): number
   Napi::Value get_float(const Napi::CallbackInfo& info) {
@@ -2564,6 +2588,11 @@ private:
     return MakeTimestampObject(env, timestamp);
   }
 
+  // DUCKDB_API duckdb_timestamp duckdb_get_timestamp_tz(duckdb_value val);
+  // DUCKDB_API duckdb_timestamp_s duckdb_get_timestamp_s(duckdb_value val);
+  // DUCKDB_API duckdb_timestamp_ms duckdb_get_timestamp_ms(duckdb_value val);
+  // DUCKDB_API duckdb_timestamp_ns duckdb_get_timestamp_ns(duckdb_value val);
+
   // DUCKDB_API duckdb_interval duckdb_get_interval(duckdb_value val);
   // function get_interval(value: Value): Interval
   Napi::Value get_interval(const Napi::CallbackInfo& info) {
@@ -2590,6 +2619,9 @@ private:
     auto blob = duckdb_get_blob(value);
     return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(blob.data), blob.size);
   }
+
+  // DUCKDB_API duckdb_bit duckdb_get_bit(duckdb_value val);
+  // DUCKDB_API duckdb_uhugeint duckdb_get_uuid(duckdb_value val);
 
   // DUCKDB_API char *duckdb_get_varchar(duckdb_value value);
   // function get_varchar(value: Value): string
@@ -2690,6 +2722,14 @@ private:
     auto output_value = duckdb_get_map_value(value, index);
     return CreateExternalForValue(env, output_value);
   }
+
+  // DUCKDB_API bool duckdb_is_null_value(duckdb_value value);
+  // DUCKDB_API duckdb_value duckdb_create_null_value();
+  // DUCKDB_API idx_t duckdb_get_list_size(duckdb_value value);
+  // DUCKDB_API duckdb_value duckdb_get_list_child(duckdb_value value, idx_t index);
+  // DUCKDB_API duckdb_value duckdb_create_enum_value(duckdb_logical_type type, uint64_t value);
+  // DUCKDB_API uint64_t duckdb_get_enum_value(duckdb_value value);
+  // DUCKDB_API duckdb_value duckdb_get_struct_child(duckdb_value value, idx_t index);
 
   // DUCKDB_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
   // function create_logical_type(type: Type): LogicalType
@@ -3342,6 +3382,8 @@ private:
     return CreateExternalForAppender(env, appender);
   }
 
+  // DUCKDB_API duckdb_state duckdb_appender_create_ext(duckdb_connection connection, const char *catalog, const char *schema, const char *table, duckdb_appender *out_appender);
+
   // DUCKDB_API idx_t duckdb_appender_column_count(duckdb_appender appender);
   // function appender_column_count(appender: Appender): number
   Napi::Value appender_column_count(const Napi::CallbackInfo& info) {
@@ -3389,6 +3431,9 @@ private:
   // DUCKDB_API duckdb_state duckdb_appender_destroy(duckdb_appender *appender);
   // not exposed: destroyed in finalizer
 
+  // DUCKDB_API duckdb_state duckdb_appender_add_column(duckdb_appender appender, const char *name);
+  // DUCKDB_API duckdb_state duckdb_appender_clear_columns(duckdb_appender appender);
+
   // DUCKDB_API duckdb_state duckdb_appender_begin_row(duckdb_appender appender);
   // not exposed: no-op
 
@@ -3413,6 +3458,8 @@ private:
     }
     return env.Undefined();
   }
+
+  // DUCKDB_API duckdb_state duckdb_append_default_to_chunk(duckdb_appender appender, duckdb_data_chunk chunk, idx_t col, idx_t row);
 
   // DUCKDB_API duckdb_state duckdb_append_bool(duckdb_appender appender, bool value);
   // function append_bool(appender: Appender, bool: boolean): void
@@ -3668,6 +3715,8 @@ private:
     return env.Undefined();
   }
 
+  // DUCKDB_API duckdb_state duckdb_append_value(duckdb_appender appender, duckdb_value value);
+
   // DUCKDB_API duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk);
   // function append_data_chunk(appender: Appender, chunk: DataChunk): void
   Napi::Value append_data_chunk(const Napi::CallbackInfo& info) {
@@ -3681,9 +3730,11 @@ private:
   }
 
   // DUCKDB_API duckdb_state duckdb_table_description_create(duckdb_connection connection, const char *schema, const char *table, duckdb_table_description *out);
+  // DUCKDB_API duckdb_state duckdb_table_description_create_ext(duckdb_connection connection, const char *catalog, const char *schema, const char *table, duckdb_table_description *out);
   // DUCKDB_API void duckdb_table_description_destroy(duckdb_table_description *table_description);
   // DUCKDB_API const char *duckdb_table_description_error(duckdb_table_description table_description);
   // DUCKDB_API duckdb_state duckdb_column_has_default(duckdb_table_description table_description, idx_t index, bool *out);
+  // DUCKDB_API char *duckdb_table_description_get_column_name(duckdb_table_description table_description, idx_t index);
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
   // DUCKDB_API duckdb_state duckdb_query_arrow(duckdb_connection connection, const char *query, duckdb_arrow *out_result);
@@ -3784,13 +3835,18 @@ NODE_API_ADDON(DuckDBNodeAddon)
 
 /*
 
-  371 duckdb api functions
+  408 duckdb api functions
 +   3 added functions
   ---
-  374 total functions
+  411 total functions
 
   210 instance methods
-    1 unimplemented logical type functions
+    3 unimplemented instance cache functions
+    3 unimplemented timestamp utility functions
+    1 unimplemented prepared statement function
+    1 unimplemented logical type function
+   10 unimplemented value creation functions
+   13 unimplemented value inspection functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
    12 unimplemented aggregate function functions
@@ -3801,12 +3857,13 @@ NODE_API_ADDON(DuckDBNodeAddon)
     5 unimplemented function info functions
     4 unimplemented replacement scan functions
     5 unimplemented profiling info functions
-    4 unimplemented table description functions
+    5 unimplemented appender functions
+    6 unimplemented table description functions
     8 unimplemented tasks functions
    12 unimplemented cast function functions
    24 functions not exposed
 +  41 unimplemented deprecated functions (of 47)
   ---
-  374 functions accounted for
+  411 functions accounted for
 
 */

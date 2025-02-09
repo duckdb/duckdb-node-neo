@@ -227,6 +227,10 @@ export interface ExtractedStatementsAndCount {
 
 // Functions
 
+// DUCKDB_API duckdb_instance_cache duckdb_create_instance_cache();
+// DUCKDB_API duckdb_state duckdb_get_or_create_from_cache(duckdb_instance_cache instance_cache, const char *path, duckdb_database *out_database, duckdb_config config, char **out_error);
+// DUCKDB_API void duckdb_destroy_instance_cache(duckdb_instance_cache *instance_cache);
+
 // DUCKDB_API duckdb_state duckdb_open(const char *path, duckdb_database *out_database);
 export function open(path?: string, config?: Config): Promise<Database>;
 
@@ -399,6 +403,10 @@ export function to_timestamp(parts: TimestampParts): Timestamp;
 // DUCKDB_API bool duckdb_is_finite_timestamp(duckdb_timestamp ts);
 export function is_finite_timestamp(timestamp: Timestamp): boolean;
 
+// DUCKDB_API bool duckdb_is_finite_timestamp_s(duckdb_timestamp_s ts);
+// DUCKDB_API bool duckdb_is_finite_timestamp_ms(duckdb_timestamp_ms ts);
+// DUCKDB_API bool duckdb_is_finite_timestamp_ns(duckdb_timestamp_ns ts);
+
 // DUCKDB_API double duckdb_hugeint_to_double(duckdb_hugeint val);
 export function hugeint_to_double(hugeint: bigint): number;
 
@@ -434,6 +442,8 @@ export function parameter_name(prepared_statement: PreparedStatement, index: num
 
 // DUCKDB_API duckdb_type duckdb_param_type(duckdb_prepared_statement prepared_statement, idx_t param_idx);
 export function param_type(prepared_statement: PreparedStatement, index: number): Type;
+
+// DUCKDB_API duckdb_logical_type duckdb_param_logical_type(duckdb_prepared_statement prepared_statement, idx_t param_idx);
 
 // DUCKDB_API duckdb_state duckdb_clear_bindings(duckdb_prepared_statement prepared_statement);
 export function clear_bindings(prepared_statement: PreparedStatement): void;
@@ -608,6 +618,9 @@ export function create_hugeint(input: bigint): Value;
 // DUCKDB_API duckdb_value duckdb_create_uhugeint(duckdb_uhugeint input);
 export function create_uhugeint(input: bigint): Value;
 
+// DUCKDB_API duckdb_value duckdb_create_varint(duckdb_varint input);
+// DUCKDB_API duckdb_value duckdb_create_decimal(duckdb_decimal input);
+
 // DUCKDB_API duckdb_value duckdb_create_float(float input);
 export function create_float(input: number): Value;
 
@@ -626,11 +639,19 @@ export function create_time_tz_value(input: TimeTZ): Value;
 // DUCKDB_API duckdb_value duckdb_create_timestamp(duckdb_timestamp input);
 export function create_timestamp(input: Timestamp): Value;
 
+// DUCKDB_API duckdb_value duckdb_create_timestamp_tz(duckdb_timestamp input);
+// DUCKDB_API duckdb_value duckdb_create_timestamp_s(duckdb_timestamp_s input);
+// DUCKDB_API duckdb_value duckdb_create_timestamp_ms(duckdb_timestamp_ms input);
+// DUCKDB_API duckdb_value duckdb_create_timestamp_ns(duckdb_timestamp_ns input);
+
 // DUCKDB_API duckdb_value duckdb_create_interval(duckdb_interval input);
 export function create_interval(input: Interval): Value;
 
 // DUCKDB_API duckdb_value duckdb_create_blob(const uint8_t *data, idx_t length);
 export function create_blob(data: Uint8Array): Value;
+
+// DUCKDB_API duckdb_value duckdb_create_bit(duckdb_bit input);
+// DUCKDB_API duckdb_value duckdb_create_uuid(duckdb_uhugeint input);
 
 // DUCKDB_API bool duckdb_get_bool(duckdb_value val);
 export function get_bool(value: Value): boolean;
@@ -665,6 +686,9 @@ export function get_hugeint(value: Value): bigint;
 // DUCKDB_API duckdb_uhugeint duckdb_get_uhugeint(duckdb_value val);
 export function get_uhugeint(value: Value): bigint;
 
+// DUCKDB_API duckdb_varint duckdb_get_varint(duckdb_value val);
+// DUCKDB_API duckdb_decimal duckdb_get_decimal(duckdb_value val);
+
 // DUCKDB_API float duckdb_get_float(duckdb_value val);
 export function get_float(value: Value): number;
 
@@ -683,6 +707,11 @@ export function get_time_tz(value: Value): TimeTZ;
 // DUCKDB_API duckdb_timestamp duckdb_get_timestamp(duckdb_value val);
 export function get_timestamp(value: Value): Timestamp;
 
+// DUCKDB_API duckdb_timestamp duckdb_get_timestamp_tz(duckdb_value val);
+// DUCKDB_API duckdb_timestamp_s duckdb_get_timestamp_s(duckdb_value val);
+// DUCKDB_API duckdb_timestamp_ms duckdb_get_timestamp_ms(duckdb_value val);
+// DUCKDB_API duckdb_timestamp_ns duckdb_get_timestamp_ns(duckdb_value val);
+
 // DUCKDB_API duckdb_interval duckdb_get_interval(duckdb_value val);
 export function get_interval(value: Value): Interval;
 
@@ -691,6 +720,9 @@ export function get_value_type(value: Value): LogicalType;
 
 // DUCKDB_API duckdb_blob duckdb_get_blob(duckdb_value val);
 export function get_blob(value: Value): Uint8Array;
+
+// DUCKDB_API duckdb_bit duckdb_get_bit(duckdb_value val);
+// DUCKDB_API duckdb_uhugeint duckdb_get_uuid(duckdb_value val);
 
 // DUCKDB_API char *duckdb_get_varchar(duckdb_value value);
 export function get_varchar(value: Value): string;
@@ -712,6 +744,14 @@ export function get_map_key(value: Value, index: number): Value;
 
 // DUCKDB_API duckdb_value duckdb_get_map_value(duckdb_value value, idx_t index);
 export function get_map_value(value: Value, index: number): Value;
+
+// DUCKDB_API bool duckdb_is_null_value(duckdb_value value);
+// DUCKDB_API duckdb_value duckdb_create_null_value();
+// DUCKDB_API idx_t duckdb_get_list_size(duckdb_value value);
+// DUCKDB_API duckdb_value duckdb_get_list_child(duckdb_value value, idx_t index);
+// DUCKDB_API duckdb_value duckdb_create_enum_value(duckdb_logical_type type, uint64_t value);
+// DUCKDB_API uint64_t duckdb_get_enum_value(duckdb_value value);
+// DUCKDB_API duckdb_value duckdb_get_struct_child(duckdb_value value, idx_t index);
 
 // DUCKDB_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
 export function create_logical_type(type: Type): LogicalType;
@@ -959,6 +999,8 @@ export function validity_set_row_valid(validity: Uint8Array, row_index: number):
 // DUCKDB_API duckdb_state duckdb_appender_create(duckdb_connection connection, const char *schema, const char *table, duckdb_appender *out_appender);
 export function appender_create(connection: Connection, schema: string, table: string): Appender;
 
+// DUCKDB_API duckdb_state duckdb_appender_create_ext(duckdb_connection connection, const char *catalog, const char *schema, const char *table, duckdb_appender *out_appender);
+
 // DUCKDB_API idx_t duckdb_appender_column_count(duckdb_appender appender);
 export function appender_column_count(appender: Appender): number;
 
@@ -977,6 +1019,9 @@ export function appender_close(appender: Appender): void;
 // DUCKDB_API duckdb_state duckdb_appender_destroy(duckdb_appender *appender);
 // not exposed: destroyed in finalizer
 
+// DUCKDB_API duckdb_state duckdb_appender_add_column(duckdb_appender appender, const char *name);
+// DUCKDB_API duckdb_state duckdb_appender_clear_columns(duckdb_appender appender);
+
 // DUCKDB_API duckdb_state duckdb_appender_begin_row(duckdb_appender appender);
 // not exposed: no-op
 
@@ -985,6 +1030,8 @@ export function appender_end_row(appender: Appender): void;
 
 // DUCKDB_API duckdb_state duckdb_append_default(duckdb_appender appender);
 export function append_default(appender: Appender): void;
+
+// DUCKDB_API duckdb_state duckdb_append_default_to_chunk(duckdb_appender appender, duckdb_data_chunk chunk, idx_t col, idx_t row);
 
 // DUCKDB_API duckdb_state duckdb_append_bool(duckdb_appender appender, bool value);
 export function append_bool(appender: Appender, bool: boolean): void;
@@ -1049,13 +1096,17 @@ export function append_blob(appender: Appender, data: Uint8Array): void;
 // DUCKDB_API duckdb_state duckdb_append_null(duckdb_appender appender);
 export function append_null(appender: Appender): void;
 
+// DUCKDB_API duckdb_state duckdb_append_value(duckdb_appender appender, duckdb_value value);
+
 // DUCKDB_API duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk);
 export function append_data_chunk(appender: Appender, chunk: DataChunk): void;
 
 // DUCKDB_API duckdb_state duckdb_table_description_create(duckdb_connection connection, const char *schema, const char *table, duckdb_table_description *out);
+// DUCKDB_API duckdb_state duckdb_table_description_create_ext(duckdb_connection connection, const char *catalog, const char *schema, const char *table, duckdb_table_description *out);
 // DUCKDB_API void duckdb_table_description_destroy(duckdb_table_description *table_description);
 // DUCKDB_API const char *duckdb_table_description_error(duckdb_table_description table_description);
 // DUCKDB_API duckdb_state duckdb_column_has_default(duckdb_table_description table_description, idx_t index, bool *out);
+// DUCKDB_API char *duckdb_table_description_get_column_name(duckdb_table_description table_description, idx_t index);
 
 // #ifndef DUCKDB_API_NO_DEPRECATED
 // DUCKDB_API duckdb_state duckdb_query_arrow(duckdb_connection connection, const char *query, duckdb_arrow *out_result);
