@@ -153,6 +153,18 @@ export interface Timestamp {
   /** Microseconds since 1970-01-01 */
   micros: bigint;
 }
+export interface TimestampSeconds {
+  /** Seconds since 1970-01-01 */
+  seconds: bigint;
+}
+export interface TimestampMilliseconds {
+  /** Milliseconds since 1970-01-01 */
+  millis: bigint;
+}
+export interface TimestampNanoseconds {
+  /** Nanoseconds since 1970-01-01 */
+  nanos: bigint;
+}
 export interface TimestampParts {
   date: DateParts;
   time: TimeParts;
@@ -404,8 +416,13 @@ export function to_timestamp(parts: TimestampParts): Timestamp;
 export function is_finite_timestamp(timestamp: Timestamp): boolean;
 
 // DUCKDB_API bool duckdb_is_finite_timestamp_s(duckdb_timestamp_s ts);
+export function is_finite_timestamp_s(timestampSeconds: TimestampSeconds): boolean;
+
 // DUCKDB_API bool duckdb_is_finite_timestamp_ms(duckdb_timestamp_ms ts);
+export function is_finite_timestamp_ms(timestampMilliseconds: TimestampMilliseconds): boolean;
+
 // DUCKDB_API bool duckdb_is_finite_timestamp_ns(duckdb_timestamp_ns ts);
+export function is_finite_timestamp_ns(timestampNanoseconds: TimestampNanoseconds): boolean;
 
 // DUCKDB_API double duckdb_hugeint_to_double(duckdb_hugeint val);
 export function hugeint_to_double(hugeint: bigint): number;

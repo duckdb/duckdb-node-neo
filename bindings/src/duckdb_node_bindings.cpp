@@ -110,6 +110,33 @@ duckdb_timestamp GetTimestampFromObject(Napi::Env env, Napi::Object timestamp_ob
   return { micros };
 }
 
+duckdb_timestamp_s GetTimestampSecondsFromObject(Napi::Env env, Napi::Object timestamp_s_obj) {
+  bool lossless;
+  auto seconds = timestamp_s_obj.Get("seconds").As<Napi::BigInt>().Int64Value(&lossless);
+  if (!lossless) {
+    throw Napi::Error::New(env, "seconds out of int64 range");
+  }
+  return { seconds };
+}
+
+duckdb_timestamp_ms GetTimestampMillisecondsFromObject(Napi::Env env, Napi::Object timestamp_ms_obj) {
+  bool lossless;
+  auto millis = timestamp_ms_obj.Get("millis").As<Napi::BigInt>().Int64Value(&lossless);
+  if (!lossless) {
+    throw Napi::Error::New(env, "millis out of int64 range");
+  }
+  return { millis };
+}
+
+duckdb_timestamp_ns GetTimestampNanosecondsFromObject(Napi::Env env, Napi::Object timestamp_ns_obj) {
+  bool lossless;
+  auto nanos = timestamp_ns_obj.Get("nanos").As<Napi::BigInt>().Int64Value(&lossless);
+  if (!lossless) {
+    throw Napi::Error::New(env, "nanos out of int64 range");
+  }
+  return { nanos };
+}
+
 Napi::Object MakeTimestampPartsObject(Napi::Env env, duckdb_timestamp_struct timestamp_parts) {
   auto timestamp_parts_obj = Napi::Object::New(env);
   timestamp_parts_obj.Set("date", MakeDatePartsObject(env, timestamp_parts.date));
@@ -1014,6 +1041,9 @@ public:
       InstanceMethod("from_timestamp", &DuckDBNodeAddon::from_timestamp),
       InstanceMethod("to_timestamp", &DuckDBNodeAddon::to_timestamp),
       InstanceMethod("is_finite_timestamp", &DuckDBNodeAddon::is_finite_timestamp),
+      InstanceMethod("is_finite_timestamp_s", &DuckDBNodeAddon::is_finite_timestamp_s),
+      InstanceMethod("is_finite_timestamp_ms", &DuckDBNodeAddon::is_finite_timestamp_ms),
+      InstanceMethod("is_finite_timestamp_ns", &DuckDBNodeAddon::is_finite_timestamp_ns),
 
       InstanceMethod("hugeint_to_double", &DuckDBNodeAddon::hugeint_to_double),
       InstanceMethod("double_to_hugeint", &DuckDBNodeAddon::double_to_hugeint),
@@ -1627,8 +1657,34 @@ private:
   }
 
   // DUCKDB_API bool duckdb_is_finite_timestamp_s(duckdb_timestamp_s ts);
+  // function is_finite_timestamp_s(timestampSeconds: TimestampSeconds): boolean
+  Napi::Value is_finite_timestamp_s(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto timestamp_s_obj = info[0].As<Napi::Object>();
+    auto timestamp_s = GetTimestampSecondsFromObject(env, timestamp_s_obj);
+    auto is_finite = duckdb_is_finite_timestamp_s(timestamp_s);
+    return Napi::Boolean::New(env, is_finite);
+  }
+
   // DUCKDB_API bool duckdb_is_finite_timestamp_ms(duckdb_timestamp_ms ts);
+  // function is_finite_timestamp_ms(timestampMilliseconds: TimestampMilliseconds): boolean
+  Napi::Value is_finite_timestamp_ms(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto timestamp_ms_obj = info[0].As<Napi::Object>();
+    auto timestamp_ms = GetTimestampMillisecondsFromObject(env, timestamp_ms_obj);
+    auto is_finite = duckdb_is_finite_timestamp_ms(timestamp_ms);
+    return Napi::Boolean::New(env, is_finite);
+  }
+
   // DUCKDB_API bool duckdb_is_finite_timestamp_ns(duckdb_timestamp_ns ts);
+  // function is_finite_timestamp_ns(timestampNanoseconds: TimestampNanoseconds): boolean
+  Napi::Value is_finite_timestamp_ns(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto timestamp_ns_obj = info[0].As<Napi::Object>();
+    auto timestamp_ns = GetTimestampNanosecondsFromObject(env, timestamp_ns_obj);
+    auto is_finite = duckdb_is_finite_timestamp_ns(timestamp_ns);
+    return Napi::Boolean::New(env, is_finite);
+  }
 
   // DUCKDB_API double duckdb_hugeint_to_double(duckdb_hugeint val);
   // function hugeint_to_double(hugeint: bigint): number
@@ -3840,9 +3896,8 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  210 instance methods
+  213 instance methods
     3 unimplemented instance cache functions
-    3 unimplemented timestamp utility functions
     1 unimplemented prepared statement function
     1 unimplemented logical type function
    10 unimplemented value creation functions

@@ -178,6 +178,66 @@ suite('conversion', () => {
       expect(duckdb.is_finite_timestamp({ micros: -(2n ** 63n - 1n) })).toBe(false);
     });
   });
+  suite('is_finite_timestamp_s', () => {
+    test('mid-range', () => {
+      expect(duckdb.is_finite_timestamp_s({ seconds: 1717418096n })).toBe(true);
+    });
+    test('epoch', () => {
+      expect(duckdb.is_finite_timestamp_s({ seconds: 0n })).toBe(true);
+    });
+    test('min', () => {
+      expect(duckdb.is_finite_timestamp_s({ seconds: -9223372022400n })).toBe(true);
+    });
+    test('max', () => {
+      expect(duckdb.is_finite_timestamp_s({ seconds: 9223372036854n })).toBe(true);
+    });
+    test('infinity', () => {
+      expect(duckdb.is_finite_timestamp_s({ seconds: 2n ** 63n - 1n })).toBe(false);
+    });
+    test('-infinity', () => {
+      expect(duckdb.is_finite_timestamp_s({ seconds: -(2n ** 63n - 1n) })).toBe(false);
+    });
+  });
+  suite('is_finite_timestamp_ms', () => {
+    test('mid-range', () => {
+      expect(duckdb.is_finite_timestamp_ms({ millis: 1717418096789n })).toBe(true);
+    });
+    test('epoch', () => {
+      expect(duckdb.is_finite_timestamp_ms({ millis: 0n })).toBe(true);
+    });
+    test('min', () => {
+      expect(duckdb.is_finite_timestamp_ms({ millis: -9223372022400000n })).toBe(true);
+    });
+    test('max', () => {
+      expect(duckdb.is_finite_timestamp_ms({ millis: 9223372036854775n })).toBe(true);
+    });
+    test('infinity', () => {
+      expect(duckdb.is_finite_timestamp_ms({ millis: 2n ** 63n - 1n })).toBe(false);
+    });
+    test('-infinity', () => {
+      expect(duckdb.is_finite_timestamp_ms({ millis: -(2n ** 63n - 1n) })).toBe(false);
+    });
+  });
+  suite('is_finite_timestamp_ns', () => {
+    test('mid-range', () => {
+      expect(duckdb.is_finite_timestamp_ns({ nanos: 1717418096789123000n })).toBe(true);
+    });
+    test('epoch', () => {
+      expect(duckdb.is_finite_timestamp_ns({ nanos: 0n })).toBe(true);
+    });
+    test('min', () => {
+      expect(duckdb.is_finite_timestamp_ns({ nanos: -9223286400000000000n })).toBe(true);
+    });
+    test('max', () => {
+      expect(duckdb.is_finite_timestamp_ns({ nanos: 9223372036854775806n })).toBe(true);
+    });
+    test('infinity', () => {
+      expect(duckdb.is_finite_timestamp_ns({ nanos: 2n ** 63n - 1n })).toBe(false);
+    });
+    test('-infinity', () => {
+      expect(duckdb.is_finite_timestamp_ns({ nanos: -(2n ** 63n - 1n) })).toBe(false);
+    });
+  });
   suite('hugeint_to_double', () => {
     test('zero', () => {
       expect(duckdb.hugeint_to_double(0n)).toBe(0);

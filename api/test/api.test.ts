@@ -1040,6 +1040,34 @@ describe('api', () => {
     assert.isFalse(DATE.posInf.isFinite);
     assert.isFalse(DATE.negInf.isFinite);
   });
+  test('timestamp isFinite', () => {
+    assert.isTrue(TIMESTAMP.epoch.isFinite);
+    assert.isTrue(TIMESTAMP.max.isFinite);
+    assert.isTrue(TIMESTAMP.min.isFinite);
+    assert.isFalse(TIMESTAMP.posInf.isFinite);
+    assert.isFalse(TIMESTAMP.negInf.isFinite);
+  });
+  test('timestamp_s isFinite', () => {
+    assert.isTrue(TIMESTAMP_S.epoch.isFinite);
+    assert.isTrue(TIMESTAMP_S.max.isFinite);
+    assert.isTrue(TIMESTAMP_S.min.isFinite);
+    assert.isFalse(TIMESTAMP_S.posInf.isFinite);
+    assert.isFalse(TIMESTAMP_S.negInf.isFinite);
+  });
+  test('timestamp_ms isFinite', () => {
+    assert.isTrue(TIMESTAMP_MS.epoch.isFinite);
+    assert.isTrue(TIMESTAMP_MS.max.isFinite);
+    assert.isTrue(TIMESTAMP_MS.min.isFinite);
+    assert.isFalse(TIMESTAMP_MS.posInf.isFinite);
+    assert.isFalse(TIMESTAMP_MS.negInf.isFinite);
+  });
+  test('timestamp_ns isFinite', () => {
+    assert.isTrue(TIMESTAMP_NS.epoch.isFinite);
+    assert.isTrue(TIMESTAMP_NS.max.isFinite);
+    assert.isTrue(TIMESTAMP_NS.min.isFinite);
+    assert.isFalse(TIMESTAMP_NS.posInf.isFinite);
+    assert.isFalse(TIMESTAMP_NS.negInf.isFinite);
+  });
   test('value conversion', () => {
     const dateParts: DateParts = { year: 2024, month: 6, day: 3 };
     const timeParts: TimeParts = { hour: 12, min: 34, sec: 56, micros: 789123 };
