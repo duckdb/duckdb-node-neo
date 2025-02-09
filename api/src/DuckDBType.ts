@@ -436,6 +436,12 @@ export class DuckDBTimestampSecondsType extends BaseDuckDBType<DuckDBTypeId.TIME
   public get min() {
     return DuckDBTimestampSecondsValue.Min;
   }
+  public get posInf() {
+    return DuckDBTimestampSecondsValue.PosInf;
+  }
+  public get negInf() {
+    return DuckDBTimestampSecondsValue.NegInf;
+  }
 }
 export const TIMESTAMP_S = DuckDBTimestampSecondsType.instance;
 
@@ -458,6 +464,12 @@ export class DuckDBTimestampMillisecondsType extends BaseDuckDBType<DuckDBTypeId
   public get min() {
     return DuckDBTimestampMillisecondsValue.Min;
   }
+  public get posInf() {
+    return DuckDBTimestampMillisecondsValue.PosInf;
+  }
+  public get negInf() {
+    return DuckDBTimestampMillisecondsValue.NegInf;
+  }
 }
 export const TIMESTAMP_MS = DuckDBTimestampMillisecondsType.instance;
 
@@ -479,6 +491,12 @@ export class DuckDBTimestampNanosecondsType extends BaseDuckDBType<DuckDBTypeId.
   }
   public get min() {
     return DuckDBTimestampNanosecondsValue.Min;
+  }
+  public get posInf() {
+    return DuckDBTimestampNanosecondsValue.PosInf;
+  }
+  public get negInf() {
+    return DuckDBTimestampNanosecondsValue.NegInf;
   }
 }
 export const TIMESTAMP_NS = DuckDBTimestampNanosecondsType.instance;

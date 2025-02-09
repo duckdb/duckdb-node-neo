@@ -11,6 +11,10 @@ export class DuckDBTimestampValue implements Timestamp {
     this.micros = micros;
   }
 
+  public get isFinite(): boolean {
+    return duckdb.is_finite_timestamp(this);
+  }
+
   public toString(): string {
     return getDuckDBTimestampStringFromMicroseconds(this.micros);
   }
@@ -25,7 +29,7 @@ export class DuckDBTimestampValue implements Timestamp {
   
   public static readonly Epoch = new DuckDBTimestampValue(0n);
   public static readonly Max = new DuckDBTimestampValue(2n ** 63n - 2n);
-  public static readonly Min = new DuckDBTimestampValue(DuckDBTimestampMillisecondsValue.Min.milliseconds * 1000n);
+  public static readonly Min = new DuckDBTimestampValue(DuckDBTimestampMillisecondsValue.Min.millis * 1000n);
   public static readonly PosInf = new DuckDBTimestampValue(2n ** 63n - 1n);
   public static readonly NegInf = new DuckDBTimestampValue(-(2n ** 63n - 1n));
 }

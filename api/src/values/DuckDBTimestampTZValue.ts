@@ -12,6 +12,10 @@ export class DuckDBTimestampTZValue implements Timestamp {
     this.micros = micros;
   }
 
+  public get isFinite(): boolean {
+    return duckdb.is_finite_timestamp(this);
+  }
+
   public toString(): string {
     return getDuckDBTimestampStringFromMicroseconds(
       this.micros,

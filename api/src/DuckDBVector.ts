@@ -2410,7 +2410,7 @@ export class DuckDBTimestampMillisecondsVector extends DuckDBVector<DuckDBTimest
     value: DuckDBTimestampMillisecondsValue | null
   ) {
     if (value != null) {
-      this.items[itemIndex] = value.milliseconds;
+      this.items[itemIndex] = value.millis;
       this.validity.setItemValid(itemIndex, true);
     } else {
       this.validity.setItemValid(itemIndex, false);
@@ -2482,7 +2482,7 @@ export class DuckDBTimestampNanosecondsVector extends DuckDBVector<DuckDBTimesta
     value: DuckDBTimestampNanosecondsValue | null
   ) {
     if (value != null) {
-      this.items[itemIndex] = value.nanoseconds;
+      this.items[itemIndex] = value.nanos;
       this.validity.setItemValid(itemIndex, true);
     } else {
       this.validity.setItemValid(itemIndex, false);
