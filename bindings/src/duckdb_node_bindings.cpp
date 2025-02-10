@@ -1056,6 +1056,7 @@ public:
       InstanceMethod("nparams", &DuckDBNodeAddon::nparams),
       InstanceMethod("parameter_name", &DuckDBNodeAddon::parameter_name),
       InstanceMethod("param_type", &DuckDBNodeAddon::param_type),
+      InstanceMethod("param_logical_type", &DuckDBNodeAddon::param_logical_type),
       InstanceMethod("clear_bindings", &DuckDBNodeAddon::clear_bindings),
       InstanceMethod("prepared_statement_type", &DuckDBNodeAddon::prepared_statement_type),
       InstanceMethod("bind_value", &DuckDBNodeAddon::bind_value),
@@ -1794,6 +1795,17 @@ private:
   }
 
   // DUCKDB_API duckdb_logical_type duckdb_param_logical_type(duckdb_prepared_statement prepared_statement, idx_t param_idx);
+  // function param_logical_type(prepared_statement: PreparedStatement, index: number): LogicalType
+  Napi::Value param_logical_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto logical_type = duckdb_param_logical_type(prepared_statement, index);
+    if (!logical_type) {
+      throw Napi::Error::New(env, "Failed to get logical type");
+    }
+    return CreateExternalForLogicalType(env, logical_type);
+  }
 
   // DUCKDB_API duckdb_state duckdb_clear_bindings(duckdb_prepared_statement prepared_statement);
   // function clear_bindings(prepared_statement: PreparedStatement): void
@@ -3896,9 +3908,8 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  213 instance methods
+  214 instance methods
     3 unimplemented instance cache functions
-    1 unimplemented prepared statement function
     1 unimplemented logical type function
    10 unimplemented value creation functions
    13 unimplemented value inspection functions

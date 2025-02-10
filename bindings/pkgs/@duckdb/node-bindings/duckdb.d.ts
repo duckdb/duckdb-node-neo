@@ -461,6 +461,7 @@ export function parameter_name(prepared_statement: PreparedStatement, index: num
 export function param_type(prepared_statement: PreparedStatement, index: number): Type;
 
 // DUCKDB_API duckdb_logical_type duckdb_param_logical_type(duckdb_prepared_statement prepared_statement, idx_t param_idx);
+export function param_logical_type(prepared_statement: PreparedStatement, index: number): LogicalType;
 
 // DUCKDB_API duckdb_state duckdb_clear_bindings(duckdb_prepared_statement prepared_statement);
 export function clear_bindings(prepared_statement: PreparedStatement): void;

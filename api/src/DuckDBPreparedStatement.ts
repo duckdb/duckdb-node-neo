@@ -1,5 +1,6 @@
 import duckdb from '@duckdb/node-bindings';
 import { createValue } from './createValue';
+import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBMaterializedResult } from './DuckDBMaterializedResult';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBResult } from './DuckDBResult';
@@ -48,6 +49,12 @@ export class DuckDBPreparedStatement {
       this.prepared_statement,
       parameterIndex
     ) as number as DuckDBTypeId;
+  }
+  public parameterType(parameterIndex: number): DuckDBType {
+    return DuckDBLogicalType.create(duckdb.param_logical_type(
+      this.prepared_statement,
+      parameterIndex
+    )).asType();
   }
   public clearBindings() {
     duckdb.clear_bindings(this.prepared_statement);

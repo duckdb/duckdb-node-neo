@@ -52,6 +52,7 @@ import {
   DuckDBTimestampVector,
   DuckDBTinyIntVector,
   DuckDBType,
+  DuckDBTypeId,
   DuckDBUBigIntVector,
   DuckDBUHugeIntVector,
   DuckDBUIntegerVector,
@@ -422,6 +423,23 @@ describe('api', () => {
       );
       prepared.bindArray(7, arrayValue([100, 200, 300]), ARRAY(INTEGER, 3));
       prepared.bindNull(8);
+      assert.equal(prepared.parameterTypeId(1), DuckDBTypeId.INTEGER);
+      assert.deepEqual(prepared.parameterType(1), INTEGER);
+      // See https://github.com/duckdb/duckdb/issues/16137
+      // assert.equal(prepared.parameterTypeId(2), DuckDBTypeId.VARCHAR);
+      // assert.deepEqual(prepared.parameterType(2), VARCHAR);
+      assert.equal(prepared.parameterTypeId(3), DuckDBTypeId.BOOLEAN);
+      assert.deepEqual(prepared.parameterType(3), BOOLEAN);
+      assert.equal(prepared.parameterTypeId(4), DuckDBTypeId.TIME_TZ);
+      assert.deepEqual(prepared.parameterType(4), TIMETZ);
+      assert.equal(prepared.parameterTypeId(5), DuckDBTypeId.LIST);
+      assert.deepEqual(prepared.parameterType(5), LIST(INTEGER));
+      assert.equal(prepared.parameterTypeId(6), DuckDBTypeId.STRUCT);
+      assert.deepEqual(prepared.parameterType(6), STRUCT({ 'a': INTEGER, 'b': VARCHAR }));
+      assert.equal(prepared.parameterTypeId(7), DuckDBTypeId.ARRAY);
+      assert.deepEqual(prepared.parameterType(7), ARRAY(INTEGER, 3));
+      assert.equal(prepared.parameterTypeId(8), DuckDBTypeId.SQLNULL);
+      assert.deepEqual(prepared.parameterType(8), SQLNULL);
       const result = await prepared.run();
       assertColumns(result, [
         { name: 'a', type: INTEGER },
