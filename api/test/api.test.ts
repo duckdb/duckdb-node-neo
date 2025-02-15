@@ -400,29 +400,40 @@ describe('api', () => {
   test('should support running prepared statements', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare(
-        'select $num as a, $str as b, $bool as c, $timetz as d, $list as e, $struct as f, $array as g, $null as h'
+        'select \
+        $num as num, \
+        $str as str, \
+        $bool as bool, \
+        $timetz as timetz, \
+        $varint as varint, \
+        $list as list, \
+        $struct as struct, \
+        $array as array, \
+        $null as null_value'
       );
-      assert.strictEqual(prepared.parameterCount, 8);
+      assert.strictEqual(prepared.parameterCount, 9);
       assert.strictEqual(prepared.parameterName(1), 'num');
       assert.strictEqual(prepared.parameterName(2), 'str');
       assert.strictEqual(prepared.parameterName(3), 'bool');
       assert.strictEqual(prepared.parameterName(4), 'timetz');
-      assert.strictEqual(prepared.parameterName(5), 'list');
-      assert.strictEqual(prepared.parameterName(6), 'struct');
-      assert.strictEqual(prepared.parameterName(7), 'array');
-      assert.strictEqual(prepared.parameterName(8), 'null');
+      assert.strictEqual(prepared.parameterName(5), 'varint');
+      assert.strictEqual(prepared.parameterName(6), 'list');
+      assert.strictEqual(prepared.parameterName(7), 'struct');
+      assert.strictEqual(prepared.parameterName(8), 'array');
+      assert.strictEqual(prepared.parameterName(9), 'null');
       prepared.bindInteger(1, 10);
       prepared.bindVarchar(2, 'abc');
       prepared.bindBoolean(3, true);
       prepared.bindTimeTZ(4, TIMETZ.max);
-      prepared.bindList(5, listValue([100, 200, 300]), LIST(INTEGER));
+      prepared.bindVarInt(5, VARINT.max);
+      prepared.bindList(6, listValue([100, 200, 300]), LIST(INTEGER));
       prepared.bindStruct(
-        6,
+        7,
         structValue({ 'a': 42, 'b': 'duck' }),
         STRUCT({ 'a': INTEGER, 'b': VARCHAR })
       );
-      prepared.bindArray(7, arrayValue([100, 200, 300]), ARRAY(INTEGER, 3));
-      prepared.bindNull(8);
+      prepared.bindArray(8, arrayValue([100, 200, 300]), ARRAY(INTEGER, 3));
+      prepared.bindNull(9);
       assert.equal(prepared.parameterTypeId(1), DuckDBTypeId.INTEGER);
       assert.deepEqual(prepared.parameterType(1), INTEGER);
       // See https://github.com/duckdb/duckdb/issues/16137
@@ -432,29 +443,32 @@ describe('api', () => {
       assert.deepEqual(prepared.parameterType(3), BOOLEAN);
       assert.equal(prepared.parameterTypeId(4), DuckDBTypeId.TIME_TZ);
       assert.deepEqual(prepared.parameterType(4), TIMETZ);
-      assert.equal(prepared.parameterTypeId(5), DuckDBTypeId.LIST);
-      assert.deepEqual(prepared.parameterType(5), LIST(INTEGER));
-      assert.equal(prepared.parameterTypeId(6), DuckDBTypeId.STRUCT);
-      assert.deepEqual(prepared.parameterType(6), STRUCT({ 'a': INTEGER, 'b': VARCHAR }));
-      assert.equal(prepared.parameterTypeId(7), DuckDBTypeId.ARRAY);
-      assert.deepEqual(prepared.parameterType(7), ARRAY(INTEGER, 3));
-      assert.equal(prepared.parameterTypeId(8), DuckDBTypeId.SQLNULL);
-      assert.deepEqual(prepared.parameterType(8), SQLNULL);
+      assert.equal(prepared.parameterTypeId(5), DuckDBTypeId.VARINT);
+      assert.deepEqual(prepared.parameterType(5), VARINT);
+      assert.equal(prepared.parameterTypeId(6), DuckDBTypeId.LIST);
+      assert.deepEqual(prepared.parameterType(6), LIST(INTEGER));
+      assert.equal(prepared.parameterTypeId(7), DuckDBTypeId.STRUCT);
+      assert.deepEqual(prepared.parameterType(7), STRUCT({ 'a': INTEGER, 'b': VARCHAR }));
+      assert.equal(prepared.parameterTypeId(8), DuckDBTypeId.ARRAY);
+      assert.deepEqual(prepared.parameterType(8), ARRAY(INTEGER, 3));
+      assert.equal(prepared.parameterTypeId(9), DuckDBTypeId.SQLNULL);
+      assert.deepEqual(prepared.parameterType(9), SQLNULL);
       const result = await prepared.run();
       assertColumns(result, [
-        { name: 'a', type: INTEGER },
-        { name: 'b', type: VARCHAR },
-        { name: 'c', type: BOOLEAN },
-        { name: 'd', type: TIMETZ },
-        { name: 'e', type: LIST(INTEGER) },
-        { name: 'f', type: STRUCT({ 'a': INTEGER, 'b': VARCHAR }) },
-        { name: 'g', type: ARRAY(INTEGER, 3) },
-        { name: 'h', type: INTEGER },
+        { name: 'num', type: INTEGER },
+        { name: 'str', type: VARCHAR },
+        { name: 'bool', type: BOOLEAN },
+        { name: 'timetz', type: TIMETZ },
+        { name: 'varint', type: VARINT },
+        { name: 'list', type: LIST(INTEGER) },
+        { name: 'struct', type: STRUCT({ 'a': INTEGER, 'b': VARCHAR }) },
+        { name: 'array', type: ARRAY(INTEGER, 3) },
+        { name: 'null_value', type: INTEGER },
       ]);
       const chunk = await result.fetchChunk();
       assert.isDefined(chunk);
       if (chunk) {
-        assert.strictEqual(chunk.columnCount, 8);
+        assert.strictEqual(chunk.columnCount, 9);
         assert.strictEqual(chunk.rowCount, 1);
         assertValues<number, DuckDBIntegerVector>(
           chunk,
@@ -475,16 +489,17 @@ describe('api', () => {
           [true]
         );
         assertValues(chunk, 3, DuckDBTimeTZVector, [TIMETZ.max]);
-        assertValues(chunk, 4, DuckDBListVector, [listValue([100, 200, 300])]);
-        assertValues(chunk, 5, DuckDBStructVector, [
+        assertValues(chunk, 4, DuckDBVarIntVector, [VARINT.max]);
+        assertValues(chunk, 5, DuckDBListVector, [listValue([100, 200, 300])]);
+        assertValues(chunk, 6, DuckDBStructVector, [
           structValue({ 'a': 42, 'b': 'duck' }),
         ]);
-        assertValues(chunk, 6, DuckDBArrayVector, [
+        assertValues(chunk, 7, DuckDBArrayVector, [
           arrayValue([100, 200, 300]),
         ]);
         assertValues<number, DuckDBIntegerVector>(
           chunk,
-          7,
+          8,
           DuckDBIntegerVector,
           [null]
         );

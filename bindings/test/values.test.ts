@@ -25,7 +25,8 @@ import {
   UINTEGER,
   USMALLINT,
   UTINYINT,
-  VARCHAR
+  VARCHAR,
+  VARINT
 } from './utils/expectedLogicalTypes';
 
 suite('values', () => {
@@ -94,6 +95,12 @@ suite('values', () => {
     const uhugeint_value = duckdb.create_uhugeint(input);
     expectLogicalType(duckdb.get_value_type(uhugeint_value), UHUGEINT);
     expect(duckdb.get_uhugeint(uhugeint_value)).toBe(input);
+  });
+  test('varint', () => {
+    const input = -((((2n ** 10n + 11n) * (2n ** 64n) + (2n ** 9n + 7n)) * (2n ** 64n)) + (2n ** 8n + 5n));
+    const varint_value = duckdb.create_varint(input);
+    expectLogicalType(duckdb.get_value_type(varint_value), VARINT);
+    expect(duckdb.get_varint(varint_value)).toBe(input);
   });
   test('float', () => {
     const input = 3.4028234663852886e38;

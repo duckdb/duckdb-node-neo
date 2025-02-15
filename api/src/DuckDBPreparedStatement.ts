@@ -12,6 +12,7 @@ import {
   DuckDBType,
   TIMESTAMPTZ,
   TIMETZ,
+  VARINT,
 } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { StatementType } from './enums';
@@ -94,6 +95,9 @@ export class DuckDBPreparedStatement {
   }
   public bindUHugeInt(parameterIndex: number, value: bigint) {
     duckdb.bind_uhugeint(this.prepared_statement, parameterIndex, value);
+  }
+  public bindVarInt(parameterIndex: number, value: bigint) {
+    this.bindValue(parameterIndex, value, VARINT);
   }
   public bindDecimal(parameterIndex: number, value: DuckDBDecimalValue) {
     duckdb.bind_decimal(this.prepared_statement, parameterIndex, value);

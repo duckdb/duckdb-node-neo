@@ -186,7 +186,10 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
         `Cannot create values of type ANY. Specify a specific type.`
       );
     case DuckDBTypeId.VARINT:
-      throw new Error(`not yet implemented for VARINT`); // TODO: implement when available in 1.2.0
+      if (typeof input === 'bigint') {
+        return duckdb.create_varint(input);
+      }
+      throw new Error(`input is not a bigint`);
     case DuckDBTypeId.SQLNULL:
       throw new Error(`not yet implemented for SQLNUll`); // TODO: implement when available in 1.2.0
     default:
