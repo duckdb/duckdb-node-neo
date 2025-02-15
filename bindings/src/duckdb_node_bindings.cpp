@@ -213,6 +213,38 @@ Napi::BigInt MakeBigIntFromUHugeInt(Napi::Env env, duckdb_uhugeint uhugeint) {
   return Napi::BigInt::New(env, sign_bit, word_count, words);
 }
 
+duckdb_varint GetVarIntFromBigInt(Napi::Env env, Napi::BigInt bigint) {
+  int sign_bit;
+  size_t word_count = bigint.WordCount();
+  size_t byte_count = word_count * 8;
+  uint64_t *words = static_cast<uint64_t*>(duckdb_malloc(byte_count));
+  bigint.ToWords(&sign_bit, &word_count, words);
+  uint8_t *data = reinterpret_cast<uint8_t*>(words);
+  idx_t size = byte_count;
+  bool is_negative = bool(sign_bit);
+  // convert little-endian to big-endian
+  for (size_t i = 0; i < size/2; i++) {
+    auto tmp = data[i];
+    data[i] = data[size - 1 - i];
+    data[size - 1 - i] = tmp;
+  }
+  return { data, size, is_negative };
+}
+
+Napi::BigInt MakeBigIntFromVarInt(Napi::Env env, duckdb_varint varint) {
+  int sign_bit = varint.is_negative ? 1 : 0;
+  size_t word_count = varint.size / 8;
+  uint8_t *data = static_cast<uint8_t*>(duckdb_malloc(varint.size));
+  // convert big-endian to little-endian
+  for (size_t i = 0; i < varint.size; i++) {
+    data[i] = varint.data[varint.size - 1 - i];
+  }
+  uint64_t *words = reinterpret_cast<uint64_t*>(data);
+  auto bigint = Napi::BigInt::New(env, sign_bit, word_count, words);
+  duckdb_free(data);
+  return bigint;
+}
+
 Napi::Object MakeDecimalObject(Napi::Env env, duckdb_decimal decimal) {
   auto decimal_obj = Napi::Object::New(env);
   decimal_obj.Set("width", Napi::Number::New(env, decimal.width));
@@ -1110,6 +1142,7 @@ public:
       InstanceMethod("create_int64", &DuckDBNodeAddon::create_int64),
       InstanceMethod("create_hugeint", &DuckDBNodeAddon::create_hugeint),
       InstanceMethod("create_uhugeint", &DuckDBNodeAddon::create_uhugeint),
+      InstanceMethod("create_varint", &DuckDBNodeAddon::create_varint),
       InstanceMethod("create_float", &DuckDBNodeAddon::create_float),
       InstanceMethod("create_double", &DuckDBNodeAddon::create_double),
       InstanceMethod("create_date", &DuckDBNodeAddon::create_date),
@@ -1129,6 +1162,7 @@ public:
       InstanceMethod("get_uint64", &DuckDBNodeAddon::get_uint64),
       InstanceMethod("get_hugeint", &DuckDBNodeAddon::get_hugeint),
       InstanceMethod("get_uhugeint", &DuckDBNodeAddon::get_uhugeint),
+      InstanceMethod("get_varint", &DuckDBNodeAddon::get_varint),
       InstanceMethod("get_float", &DuckDBNodeAddon::get_float),
       InstanceMethod("get_double", &DuckDBNodeAddon::get_double),
       InstanceMethod("get_date", &DuckDBNodeAddon::get_date),
@@ -2416,6 +2450,16 @@ private:
   }
 
   // DUCKDB_API duckdb_value duckdb_create_varint(duckdb_varint input);
+  // function create_varint(input: bigint): Value
+  Napi::Value create_varint(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto input_bigint = info[0].As<Napi::BigInt>();
+    auto varint = GetVarIntFromBigInt(env, input_bigint);
+    auto value = duckdb_create_varint(varint);
+    duckdb_free(varint.data);
+    return CreateExternalForValue(env, value);
+  }
+
   // DUCKDB_API duckdb_value duckdb_create_decimal(duckdb_decimal input);
 
   // DUCKDB_API duckdb_value duckdb_create_float(float input);
@@ -2600,6 +2644,16 @@ private:
   }
 
   // DUCKDB_API duckdb_varint duckdb_get_varint(duckdb_value val);
+  // function get_varint(value: Value): bigint
+  Napi::Value get_varint(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto varint = duckdb_get_varint(value);
+    auto bigint = MakeBigIntFromVarInt(env, varint);
+    duckdb_free(varint.data);
+    return bigint;
+  }
+
   // DUCKDB_API duckdb_decimal duckdb_get_decimal(duckdb_value val);
 
   // DUCKDB_API float duckdb_get_float(duckdb_value val);
