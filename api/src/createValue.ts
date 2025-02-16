@@ -5,6 +5,7 @@ import {
   DuckDBArrayValue,
   DuckDBBlobValue,
   DuckDBDateValue,
+  DuckDBDecimalValue,
   DuckDBIntervalValue,
   DuckDBListValue,
   DuckDBStructValue,
@@ -113,7 +114,10 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a DuckDBBlobValue`);
     case DuckDBTypeId.DECIMAL:
-      throw new Error(`not yet implemented for DECIMAL`); // TODO: implement when available in 1.2.0
+      if (input instanceof DuckDBDecimalValue) {
+        return duckdb.create_decimal(input);
+      }
+      throw new Error(`input is not a DuckDBDecimalValue`);
     case DuckDBTypeId.TIMESTAMP_S:
       throw new Error(`not yet implemented for TIMESTAMP_S`); // TODO: implement when available in 1.2.0
     case DuckDBTypeId.TIMESTAMP_MS:

@@ -1,4 +1,11 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb, {
+  Date_,
+  Decimal,
+  Interval,
+  Time,
+  Timestamp,
+  TimeTZ,
+} from '@duckdb/node-bindings';
 import { expect, suite, test } from 'vitest';
 import { expectLogicalType } from './utils/expectLogicalType';
 import {
@@ -7,6 +14,7 @@ import {
   BLOB,
   BOOLEAN,
   DATE,
+  DECIMAL,
   DOUBLE,
   ENTRY,
   FLOAT,
@@ -26,7 +34,7 @@ import {
   USMALLINT,
   UTINYINT,
   VARCHAR,
-  VARINT
+  VARINT,
 } from './utils/expectedLogicalTypes';
 
 suite('values', () => {
@@ -97,10 +105,19 @@ suite('values', () => {
     expect(duckdb.get_uhugeint(uhugeint_value)).toBe(input);
   });
   test('varint', () => {
-    const input = -((((2n ** 10n + 11n) * (2n ** 64n) + (2n ** 9n + 7n)) * (2n ** 64n)) + (2n ** 8n + 5n));
+    const input = -(
+      ((2n ** 10n + 11n) * 2n ** 64n + (2n ** 9n + 7n)) * 2n ** 64n +
+      (2n ** 8n + 5n)
+    );
     const varint_value = duckdb.create_varint(input);
     expectLogicalType(duckdb.get_value_type(varint_value), VARINT);
     expect(duckdb.get_varint(varint_value)).toBe(input);
+  });
+  test('decimal', () => {
+    const input: Decimal = { width: 9, scale: 4, value: 987654321n };
+    const decimal_value = duckdb.create_decimal(input);
+    expectLogicalType(duckdb.get_value_type(decimal_value), DECIMAL(9, 4, duckdb.Type.INTEGER));
+    expect(duckdb.get_decimal(decimal_value)).toStrictEqual(input);
   });
   test('float', () => {
     const input = 3.4028234663852886e38;
@@ -115,31 +132,31 @@ suite('values', () => {
     expect(duckdb.get_double(double_value)).toBe(input);
   });
   test('date', () => {
-    const input = { days: 2147483646 };
+    const input: Date_ = { days: 2147483646 };
     const date_value = duckdb.create_date(input);
     expectLogicalType(duckdb.get_value_type(date_value), DATE);
     expect(duckdb.get_date(date_value)).toStrictEqual(input);
   });
   test('time', () => {
-    const input = { micros: 86400000000n };
+    const input: Time = { micros: 86400000000n };
     const time_value = duckdb.create_time(input);
     expectLogicalType(duckdb.get_value_type(time_value), TIME);
     expect(duckdb.get_time(time_value)).toStrictEqual(input);
   });
   test('time_tz', () => {
-    const input = { bits: 1449551462400115198n };
+    const input: TimeTZ = { bits: 1449551462400115198n };
     const time_tz_value = duckdb.create_time_tz_value(input);
     expectLogicalType(duckdb.get_value_type(time_tz_value), TIME_TZ);
     expect(duckdb.get_time_tz(time_tz_value)).toStrictEqual(input);
   });
   test('timestamp', () => {
-    const input = { micros: 9223372036854775806n };
+    const input: Timestamp = { micros: 9223372036854775806n };
     const timestamp_value = duckdb.create_timestamp(input);
     expectLogicalType(duckdb.get_value_type(timestamp_value), TIMESTAMP);
     expect(duckdb.get_timestamp(timestamp_value)).toStrictEqual(input);
   });
   test('interval', () => {
-    const input = { months: 999, days: 999, micros: 999999999n };
+    const input: Interval = { months: 999, days: 999, micros: 999999999n };
     const interval_value = duckdb.create_interval(input);
     expectLogicalType(duckdb.get_value_type(interval_value), INTERVAL);
     expect(duckdb.get_interval(interval_value)).toStrictEqual(input);

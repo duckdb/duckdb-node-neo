@@ -1143,6 +1143,7 @@ public:
       InstanceMethod("create_hugeint", &DuckDBNodeAddon::create_hugeint),
       InstanceMethod("create_uhugeint", &DuckDBNodeAddon::create_uhugeint),
       InstanceMethod("create_varint", &DuckDBNodeAddon::create_varint),
+      InstanceMethod("create_decimal", &DuckDBNodeAddon::create_decimal),
       InstanceMethod("create_float", &DuckDBNodeAddon::create_float),
       InstanceMethod("create_double", &DuckDBNodeAddon::create_double),
       InstanceMethod("create_date", &DuckDBNodeAddon::create_date),
@@ -1163,6 +1164,7 @@ public:
       InstanceMethod("get_hugeint", &DuckDBNodeAddon::get_hugeint),
       InstanceMethod("get_uhugeint", &DuckDBNodeAddon::get_uhugeint),
       InstanceMethod("get_varint", &DuckDBNodeAddon::get_varint),
+      InstanceMethod("get_decimal", &DuckDBNodeAddon::get_decimal),
       InstanceMethod("get_float", &DuckDBNodeAddon::get_float),
       InstanceMethod("get_double", &DuckDBNodeAddon::get_double),
       InstanceMethod("get_date", &DuckDBNodeAddon::get_date),
@@ -2461,6 +2463,14 @@ private:
   }
 
   // DUCKDB_API duckdb_value duckdb_create_decimal(duckdb_decimal input);
+  // function create_decimal(input: Decimal): Value
+  Napi::Value create_decimal(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto decimal_obj = info[0].As<Napi::Object>();
+    auto decimal = GetDecimalFromObject(env, decimal_obj);
+    auto value = duckdb_create_decimal(decimal);
+    return CreateExternalForValue(env, value);
+  }
 
   // DUCKDB_API duckdb_value duckdb_create_float(float input);
   // function create_float(input: number): Value
@@ -2655,6 +2665,13 @@ private:
   }
 
   // DUCKDB_API duckdb_decimal duckdb_get_decimal(duckdb_value val);
+  // function get_decimal(value: Value): Decimal
+  Napi::Value get_decimal(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto decimal = duckdb_get_decimal(value);
+    return MakeDecimalObject(env, decimal);
+  }
 
   // DUCKDB_API float duckdb_get_float(duckdb_value val);
   // function get_float(value: Value): number
@@ -3962,11 +3979,11 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  216 instance methods
+  218 instance methods
     3 unimplemented instance cache functions
     1 unimplemented logical type function
-    9 unimplemented value creation functions
-   12 unimplemented value inspection functions
+    8 unimplemented value creation functions
+   11 unimplemented value inspection functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
    12 unimplemented aggregate function functions
