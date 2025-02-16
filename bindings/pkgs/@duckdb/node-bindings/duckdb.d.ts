@@ -640,6 +640,7 @@ export function create_uhugeint(input: bigint): Value;
 export function create_varint(input: bigint): Value;
 
 // DUCKDB_API duckdb_value duckdb_create_decimal(duckdb_decimal input);
+export function create_decimal(input: Decimal): Value;
 
 // DUCKDB_API duckdb_value duckdb_create_float(float input);
 export function create_float(input: number): Value;
@@ -710,6 +711,7 @@ export function get_uhugeint(value: Value): bigint;
 export function get_varint(value: Value): bigint;
 
 // DUCKDB_API duckdb_decimal duckdb_get_decimal(duckdb_value val);
+export function get_decimal(value: Value): Decimal;
 
 // DUCKDB_API float duckdb_get_float(duckdb_value val);
 export function get_float(value: Value): number;
