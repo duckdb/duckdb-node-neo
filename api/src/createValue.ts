@@ -3,6 +3,7 @@ import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import {
   DuckDBArrayValue,
+  DuckDBBitValue,
   DuckDBBlobValue,
   DuckDBDateValue,
   DuckDBDecimalValue,
@@ -191,7 +192,10 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
     case DuckDBTypeId.UNION:
       throw new Error(`not yet implemented for UNION`); // TODO: implement when available, hopefully in 1.2.0
     case DuckDBTypeId.BIT:
-      throw new Error(`not yet implemented for BIT`); // TODO: implement when available in 1.2.0
+      if (input instanceof DuckDBBitValue) {
+        return duckdb.create_bit(input.data);
+      }
+      throw new Error(`input is not a DuckDBBitValue`);
     case DuckDBTypeId.TIME_TZ:
       if (input instanceof DuckDBTimeTZValue) {
         return duckdb.create_time_tz_value(input);

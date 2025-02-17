@@ -679,6 +679,8 @@ export function create_interval(input: Interval): Value;
 export function create_blob(data: Uint8Array): Value;
 
 // DUCKDB_API duckdb_value duckdb_create_bit(duckdb_bit input);
+export function create_bit(data: Uint8Array): Value;
+
 // DUCKDB_API duckdb_value duckdb_create_uuid(duckdb_uhugeint input);
 
 // DUCKDB_API bool duckdb_get_bool(duckdb_value val);
@@ -760,6 +762,8 @@ export function get_value_type(value: Value): LogicalType;
 export function get_blob(value: Value): Uint8Array;
 
 // DUCKDB_API duckdb_bit duckdb_get_bit(duckdb_value val);
+export function get_bit(value: Value): Uint8Array;
+
 // DUCKDB_API duckdb_uhugeint duckdb_get_uuid(duckdb_value val);
 
 // DUCKDB_API char *duckdb_get_varchar(duckdb_value value);

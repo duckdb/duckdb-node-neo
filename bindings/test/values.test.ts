@@ -14,6 +14,7 @@ import { expectLogicalType } from './utils/expectLogicalType';
 import {
   ARRAY,
   BIGINT,
+  BIT,
   BLOB,
   BOOLEAN,
   DATE,
@@ -197,6 +198,12 @@ suite('values', () => {
     const blob_value = duckdb.create_blob(input);
     expectLogicalType(duckdb.get_value_type(blob_value), BLOB);
     expect(duckdb.get_blob(blob_value)).toStrictEqual(input);
+  });
+  test('bit', () => {
+    const input = Buffer.from([1, 0b10010001, 0b00101110, 0b00101010, 0b11010111]);
+    const bit_value = duckdb.create_bit(input);
+    expectLogicalType(duckdb.get_value_type(bit_value), BIT);
+    expect(duckdb.get_bit(bit_value)).toStrictEqual(input);
   });
   test('varchar', () => {
     const input = 'varchar_text';
