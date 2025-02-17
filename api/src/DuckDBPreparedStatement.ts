@@ -6,6 +6,7 @@ import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
 import {
+  BIT,
   DuckDBArrayType,
   DuckDBListType,
   DuckDBStructType,
@@ -22,6 +23,7 @@ import { StatementType } from './enums';
 import { typeForValue } from './typeForValue';
 import {
   DuckDBArrayValue,
+  DuckDBBitValue,
   DuckDBDateValue,
   DuckDBDecimalValue,
   DuckDBIntervalValue,
@@ -182,7 +184,9 @@ export class DuckDBPreparedStatement {
   }
   // TODO: bind MAP, UNION
   // TODO: bind UUID
-  // TODO: bind BIT
+  public bindBit(parameterIndex: number, value: DuckDBBitValue) {
+    this.bindValue(parameterIndex, value, BIT);
+  }
   public bindNull(parameterIndex: number) {
     duckdb.bind_null(this.prepared_statement, parameterIndex);
   }

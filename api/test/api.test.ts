@@ -400,19 +400,20 @@ describe('api', () => {
   test('should support running prepared statements', async () => {
     await withConnection(async (connection) => {
       const params: ColumnNameAndType[] = [
-        { name: 'num', type: INTEGER },
-        { name: 'str', type: VARCHAR },
-        { name: 'bool', type: BOOLEAN },
-        { name: 'timetz', type: TIMETZ },
-        { name: 'timestamptz', type: TIMESTAMPTZ },
+        { name: 'boolean', type: BOOLEAN },
+        { name: 'integer', type: INTEGER },
+        { name: 'varchar', type: VARCHAR },
         { name: 'timestamp_s', type: TIMESTAMP_S },
         { name: 'timestamp_ms', type: TIMESTAMP_MS },
         { name: 'timestamp_ns', type: TIMESTAMP_NS },
-        { name: 'varint', type: VARINT },
         { name: 'list_int', type: LIST(INTEGER) },
         { name: 'list_dec', type: LIST(DECIMAL(4, 1)) },
         { name: 'struct', type: STRUCT({ 'a': INTEGER, 'b': VARCHAR }) },
         { name: 'array', type: ARRAY(INTEGER, 3) },
+        { name: 'bit', type: BIT },
+        { name: 'timetz', type: TIMETZ },
+        { name: 'timestamptz', type: TIMESTAMPTZ },
+        { name: 'varint', type: VARINT },
         { name: 'null_value', type: SQLNULL },
       ];
 
@@ -427,15 +428,12 @@ describe('api', () => {
       }
 
       let i = 1;
+      prepared.bindBoolean(i++, true);
       prepared.bindInteger(i++, 10);
       prepared.bindVarchar(i++, 'abc');
-      prepared.bindBoolean(i++, true);
-      prepared.bindTimeTZ(i++, TIMETZ.max);
-      prepared.bindTimestampTZ(i++, TIMESTAMPTZ.max);
       prepared.bindTimestampSeconds(i++, TIMESTAMP_S.max);
       prepared.bindTimestampMilliseconds(i++, TIMESTAMP_MS.max);
       prepared.bindTimestampNanoseconds(i++, TIMESTAMP_NS.max);
-      prepared.bindVarInt(i++, VARINT.max);
       prepared.bindList(i++, listValue([100, 200, 300]), LIST(INTEGER));
       prepared.bindList(
         i++,
@@ -448,11 +446,15 @@ describe('api', () => {
         STRUCT({ 'a': INTEGER, 'b': VARCHAR })
       );
       prepared.bindArray(i++, arrayValue([100, 200, 300]), ARRAY(INTEGER, 3));
+      prepared.bindBit(i++, bitValue('0010001001011100010101011010111'));
+      prepared.bindTimeTZ(i++, TIMETZ.max);
+      prepared.bindTimestampTZ(i++, TIMESTAMPTZ.max);
+      prepared.bindVarInt(i++, VARINT.max);
       prepared.bindNull(i++);
 
       for (let i = 0; i < params.length; i++) {
         let type = params[i].type;
-        if (i === 1) {
+        if (type.typeId === DuckDBTypeId.VARCHAR) {
           // VARCHAR type is reported incorrectly; see https://github.com/duckdb/duckdb/issues/16137
           continue;
         }
@@ -476,6 +478,12 @@ describe('api', () => {
         assert.strictEqual(chunk.columnCount, expectedColumns.length);
         assert.strictEqual(chunk.rowCount, 1);
         let i = 0;
+        assertValues<boolean, DuckDBBooleanVector>(
+          chunk,
+          i++,
+          DuckDBBooleanVector,
+          [true]
+        );
         assertValues<number, DuckDBIntegerVector>(
           chunk,
           i++,
@@ -488,14 +496,6 @@ describe('api', () => {
           DuckDBVarCharVector,
           ['abc']
         );
-        assertValues<boolean, DuckDBBooleanVector>(
-          chunk,
-          i++,
-          DuckDBBooleanVector,
-          [true]
-        );
-        assertValues(chunk, i++, DuckDBTimeTZVector, [TIMETZ.max]);
-        assertValues(chunk, i++, DuckDBTimestampTZVector, [TIMESTAMPTZ.max]);
         assertValues(chunk, i++, DuckDBTimestampSecondsVector, [
           TIMESTAMP_S.max,
         ]);
@@ -505,7 +505,6 @@ describe('api', () => {
         assertValues(chunk, i++, DuckDBTimestampNanosecondsVector, [
           TIMESTAMP_NS.max,
         ]);
-        assertValues(chunk, i++, DuckDBVarIntVector, [VARINT.max]);
         assertValues(chunk, i++, DuckDBListVector, [
           listValue([100, 200, 300]),
         ]);
@@ -518,6 +517,10 @@ describe('api', () => {
         assertValues(chunk, i++, DuckDBArrayVector, [
           arrayValue([100, 200, 300]),
         ]);
+        assertValues(chunk, i++, DuckDBBitVector, [bitValue('0010001001011100010101011010111')]);
+        assertValues(chunk, i++, DuckDBTimeTZVector, [TIMETZ.max]);
+        assertValues(chunk, i++, DuckDBTimestampTZVector, [TIMESTAMPTZ.max]);
+        assertValues(chunk, i++, DuckDBVarIntVector, [VARINT.max]);
         assertValues<number, DuckDBIntegerVector>(
           chunk,
           i++,

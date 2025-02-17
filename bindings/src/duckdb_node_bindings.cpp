@@ -1174,6 +1174,7 @@ public:
       InstanceMethod("create_timestamp_ns", &DuckDBNodeAddon::create_timestamp_ns),
       InstanceMethod("create_interval", &DuckDBNodeAddon::create_interval),
       InstanceMethod("create_blob", &DuckDBNodeAddon::create_blob),
+      InstanceMethod("create_bit", &DuckDBNodeAddon::create_bit),
       InstanceMethod("get_bool", &DuckDBNodeAddon::get_bool),
       InstanceMethod("get_int8", &DuckDBNodeAddon::get_int8),
       InstanceMethod("get_uint8", &DuckDBNodeAddon::get_uint8),
@@ -1200,6 +1201,7 @@ public:
       InstanceMethod("get_interval", &DuckDBNodeAddon::get_interval),
       InstanceMethod("get_value_type", &DuckDBNodeAddon::get_value_type),
       InstanceMethod("get_blob", &DuckDBNodeAddon::get_blob),
+      InstanceMethod("get_bit", &DuckDBNodeAddon::get_bit),
       InstanceMethod("get_varchar", &DuckDBNodeAddon::get_varchar),
       InstanceMethod("create_struct_value", &DuckDBNodeAddon::create_struct_value),
       InstanceMethod("create_list_value", &DuckDBNodeAddon::create_list_value),
@@ -2609,6 +2611,16 @@ private:
   }
 
   // DUCKDB_API duckdb_value duckdb_create_bit(duckdb_bit input);
+  // function create_bit(data: Uint8Array): Value
+  Napi::Value create_bit(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto array = info[0].As<Napi::Uint8Array>();
+    auto data = array.Data();
+    auto size = array.ByteLength();
+    auto value = duckdb_create_bit({ data, size });
+    return CreateExternalForValue(env, value);
+  }
+
   // DUCKDB_API duckdb_value duckdb_create_uuid(duckdb_uhugeint input);
 
   // DUCKDB_API bool duckdb_get_bool(duckdb_value val);
@@ -2848,6 +2860,14 @@ private:
   }
 
   // DUCKDB_API duckdb_bit duckdb_get_bit(duckdb_value val);
+  // function get_bit(value: Value): Uint8Array
+  Napi::Value get_bit(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto bit = duckdb_get_bit(value);
+    return Napi::Buffer<uint8_t>::NewOrCopy(env, bit.data, bit.size);
+  }
+
   // DUCKDB_API duckdb_uhugeint duckdb_get_uuid(duckdb_value val);
 
   // DUCKDB_API char *duckdb_get_varchar(duckdb_value value);
@@ -4067,11 +4087,11 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  226 instance methods
+  228 instance methods
     3 unimplemented instance cache functions
     1 unimplemented logical type function
-    4 unimplemented value creation functions
-    7 unimplemented value inspection functions
+    3 unimplemented value creation functions
+    6 unimplemented value inspection functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
    12 unimplemented aggregate function functions
