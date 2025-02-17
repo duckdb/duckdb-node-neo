@@ -661,9 +661,16 @@ export function create_time_tz_value(input: TimeTZ): Value;
 export function create_timestamp(input: Timestamp): Value;
 
 // DUCKDB_API duckdb_value duckdb_create_timestamp_tz(duckdb_timestamp input);
+export function create_timestamp_tz(input: Timestamp): Value;
+
 // DUCKDB_API duckdb_value duckdb_create_timestamp_s(duckdb_timestamp_s input);
+export function create_timestamp_s(input: TimestampSeconds): Value;
+
 // DUCKDB_API duckdb_value duckdb_create_timestamp_ms(duckdb_timestamp_ms input);
+export function create_timestamp_ms(input: TimestampMilliseconds): Value;
+
 // DUCKDB_API duckdb_value duckdb_create_timestamp_ns(duckdb_timestamp_ns input);
+export function create_timestamp_ns(input: TimestampNanoseconds): Value;
 
 // DUCKDB_API duckdb_value duckdb_create_interval(duckdb_interval input);
 export function create_interval(input: Interval): Value;
@@ -732,9 +739,16 @@ export function get_time_tz(value: Value): TimeTZ;
 export function get_timestamp(value: Value): Timestamp;
 
 // DUCKDB_API duckdb_timestamp duckdb_get_timestamp_tz(duckdb_value val);
+export function get_timestamp_tz(value: Value): Timestamp;
+
 // DUCKDB_API duckdb_timestamp_s duckdb_get_timestamp_s(duckdb_value val);
+export function get_timestamp_s(value: Value): TimestampSeconds;
+
 // DUCKDB_API duckdb_timestamp_ms duckdb_get_timestamp_ms(duckdb_value val);
+export function get_timestamp_ms(value: Value): TimestampMilliseconds;
+
 // DUCKDB_API duckdb_timestamp_ns duckdb_get_timestamp_ns(duckdb_value val);
+export function get_timestamp_ns(value: Value): TimestampNanoseconds;
 
 // DUCKDB_API duckdb_interval duckdb_get_interval(duckdb_value val);
 export function get_interval(value: Value): Interval;
