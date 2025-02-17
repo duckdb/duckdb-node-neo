@@ -10,6 +10,9 @@ import {
   DuckDBListType,
   DuckDBStructType,
   DuckDBType,
+  TIMESTAMP_MS,
+  TIMESTAMP_NS,
+  TIMESTAMP_S,
   TIMESTAMPTZ,
   TIMETZ,
   VARINT,
@@ -24,6 +27,9 @@ import {
   DuckDBIntervalValue,
   DuckDBListValue,
   DuckDBStructValue,
+  DuckDBTimestampMillisecondsValue,
+  DuckDBTimestampNanosecondsValue,
+  DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
@@ -52,10 +58,9 @@ export class DuckDBPreparedStatement {
     ) as number as DuckDBTypeId;
   }
   public parameterType(parameterIndex: number): DuckDBType {
-    return DuckDBLogicalType.create(duckdb.param_logical_type(
-      this.prepared_statement,
-      parameterIndex
-    )).asType();
+    return DuckDBLogicalType.create(
+      duckdb.param_logical_type(this.prepared_statement, parameterIndex)
+    ).asType();
   }
   public clearBindings() {
     duckdb.clear_bindings(this.prepared_statement);
@@ -126,7 +131,24 @@ export class DuckDBPreparedStatement {
   ) {
     this.bindValue(parameterIndex, value, TIMESTAMPTZ);
   }
-  // TODO: bind TIMESTAMPS_S/_MS/_NS
+  public bindTimestampSeconds(
+    parameterIndex: number,
+    value: DuckDBTimestampSecondsValue
+  ) {
+    this.bindValue(parameterIndex, value, TIMESTAMP_S);
+  }
+  public bindTimestampMilliseconds(
+    parameterIndex: number,
+    value: DuckDBTimestampMillisecondsValue
+  ) {
+    this.bindValue(parameterIndex, value, TIMESTAMP_MS);
+  }
+  public bindTimestampNanoseconds(
+    parameterIndex: number,
+    value: DuckDBTimestampNanosecondsValue
+  ) {
+    this.bindValue(parameterIndex, value, TIMESTAMP_NS);
+  }
   public bindInterval(parameterIndex: number, value: DuckDBIntervalValue) {
     duckdb.bind_interval(this.prepared_statement, parameterIndex, value);
   }

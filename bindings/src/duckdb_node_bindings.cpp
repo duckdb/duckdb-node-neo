@@ -110,6 +110,12 @@ duckdb_timestamp GetTimestampFromObject(Napi::Env env, Napi::Object timestamp_ob
   return { micros };
 }
 
+Napi::Object MakeTimestampSecondsObject(Napi::Env env, duckdb_timestamp_s timestamp) {
+  auto timestamp_s_obj = Napi::Object::New(env);
+  timestamp_s_obj.Set("seconds", Napi::BigInt::New(env, timestamp.seconds));
+  return timestamp_s_obj;
+}
+
 duckdb_timestamp_s GetTimestampSecondsFromObject(Napi::Env env, Napi::Object timestamp_s_obj) {
   bool lossless;
   auto seconds = timestamp_s_obj.Get("seconds").As<Napi::BigInt>().Int64Value(&lossless);
@@ -119,6 +125,12 @@ duckdb_timestamp_s GetTimestampSecondsFromObject(Napi::Env env, Napi::Object tim
   return { seconds };
 }
 
+Napi::Object MakeTimestampMillisecondsObject(Napi::Env env, duckdb_timestamp_ms timestamp) {
+  auto timestamp_ms_obj = Napi::Object::New(env);
+  timestamp_ms_obj.Set("millis", Napi::BigInt::New(env, timestamp.millis));
+  return timestamp_ms_obj;
+}
+
 duckdb_timestamp_ms GetTimestampMillisecondsFromObject(Napi::Env env, Napi::Object timestamp_ms_obj) {
   bool lossless;
   auto millis = timestamp_ms_obj.Get("millis").As<Napi::BigInt>().Int64Value(&lossless);
@@ -126,6 +138,12 @@ duckdb_timestamp_ms GetTimestampMillisecondsFromObject(Napi::Env env, Napi::Obje
     throw Napi::Error::New(env, "millis out of int64 range");
   }
   return { millis };
+}
+
+Napi::Object MakeTimestampNanosecondsObject(Napi::Env env, duckdb_timestamp_ns timestamp) {
+  auto timestamp_ns_obj = Napi::Object::New(env);
+  timestamp_ns_obj.Set("nanos", Napi::BigInt::New(env, timestamp.nanos));
+  return timestamp_ns_obj;
 }
 
 duckdb_timestamp_ns GetTimestampNanosecondsFromObject(Napi::Env env, Napi::Object timestamp_ns_obj) {
@@ -1150,6 +1168,10 @@ public:
       InstanceMethod("create_time", &DuckDBNodeAddon::create_time),
       InstanceMethod("create_time_tz_value", &DuckDBNodeAddon::create_time_tz_value),
       InstanceMethod("create_timestamp", &DuckDBNodeAddon::create_timestamp),
+      InstanceMethod("create_timestamp_tz", &DuckDBNodeAddon::create_timestamp_tz),
+      InstanceMethod("create_timestamp_s", &DuckDBNodeAddon::create_timestamp_s),
+      InstanceMethod("create_timestamp_ms", &DuckDBNodeAddon::create_timestamp_ms),
+      InstanceMethod("create_timestamp_ns", &DuckDBNodeAddon::create_timestamp_ns),
       InstanceMethod("create_interval", &DuckDBNodeAddon::create_interval),
       InstanceMethod("create_blob", &DuckDBNodeAddon::create_blob),
       InstanceMethod("get_bool", &DuckDBNodeAddon::get_bool),
@@ -1171,6 +1193,10 @@ public:
       InstanceMethod("get_time", &DuckDBNodeAddon::get_time),
       InstanceMethod("get_time_tz", &DuckDBNodeAddon::get_time_tz),
       InstanceMethod("get_timestamp", &DuckDBNodeAddon::get_timestamp),
+      InstanceMethod("get_timestamp_tz", &DuckDBNodeAddon::get_timestamp_tz),
+      InstanceMethod("get_timestamp_s", &DuckDBNodeAddon::get_timestamp_s),
+      InstanceMethod("get_timestamp_ms", &DuckDBNodeAddon::get_timestamp_ms),
+      InstanceMethod("get_timestamp_ns", &DuckDBNodeAddon::get_timestamp_ns),
       InstanceMethod("get_interval", &DuckDBNodeAddon::get_interval),
       InstanceMethod("get_value_type", &DuckDBNodeAddon::get_value_type),
       InstanceMethod("get_blob", &DuckDBNodeAddon::get_blob),
@@ -2527,9 +2553,40 @@ private:
   }
 
   // DUCKDB_API duckdb_value duckdb_create_timestamp_tz(duckdb_timestamp input);
+  // function create_timestamp_tz(input: Timestamp): Value
+  Napi::Value create_timestamp_tz(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto input = GetTimestampFromObject(env, info[0].As<Napi::Object>());
+    auto value = duckdb_create_timestamp_tz(input);
+    return CreateExternalForValue(env, value);
+  }
+
   // DUCKDB_API duckdb_value duckdb_create_timestamp_s(duckdb_timestamp_s input);
+  // function create_timestamp_s(input: TimestampSeconds): Value
+  Napi::Value create_timestamp_s(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto input = GetTimestampSecondsFromObject(env, info[0].As<Napi::Object>());
+    auto value = duckdb_create_timestamp_s(input);
+    return CreateExternalForValue(env, value);
+  }
+
   // DUCKDB_API duckdb_value duckdb_create_timestamp_ms(duckdb_timestamp_ms input);
+  // function create_timestamp_ms(input: TimestampMilliseconds): Value
+  Napi::Value create_timestamp_ms(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto input = GetTimestampMillisecondsFromObject(env, info[0].As<Napi::Object>());
+    auto value = duckdb_create_timestamp_ms(input);
+    return CreateExternalForValue(env, value);
+  }
+
   // DUCKDB_API duckdb_value duckdb_create_timestamp_ns(duckdb_timestamp_ns input);
+  // function create_timestamp_ns(input: TimestampNanoseconds): Value
+  Napi::Value create_timestamp_ns(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto input = GetTimestampNanosecondsFromObject(env, info[0].As<Napi::Object>());
+    auto value = duckdb_create_timestamp_ns(input);
+    return CreateExternalForValue(env, value);
+  }
 
   // DUCKDB_API duckdb_value duckdb_create_interval(duckdb_interval input);
   // function create_interval(input: Interval): Value
@@ -2728,9 +2785,40 @@ private:
   }
 
   // DUCKDB_API duckdb_timestamp duckdb_get_timestamp_tz(duckdb_value val);
+  // function get_timestamp_tz(value: Value): Timestamp
+  Napi::Value get_timestamp_tz(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto timestamp = duckdb_get_timestamp_tz(value);
+    return MakeTimestampObject(env, timestamp);
+  }
+
   // DUCKDB_API duckdb_timestamp_s duckdb_get_timestamp_s(duckdb_value val);
+  // function get_timestamp_s(value: Value): TimestampSeconds
+  Napi::Value get_timestamp_s(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto timestamp_s = duckdb_get_timestamp_s(value);
+    return MakeTimestampSecondsObject(env, timestamp_s);
+  }
+
   // DUCKDB_API duckdb_timestamp_ms duckdb_get_timestamp_ms(duckdb_value val);
+  // function get_timestamp_ms(value: Value): TimestampMilliseconds
+  Napi::Value get_timestamp_ms(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto timestamp_ms = duckdb_get_timestamp_ms(value);
+    return MakeTimestampMillisecondsObject(env, timestamp_ms);
+  }
+
   // DUCKDB_API duckdb_timestamp_ns duckdb_get_timestamp_ns(duckdb_value val);
+  // function get_timestamp_ns(value: Value): TimestampNanoseconds
+  Napi::Value get_timestamp_ns(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto timestamp_ns = duckdb_get_timestamp_ns(value);
+    return MakeTimestampNanosecondsObject(env, timestamp_ns);
+  }
 
   // DUCKDB_API duckdb_interval duckdb_get_interval(duckdb_value val);
   // function get_interval(value: Value): Interval
@@ -3979,11 +4067,11 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  218 instance methods
+  226 instance methods
     3 unimplemented instance cache functions
     1 unimplemented logical type function
-    8 unimplemented value creation functions
-   11 unimplemented value inspection functions
+    4 unimplemented value creation functions
+    7 unimplemented value inspection functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
    12 unimplemented aggregate function functions

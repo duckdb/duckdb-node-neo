@@ -9,6 +9,9 @@ import {
   DuckDBIntervalValue,
   DuckDBListValue,
   DuckDBStructValue,
+  DuckDBTimestampMillisecondsValue,
+  DuckDBTimestampNanosecondsValue,
+  DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
@@ -17,7 +20,8 @@ import {
 } from './values';
 
 export function createValue(type: DuckDBType, input: DuckDBValue): Value {
-  switch (type.typeId) {
+  const { typeId } = type;
+  switch (typeId) {
     case DuckDBTypeId.BOOLEAN:
       if (typeof input === 'boolean') {
         return duckdb.create_bool(input);
@@ -119,11 +123,20 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a DuckDBDecimalValue`);
     case DuckDBTypeId.TIMESTAMP_S:
-      throw new Error(`not yet implemented for TIMESTAMP_S`); // TODO: implement when available in 1.2.0
+      if (input instanceof DuckDBTimestampSecondsValue) {
+        return duckdb.create_timestamp_s(input);
+      }
+      throw new Error(`input is not a DuckDBTimestampSecondsValue`);
     case DuckDBTypeId.TIMESTAMP_MS:
-      throw new Error(`not yet implemented for TIMESTAMP_MS`); // TODO: implement when available in 1.2.0
+      if (input instanceof DuckDBTimestampMillisecondsValue) {
+        return duckdb.create_timestamp_ms(input);
+      }
+      throw new Error(`input is not a DuckDBTimestampMillisecondsValue`);
     case DuckDBTypeId.TIMESTAMP_NS:
-      throw new Error(`not yet implemented for TIMESTAMP_NS`); // TODO: implement when available in 1.2.0
+      if (input instanceof DuckDBTimestampNanosecondsValue) {
+        return duckdb.create_timestamp_ns(input);
+      }
+      throw new Error(`input is not a DuckDBTimestampNanosecondsValue`);
     case DuckDBTypeId.ENUM:
       throw new Error(`not yet implemented for ENUM`); // TODO: implement when available in 1.2.0
     case DuckDBTypeId.LIST:
@@ -141,7 +154,11 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       throw new Error(`input is not a DuckDBListValue`);
     case DuckDBTypeId.STRUCT:
       if (input instanceof DuckDBStructValue) {
-        if (type.entryTypes.find((type) => type.typeId === DuckDBTypeId.ANY)) {
+        if (
+          type.entryTypes.find(
+            (entryType) => entryType.typeId === DuckDBTypeId.ANY
+          )
+        ) {
           throw new Error(
             'Cannot create structs with an entry type of ANY. Specify a specific type.'
           );
@@ -173,7 +190,7 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       throw new Error(`not yet implemented for UUID`); // TODO: implement when available in 1.2.0
     case DuckDBTypeId.UNION:
       throw new Error(`not yet implemented for UNION`); // TODO: implement when available, hopefully in 1.2.0
-    case DuckDBTypeId.UNION:
+    case DuckDBTypeId.BIT:
       throw new Error(`not yet implemented for BIT`); // TODO: implement when available in 1.2.0
     case DuckDBTypeId.TIME_TZ:
       if (input instanceof DuckDBTimeTZValue) {
@@ -182,7 +199,7 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       throw new Error(`input is not a DuckDBTimeTZValue`);
     case DuckDBTypeId.TIMESTAMP_TZ:
       if (input instanceof DuckDBTimestampTZValue) {
-        return duckdb.create_timestamp(input); // TODO: change to create_timestamp_tz when available in 1.2.0
+        return duckdb.create_timestamp_tz(input);
       }
       throw new Error(`input is not a DuckDBTimestampTZValue`);
     case DuckDBTypeId.ANY:
@@ -197,6 +214,6 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
     case DuckDBTypeId.SQLNULL:
       throw new Error(`not yet implemented for SQLNUll`); // TODO: implement when available in 1.2.0
     default:
-      throw new Error(`unrecognized type id ${type.typeId}`);
+      throw new Error(`unrecognized type id ${typeId}`);
   }
 }

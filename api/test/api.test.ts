@@ -399,120 +399,128 @@ describe('api', () => {
   });
   test('should support running prepared statements', async () => {
     await withConnection(async (connection) => {
-      const prepared = await connection.prepare(
-        'select \
-        $num as num, \
-        $str as str, \
-        $bool as bool, \
-        $timetz as timetz, \
-        $varint as varint, \
-        $list as list, \
-        $list_dec as list_dec, \
-        $struct as struct, \
-        $array as array, \
-        $null as null_value'
-      );
-      assert.strictEqual(prepared.parameterCount, 10);
-      assert.strictEqual(prepared.parameterName(1), 'num');
-      assert.strictEqual(prepared.parameterName(2), 'str');
-      assert.strictEqual(prepared.parameterName(3), 'bool');
-      assert.strictEqual(prepared.parameterName(4), 'timetz');
-      assert.strictEqual(prepared.parameterName(5), 'varint');
-      assert.strictEqual(prepared.parameterName(6), 'list');
-      assert.strictEqual(prepared.parameterName(7), 'list_dec');
-      assert.strictEqual(prepared.parameterName(8), 'struct');
-      assert.strictEqual(prepared.parameterName(9), 'array');
-      assert.strictEqual(prepared.parameterName(10), 'null');
-      prepared.bindInteger(1, 10);
-      prepared.bindVarchar(2, 'abc');
-      prepared.bindBoolean(3, true);
-      prepared.bindTimeTZ(4, TIMETZ.max);
-      prepared.bindVarInt(5, VARINT.max);
-      prepared.bindList(6, listValue([100, 200, 300]), LIST(INTEGER));
-      prepared.bindList(
-        7,
-        listValue([decimalValue(9876n, 4, 1), decimalValue(5432n, 4, 1)]),
-        LIST(DECIMAL(4, 1))
-      );
-      prepared.bindStruct(
-        8,
-        structValue({ 'a': 42, 'b': 'duck' }),
-        STRUCT({ 'a': INTEGER, 'b': VARCHAR })
-      );
-      prepared.bindArray(9, arrayValue([100, 200, 300]), ARRAY(INTEGER, 3));
-      prepared.bindNull(10);
-      assert.equal(prepared.parameterTypeId(1), DuckDBTypeId.INTEGER);
-      assert.deepEqual(prepared.parameterType(1), INTEGER);
-      // See https://github.com/duckdb/duckdb/issues/16137
-      // assert.equal(prepared.parameterTypeId(2), DuckDBTypeId.VARCHAR);
-      // assert.deepEqual(prepared.parameterType(2), VARCHAR);
-      assert.equal(prepared.parameterTypeId(3), DuckDBTypeId.BOOLEAN);
-      assert.deepEqual(prepared.parameterType(3), BOOLEAN);
-      assert.equal(prepared.parameterTypeId(4), DuckDBTypeId.TIME_TZ);
-      assert.deepEqual(prepared.parameterType(4), TIMETZ);
-      assert.equal(prepared.parameterTypeId(5), DuckDBTypeId.VARINT);
-      assert.deepEqual(prepared.parameterType(5), VARINT);
-      assert.equal(prepared.parameterTypeId(6), DuckDBTypeId.LIST);
-      assert.deepEqual(prepared.parameterType(6), LIST(INTEGER));
-      assert.equal(prepared.parameterTypeId(7), DuckDBTypeId.LIST);
-      assert.deepEqual(prepared.parameterType(7), LIST(DECIMAL(4, 1)));
-      assert.equal(prepared.parameterTypeId(8), DuckDBTypeId.STRUCT);
-      assert.deepEqual(prepared.parameterType(8), STRUCT({ 'a': INTEGER, 'b': VARCHAR }));
-      assert.equal(prepared.parameterTypeId(9), DuckDBTypeId.ARRAY);
-      assert.deepEqual(prepared.parameterType(9), ARRAY(INTEGER, 3));
-      assert.equal(prepared.parameterTypeId(10), DuckDBTypeId.SQLNULL);
-      assert.deepEqual(prepared.parameterType(10), SQLNULL);
-      const result = await prepared.run();
-      assertColumns(result, [
+      const params: ColumnNameAndType[] = [
         { name: 'num', type: INTEGER },
         { name: 'str', type: VARCHAR },
         { name: 'bool', type: BOOLEAN },
         { name: 'timetz', type: TIMETZ },
+        { name: 'timestamptz', type: TIMESTAMPTZ },
+        { name: 'timestamp_s', type: TIMESTAMP_S },
+        { name: 'timestamp_ms', type: TIMESTAMP_MS },
+        { name: 'timestamp_ns', type: TIMESTAMP_NS },
         { name: 'varint', type: VARINT },
-        { name: 'list', type: LIST(INTEGER) },
+        { name: 'list_int', type: LIST(INTEGER) },
         { name: 'list_dec', type: LIST(DECIMAL(4, 1)) },
         { name: 'struct', type: STRUCT({ 'a': INTEGER, 'b': VARCHAR }) },
         { name: 'array', type: ARRAY(INTEGER, 3) },
-        { name: 'null_value', type: INTEGER },
-      ]);
+        { name: 'null_value', type: SQLNULL },
+      ];
+
+      const sql = `select ${params
+        .map((p) => `$${p.name} as ${p.name}`)
+        .join(', ')}`;
+      const prepared = await connection.prepare(sql);
+
+      assert.strictEqual(prepared.parameterCount, params.length);
+      for (let i = 0; i < params.length; i++) {
+        assert.strictEqual(prepared.parameterName(i + 1), params[i].name, `param ${i} name mismatch`);
+      }
+
+      let i = 1;
+      prepared.bindInteger(i++, 10);
+      prepared.bindVarchar(i++, 'abc');
+      prepared.bindBoolean(i++, true);
+      prepared.bindTimeTZ(i++, TIMETZ.max);
+      prepared.bindTimestampTZ(i++, TIMESTAMPTZ.max);
+      prepared.bindTimestampSeconds(i++, TIMESTAMP_S.max);
+      prepared.bindTimestampMilliseconds(i++, TIMESTAMP_MS.max);
+      prepared.bindTimestampNanoseconds(i++, TIMESTAMP_NS.max);
+      prepared.bindVarInt(i++, VARINT.max);
+      prepared.bindList(i++, listValue([100, 200, 300]), LIST(INTEGER));
+      prepared.bindList(
+        i++,
+        listValue([decimalValue(9876n, 4, 1), decimalValue(5432n, 4, 1)]),
+        LIST(DECIMAL(4, 1))
+      );
+      prepared.bindStruct(
+        i++,
+        structValue({ 'a': 42, 'b': 'duck' }),
+        STRUCT({ 'a': INTEGER, 'b': VARCHAR })
+      );
+      prepared.bindArray(i++, arrayValue([100, 200, 300]), ARRAY(INTEGER, 3));
+      prepared.bindNull(i++);
+
+      for (let i = 0; i < params.length; i++) {
+        let type = params[i].type;
+        if (i === 1) {
+          // VARCHAR type is reported incorrectly; see https://github.com/duckdb/duckdb/issues/16137
+          continue;
+        }
+        assert.equal(prepared.parameterTypeId(i + 1), type.typeId, `param ${i} type id mismatch`);
+        assert.deepEqual(prepared.parameterType(i + 1), type, `param ${i} type mismatch`);
+      }
+
+      const result = await prepared.run();
+
+      // In the result, SQLNULL params get type INTEGER.
+      const expectedColumns = params.map((p) =>
+        p.type.typeId === DuckDBTypeId.SQLNULL ? { ...p, type: INTEGER } : p
+      );
+
+      assertColumns(result, expectedColumns);
+
       const chunk = await result.fetchChunk();
+
       assert.isDefined(chunk);
       if (chunk) {
-        assert.strictEqual(chunk.columnCount, 10);
+        assert.strictEqual(chunk.columnCount, expectedColumns.length);
         assert.strictEqual(chunk.rowCount, 1);
+        let i = 0;
         assertValues<number, DuckDBIntegerVector>(
           chunk,
-          0,
+          i++,
           DuckDBIntegerVector,
           [10]
         );
         assertValues<string, DuckDBVarCharVector>(
           chunk,
-          1,
+          i++,
           DuckDBVarCharVector,
           ['abc']
         );
         assertValues<boolean, DuckDBBooleanVector>(
           chunk,
-          2,
+          i++,
           DuckDBBooleanVector,
           [true]
         );
-        assertValues(chunk, 3, DuckDBTimeTZVector, [TIMETZ.max]);
-        assertValues(chunk, 4, DuckDBVarIntVector, [VARINT.max]);
-        assertValues(chunk, 5, DuckDBListVector, [listValue([100, 200, 300])]);
-        assertValues(chunk, 6, DuckDBListVector, [
+        assertValues(chunk, i++, DuckDBTimeTZVector, [TIMETZ.max]);
+        assertValues(chunk, i++, DuckDBTimestampTZVector, [TIMESTAMPTZ.max]);
+        assertValues(chunk, i++, DuckDBTimestampSecondsVector, [
+          TIMESTAMP_S.max,
+        ]);
+        assertValues(chunk, i++, DuckDBTimestampMillisecondsVector, [
+          TIMESTAMP_MS.max,
+        ]);
+        assertValues(chunk, i++, DuckDBTimestampNanosecondsVector, [
+          TIMESTAMP_NS.max,
+        ]);
+        assertValues(chunk, i++, DuckDBVarIntVector, [VARINT.max]);
+        assertValues(chunk, i++, DuckDBListVector, [
+          listValue([100, 200, 300]),
+        ]);
+        assertValues(chunk, i++, DuckDBListVector, [
           listValue([decimalValue(9876n, 4, 1), decimalValue(5432n, 4, 1)]),
         ]);
-        assertValues(chunk, 7, DuckDBStructVector, [
+        assertValues(chunk, i++, DuckDBStructVector, [
           structValue({ 'a': 42, 'b': 'duck' }),
         ]);
-        assertValues(chunk, 8, DuckDBArrayVector, [
+        assertValues(chunk, i++, DuckDBArrayVector, [
           arrayValue([100, 200, 300]),
         ]);
         assertValues<number, DuckDBIntegerVector>(
           chunk,
-          9,
+          i++,
           DuckDBIntegerVector,
           [null]
         );

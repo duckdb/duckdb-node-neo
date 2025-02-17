@@ -4,6 +4,9 @@ import duckdb, {
   Interval,
   Time,
   Timestamp,
+  TimestampMilliseconds,
+  TimestampNanoseconds,
+  TimestampSeconds,
   TimeTZ,
 } from '@duckdb/node-bindings';
 import { expect, suite, test } from 'vitest';
@@ -27,6 +30,10 @@ import {
   TIME,
   TIME_TZ,
   TIMESTAMP,
+  TIMESTAMP_MS,
+  TIMESTAMP_NS,
+  TIMESTAMP_S,
+  TIMESTAMP_TZ,
   TINYINT,
   UBIGINT,
   UHUGEINT,
@@ -154,6 +161,30 @@ suite('values', () => {
     const timestamp_value = duckdb.create_timestamp(input);
     expectLogicalType(duckdb.get_value_type(timestamp_value), TIMESTAMP);
     expect(duckdb.get_timestamp(timestamp_value)).toStrictEqual(input);
+  });
+  test('timestamp_tz', () => {
+    const input: Timestamp = { micros: 9223372036854775806n };
+    const timestamp_value = duckdb.create_timestamp_tz(input);
+    expectLogicalType(duckdb.get_value_type(timestamp_value), TIMESTAMP_TZ);
+    expect(duckdb.get_timestamp_tz(timestamp_value)).toStrictEqual(input);
+  });
+  test('timestamp_s', () => {
+    const input: TimestampSeconds = { seconds: 9223372036854n };
+    const timestamp_s_value = duckdb.create_timestamp_s(input);
+    expectLogicalType(duckdb.get_value_type(timestamp_s_value), TIMESTAMP_S);
+    expect(duckdb.get_timestamp_s(timestamp_s_value)).toStrictEqual(input);
+  });
+  test('timestamp_ms', () => {
+    const input: TimestampMilliseconds = { millis: 9223372036854775n };
+    const timestamp_ms_value = duckdb.create_timestamp_ms(input);
+    expectLogicalType(duckdb.get_value_type(timestamp_ms_value), TIMESTAMP_MS);
+    expect(duckdb.get_timestamp_ms(timestamp_ms_value)).toStrictEqual(input);
+  });
+  test('timestamp_ns', () => {
+    const input: TimestampNanoseconds = { nanos: 9223372036854775806n };
+    const timestamp_ns_value = duckdb.create_timestamp_ns(input);
+    expectLogicalType(duckdb.get_value_type(timestamp_ns_value), TIMESTAMP_NS);
+    expect(duckdb.get_timestamp_ns(timestamp_ns_value)).toStrictEqual(input);
   });
   test('interval', () => {
     const input: Interval = { months: 999, days: 999, micros: 999999999n };
