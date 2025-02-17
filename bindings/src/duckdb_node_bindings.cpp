@@ -4104,11 +4104,11 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  228 instance methods
+  230 instance methods
     3 unimplemented instance cache functions
     1 unimplemented logical type function
-    3 unimplemented value creation functions
-    6 unimplemented value inspection functions
+    2 unimplemented value creation functions
+    5 unimplemented value inspection functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
    12 unimplemented aggregate function functions
