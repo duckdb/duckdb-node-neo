@@ -682,6 +682,7 @@ export function create_blob(data: Uint8Array): Value;
 export function create_bit(data: Uint8Array): Value;
 
 // DUCKDB_API duckdb_value duckdb_create_uuid(duckdb_uhugeint input);
+export function create_uuid(input: bigint): Value;
 
 // DUCKDB_API bool duckdb_get_bool(duckdb_value val);
 export function get_bool(value: Value): boolean;
@@ -765,6 +766,7 @@ export function get_blob(value: Value): Uint8Array;
 export function get_bit(value: Value): Uint8Array;
 
 // DUCKDB_API duckdb_uhugeint duckdb_get_uuid(duckdb_value val);
+export function get_uuid(value: Value): bigint;
 
 // DUCKDB_API char *duckdb_get_varchar(duckdb_value value);
 export function get_varchar(value: Value): string;

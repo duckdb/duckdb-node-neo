@@ -1175,6 +1175,7 @@ public:
       InstanceMethod("create_interval", &DuckDBNodeAddon::create_interval),
       InstanceMethod("create_blob", &DuckDBNodeAddon::create_blob),
       InstanceMethod("create_bit", &DuckDBNodeAddon::create_bit),
+      InstanceMethod("create_uuid", &DuckDBNodeAddon::create_uuid),
       InstanceMethod("get_bool", &DuckDBNodeAddon::get_bool),
       InstanceMethod("get_int8", &DuckDBNodeAddon::get_int8),
       InstanceMethod("get_uint8", &DuckDBNodeAddon::get_uint8),
@@ -1202,6 +1203,7 @@ public:
       InstanceMethod("get_value_type", &DuckDBNodeAddon::get_value_type),
       InstanceMethod("get_blob", &DuckDBNodeAddon::get_blob),
       InstanceMethod("get_bit", &DuckDBNodeAddon::get_bit),
+      InstanceMethod("get_uuid", &DuckDBNodeAddon::get_uuid),
       InstanceMethod("get_varchar", &DuckDBNodeAddon::get_varchar),
       InstanceMethod("create_struct_value", &DuckDBNodeAddon::create_struct_value),
       InstanceMethod("create_list_value", &DuckDBNodeAddon::create_list_value),
@@ -2622,6 +2624,14 @@ private:
   }
 
   // DUCKDB_API duckdb_value duckdb_create_uuid(duckdb_uhugeint input);
+  // function create_uuid(input: bigint): Value
+  Napi::Value create_uuid(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto input_bigint = info[0].As<Napi::BigInt>();
+    auto uhugeint = GetUHugeIntFromBigInt(env, input_bigint);
+    auto value = duckdb_create_uuid(uhugeint);
+    return CreateExternalForValue(env, value);
+  }
 
   // DUCKDB_API bool duckdb_get_bool(duckdb_value val);
   // function get_bool(value: Value): boolean
@@ -2869,6 +2879,13 @@ private:
   }
 
   // DUCKDB_API duckdb_uhugeint duckdb_get_uuid(duckdb_value val);
+  // function get_uuid(value: Value): bigint
+  Napi::Value get_uuid(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto uhugeint = duckdb_get_uuid(value);
+    return MakeBigIntFromUHugeInt(env, uhugeint);
+  }
 
   // DUCKDB_API char *duckdb_get_varchar(duckdb_value value);
   // function get_varchar(value: Value): string

@@ -16,6 +16,7 @@ import {
   TIMESTAMP_S,
   TIMESTAMPTZ,
   TIMETZ,
+  UUID,
   VARINT,
 } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
@@ -36,6 +37,7 @@ import {
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
+  DuckDBUUIDValue,
   DuckDBValue,
 } from './values';
 
@@ -183,7 +185,9 @@ export class DuckDBPreparedStatement {
     this.bindValue(parameterIndex, value, type);
   }
   // TODO: bind MAP, UNION
-  // TODO: bind UUID
+  public bindUUID(parameterIndex: number, value: DuckDBUUIDValue) {
+    this.bindValue(parameterIndex, value, UUID);
+  }
   public bindBit(parameterIndex: number, value: DuckDBBitValue) {
     this.bindValue(parameterIndex, value, BIT);
   }

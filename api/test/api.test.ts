@@ -108,6 +108,7 @@ import {
   timeTZValue,
   timeValue,
   unionValue,
+  uuidValue,
   version,
 } from '../src';
 import {
@@ -410,6 +411,7 @@ describe('api', () => {
         { name: 'list_dec', type: LIST(DECIMAL(4, 1)) },
         { name: 'struct', type: STRUCT({ 'a': INTEGER, 'b': VARCHAR }) },
         { name: 'array', type: ARRAY(INTEGER, 3) },
+        { name: 'uuid', type: UUID },
         { name: 'bit', type: BIT },
         { name: 'timetz', type: TIMETZ },
         { name: 'timestamptz', type: TIMESTAMPTZ },
@@ -446,6 +448,7 @@ describe('api', () => {
         STRUCT({ 'a': INTEGER, 'b': VARCHAR })
       );
       prepared.bindArray(i++, arrayValue([100, 200, 300]), ARRAY(INTEGER, 3));
+      prepared.bindUUID(i++, uuidValue(0xf0e1d2c3b4a596870123456789abcdefn));
       prepared.bindBit(i++, bitValue('0010001001011100010101011010111'));
       prepared.bindTimeTZ(i++, TIMETZ.max);
       prepared.bindTimestampTZ(i++, TIMESTAMPTZ.max);
@@ -517,6 +520,7 @@ describe('api', () => {
         assertValues(chunk, i++, DuckDBArrayVector, [
           arrayValue([100, 200, 300]),
         ]);
+        assertValues(chunk, i++, DuckDBUUIDVector, [uuidValue(0xf0e1d2c3b4a596870123456789abcdefn)]);
         assertValues(chunk, i++, DuckDBBitVector, [bitValue('0010001001011100010101011010111')]);
         assertValues(chunk, i++, DuckDBTimeTZVector, [TIMETZ.max]);
         assertValues(chunk, i++, DuckDBTimestampTZVector, [TIMESTAMPTZ.max]);
