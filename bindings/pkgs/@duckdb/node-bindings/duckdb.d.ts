@@ -1205,3 +1205,5 @@ export function copy_data_to_vector(target_vector: Vector, target_byte_offset: n
  * Performs an efficient-but-unsafe memory copy. Use with care.
  */
 export function copy_data_to_vector_validity(target_vector: Vector, target_byte_offset: number, source_buffer: ArrayBuffer, source_byte_offset: number, source_byte_count: number): void;
+
+export function test_issue154();

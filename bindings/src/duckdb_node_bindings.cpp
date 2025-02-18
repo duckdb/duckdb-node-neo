@@ -9,6 +9,8 @@
 
 #include "duckdb.h"
 
+#include <iostream>
+
 #define DEFAULT_DUCKDB_API "node-neo-bindings"
 
 // Conversion betweeen structs and objects
@@ -335,8 +337,8 @@ static const napi_type_tag ConnectionTypeTag = {
 
 void FinalizeConnection(Napi::BasicEnv, duckdb_connection_holder *connection_holder_ptr) {
   // duckdb_disconnect is a no-op if already disconnected
-  duckdb_disconnect(&connection_holder_ptr->connection);
-  duckdb_free(connection_holder_ptr);
+  // duckdb_disconnect(&connection_holder_ptr->connection);
+  // duckdb_free(connection_holder_ptr);
 }
 
 duckdb_connection_holder *CreateConnectionHolder(duckdb_connection connection) {
@@ -458,10 +460,10 @@ static const napi_type_tag PreparedStatementTypeTag = {
 };
 
 void FinalizePreparedStatement(Napi::BasicEnv, duckdb_prepared_statement prepared_statement) {
-  if (prepared_statement) {
-    duckdb_destroy_prepare(&prepared_statement);
-    prepared_statement = nullptr;
-  }
+  // if (prepared_statement) {
+    // duckdb_destroy_prepare(&prepared_statement);
+    // prepared_statement = nullptr;
+  // }
 }
 
 Napi::External<_duckdb_prepared_statement> CreateExternalForPreparedStatement(Napi::Env env, duckdb_prepared_statement prepared_statement) {
@@ -477,11 +479,11 @@ static const napi_type_tag ResultTypeTag = {
 };
 
 void FinalizeResult(Napi::BasicEnv, duckdb_result *result_ptr) {
-  if (result_ptr) {
-    duckdb_destroy_result(result_ptr);
-    duckdb_free(result_ptr); // memory for duckdb_result struct is malloc'd in QueryWorker, ExecutePreparedWorker, or ExecutePendingWorker.
-    result_ptr = nullptr;
-  }
+  // if (result_ptr) {
+  //   duckdb_destroy_result(result_ptr);
+  //   duckdb_free(result_ptr); // memory for duckdb_result struct is malloc'd in QueryWorker, ExecutePreparedWorker, or ExecutePendingWorker.
+  //   result_ptr = nullptr;
+  // }
 }
 
 Napi::External<duckdb_result> CreateExternalForResult(Napi::Env env, duckdb_result *result_ptr) {
@@ -691,12 +693,15 @@ protected:
       return;
     }
     if (duckdb_prepare(connection_, query_.c_str(), &prepared_statement_)) {
-      if (prepared_statement_) {
-        SetError(duckdb_prepare_error(prepared_statement_));
-        duckdb_destroy_prepare(&prepared_statement_);
-      } else {
+      // if (prepared_statement_) {
+      //   std::cout << "about to call duckdb_prepare_error and SetError" << std::endl;
+      //   SetError(duckdb_prepare_error(prepared_statement_));
+      //   std::cout << "about to call duckdb_destroy_prepare" << std::endl;
+      //   duckdb_destroy_prepare(&prepared_statement_);
+      //   std::cout << "called duckdb_destroy_prepare" << std::endl;
+      // } else {
         SetError("Failed to prepare");
-      }
+      // }
     }
   }
 
@@ -1269,6 +1274,8 @@ public:
       InstanceMethod("get_data_from_pointer", &DuckDBNodeAddon::get_data_from_pointer),
       InstanceMethod("copy_data_to_vector", &DuckDBNodeAddon::copy_data_to_vector),
       InstanceMethod("copy_data_to_vector_validity", &DuckDBNodeAddon::copy_data_to_vector_validity),
+
+      InstanceMethod("test_issue154", &DuckDBNodeAddon::test_issue154),
     });
   }
 
@@ -1788,9 +1795,33 @@ private:
     auto env = info.Env();
     auto connection = GetConnectionFromExternal(env, info[0]);
     std::string query = info[1].As<Napi::String>();
-    auto worker = new PrepareWorker(env, connection, query);
-    worker->Queue();
-    return worker->Promise();
+
+    auto deferred = Napi::Promise::Deferred::New(env);
+
+    duckdb_result result;
+    std::cerr << "calling duckdb_query" << std::endl;
+    duckdb_query(connection, "CREATE SECRET secret1 (TYPE AZURE,CONNECTION_STRING 'ABC');", &result);
+    std::cerr << "done calling duckdb_query" << std::endl;
+
+    duckdb_prepared_statement prepared_statement;
+    std::cerr << "calling duckdb_prepare" << std::endl;
+    // auto str = query.c_str();
+    auto str = "SELECT * FROM delta_scan('az://testing/data')";
+    auto state = duckdb_prepare(connection, str, &prepared_statement);
+    std::cerr << "done calling duckdb_prepare" << std::endl;
+    if (state) {
+      std::cout << "resolving" << std::endl;
+      deferred.Resolve(CreateExternalForPreparedStatement(env, prepared_statement));
+    } else {
+      std::cout << "rejecting" << std::endl;
+      deferred.Reject(Napi::Error::New(env, "Failed to prepare (sync)").Value());
+    }
+
+    return deferred.Promise();
+
+    // auto worker = new PrepareWorker(env, connection, query);
+    // worker->Queue();
+    // return worker->Promise();
   }
 
   // DUCKDB_API void duckdb_destroy_prepare(duckdb_prepared_statement *prepared_statement);
@@ -3965,6 +3996,25 @@ private:
     auto source_byte_count = info[4].As<Napi::Number>().Uint32Value();
     auto target_data = reinterpret_cast<uint8_t*>(duckdb_vector_get_validity(target_vector));
     memcpy(target_data + target_byte_offset, source_data + source_byte_offset, source_byte_count);
+    return env.Undefined();
+  }
+
+  Napi::Value test_issue154(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    std::cout << "start" << std::endl;
+    duckdb_database db;
+    std::cout << "open" << std::endl;
+    duckdb_open(":memory:", &db);
+    duckdb_connection conn;
+    std::cout << "connect" << std::endl;
+    duckdb_connect(db, &conn);
+    duckdb_result res;
+    std::cout << "query" << std::endl;
+    duckdb_query(conn, "CREATE SECRET secret1 (TYPE AZURE,CONNECTION_STRING 'ABC');", &res);
+    duckdb_prepared_statement prepared;
+    std::cout << "prepare" << std::endl;
+    duckdb_prepare(conn, "SELECT * FROM delta_scan('az://testing/data')", &prepared);
+    std::cout << "done" << std::endl;
     return env.Undefined();
   }
 
