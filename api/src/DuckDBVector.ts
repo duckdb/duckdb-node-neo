@@ -3218,7 +3218,7 @@ export class DuckDBUUIDVector extends DuckDBVector<DuckDBUUIDValue> {
   }
   public override getItem(itemIndex: number): DuckDBUUIDValue | null {
     return this.validity.itemValid(itemIndex)
-      ? new DuckDBUUIDValue(getInt128(this.dataView, itemIndex * 16))
+      ? DuckDBUUIDValue.fromStoredHugeInt(getInt128(this.dataView, itemIndex * 16))
       : null;
   }
   public override setItem(itemIndex: number, value: DuckDBUUIDValue | null) {

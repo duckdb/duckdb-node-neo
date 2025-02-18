@@ -17,6 +17,7 @@ import {
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
+  DuckDBUUIDValue,
   DuckDBValue,
 } from './values';
 
@@ -188,7 +189,10 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a DuckDBArrayValue`);
     case DuckDBTypeId.UUID:
-      throw new Error(`not yet implemented for UUID`); // TODO: implement when available in 1.2.0
+      if (input instanceof DuckDBUUIDValue) {
+        return duckdb.create_uuid(input.toUint128());
+      }
+      throw new Error(`input is not a bigint`);
     case DuckDBTypeId.UNION:
       throw new Error(`not yet implemented for UNION`); // TODO: implement when available, hopefully in 1.2.0
     case DuckDBTypeId.BIT:

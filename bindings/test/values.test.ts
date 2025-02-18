@@ -41,6 +41,7 @@ import {
   UINTEGER,
   USMALLINT,
   UTINYINT,
+  UUID,
   VARCHAR,
   VARINT,
 } from './utils/expectedLogicalTypes';
@@ -204,6 +205,12 @@ suite('values', () => {
     const bit_value = duckdb.create_bit(input);
     expectLogicalType(duckdb.get_value_type(bit_value), BIT);
     expect(duckdb.get_bit(bit_value)).toStrictEqual(input);
+  });
+  test('uuid', () => {
+    const input = 0xf0e1d2c3b4a596870123456789abcdefn;
+    const uuid_value = duckdb.create_uuid(input);
+    expectLogicalType(duckdb.get_value_type(uuid_value), UUID);
+    expect(duckdb.get_uuid(uuid_value)).toBe(input);
   });
   test('varchar', () => {
     const input = 'varchar_text';
