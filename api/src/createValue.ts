@@ -220,7 +220,7 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a bigint`);
     case DuckDBTypeId.SQLNULL:
-      throw new Error(`not yet implemented for SQLNUll`); // TODO: implement when available in 1.2.0
+      return duckdb.create_null_value();
     default:
       throw new Error(`unrecognized type id ${typeId}`);
   }

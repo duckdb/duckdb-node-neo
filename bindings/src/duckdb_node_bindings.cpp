@@ -1211,6 +1211,8 @@ public:
       InstanceMethod("get_map_size", &DuckDBNodeAddon::get_map_size),
       InstanceMethod("get_map_key", &DuckDBNodeAddon::get_map_key),
       InstanceMethod("get_map_value", &DuckDBNodeAddon::get_map_value),
+      InstanceMethod("is_null_value", &DuckDBNodeAddon::is_null_value),
+      InstanceMethod("create_null_value", &DuckDBNodeAddon::create_null_value),
 
       InstanceMethod("create_logical_type", &DuckDBNodeAddon::create_logical_type),
       InstanceMethod("logical_type_get_alias", &DuckDBNodeAddon::logical_type_get_alias),
@@ -2988,7 +2990,22 @@ private:
   }
 
   // DUCKDB_API bool duckdb_is_null_value(duckdb_value value);
+  // function is_null_value(value: Value): boolean
+  Napi::Value is_null_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto is_null = duckdb_is_null_value(value);
+    return Napi::Boolean::New(env, is_null);
+  }
+
   // DUCKDB_API duckdb_value duckdb_create_null_value();
+  // function create_null_value(): Value
+  Napi::Value create_null_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = duckdb_create_null_value();
+    return CreateExternalForValue(env, value);
+  }
+
   // DUCKDB_API idx_t duckdb_get_list_size(duckdb_value value);
   // DUCKDB_API duckdb_value duckdb_get_list_child(duckdb_value value, idx_t index);
   // DUCKDB_API duckdb_value duckdb_create_enum_value(duckdb_logical_type type, uint64_t value);
@@ -4104,11 +4121,11 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  230 instance methods
+  232 instance methods
     3 unimplemented instance cache functions
     1 unimplemented logical type function
-    2 unimplemented value creation functions
-    5 unimplemented value inspection functions
+    1 unimplemented value creation functions
+    4 unimplemented value inspection functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
    12 unimplemented aggregate function functions

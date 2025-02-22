@@ -790,7 +790,11 @@ export function get_map_key(value: Value, index: number): Value;
 export function get_map_value(value: Value, index: number): Value;
 
 // DUCKDB_API bool duckdb_is_null_value(duckdb_value value);
+export function is_null_value(value: Value): boolean;
+
 // DUCKDB_API duckdb_value duckdb_create_null_value();
+export function create_null_value(): Value;
+
 // DUCKDB_API idx_t duckdb_get_list_size(duckdb_value value);
 // DUCKDB_API duckdb_value duckdb_get_list_child(duckdb_value value, idx_t index);
 // DUCKDB_API duckdb_value duckdb_create_enum_value(duckdb_logical_type type, uint64_t value);
