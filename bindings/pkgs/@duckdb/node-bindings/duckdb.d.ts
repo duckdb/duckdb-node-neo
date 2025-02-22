@@ -1054,9 +1054,10 @@ export function validity_set_row_valid(validity: Uint8Array, row_index: number):
 // DUCKDB_API duckdb_profiling_info duckdb_profiling_info_get_child(duckdb_profiling_info info, idx_t index);
 
 // DUCKDB_API duckdb_state duckdb_appender_create(duckdb_connection connection, const char *schema, const char *table, duckdb_appender *out_appender);
-export function appender_create(connection: Connection, schema: string, table: string): Appender;
+export function appender_create(connection: Connection, schema: string | null, table: string): Appender;
 
 // DUCKDB_API duckdb_state duckdb_appender_create_ext(duckdb_connection connection, const char *catalog, const char *schema, const char *table, duckdb_appender *out_appender);
+export function appender_create_ext(connection: Connection, catalog: string | null, schema: string | null, table: string): Appender;
 
 // DUCKDB_API idx_t duckdb_appender_column_count(duckdb_appender appender);
 export function appender_column_count(appender: Appender): number;

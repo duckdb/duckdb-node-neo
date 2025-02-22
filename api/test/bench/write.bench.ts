@@ -1,9 +1,9 @@
-import { bench, describe } from "vitest";
+import { bench, describe } from 'vitest';
 import {
   DuckDBConnection,
   DuckDBInstance,
   DuckDBTimestampValue,
-} from "../../src";
+} from '../../src';
 
 let instance: DuckDBInstance;
 let connection: DuckDBConnection;
@@ -26,7 +26,7 @@ for (const batchSize of [1, 1000]) {
       `${batchSize} insert bind`,
       async () => {
         const query = await connection.prepare(
-          "INSERT INTO test (timestamp, value) VALUES ($1, $2);"
+          'INSERT INTO test (timestamp, value) VALUES ($1, $2);'
         );
 
         for (let index = 0; index < batchSize; index++) {
@@ -46,7 +46,7 @@ for (const batchSize of [1, 1000]) {
     bench(
       `${batchSize} row append`,
       async () => {
-        const appender = await connection.createAppender("main", "test");
+        const appender = await connection.createAppender('test');
 
         for (let index = 0; index < batchSize; index++) {
           appender.appendTimestamp(
