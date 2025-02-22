@@ -8,6 +8,7 @@ import { DuckDBResultReader } from './DuckDBResultReader';
 import {
   BIT,
   DuckDBArrayType,
+  DuckDBEnumType,
   DuckDBListType,
   DuckDBStructType,
   DuckDBType,
@@ -162,7 +163,9 @@ export class DuckDBPreparedStatement {
   public bindBlob(parameterIndex: number, value: Uint8Array) {
     duckdb.bind_blob(this.prepared_statement, parameterIndex, value);
   }
-  // TODO: bind ENUM
+  public bindEnum(parameterIndex: number, value: string, type: DuckDBEnumType) {
+    this.bindValue(parameterIndex, value, type);
+  }
   public bindArray(
     parameterIndex: number,
     value: DuckDBArrayValue,
