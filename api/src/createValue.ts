@@ -140,7 +140,13 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a DuckDBTimestampNanosecondsValue`);
     case DuckDBTypeId.ENUM:
-      throw new Error(`not yet implemented for ENUM`); // TODO: implement when available in 1.2.0
+      if (typeof input === 'string') {
+        return duckdb.create_enum_value(
+          type.toLogicalType().logical_type,
+          type.indexForValue(input)
+        );
+      }
+      throw new Error(`input is not a string`);
     case DuckDBTypeId.LIST:
       if (input instanceof DuckDBListValue) {
         if (type.valueType.typeId === DuckDBTypeId.ANY) {

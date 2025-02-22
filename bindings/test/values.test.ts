@@ -21,6 +21,7 @@ import {
   DECIMAL,
   DOUBLE,
   ENTRY,
+  ENUM,
   FLOAT,
   HUGEINT,
   INTEGER,
@@ -277,8 +278,15 @@ suite('values', () => {
   });
   test('null', () => {
     const null_value = duckdb.create_null_value();
-    expect(duckdb.is_null_value(null_value)).toEqual(true);
+    expect(duckdb.is_null_value(null_value)).toBe(true);
     const int32_value = duckdb.create_int32(42);
-    expect(duckdb.is_null_value(int32_value)).toEqual(false);
+    expect(duckdb.is_null_value(int32_value)).toBe(false);
+  });
+  test('enum', () => {
+    const enum_members = ['fly', 'swim', 'walk'];
+    const enum_type = duckdb.create_enum_type(enum_members);
+    const enum_value = duckdb.create_enum_value(enum_type, 1);
+    expectLogicalType(duckdb.get_value_type(enum_value), ENUM(enum_members, duckdb.Type.UTINYINT));
+    expect(duckdb.get_enum_value(enum_value)).toBe(1);
   });
 });

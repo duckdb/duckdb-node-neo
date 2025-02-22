@@ -1213,6 +1213,8 @@ public:
       InstanceMethod("get_map_value", &DuckDBNodeAddon::get_map_value),
       InstanceMethod("is_null_value", &DuckDBNodeAddon::is_null_value),
       InstanceMethod("create_null_value", &DuckDBNodeAddon::create_null_value),
+      InstanceMethod("create_enum_value", &DuckDBNodeAddon::create_enum_value),
+      InstanceMethod("get_enum_value", &DuckDBNodeAddon::get_enum_value),
 
       InstanceMethod("create_logical_type", &DuckDBNodeAddon::create_logical_type),
       InstanceMethod("logical_type_get_alias", &DuckDBNodeAddon::logical_type_get_alias),
@@ -3008,8 +3010,29 @@ private:
 
   // DUCKDB_API idx_t duckdb_get_list_size(duckdb_value value);
   // DUCKDB_API duckdb_value duckdb_get_list_child(duckdb_value value, idx_t index);
+
   // DUCKDB_API duckdb_value duckdb_create_enum_value(duckdb_logical_type type, uint64_t value);
+  // function create_enum_value(logical_type: LogicalType, value: number): Value
+  Napi::Value create_enum_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto input_value = info[1].As<Napi::Number>().Uint32Value();
+    auto value = duckdb_create_enum_value(logical_type, input_value);
+    if (!value) {
+      throw Napi::Error::New(env, "Failed to create enum value");
+    }
+    return CreateExternalForValue(env, value);
+  }
+
   // DUCKDB_API uint64_t duckdb_get_enum_value(duckdb_value value);
+  // function get_enum_value(value: Value): number
+  Napi::Value get_enum_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto output_value = duckdb_get_enum_value(value);
+    return Napi::Number::New(env, output_value);
+  }
+
   // DUCKDB_API duckdb_value duckdb_get_struct_child(duckdb_value value, idx_t index);
 
   // DUCKDB_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
@@ -4121,11 +4144,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  232 instance methods
+  234 instance methods
     3 unimplemented instance cache functions
     1 unimplemented logical type function
-    1 unimplemented value creation functions
-    4 unimplemented value inspection functions
+    3 unimplemented value inspection functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
    12 unimplemented aggregate function functions

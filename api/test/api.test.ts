@@ -111,6 +111,7 @@ import {
   uuidValue,
   version,
 } from '../src';
+import { replaceSqlNullWithInteger } from './util/replaceSqlNullWithInteger';
 import {
   ColumnNameAndType,
   createTestAllTypesColumnTypes,
@@ -121,7 +122,6 @@ import {
   createTestAllTypesRowObjectsJson,
   createTestAllTypesRowsJson,
 } from './util/testAllTypes';
-import { replaceSqlNullWithInteger } from './util/replaceSqlNullWithInteger';
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -408,6 +408,7 @@ describe('api', () => {
         { name: 'timestamp_s', type: TIMESTAMP_S },
         { name: 'timestamp_ms', type: TIMESTAMP_MS },
         { name: 'timestamp_ns', type: TIMESTAMP_NS },
+        { name: 'enum', type: ENUM(['fly', 'swim', 'walk']) },
         { name: 'list_int', type: LIST(INTEGER) },
         { name: 'list_dec', type: LIST(DECIMAL(4, 1)) },
         { name: 'list_null', type: LIST(SQLNULL) },
@@ -442,6 +443,7 @@ describe('api', () => {
       prepared.bindTimestampSeconds(i++, TIMESTAMP_S.max);
       prepared.bindTimestampMilliseconds(i++, TIMESTAMP_MS.max);
       prepared.bindTimestampNanoseconds(i++, TIMESTAMP_NS.max);
+      prepared.bindEnum(i++, 'swim', ENUM(['fly', 'swim', 'walk']));
       prepared.bindList(i++, listValue([100, 200, 300]), LIST(INTEGER));
       prepared.bindList(
         i++,
@@ -526,6 +528,9 @@ describe('api', () => {
         ]);
         assertValues(chunk, i++, DuckDBTimestampNanosecondsVector, [
           TIMESTAMP_NS.max,
+        ]);
+        assertValues<string, DuckDBEnum8Vector>(chunk, i++, DuckDBEnum8Vector, [
+          'swim',
         ]);
         assertValues(chunk, i++, DuckDBListVector, [
           listValue([100, 200, 300]),

@@ -797,8 +797,13 @@ export function create_null_value(): Value;
 
 // DUCKDB_API idx_t duckdb_get_list_size(duckdb_value value);
 // DUCKDB_API duckdb_value duckdb_get_list_child(duckdb_value value, idx_t index);
+
 // DUCKDB_API duckdb_value duckdb_create_enum_value(duckdb_logical_type type, uint64_t value);
+export function create_enum_value(logical_type: LogicalType, value: number): Value;
+
 // DUCKDB_API uint64_t duckdb_get_enum_value(duckdb_value value);
+export function get_enum_value(value: Value): number;
+
 // DUCKDB_API duckdb_value duckdb_get_struct_child(duckdb_value value, idx_t index);
 
 // DUCKDB_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
