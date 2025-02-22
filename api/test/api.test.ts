@@ -1374,7 +1374,7 @@ describe('api', () => {
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 int)');
-      const appender = await connection.createAppender('main', 'target');
+      const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
       appender.flush();
 
@@ -1408,7 +1408,7 @@ describe('api', () => {
       }
 
       await connection.run('create table target1(col0 int)');
-      const appender1 = await connection.createAppender('main', 'target1');
+      const appender1 = await connection.createAppender('target1');
       appender1.appendDataChunk(chunk);
       appender1.flush();
 
@@ -1425,7 +1425,7 @@ describe('api', () => {
       vector.flush();
 
       await connection.run('create table target2(col0 int)');
-      const appender2 = await connection.createAppender('main', 'target2');
+      const appender2 = await connection.createAppender('target2');
       appender2.appendDataChunk(chunk);
       appender2.flush();
 
@@ -1447,7 +1447,7 @@ describe('api', () => {
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 varchar)');
-      const appender = await connection.createAppender('main', 'target');
+      const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
       appender.flush();
 
@@ -1483,7 +1483,7 @@ describe('api', () => {
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 blob)');
-      const appender = await connection.createAppender('main', 'target');
+      const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
       appender.flush();
 
@@ -1510,7 +1510,7 @@ describe('api', () => {
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 integer[])');
-      const appender = await connection.createAppender('main', 'target');
+      const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
       appender.flush();
 
@@ -1557,7 +1557,7 @@ describe('api', () => {
       ]);
 
       await connection.run('create table target(col0 integer[][])');
-      const appender = await connection.createAppender('main', 'target');
+      const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
       appender.flush();
 
@@ -1584,7 +1584,7 @@ describe('api', () => {
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 integer[3])');
-      const appender = await connection.createAppender('main', 'target');
+      const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
       appender.flush();
 
@@ -1611,7 +1611,7 @@ describe('api', () => {
       chunk.setColumnValues(0, values);
 
       await connection.run('create table target(col0 varchar[3])');
-      const appender = await connection.createAppender('main', 'target');
+      const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
       appender.flush();
 
@@ -1643,7 +1643,7 @@ describe('api', () => {
       await connection.run(
         'create table target(col0 struct(num integer, str varchar))'
       );
-      const appender = await connection.createAppender('main', 'target');
+      const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
       appender.flush();
 
@@ -1683,7 +1683,7 @@ describe('api', () => {
           int integer\
         )'
       );
-      const appender = await connection.createAppender('main', 'target');
+      const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
       appender.flush();
 
@@ -1720,7 +1720,7 @@ describe('api', () => {
           .map(({ name, type }) => `"${name.replace(`"`, `""`)}" ${type}`)
           .join(', ')})`
       );
-      const appender = await connection.createAppender('main', 'target');
+      const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
       appender.flush();
 

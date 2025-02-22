@@ -1273,6 +1273,7 @@ public:
       InstanceMethod("validity_set_row_valid", &DuckDBNodeAddon::validity_set_row_valid),
 
       InstanceMethod("appender_create", &DuckDBNodeAddon::appender_create),
+      InstanceMethod("appender_create_ext", &DuckDBNodeAddon::appender_create_ext),
       InstanceMethod("appender_column_count", &DuckDBNodeAddon::appender_column_count),
       InstanceMethod("appender_column_type", &DuckDBNodeAddon::appender_column_type),
       InstanceMethod("appender_flush", &DuckDBNodeAddon::appender_flush),
@@ -3707,17 +3708,24 @@ private:
   // DUCKDB_API duckdb_profiling_info duckdb_profiling_info_get_child(duckdb_profiling_info info, idx_t index);
 
   // DUCKDB_API duckdb_state duckdb_appender_create(duckdb_connection connection, const char *schema, const char *table, duckdb_appender *out_appender);
-  // function appender_create(connection: Connection, schema: string, table: string): Appender
+  // function appender_create(connection: Connection, schema: string | null, table: string): Appender
   Napi::Value appender_create(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto connection = GetConnectionFromExternal(env, info[0]);
     if (!connection) {
       throw Napi::Error::New(env, "Failed to create appender: connection disconnected");
     }
-    std::string schema = info[1].As<Napi::String>();
+    std::string schema = info[1].IsNull() ? std::string() : info[1].As<Napi::String>();
     std::string table = info[2].As<Napi::String>();
     duckdb_appender appender;
-    if (duckdb_appender_create(connection, schema.c_str(), table.c_str(), &appender)) {
+    if (
+      duckdb_appender_create(
+        connection,
+        info[1].IsNull() ? nullptr : schema.c_str(),
+        table.c_str(),
+        &appender
+      )
+    ) {
       std::string error = duckdb_appender_error(appender);
       duckdb_appender_destroy(&appender);
       throw Napi::Error::New(env, error);
@@ -3726,6 +3734,32 @@ private:
   }
 
   // DUCKDB_API duckdb_state duckdb_appender_create_ext(duckdb_connection connection, const char *catalog, const char *schema, const char *table, duckdb_appender *out_appender);
+  // function appender_create_ext(connection: Connection, catalog: string | null, schema: string | null, table: string): Appender
+  Napi::Value appender_create_ext(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    if (!connection) {
+      throw Napi::Error::New(env, "Failed to create appender: connection disconnected");
+    }
+    std::string catalog = info[1].IsNull() ? std::string() : info[1].As<Napi::String>();
+    std::string schema = info[2].IsNull() ? std::string() : info[2].As<Napi::String>();
+    std::string table = info[3].As<Napi::String>();
+    duckdb_appender appender;
+    if (
+      duckdb_appender_create_ext(
+        connection,
+        info[1].IsNull() ? nullptr : catalog.c_str(),
+        info[2].IsNull() ? nullptr : schema.c_str(),
+        table.c_str(),
+        &appender
+      )
+    ) {
+      std::string error = duckdb_appender_error(appender);
+      duckdb_appender_destroy(&appender);
+      throw Napi::Error::New(env, error);
+    }
+    return CreateExternalForAppender(env, appender);
+  }
 
   // DUCKDB_API idx_t duckdb_appender_column_count(duckdb_appender appender);
   // function appender_column_count(appender: Appender): number
@@ -4183,7 +4217,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  237 instance methods
+  238 instance methods
     3 unimplemented instance cache functions
     1 unimplemented logical type function
    13 unimplemented scalar function functions
@@ -4196,7 +4230,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
     5 unimplemented function info functions
     4 unimplemented replacement scan functions
     5 unimplemented profiling info functions
-    5 unimplemented appender functions
+    4 unimplemented appender functions
     6 unimplemented table description functions
     8 unimplemented tasks functions
    12 unimplemented cast function functions

@@ -9,7 +9,7 @@ import { data } from './utils/expectedVectors';
 suite('appender', () => {
   test('error: no table', async () => {
     await withConnection(async (connection) => {
-      expect(() => duckdb.appender_create(connection, 'main', 'bogus_table'))
+      expect(() => duckdb.appender_create_ext(connection, 'memory', 'main', 'bogus_table'))
         .toThrowError(`Table "main.bogus_table" could not be found`);
     });
   });
@@ -27,7 +27,7 @@ suite('appender', () => {
         chunks: [],
       });
 
-      const appender = duckdb.appender_create(connection, 'main', 'appender_target');
+      const appender = duckdb.appender_create_ext(connection, 'memory', 'main', 'appender_target');
       expect(duckdb.appender_column_count(appender)).toBe(1);
       const column_type = duckdb.appender_column_type(appender, 0);
       expectLogicalType(column_type, INTEGER);
@@ -92,7 +92,7 @@ suite('appender', () => {
       });
 
 
-      const appender = duckdb.appender_create(connection, 'main', 'appender_target');
+      const appender = duckdb.appender_create_ext(connection, 'memory', 'main', 'appender_target');
       expect(duckdb.appender_column_count(appender)).toBe(21);
       
       const expectedLogicalTypes = [
@@ -222,7 +222,7 @@ suite('appender', () => {
         chunks: [],
       });
 
-      const appender = duckdb.appender_create(connection, 'main', 'appender_target');
+      const appender = duckdb.appender_create_ext(connection, 'memory', 'main', 'appender_target');
       expect(duckdb.appender_column_count(appender)).toBe(2);
 
       const source_result = await duckdb.query(connection, 'select int, varchar from test_all_types()');

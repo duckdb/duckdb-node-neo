@@ -644,7 +644,7 @@ await connection.run(
   `create or replace table target_table(i integer, v varchar)`
 );
 
-const appender = await connection.createAppender('main', 'target_table');
+const appender = await connection.createAppender('target_table');
 
 appender.appendInteger(42);
 appender.appendVarchar('duck');
@@ -670,7 +670,7 @@ await connection.run(
   `create or replace table target_table(i integer, v varchar)`
 );
 
-const appender = await connection.createAppender('main', 'target_table');
+const appender = await connection.createAppender('target_table');
 
 const chunk = DuckDBDataChunk.create([INTEGER, VARCHAR]);
 chunk.setColumns([

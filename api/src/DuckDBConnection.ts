@@ -161,11 +161,17 @@ export class DuckDBConnection {
     );
   }
   public async createAppender(
-    schema: string,
-    table: string
+    table: string,
+    schema?: string | null,
+    catalog?: string | null
   ): Promise<DuckDBAppender> {
     return new DuckDBAppender(
-      duckdb.appender_create(this.connection, schema, table)
+      duckdb.appender_create_ext(
+        this.connection,
+        catalog ?? null,
+        schema ?? null,
+        table
+      )
     );
   }
 }

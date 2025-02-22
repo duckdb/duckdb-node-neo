@@ -100,7 +100,7 @@ for (const full of [false, true]) {
         },
         {
           setup,
-          iterations: 200,
+          iterations: 20,
         }
       );
       bench(
@@ -126,7 +126,7 @@ for (const full of [false, true]) {
         },
         {
           setup,
-          iterations: 200,
+          iterations: 20,
         }
       );
       bench(
@@ -160,7 +160,7 @@ for (const full of [false, true]) {
         },
         {
           setup,
-          iterations: 200,
+          iterations: 20,
         }
       );
 
@@ -179,7 +179,7 @@ for (const full of [false, true]) {
         },
         {
           setup,
-          iterations: 200,
+          iterations: 20,
         }
       );
       bench(
@@ -205,7 +205,7 @@ for (const full of [false, true]) {
         },
         {
           setup,
-          iterations: 200,
+          iterations: 20,
         }
       );
       bench(
@@ -239,7 +239,7 @@ for (const full of [false, true]) {
         },
         {
           setup,
-          iterations: 200,
+          iterations: 20,
         }
       );
       bench(
@@ -265,7 +265,7 @@ for (const full of [false, true]) {
         },
         {
           setup,
-          iterations: 200,
+          iterations: 20,
         }
       );
       bench(
@@ -291,7 +291,7 @@ for (const full of [false, true]) {
         },
         {
           setup,
-          iterations: 200,
+          iterations: 20,
         }
       );
     });
