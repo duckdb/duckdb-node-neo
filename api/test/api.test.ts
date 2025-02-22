@@ -121,6 +121,7 @@ import {
   createTestAllTypesRowObjectsJson,
   createTestAllTypesRowsJson,
 } from './util/testAllTypes';
+import { replaceSqlNullWithInteger } from './util/replaceSqlNullWithInteger';
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -409,6 +410,7 @@ describe('api', () => {
         { name: 'timestamp_ns', type: TIMESTAMP_NS },
         { name: 'list_int', type: LIST(INTEGER) },
         { name: 'list_dec', type: LIST(DECIMAL(4, 1)) },
+        { name: 'list_null', type: LIST(SQLNULL) },
         { name: 'struct', type: STRUCT({ 'a': INTEGER, 'b': VARCHAR }) },
         { name: 'array', type: ARRAY(INTEGER, 3) },
         { name: 'uuid', type: UUID },
@@ -426,7 +428,11 @@ describe('api', () => {
 
       assert.strictEqual(prepared.parameterCount, params.length);
       for (let i = 0; i < params.length; i++) {
-        assert.strictEqual(prepared.parameterName(i + 1), params[i].name, `param ${i} name mismatch`);
+        assert.strictEqual(
+          prepared.parameterName(i + 1),
+          params[i].name,
+          `param ${i} name mismatch`
+        );
       }
 
       let i = 1;
@@ -442,6 +448,7 @@ describe('api', () => {
         listValue([decimalValue(9876n, 4, 1), decimalValue(5432n, 4, 1)]),
         LIST(DECIMAL(4, 1))
       );
+      prepared.bindList(i++, listValue([null]), LIST(SQLNULL));
       prepared.bindStruct(
         i++,
         structValue({ 'a': 42, 'b': 'duck' }),
@@ -461,16 +468,28 @@ describe('api', () => {
           // VARCHAR type is reported incorrectly; see https://github.com/duckdb/duckdb/issues/16137
           continue;
         }
-        assert.equal(prepared.parameterTypeId(i + 1), type.typeId, `param ${i} type id mismatch`);
-        assert.deepEqual(prepared.parameterType(i + 1), type, `param ${i} type mismatch`);
+        assert.equal(
+          prepared.parameterTypeId(i + 1),
+          type.typeId,
+          `param ${i} type id mismatch`
+        );
+        assert.deepEqual(
+          prepared.parameterType(i + 1),
+          type,
+          `param ${i} type mismatch`
+        );
       }
 
       const result = await prepared.run();
 
       // In the result, SQLNULL params get type INTEGER.
-      const expectedColumns = params.map((p) =>
-        p.type.typeId === DuckDBTypeId.SQLNULL ? { ...p, type: INTEGER } : p
-      );
+      const expectedColumns = params.map((p) => {
+        const replacedType = replaceSqlNullWithInteger(p.type);
+        if (replacedType !== p.type) {
+          return { ...p, type: replacedType };
+        }
+        return p;
+      });
 
       assertColumns(result, expectedColumns);
 
@@ -514,14 +533,19 @@ describe('api', () => {
         assertValues(chunk, i++, DuckDBListVector, [
           listValue([decimalValue(9876n, 4, 1), decimalValue(5432n, 4, 1)]),
         ]);
+        assertValues(chunk, i++, DuckDBListVector, [listValue([null])]);
         assertValues(chunk, i++, DuckDBStructVector, [
           structValue({ 'a': 42, 'b': 'duck' }),
         ]);
         assertValues(chunk, i++, DuckDBArrayVector, [
           arrayValue([100, 200, 300]),
         ]);
-        assertValues(chunk, i++, DuckDBUUIDVector, [uuidValue(0xf0e1d2c3b4a596870123456789abcdefn)]);
-        assertValues(chunk, i++, DuckDBBitVector, [bitValue('0010001001011100010101011010111')]);
+        assertValues(chunk, i++, DuckDBUUIDVector, [
+          uuidValue(0xf0e1d2c3b4a596870123456789abcdefn),
+        ]);
+        assertValues(chunk, i++, DuckDBBitVector, [
+          bitValue('0010001001011100010101011010111'),
+        ]);
         assertValues(chunk, i++, DuckDBTimeTZVector, [TIMETZ.max]);
         assertValues(chunk, i++, DuckDBTimestampTZVector, [TIMESTAMPTZ.max]);
         assertValues(chunk, i++, DuckDBVarIntVector, [VARINT.max]);

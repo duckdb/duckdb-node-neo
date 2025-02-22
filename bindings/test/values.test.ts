@@ -275,4 +275,10 @@ suite('values', () => {
       'Failed to create array value'
     );
   });
+  test('null', () => {
+    const null_value = duckdb.create_null_value();
+    expect(duckdb.is_null_value(null_value)).toEqual(true);
+    const int32_value = duckdb.create_int32(42);
+    expect(duckdb.is_null_value(int32_value)).toEqual(false);
+  });
 });
