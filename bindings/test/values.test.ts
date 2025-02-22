@@ -221,13 +221,21 @@ suite('values', () => {
   });
   test('struct', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
-    const struct_type = duckdb.create_struct_type([int_type], ['a']);
+    const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
+    const struct_type = duckdb.create_struct_type([int_type, varchar_type], ['a', 'b']);
     const int32_value = duckdb.create_int32(42);
-    const struct_value = duckdb.create_struct_value(struct_type, [int32_value]);
+    const varchar_value = duckdb.create_varchar('duck');
+    const struct_value = duckdb.create_struct_value(struct_type, [int32_value, varchar_value]);
     expectLogicalType(
       duckdb.get_value_type(struct_value),
-      STRUCT(ENTRY('a', INTEGER))
+      STRUCT(ENTRY('a', INTEGER), ENTRY('b', VARCHAR))
     );
+    const struct_child_0 = duckdb.get_struct_child(struct_value, 0);
+    expectLogicalType(duckdb.get_value_type(struct_child_0), INTEGER);
+    expect(duckdb.get_int32(struct_child_0)).toBe(42);
+    const struct_child_1 = duckdb.get_struct_child(struct_value, 1);
+    expectLogicalType(duckdb.get_value_type(struct_child_1), VARCHAR);
+    expect(duckdb.get_varchar(struct_child_1)).toBe('duck');
   });
   test('empty struct', () => {
     const struct_type = duckdb.create_struct_type([], []);
@@ -244,9 +252,17 @@ suite('values', () => {
   });
   test('list', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
-    const int32_value = duckdb.create_int32(42);
-    const list_value = duckdb.create_list_value(int_type, [int32_value]);
+    const int32_value_0 = duckdb.create_int32(42);
+    const int32_value_1 = duckdb.create_int32(12345);
+    const list_value = duckdb.create_list_value(int_type, [int32_value_0, int32_value_1]);
     expectLogicalType(duckdb.get_value_type(list_value), LIST(INTEGER));
+    expect(duckdb.get_list_size(list_value)).toBe(2);
+    const list_child_0 = duckdb.get_list_child(list_value, 0);
+    expectLogicalType(duckdb.get_value_type(list_child_0), INTEGER);
+    expect(duckdb.get_int32(list_child_0)).toBe(42);
+    const list_child_1 = duckdb.get_list_child(list_value, 1);
+    expectLogicalType(duckdb.get_value_type(list_child_1), INTEGER);
+    expect(duckdb.get_int32(list_child_1)).toBe(12345);
   });
   test('empty list', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);

@@ -1213,8 +1213,11 @@ public:
       InstanceMethod("get_map_value", &DuckDBNodeAddon::get_map_value),
       InstanceMethod("is_null_value", &DuckDBNodeAddon::is_null_value),
       InstanceMethod("create_null_value", &DuckDBNodeAddon::create_null_value),
+      InstanceMethod("get_list_size", &DuckDBNodeAddon::get_list_size),
+      InstanceMethod("get_list_child", &DuckDBNodeAddon::get_list_child),
       InstanceMethod("create_enum_value", &DuckDBNodeAddon::create_enum_value),
       InstanceMethod("get_enum_value", &DuckDBNodeAddon::get_enum_value),
+      InstanceMethod("get_struct_child", &DuckDBNodeAddon::get_struct_child),
 
       InstanceMethod("create_logical_type", &DuckDBNodeAddon::create_logical_type),
       InstanceMethod("logical_type_get_alias", &DuckDBNodeAddon::logical_type_get_alias),
@@ -2978,6 +2981,9 @@ private:
     auto value = GetValueFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto output_key = duckdb_get_map_key(value, index);
+    if (!output_key) {
+      throw Napi::Error::New(env, "Failed to get map key");
+    }
     return CreateExternalForValue(env, output_key);
   }
 
@@ -2988,6 +2994,9 @@ private:
     auto value = GetValueFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto output_value = duckdb_get_map_value(value, index);
+    if (!output_value) {
+      throw Napi::Error::New(env, "Failed to get map value");
+    }
     return CreateExternalForValue(env, output_value);
   }
 
@@ -3009,7 +3018,26 @@ private:
   }
 
   // DUCKDB_API idx_t duckdb_get_list_size(duckdb_value value);
+  // function get_list_size(value: Value): number
+  Napi::Value get_list_size(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto size = duckdb_get_list_size(value);
+    return Napi::Number::New(env, size);
+  }
+
   // DUCKDB_API duckdb_value duckdb_get_list_child(duckdb_value value, idx_t index);
+  // function get_list_child(value: Value, index: number): Value
+  Napi::Value get_list_child(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto output_value = duckdb_get_list_child(value, index);
+    if (!output_value) {
+      throw Napi::Error::New(env, "Failed to get list child");
+    }
+    return CreateExternalForValue(env, output_value);
+  }
 
   // DUCKDB_API duckdb_value duckdb_create_enum_value(duckdb_logical_type type, uint64_t value);
   // function create_enum_value(logical_type: LogicalType, value: number): Value
@@ -3034,6 +3062,17 @@ private:
   }
 
   // DUCKDB_API duckdb_value duckdb_get_struct_child(duckdb_value value, idx_t index);
+  // function get_struct_child(value: Value, index: number): Value
+  Napi::Value get_struct_child(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto output_value = duckdb_get_struct_child(value, index);
+    if (!output_value) {
+      throw Napi::Error::New(env, "Failed to get struct child");
+    }
+    return CreateExternalForValue(env, output_value);
+  }
 
   // DUCKDB_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
   // function create_logical_type(type: Type): LogicalType
@@ -4144,10 +4183,9 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  234 instance methods
+  237 instance methods
     3 unimplemented instance cache functions
     1 unimplemented logical type function
-    3 unimplemented value inspection functions
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
    12 unimplemented aggregate function functions
