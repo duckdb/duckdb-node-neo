@@ -195,17 +195,57 @@ duckdb_hugeint GetHugeIntFromBigInt(Napi::Env env, Napi::BigInt bigint) {
   if (word_count > 2) {
     throw Napi::Error::New(env, "bigint out of hugeint range");
   }
-  uint64_t lower = word_count > 0 ? (sign_bit ? -1 : 1) * words[0] : 0;
-  int64_t upper = word_count > 1 ? (sign_bit ? -1 : 1) * words[1] : (word_count > 0 && sign_bit ? -1 : 0);
-  return { lower, upper };
+  bool carry = false;
+  uint64_t lower;
+  if (word_count > 0) {
+    lower = words[0];
+    if (sign_bit) {
+      lower = ~lower + 1;
+      carry = lower == 0;
+    }
+  } else {
+    lower = 0;
+  }
+  uint64_t upper;
+  if (word_count > 1) {
+    upper = words[1];
+    if (sign_bit) {
+      upper = ~upper;
+      if (carry) {
+        upper += 1;
+      }
+    }
+  } else {
+    if (word_count > 0 && sign_bit) {
+      upper = -1;
+    } else {
+      upper = 0;
+    }
+  }
+  return { lower, int64_t(upper) };
 }
 
 Napi::BigInt MakeBigIntFromHugeInt(Napi::Env env, duckdb_hugeint hugeint) {
   int sign_bit = hugeint.upper < 0 ? 1 : 0;
   size_t word_count = hugeint.upper == -1 ? 1 : 2;
   uint64_t words[2];
-  words[0] = (sign_bit ? -1 : 1) * hugeint.lower;
-  words[1] = (sign_bit ? -1 : 1) * hugeint.upper;
+  bool carry = false;
+  words[0] = hugeint.lower;
+  if (sign_bit) {
+    words[0] = ~(words[0] - 1);
+    carry = words[0] == 0;
+  }
+  if (word_count > 1) {
+    words[1] = hugeint.upper;
+    if (sign_bit) {
+      if (carry) {
+        words[1] -= 1;
+      }
+      words[1] = ~words[1];
+    }
+  } else {
+    words[1] = 0;
+  }
   return Napi::BigInt::New(env, sign_bit, word_count, words);
 }
 
@@ -1300,6 +1340,7 @@ public:
       InstanceMethod("append_varchar", &DuckDBNodeAddon::append_varchar),
       InstanceMethod("append_blob", &DuckDBNodeAddon::append_blob),
       InstanceMethod("append_null", &DuckDBNodeAddon::append_null),
+      InstanceMethod("append_value", &DuckDBNodeAddon::append_value),
       InstanceMethod("append_data_chunk", &DuckDBNodeAddon::append_data_chunk),
 
       InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
@@ -4093,6 +4134,16 @@ private:
   }
 
   // DUCKDB_API duckdb_state duckdb_append_value(duckdb_appender appender, duckdb_value value);
+  // function append_value(appender: Appender, value: Value): void
+  Napi::Value append_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto value = GetValueFromExternal(env, info[1]);
+    if (duckdb_append_value(appender, value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_API duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk);
   // function append_data_chunk(appender: Appender, chunk: DataChunk): void
@@ -4217,7 +4268,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  238 instance methods
+  239 instance methods
     3 unimplemented instance cache functions
     1 unimplemented logical type function
    13 unimplemented scalar function functions
@@ -4230,7 +4281,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
     5 unimplemented function info functions
     4 unimplemented replacement scan functions
     5 unimplemented profiling info functions
-    4 unimplemented appender functions
+    3 unimplemented appender functions
     6 unimplemented table description functions
     8 unimplemented tasks functions
    12 unimplemented cast function functions

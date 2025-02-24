@@ -1155,6 +1155,7 @@ export function append_blob(appender: Appender, data: Uint8Array): void;
 export function append_null(appender: Appender): void;
 
 // DUCKDB_API duckdb_state duckdb_append_value(duckdb_appender appender, duckdb_value value);
+export function append_value(appender: Appender, value: Value): void;
 
 // DUCKDB_API duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk);
 export function append_data_chunk(appender: Appender, chunk: DataChunk): void;

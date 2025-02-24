@@ -123,10 +123,28 @@ suite('values', () => {
     expectLogicalType(duckdb.get_value_type(varint_value), VARINT);
     expect(duckdb.get_varint(varint_value)).toBe(input);
   });
-  test('decimal', () => {
-    const input: Decimal = { width: 9, scale: 4, value: 987654321n };
+  test('decimal_4_1', () => {
+    const input: Decimal = { width: 4, scale: 1, value: 9999n };
+    const decimal_value = duckdb.create_decimal(input);
+    expectLogicalType(duckdb.get_value_type(decimal_value), DECIMAL(4, 1, duckdb.Type.SMALLINT));
+    expect(duckdb.get_decimal(decimal_value)).toStrictEqual(input);
+  });
+  test('decimal_9_4', () => {
+    const input: Decimal = { width: 9, scale: 4, value: 999999999n };
     const decimal_value = duckdb.create_decimal(input);
     expectLogicalType(duckdb.get_value_type(decimal_value), DECIMAL(9, 4, duckdb.Type.INTEGER));
+    expect(duckdb.get_decimal(decimal_value)).toStrictEqual(input);
+  });
+  test('decimal_18_6', () => {
+    const input: Decimal = { width: 18, scale: 6, value: 999999999999999999n };
+    const decimal_value = duckdb.create_decimal(input);
+    expectLogicalType(duckdb.get_value_type(decimal_value), DECIMAL(18, 6, duckdb.Type.BIGINT));
+    expect(duckdb.get_decimal(decimal_value)).toStrictEqual(input);
+  });
+  test('decimal_38_10', () => {
+    const input: Decimal = { width: 38, scale: 10, value: -99999999999999999999999999999999999999n };
+    const decimal_value = duckdb.create_decimal(input);
+    expectLogicalType(duckdb.get_value_type(decimal_value), DECIMAL(38, 10, duckdb.Type.HUGEINT));
     expect(duckdb.get_decimal(decimal_value)).toStrictEqual(input);
   });
   test('float', () => {

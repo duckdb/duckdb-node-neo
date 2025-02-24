@@ -152,7 +152,7 @@ function getVarIntFromBytes(bytes: Uint8Array): bigint {
   const positive = (firstByte & 0x80) > 0;
   const uint64Mask = positive ? 0n : 0xffffffffffffffffn;
   const uint8Mask = positive ? 0 : 0xff;
-  const dv = new DataView(
+  const dv = new DataView( // bytes is big endian
     bytes.buffer,
     bytes.byteOffset + 3,
     bytes.byteLength - 3
@@ -172,25 +172,28 @@ function getVarIntFromBytes(bytes: Uint8Array): bigint {
 }
 
 function getBytesFromVarInt(varint: bigint): Uint8Array {
-  const numberBytes: number[] = [];
+  const numberBytes: number[] = []; // little endian
+  const negative = varint < 0;
   if (varint === 0n) {
     numberBytes.push(0);
   } else {
-    while (varint !== 0n) {
-      numberBytes.push(Number(BigInt.asUintN(8, varint)));
-      varint >>= 8n;
+    let vi = varint < 0 ? -varint : varint;
+    while (vi !== 0n) {
+      numberBytes.push(Number(BigInt.asUintN(8, vi)));
+      vi >>= 8n;
     }
   }
-  const varIntBytes = new Uint8Array(3 + numberBytes.length);
+  const varIntBytes = new Uint8Array(3 + numberBytes.length); // big endian
   let header = 0x800000 | numberBytes.length;
-  if (varint < 0) {
+  if (negative) {
     header = ~header;
   }
   varIntBytes[0] = 0xff & (header >> 16);
   varIntBytes[1] = 0xff & (header >> 8);
   varIntBytes[2] = 0xff & header;
   for (let i = 0; i < numberBytes.length; i++) {
-    varIntBytes[3 + i] = numberBytes[i];
+    const byte = numberBytes[numberBytes.length - 1 - i];
+    varIntBytes[3 + i] = negative ? ~byte : byte;
   }
   return varIntBytes;
 }
