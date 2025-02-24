@@ -104,6 +104,9 @@ suite('appender', () => {
           varchar varchar, \
           blob blob, \
           dec4_1 decimal(4,1), \
+          dec9_4 decimal(9,4), \
+          dec18_6 decimal(18,6), \
+          dec38_10 decimal(38,10), \
           null_column integer, \
           integer_with_default integer default 42\
         )'
@@ -123,7 +126,7 @@ suite('appender', () => {
         'main',
         'appender_target'
       );
-      expect(duckdb.appender_column_count(appender)).toBe(22);
+      expect(duckdb.appender_column_count(appender)).toBe(25);
 
       const expectedLogicalTypes = [
         BOOLEAN,
@@ -146,6 +149,9 @@ suite('appender', () => {
         VARCHAR,
         BLOB,
         DECIMAL(4, 1, duckdb.Type.SMALLINT),
+        DECIMAL(9, 4, duckdb.Type.INTEGER),
+        DECIMAL(18, 6, duckdb.Type.BIGINT),
+        DECIMAL(38, 10, duckdb.Type.HUGEINT),
         INTEGER,
         INTEGER,
       ];
@@ -185,7 +191,19 @@ suite('appender', () => {
       );
       duckdb.append_value(
         appender,
-        duckdb.create_decimal({ width: 4, scale: 1, value: 9876n })
+        duckdb.create_decimal({ width: 4, scale: 1, value: 9999n })
+      );
+      duckdb.append_value(
+        appender,
+        duckdb.create_decimal({ width: 9, scale: 4, value: 999999999n })
+      );
+      duckdb.append_value(
+        appender,
+        duckdb.create_decimal({ width: 18, scale: 6, value: 999999999999999999n })
+      );
+      duckdb.append_value(
+        appender,
+        duckdb.create_decimal({ width: 38, scale: 10, value: -99999999999999999999999999999999999999n })
       );
       duckdb.append_null(appender);
       duckdb.append_default(appender);
@@ -220,6 +238,9 @@ suite('appender', () => {
           { name: 'varchar', logicalType: VARCHAR },
           { name: 'blob', logicalType: BLOB },
           { name: 'dec4_1', logicalType: DECIMAL(4, 1, duckdb.Type.SMALLINT) },
+          { name: 'dec9_4', logicalType: DECIMAL(9, 4, duckdb.Type.INTEGER) },
+          { name: 'dec18_6', logicalType: DECIMAL(18, 6, duckdb.Type.BIGINT) },
+          { name: 'dec38_10', logicalType: DECIMAL(38, 10, duckdb.Type.HUGEINT) },
           { name: 'null_column', logicalType: INTEGER },
           { name: 'integer_with_default', logicalType: INTEGER },
         ],
@@ -254,7 +275,10 @@ suite('appender', () => {
                 [true],
                 [Buffer.from('thisisalongblob\x00withnullbytes')]
               ),
-              data(2, [true], [9876]),
+              data(2, [true], [9999]),
+              data(4, [true], [999999999]),
+              data(8, [true], [999999999999999999n]),
+              data(16, [true], [-99999999999999999999999999999999999999n]),
               data(4, [false], [null]),
               data(4, [true], [42]),
             ],

@@ -195,17 +195,57 @@ duckdb_hugeint GetHugeIntFromBigInt(Napi::Env env, Napi::BigInt bigint) {
   if (word_count > 2) {
     throw Napi::Error::New(env, "bigint out of hugeint range");
   }
-  uint64_t lower = word_count > 0 ? (sign_bit ? -1 : 1) * words[0] : 0;
-  int64_t upper = word_count > 1 ? (sign_bit ? -1 : 1) * words[1] : (word_count > 0 && sign_bit ? -1 : 0);
-  return { lower, upper };
+  bool carry = false;
+  uint64_t lower;
+  if (word_count > 0) {
+    lower = words[0];
+    if (sign_bit) {
+      lower = ~lower + 1;
+      carry = lower == 0;
+    }
+  } else {
+    lower = 0;
+  }
+  uint64_t upper;
+  if (word_count > 1) {
+    upper = words[1];
+    if (sign_bit) {
+      upper = ~upper;
+      if (carry) {
+        upper += 1;
+      }
+    }
+  } else {
+    if (word_count > 0 && sign_bit) {
+      upper = -1;
+    } else {
+      upper = 0;
+    }
+  }
+  return { lower, int64_t(upper) };
 }
 
 Napi::BigInt MakeBigIntFromHugeInt(Napi::Env env, duckdb_hugeint hugeint) {
   int sign_bit = hugeint.upper < 0 ? 1 : 0;
   size_t word_count = hugeint.upper == -1 ? 1 : 2;
   uint64_t words[2];
-  words[0] = (sign_bit ? -1 : 1) * hugeint.lower;
-  words[1] = (sign_bit ? -1 : 1) * hugeint.upper;
+  bool carry = false;
+  words[0] = hugeint.lower;
+  if (sign_bit) {
+    words[0] = ~(words[0] - 1);
+    carry = words[0] == 0;
+  }
+  if (word_count > 1) {
+    words[1] = hugeint.upper;
+    if (sign_bit) {
+      if (carry) {
+        words[1] -= 1;
+      }
+      words[1] = ~words[1];
+    }
+  } else {
+    words[1] = 0;
+  }
   return Napi::BigInt::New(env, sign_bit, word_count, words);
 }
 

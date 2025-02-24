@@ -1819,23 +1819,11 @@ describe('api', () => {
             appender.appendNull();
           } else {
             switch (type.typeId) {
-              case DuckDBTypeId.DECIMAL:
-                if (value instanceof DuckDBDecimalValue) {
-                  if (type.width === 38) {
-                    appender.appendNull(); // TODO: appending decimal 128 results in numerical errors
-                  } else {
-                    appender.appendDecimal(value);
-                  }
-                } else {
-                  throw new Error(`value is not a DuckDBDecimalValue`);
-                }
-                break;
               case DuckDBTypeId.MAP:
               case DuckDBTypeId.UNION:
                 appender.appendNull(); // TODO: once the C API supports creating MAP and UNION values
                 break;
               default:
-                console.log(`appending row=${rowIndex} col=${columnIndex}`);
                 appender.appendValue(value, type);
                 break;
             }
@@ -1891,7 +1879,7 @@ describe('api', () => {
         assertValues(resultChunk, 22, DuckDBDecimal16Vector, columns[22]);
         assertValues(resultChunk, 23, DuckDBDecimal32Vector, columns[23]);
         assertValues(resultChunk, 24, DuckDBDecimal64Vector, columns[24]);
-        // assertValues(resultChunk, 25, DuckDBDecimal128Vector, columns[25]);
+        assertValues(resultChunk, 25, DuckDBDecimal128Vector, columns[25]);
         assertValues(resultChunk, 26, DuckDBUUIDVector, columns[26]);
         assertValues(resultChunk, 27, DuckDBIntervalVector, columns[27]);
         assertValues(resultChunk, 28, DuckDBVarCharVector, columns[28]);
