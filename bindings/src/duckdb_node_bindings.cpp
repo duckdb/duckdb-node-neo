@@ -1300,6 +1300,7 @@ public:
       InstanceMethod("append_varchar", &DuckDBNodeAddon::append_varchar),
       InstanceMethod("append_blob", &DuckDBNodeAddon::append_blob),
       InstanceMethod("append_null", &DuckDBNodeAddon::append_null),
+      InstanceMethod("append_value", &DuckDBNodeAddon::append_value),
       InstanceMethod("append_data_chunk", &DuckDBNodeAddon::append_data_chunk),
 
       InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
@@ -4093,6 +4094,16 @@ private:
   }
 
   // DUCKDB_API duckdb_state duckdb_append_value(duckdb_appender appender, duckdb_value value);
+  // function append_value(appender: Appender, value: Value): void
+  Napi::Value append_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto value = GetValueFromExternal(env, info[1]);
+    if (duckdb_append_value(appender, value)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_API duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk);
   // function append_data_chunk(appender: Appender, chunk: DataChunk): void
@@ -4217,7 +4228,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  238 instance methods
+  239 instance methods
     3 unimplemented instance cache functions
     1 unimplemented logical type function
    13 unimplemented scalar function functions
@@ -4230,7 +4241,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
     5 unimplemented function info functions
     4 unimplemented replacement scan functions
     5 unimplemented profiling info functions
-    4 unimplemented appender functions
+    3 unimplemented appender functions
     6 unimplemented table description functions
     8 unimplemented tasks functions
    12 unimplemented cast function functions

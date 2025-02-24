@@ -1,12 +1,40 @@
 import duckdb from '@duckdb/node-bindings';
+import { createValue } from './createValue';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
-import { DuckDBType } from './DuckDBType';
 import {
+  BIT,
+  DECIMAL,
+  DuckDBArrayType,
+  DuckDBEnumType,
+  DuckDBListType,
+  DuckDBStructType,
+  DuckDBType,
+  TIMESTAMP_MS,
+  TIMESTAMP_NS,
+  TIMESTAMP_S,
+  TIMESTAMPTZ,
+  TIMETZ,
+  UUID,
+  VARINT,
+} from './DuckDBType';
+import {
+  DuckDBArrayValue,
+  DuckDBBitValue,
   DuckDBDateValue,
+  DuckDBDecimalValue,
   DuckDBIntervalValue,
+  DuckDBListValue,
+  DuckDBStructValue,
+  DuckDBTimestampMillisecondsValue,
+  DuckDBTimestampNanosecondsValue,
+  DuckDBTimestampSecondsValue,
+  DuckDBTimestampTZValue,
   DuckDBTimestampValue,
+  DuckDBTimeTZValue,
   DuckDBTimeValue,
+  DuckDBUUIDValue,
+  DuckDBValue,
 } from './values';
 
 export class DuckDBAppender {
@@ -67,7 +95,10 @@ export class DuckDBAppender {
   public appendUHugeInt(value: bigint) {
     duckdb.append_uhugeint(this.appender, value);
   }
-  // TODO: append DECIMAL?
+  public appendDecimal(value: DuckDBDecimalValue) {
+    // The width and scale of the DECIMAL type here aren't actually used.
+    this.appendValue(value, DECIMAL(value.width, value.scale));
+  }
   public appendFloat(value: number) {
     duckdb.append_float(this.appender, value);
   }
@@ -80,11 +111,24 @@ export class DuckDBAppender {
   public appendTime(value: DuckDBTimeValue) {
     duckdb.append_time(this.appender, value);
   }
+  public appendTimeTZ(value: DuckDBTimeTZValue) {
+    this.appendValue(value, TIMETZ);
+  }
   public appendTimestamp(value: DuckDBTimestampValue) {
     duckdb.append_timestamp(this.appender, value);
   }
-  // TODO: append TIMESTAMPS_S/_MS/_NS?
-  // TODO: append TIME_TZ/TIMESTAMP_TZ?
+  public appendTimestampTZ(value: DuckDBTimestampTZValue) {
+    this.appendValue(value, TIMESTAMPTZ);
+  }
+  public appendTimestampSeconds(value: DuckDBTimestampSecondsValue) {
+    this.appendValue(value, TIMESTAMP_S);
+  }
+  public appendTimestampMilliseconds(value: DuckDBTimestampMillisecondsValue) {
+    this.appendValue(value, TIMESTAMP_MS);
+  }
+  public appendTimestampNanoseconds(value: DuckDBTimestampNanosecondsValue) {
+    this.appendValue(value, TIMESTAMP_NS);
+  }
   public appendInterval(value: DuckDBIntervalValue) {
     duckdb.append_interval(this.appender, value);
   }
@@ -94,12 +138,34 @@ export class DuckDBAppender {
   public appendBlob(value: Uint8Array) {
     duckdb.append_blob(this.appender, value);
   }
-  // TODO: append ENUM?
-  // TODO: append nested types? (ARRAY, LIST, STRUCT, MAP, UNION)
-  // TODO: append UUID?
-  // TODO: append BIT?
+  public appendEnum(value: string, type: DuckDBEnumType) {
+    this.appendValue(value, type);
+  }
+  public appendList(value: DuckDBListValue, type: DuckDBListType) {
+    this.appendValue(value, type);
+  }
+  public appendStruct(value: DuckDBStructValue, type: DuckDBStructType) {
+    this.appendValue(value, type);
+  }
+  // TODO: MAP (when DuckDB C API supports creating MAP values)
+  public appendArray(value: DuckDBArrayValue, type: DuckDBArrayType) {
+    this.appendValue(value, type);
+  }
+  // TODO: UNION (when DuckDB C API supports creating UNION values)
+  public appendUUID(value: DuckDBUUIDValue) {
+    this.appendValue(value, UUID);
+  }
+  public appendBit(value: DuckDBBitValue) {
+    this.appendValue(value, BIT);
+  }
+  public appendVarInt(value: bigint) {
+    this.appendValue(value, VARINT);
+  }
   public appendNull() {
     duckdb.append_null(this.appender);
+  }
+  public appendValue(value: DuckDBValue, type: DuckDBType) {
+    duckdb.append_value(this.appender, createValue(type, value));
   }
   public appendDataChunk(dataChunk: DuckDBDataChunk) {
     duckdb.append_data_chunk(this.appender, dataChunk.chunk);

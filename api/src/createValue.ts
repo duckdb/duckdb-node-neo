@@ -22,6 +22,9 @@ import {
 } from './values';
 
 export function createValue(type: DuckDBType, input: DuckDBValue): Value {
+  if (input === null) {
+    return duckdb.create_null_value();
+  }
   const { typeId } = type;
   switch (typeId) {
     case DuckDBTypeId.BOOLEAN:
