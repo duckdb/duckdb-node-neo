@@ -204,6 +204,10 @@ export interface ExtractedStatements {
   __duckdb_type: 'duckdb_extracted_statements';
 }
 
+export interface InstanceCache {
+  __duckdb_type: 'duckdb_instance_cache';
+}
+
 export interface LogicalType {
   __duckdb_type: 'duckdb_logical_type';
 }
@@ -240,8 +244,13 @@ export interface ExtractedStatementsAndCount {
 // Functions
 
 // DUCKDB_API duckdb_instance_cache duckdb_create_instance_cache();
+export function create_instance_cache(): InstanceCache;
+
 // DUCKDB_API duckdb_state duckdb_get_or_create_from_cache(duckdb_instance_cache instance_cache, const char *path, duckdb_database *out_database, duckdb_config config, char **out_error);
+export function get_or_create_from_cache(cache: InstanceCache, path?: string, config?: Config): Promise<Database>;
+
 // DUCKDB_API void duckdb_destroy_instance_cache(duckdb_instance_cache *instance_cache);
+// not exposed: destroyed in finalizer
 
 // DUCKDB_API duckdb_state duckdb_open(const char *path, duckdb_database *out_database);
 export function open(path?: string, config?: Config): Promise<Database>;

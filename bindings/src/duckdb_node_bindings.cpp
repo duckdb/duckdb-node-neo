@@ -472,6 +472,22 @@ duckdb_extracted_statements GetExtractedStatementsFromExternal(Napi::Env env, Na
   return GetDataFromExternal<_duckdb_extracted_statements>(env, ExtractedStatementsTypeTag, value, "Invalid extracted statements argument");
 }
 
+static const napi_type_tag InstanceCacheTypeTag = {
+  0x2F3346E30FB5457C, 0xB9201EE5112EEF9F
+};
+
+void FinalizeInstanceCache(Napi::BasicEnv, duckdb_instance_cache instance_cache) {
+  duckdb_destroy_instance_cache(&instance_cache);
+}
+
+Napi::External<_duckdb_instance_cache> CreateExternalForInstanceCache(Napi::Env env, duckdb_instance_cache instance_cache) {
+  return CreateExternal<_duckdb_instance_cache>(env, InstanceCacheTypeTag, instance_cache, FinalizeInstanceCache);
+}
+
+duckdb_instance_cache GetInstanceCacheFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_instance_cache>(env, InstanceCacheTypeTag, value, "Invalid instance cache argument");
+}
+
 static const napi_type_tag LogicalTypeTypeTag = {
   0x78AF202191ED4A23, 0x8093715369592A2B
 };
@@ -610,6 +626,58 @@ protected:
 private:
 
 	Napi::Promise::Deferred deferred_;
+
+};
+
+class GetOrCreateFromCacheWorker : public PromiseWorker {
+
+public:
+  
+  GetOrCreateFromCacheWorker(Napi::Env env, duckdb_instance_cache instance_cache, std::optional<std::string> path, duckdb_config config)
+      : PromiseWorker(env), instance_cache_(instance_cache), path_(path), config_(config) {
+    }
+  
+protected:
+  
+  void Execute() override {
+    const char *path = nullptr;
+    if (path_) {
+      path = path_->c_str();
+    }
+    duckdb_config cfg = config_;
+    // If no config was provided, create one with the default duckdb_api value.
+    if (cfg == nullptr) {
+      if (duckdb_create_config(&cfg)) {
+        duckdb_destroy_config(&cfg);
+        SetError("Failed to create config");
+        return;
+      }
+      if (duckdb_set_config(cfg, "duckdb_api", DEFAULT_DUCKDB_API)) {
+        SetError("Failed to set duckdb_api");
+        return;
+      }
+    }
+    char *error = nullptr;
+    if (duckdb_get_or_create_from_cache(instance_cache_, path, &database_, cfg, &error)) {
+      if (error != nullptr) {
+        SetError(error);
+        duckdb_free(error);
+      } else {
+        SetError("Failed to get or create from cache");
+      }
+    }
+  }
+
+  Napi::Value Result() override {
+    return CreateExternalForDatabase(Env(), database_);
+  }
+
+private:
+
+  duckdb_instance_cache instance_cache_;
+  std::optional<std::string> path_;
+  duckdb_config config_;
+  duckdb_database database_ = nullptr;
 
 };
 
@@ -1093,6 +1161,9 @@ public:
       InstanceValue("StatementType", CreateStatementTypeEnum(env)),
       InstanceValue("Type", CreateTypeEnum(env)),
 
+      InstanceMethod("create_instance_cache", &DuckDBNodeAddon::create_instance_cache),
+      InstanceMethod("get_or_create_from_cache", &DuckDBNodeAddon::get_or_create_from_cache),
+
       InstanceMethod("open", &DuckDBNodeAddon::open),
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
       InstanceMethod("interrupt", &DuckDBNodeAddon::interrupt),
@@ -1354,11 +1425,38 @@ public:
 private:
 
   // DUCKDB_API duckdb_instance_cache duckdb_create_instance_cache();
+  // function create_instance_cache(): InstanceCache
+  Napi::Value create_instance_cache(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto instance_cache = duckdb_create_instance_cache();
+    return CreateExternalForInstanceCache(env, instance_cache);
+  }
+
   // DUCKDB_API duckdb_state duckdb_get_or_create_from_cache(duckdb_instance_cache instance_cache, const char *path, duckdb_database *out_database, duckdb_config config, char **out_error);
+  // function get_or_create_from_cache(cache: InstanceCache, path?: string, config?: Config): Promise<Database>
+  Napi::Value get_or_create_from_cache(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto instance_cache = GetInstanceCacheFromExternal(env, info[0]);
+    auto pathValue = info[1];
+    auto configValue = info[2];
+    std::optional<std::string> path = std::nullopt;
+    if (!pathValue.IsUndefined()) {
+      path = pathValue.As<Napi::String>();
+    }
+    duckdb_config config = nullptr;
+    if (!configValue.IsUndefined()) {
+      config = GetConfigFromExternal(env, configValue);
+    }
+    auto worker = new GetOrCreateFromCacheWorker(env, instance_cache, path, config);
+    worker->Queue();
+    return worker->Promise();
+  }
+
   // DUCKDB_API void duckdb_destroy_instance_cache(duckdb_instance_cache *instance_cache);
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_API duckdb_state duckdb_open(const char *path, duckdb_database *out_database);
-  // function open(path: string): Promise<Database>
+  // function open(path?: string, config?: Config): Promise<Database>
   Napi::Value open(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto pathValue = info[0];
@@ -4268,8 +4366,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  239 instance methods
-    3 unimplemented instance cache functions
+  241 instance methods
     1 unimplemented logical type function
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
@@ -4285,7 +4382,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
     6 unimplemented table description functions
     8 unimplemented tasks functions
    12 unimplemented cast function functions
-   24 functions not exposed
+   25 functions not exposed
 +  41 unimplemented deprecated functions (of 47)
   ---
   411 functions accounted for
