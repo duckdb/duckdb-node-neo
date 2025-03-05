@@ -183,7 +183,7 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a DuckDBStructValue`);
     case DuckDBTypeId.MAP:
-      throw new Error(`not yet implemented for MAP`); // TODO: implement when available, hopefully in 1.2.0
+      throw new Error(`not yet implemented for MAP`); // TODO: implement when available
     case DuckDBTypeId.ARRAY:
       if (input instanceof DuckDBArrayValue) {
         if (type.valueType.typeId === DuckDBTypeId.ANY) {
@@ -203,7 +203,7 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a bigint`);
     case DuckDBTypeId.UNION:
-      throw new Error(`not yet implemented for UNION`); // TODO: implement when available, hopefully in 1.2.0
+      throw new Error(`not yet implemented for UNION`); // TODO: implement when available
     case DuckDBTypeId.BIT:
       if (input instanceof DuckDBBitValue) {
         return duckdb.create_bit(input.data);

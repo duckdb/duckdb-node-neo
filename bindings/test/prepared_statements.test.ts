@@ -124,7 +124,7 @@ suite('prepared statements', () => {
       expect(duckdb.parameter_name(prepared, 2)).toBe('y');
       expect(duckdb.bind_parameter_index(prepared, 'y')).toBe(2);
       duckdb.bind_varchar(prepared, 2, 'a');
-      // expect(duckdb.param_type(prepared, 2)).toBe(duckdb.Type.VARCHAR); // TODO 1.2.0 - param_type is returning INVALID for VARCHAR
+      // expect(duckdb.param_type(prepared, 2)).toBe(duckdb.Type.VARCHAR); // TODO 1.2.1 - support STRING_LITERAL
 
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
@@ -257,7 +257,7 @@ suite('prepared statements', () => {
       expect(duckdb.param_type(prepared, 19)).toBe(duckdb.Type.INTERVAL);
 
       duckdb.bind_varchar(prepared, 20, '🦆🦆🦆\x00🦆🦆🦆');
-      // expect(duckdb.param_type(prepared, 20)).toBe(duckdb.Type.VARCHAR); // TODO 1.2.0 - param_type is returning INVALID for VARCHAR
+      // expect(duckdb.param_type(prepared, 20)).toBe(duckdb.Type.VARCHAR); // TODO 1.2.1 - support STRING_LITERAL
 
       duckdb.bind_blob(prepared, 21, Buffer.from('thisisalongblob\x00withnullbytes'));
       expect(duckdb.param_type(prepared, 21)).toBe(duckdb.Type.BLOB);
