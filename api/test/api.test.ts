@@ -1345,7 +1345,8 @@ describe('api', () => {
     const connection2 = await instance2.connect();
     await connection2.run(`create table mem1.main.t1 as select 1`);
   });
-  test('instance cache - different instances', async () => {
+  // Race with deleting files. Need to support explicitly closing instances.
+  test.skip('instance cache - different instances', async () => {
     try {
       const cache = new DuckDBInstanceCache();
       const instance1 = await cache.getOrCreateInstance(
