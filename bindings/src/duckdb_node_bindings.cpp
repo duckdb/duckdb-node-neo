@@ -383,19 +383,13 @@ duckdb_config GetConfigFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_config>(env, ConfigTypeTag, value, "Invalid config argument");
 }
 
-typedef struct {
-  duckdb_connection connection;
-} duckdb_connection_holder;
-
 static const napi_type_tag ConnectionTypeTag = {
   0x922B9BF54AB04DFC, 0x8A258578D371DB71
 };
 
-void FinalizeConnection(Napi::BasicEnv, duckdb_connection_holder *connection_holder_ptr) {
-  // duckdb_disconnect is a no-op if already disconnected
-  duckdb_disconnect(&connection_holder_ptr->connection);
-  duckdb_free(connection_holder_ptr);
-}
+typedef struct {
+  duckdb_connection connection;
+} duckdb_connection_holder;
 
 duckdb_connection_holder *CreateConnectionHolder(duckdb_connection connection) {
   auto connection_holder_ptr = reinterpret_cast<duckdb_connection_holder*>(duckdb_malloc(sizeof(duckdb_connection_holder)));
@@ -403,8 +397,14 @@ duckdb_connection_holder *CreateConnectionHolder(duckdb_connection connection) {
   return connection_holder_ptr;
 }
 
+void FinalizeConnectionHolder(Napi::BasicEnv, duckdb_connection_holder *connection_holder_ptr) {
+  // duckdb_disconnect is a no-op if already disconnected
+  duckdb_disconnect(&connection_holder_ptr->connection);
+  duckdb_free(connection_holder_ptr);
+}
+
 Napi::External<duckdb_connection_holder> CreateExternalForConnection(Napi::Env env, duckdb_connection connection) {
-  return CreateExternal<duckdb_connection_holder>(env, ConnectionTypeTag, CreateConnectionHolder(connection), FinalizeConnection);
+  return CreateExternal<duckdb_connection_holder>(env, ConnectionTypeTag, CreateConnectionHolder(connection), FinalizeConnectionHolder);
 }
 
 duckdb_connection_holder *GetConnectionHolderFromExternal(Napi::Env env, Napi::Value value) {
@@ -419,19 +419,32 @@ static const napi_type_tag DatabaseTypeTag = {
   0x835A8533653C40D1, 0x83B3BE2B233BA8F3
 };
 
-void FinalizeDatabase(Napi::BasicEnv, duckdb_database database) {
-  if (database) {
-    duckdb_close(&database);
-    database = nullptr;
-  }
+typedef struct {
+  duckdb_database database;
+} duckdb_database_holder;
+
+duckdb_database_holder *CreateDatabaseHolder(duckdb_database database) {
+  auto database_holder_ptr = reinterpret_cast<duckdb_database_holder*>(duckdb_malloc(sizeof(duckdb_database_holder)));
+  database_holder_ptr->database = database;
+  return database_holder_ptr;
 }
 
-Napi::External<_duckdb_database> CreateExternalForDatabase(Napi::Env env, duckdb_database database) {
-  return CreateExternal<_duckdb_database>(env, DatabaseTypeTag, database, FinalizeDatabase);
+void FinalizeDatabaseHolder(Napi::BasicEnv, duckdb_database_holder *database_holder_ptr) {
+  // duckdb_close is a no-op if already closed
+  duckdb_close(&database_holder_ptr->database);
+  duckdb_free(database_holder_ptr);
+}
+
+Napi::External<duckdb_database_holder> CreateExternalForDatabase(Napi::Env env, duckdb_database database) {
+  return CreateExternal<duckdb_database_holder>(env, DatabaseTypeTag, CreateDatabaseHolder(database), FinalizeDatabaseHolder);
+}
+
+duckdb_database_holder *GetDatabaseHolderFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<duckdb_database_holder>(env, DatabaseTypeTag, value, "Invalid database argument");
 }
 
 duckdb_database GetDatabaseFromExternal(Napi::Env env, Napi::Value value) {
-  return GetDataFromExternal<_duckdb_database>(env, DatabaseTypeTag, value, "Invalid database argument");
+  return GetDatabaseHolderFromExternal(env, value)->database;
 }
 
 static const napi_type_tag DataChunkTypeTag = {
@@ -743,6 +756,10 @@ public:
 protected:
 
   void Execute() override {
+    if (!database_) {
+      SetError("Failed to connect: instance closed");
+      return;
+    }
     if (duckdb_connect(database_, &connection_)) {
       SetError("Failed to connect");
     }
@@ -1165,6 +1182,7 @@ public:
       InstanceMethod("get_or_create_from_cache", &DuckDBNodeAddon::get_or_create_from_cache),
 
       InstanceMethod("open", &DuckDBNodeAddon::open),
+      InstanceMethod("close", &DuckDBNodeAddon::close),
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
       InstanceMethod("interrupt", &DuckDBNodeAddon::interrupt),
       InstanceMethod("query_progress", &DuckDBNodeAddon::query_progress),
@@ -1478,7 +1496,14 @@ private:
   // not exposed: consolidated into open
 
   // DUCKDB_API void duckdb_close(duckdb_database *database);
-  // not exposed: closed in finalizer
+  // function close(database: Database): void
+  Napi::Value close(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto database_holder_ptr = GetDatabaseHolderFromExternal(env, info[0]);
+    // duckdb_close is a no-op if already closed
+    duckdb_close(&database_holder_ptr->database);
+    return env.Undefined();
+  }
 
   // DUCKDB_API duckdb_state duckdb_connect(duckdb_database database, duckdb_connection *out_connection);
   // function connect(database: Database): Promise<Connection>
@@ -4366,7 +4391,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  241 instance methods
+  242 instance methods
     1 unimplemented logical type function
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
@@ -4382,7 +4407,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
     6 unimplemented table description functions
     8 unimplemented tasks functions
    12 unimplemented cast function functions
-   25 functions not exposed
+   24 functions not exposed
 +  41 unimplemented deprecated functions (of 47)
   ---
   411 functions accounted for

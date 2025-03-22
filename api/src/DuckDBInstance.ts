@@ -28,4 +28,8 @@ export class DuckDBInstance {
   public async connect(): Promise<DuckDBConnection> {
     return new DuckDBConnection(await duckdb.connect(this.db));
   }
+
+  public close() {
+    duckdb.close(this.db);
+  }
 }

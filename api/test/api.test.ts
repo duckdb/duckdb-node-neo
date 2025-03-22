@@ -382,6 +382,7 @@ describe('api', () => {
         42,
       ]);
     }
+    instance.close();
   });
   test('disconnecting connections', async () => {
     const instance = await DuckDBInstance.create();
