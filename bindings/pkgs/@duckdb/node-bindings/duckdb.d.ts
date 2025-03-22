@@ -259,7 +259,7 @@ export function open(path?: string, config?: Config): Promise<Database>;
 // not exposed: consolidated into open
 
 // DUCKDB_API void duckdb_close(duckdb_database *database);
-// not exposed: closed in finalizer
+export function close(database: Database): void;
 
 // DUCKDB_API duckdb_state duckdb_connect(duckdb_database database, duckdb_connection *out_connection);
 export function connect(database: Database): Promise<Connection>;
