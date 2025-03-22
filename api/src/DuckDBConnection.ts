@@ -16,9 +16,12 @@ export class DuckDBConnection {
     this.connection = connection;
   }
   public static async create(
-    instance: DuckDBInstance
+    instance?: DuckDBInstance
   ): Promise<DuckDBConnection> {
-    return instance.connect();
+    if (instance) {
+      return instance.connect();
+    }
+    return (await DuckDBInstance.fromCache()).connect();
   }
   /** Same as disconnect. */
   public close() {

@@ -45,6 +45,17 @@ console.log(duckdb.version());
 console.log(duckdb.configurationOptionDescriptions());
 ```
 
+### Connect
+
+```ts
+import { DuckDBConnection } from '@duckdb/node-api';
+
+const connection = await DuckDBConnection.create();
+```
+
+This uses the default instance.
+For advanced usage, you can create instances explicitly.
+
 ### Create Instance
 
 ```ts
@@ -66,14 +77,33 @@ Read from and write to a database file, which is created if needed:
 const instance = await DuckDBInstance.create('my_duckdb.db');
 ```
 
-Set configuration options:
+Set [configuration options](https://duckdb.org/docs/stable/configuration/overview.html#configuration-reference):
 ```ts
 const instance = await DuckDBInstance.create('my_duckdb.db', {
   threads: '4'
 });
 ```
 
-### Connect
+### Instance Cache
+
+Multiple instances in the same process should not
+attach the same database.
+
+To prevent this, an instance cache can be used:
+```ts
+const instance = await DuckDBInstance.fromCache('my_duckdb.db');
+```
+
+This uses the default instance cache. For advanced usage, you can create
+instance caches explicitly:
+```ts
+import { DuckDBInstanceCache } from '@duckdb/node-api';
+
+const cache = new DuckDBInstanceCache();
+const instance = await cache.getOrCreateInstance('my_duckdb.db');
+```
+
+### Connect to Instance
 
 ```ts
 const connection = await instance.connect();

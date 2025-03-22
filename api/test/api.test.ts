@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { assert, beforeAll, describe, test } from 'vitest';
 import {
   ANY,
@@ -111,6 +112,7 @@ import {
   uuidValue,
   version,
 } from '../src';
+import { DuckDBInstanceCache } from '../src/DuckDBInstanceCache';
 import { replaceSqlNullWithInteger } from './util/replaceSqlNullWithInteger';
 import {
   ColumnNameAndType,
@@ -1332,6 +1334,69 @@ describe('api', () => {
         'custom-duckdb-api',
       ]);
     }
+  });
+  test('instance cache - same instance', async () => {
+    const cache = new DuckDBInstanceCache();
+    const instance1 = await cache.getOrCreateInstance();
+    const connection1 = await instance1.connect();
+    await connection1.run(`attach ':memory:' as mem1`);
+
+    const instance2 = await cache.getOrCreateInstance();
+    const connection2 = await instance2.connect();
+    await connection2.run(`create table mem1.main.t1 as select 1`);
+  });
+  test('instance cache - different instances', async () => {
+    try {
+      const cache = new DuckDBInstanceCache();
+      const instance1 = await cache.getOrCreateInstance(
+        'instance_cache_test_a.db'
+      );
+      const connection1 = await instance1.connect();
+      await connection1.run(`attach ':memory:' as mem1`);
+
+      const instance2 = await cache.getOrCreateInstance(
+        'instance_cache_test_b.db'
+      );
+      const connection2 = await instance2.connect();
+      try {
+        await connection2.run(`create table mem1.main.t1 as select 1`);
+        assert.fail('should throw');
+      } catch (err) {
+        assert.deepEqual(
+          err,
+          new Error(`Catalog Error: Catalog with name mem1 does not exist!`)
+        );
+      }
+    } finally {
+      fs.rmSync('instance_cache_test_a.db');
+      fs.rmSync('instance_cache_test_b.db');
+    }
+  });
+  test('instance cache - different config', async () => {
+    const cache = new DuckDBInstanceCache();
+    const instance1 = await cache.getOrCreateInstance();
+    const connection1 = await instance1.connect();
+    await connection1.run(`attach ':memory:' as mem1`);
+    try {
+      await cache.getOrCreateInstance(undefined, { accces_mode: 'READ_ONLY' });
+      assert.fail('should throw');
+    } catch (err) {
+      assert.deepEqual(
+        err,
+        new Error(
+          `Connection Error: Can't open a connection to same database file with a different configuration than existing connections`
+        )
+      );
+    }
+  });
+  test('instance cache - singleton', async () => {
+    const instance = await DuckDBInstance.fromCache();
+    const connection = await instance.connect();
+    await connection.run('select 1');
+  });
+  test('create connection using instance cache', async () => {
+    const connection = await DuckDBConnection.create();
+    await connection.run('select 1');
   });
   test('write integer vector', () => {
     const chunk = DuckDBDataChunk.create([INTEGER], 3);
