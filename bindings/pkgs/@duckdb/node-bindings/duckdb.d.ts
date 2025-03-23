@@ -259,7 +259,7 @@ export function open(path?: string, config?: Config): Promise<Database>;
 // not exposed: consolidated into open
 
 // DUCKDB_API void duckdb_close(duckdb_database *database);
-export function close(database: Database): void;
+export function close_sync(database: Database): void;
 
 // DUCKDB_API duckdb_state duckdb_connect(duckdb_database database, duckdb_connection *out_connection);
 export function connect(database: Database): Promise<Connection>;
@@ -271,7 +271,7 @@ export function interrupt(connection: Connection): void;
 export function query_progress(connection: Connection): QueryProgress;
 
 // DUCKDB_API void duckdb_disconnect(duckdb_connection *connection);
-export function disconnect(connection: Connection): void;
+export function disconnect_sync(connection: Connection): void;
 
 // DUCKDB_API const char *duckdb_library_version();
 export function library_version(): string;
@@ -1078,10 +1078,10 @@ export function appender_column_type(appender: Appender, column_index: number): 
 // not exposed: other appender functions throw
 
 // DUCKDB_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
-export function appender_flush(appender: Appender): void;
+export function appender_flush_sync(appender: Appender): void;
 
 // DUCKDB_API duckdb_state duckdb_appender_close(duckdb_appender appender);
-export function appender_close(appender: Appender): void;
+export function appender_close_sync(appender: Appender): void;
 
 // DUCKDB_API duckdb_state duckdb_appender_destroy(duckdb_appender *appender);
 // not exposed: destroyed in finalizer

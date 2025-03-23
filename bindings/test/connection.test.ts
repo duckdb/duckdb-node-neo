@@ -8,7 +8,7 @@ suite('connection', () => {
       const prepared1 = await duckdb.prepare(connection, 'select 1');
       expect(prepared1).toBeDefined();
       const { extracted_statements } = await duckdb.extract_statements(connection, 'select 10; select 20');
-      duckdb.disconnect(connection);
+      duckdb.disconnect_sync(connection);
       await expect(async () => await duckdb.prepare(connection, 'select 2'))
         .rejects.toStrictEqual(new Error('Failed to prepare: connection disconnected'));
       await expect(async () => await duckdb.query(connection, 'select 3'))
@@ -25,9 +25,9 @@ suite('connection', () => {
     await withConnection(async (connection) => {
       const prepared1 = await duckdb.prepare(connection, 'select 1');
       expect(prepared1).toBeDefined();
-      duckdb.disconnect(connection);
+      duckdb.disconnect_sync(connection);
       // ensure a second disconnect is a no-op
-      duckdb.disconnect(connection);
+      duckdb.disconnect_sync(connection);
       await expect(async () => await duckdb.prepare(connection, 'select 3'))
         .rejects.toStrictEqual(new Error('Failed to prepare: connection disconnected'));
     });

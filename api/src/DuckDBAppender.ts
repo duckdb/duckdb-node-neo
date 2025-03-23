@@ -42,11 +42,11 @@ export class DuckDBAppender {
   constructor(appender: duckdb.Appender) {
     this.appender = appender;
   }
-  public close() {
-    duckdb.appender_close(this.appender);
+  public closeSync() {
+    duckdb.appender_close_sync(this.appender);
   }
-  public flush() {
-    duckdb.appender_flush(this.appender);
+  public flushSync() {
+    duckdb.appender_flush_sync(this.appender);
   }
   public get columnCount(): number {
     return duckdb.appender_column_count(this.appender);

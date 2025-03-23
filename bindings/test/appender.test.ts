@@ -66,7 +66,7 @@ suite('appender', () => {
       duckdb.appender_end_row(appender);
       duckdb.append_int32(appender, 33);
       duckdb.appender_end_row(appender);
-      duckdb.appender_flush(appender);
+      duckdb.appender_flush_sync(appender);
 
       const result = await duckdb.query(connection, 'from appender_target');
       await expectResult(result, {
@@ -210,8 +210,8 @@ suite('appender', () => {
 
       duckdb.appender_end_row(appender);
       // explicitly calling both flush and close is unnecessary because close does a flush, but this exercises them.
-      duckdb.appender_flush(appender);
-      duckdb.appender_close(appender);
+      duckdb.appender_flush_sync(appender);
+      duckdb.appender_close_sync(appender);
 
       const result = await duckdb.query(connection, 'from appender_target');
       await expectResult(result, {
@@ -319,7 +319,7 @@ suite('appender', () => {
       if (source_chunk) {
         duckdb.append_data_chunk(appender, source_chunk);
       }
-      duckdb.appender_flush(appender);
+      duckdb.appender_flush_sync(appender);
 
       const result = await duckdb.query(connection, 'from appender_target');
       await expectResult(result, {

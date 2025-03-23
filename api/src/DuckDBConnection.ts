@@ -23,12 +23,12 @@ export class DuckDBConnection {
     }
     return (await DuckDBInstance.fromCache()).connect();
   }
-  /** Same as disconnect. */
-  public close() {
-    return this.disconnect();
+  /** Same as disconnectSync. */
+  public closeSync() {
+    return this.disconnectSync();
   }
-  public disconnect() {
-    return duckdb.disconnect(this.connection);
+  public disconnectSync() {
+    return duckdb.disconnect_sync(this.connection);
   }
   public interrupt() {
     duckdb.interrupt(this.connection);
