@@ -29,7 +29,7 @@ export class DuckDBInstance {
     return new DuckDBConnection(await duckdb.connect(this.db));
   }
 
-  public close() {
-    duckdb.close(this.db);
+  public closeSync() {
+    duckdb.close_sync(this.db);
   }
 }

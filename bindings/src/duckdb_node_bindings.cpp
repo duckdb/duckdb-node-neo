@@ -1182,11 +1182,11 @@ public:
       InstanceMethod("get_or_create_from_cache", &DuckDBNodeAddon::get_or_create_from_cache),
 
       InstanceMethod("open", &DuckDBNodeAddon::open),
-      InstanceMethod("close", &DuckDBNodeAddon::close),
+      InstanceMethod("close_sync", &DuckDBNodeAddon::close_sync),
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
       InstanceMethod("interrupt", &DuckDBNodeAddon::interrupt),
       InstanceMethod("query_progress", &DuckDBNodeAddon::query_progress),
-      InstanceMethod("disconnect", &DuckDBNodeAddon::disconnect),
+      InstanceMethod("disconnect_sync", &DuckDBNodeAddon::disconnect_sync),
 
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
 
@@ -1405,8 +1405,8 @@ public:
       InstanceMethod("appender_create_ext", &DuckDBNodeAddon::appender_create_ext),
       InstanceMethod("appender_column_count", &DuckDBNodeAddon::appender_column_count),
       InstanceMethod("appender_column_type", &DuckDBNodeAddon::appender_column_type),
-      InstanceMethod("appender_flush", &DuckDBNodeAddon::appender_flush),
-      InstanceMethod("appender_close", &DuckDBNodeAddon::appender_close),
+      InstanceMethod("appender_flush_sync", &DuckDBNodeAddon::appender_flush_sync),
+      InstanceMethod("appender_close_sync", &DuckDBNodeAddon::appender_close_sync),
       InstanceMethod("appender_end_row", &DuckDBNodeAddon::appender_end_row),
       InstanceMethod("append_default", &DuckDBNodeAddon::append_default),
       InstanceMethod("append_bool", &DuckDBNodeAddon::append_bool),
@@ -1497,7 +1497,7 @@ private:
 
   // DUCKDB_API void duckdb_close(duckdb_database *database);
   // function close(database: Database): void
-  Napi::Value close(const Napi::CallbackInfo& info) {
+  Napi::Value close_sync(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto database_holder_ptr = GetDatabaseHolderFromExternal(env, info[0]);
     // duckdb_close is a no-op if already closed
@@ -1539,7 +1539,7 @@ private:
 
   // DUCKDB_API void duckdb_disconnect(duckdb_connection *connection);
   // function disconnect(connection: Connection): void
-  Napi::Value disconnect(const Napi::CallbackInfo& info) {
+  Napi::Value disconnect_sync(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto connection_holder_ptr = GetConnectionHolderFromExternal(env, info[0]);
     // duckdb_disconnect is a no-op if already disconnected
@@ -3949,7 +3949,7 @@ private:
 
   // DUCKDB_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
   // function appender_flush(appender: Appender): void
-  Napi::Value appender_flush(const Napi::CallbackInfo& info) {
+  Napi::Value appender_flush_sync(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
     if (duckdb_appender_flush(appender)) {
@@ -3960,7 +3960,7 @@ private:
 
   // DUCKDB_API duckdb_state duckdb_appender_close(duckdb_appender appender);
   // function appender_close(appender: Appender): void
-  Napi::Value appender_close(const Napi::CallbackInfo& info) {
+  Napi::Value appender_close_sync(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
     if (duckdb_appender_close(appender)) {

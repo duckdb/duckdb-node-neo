@@ -55,7 +55,7 @@ for (const batchSize of [1, 1000]) {
           appender.appendFloat(Math.random() * 1_000_000);
           appender.endRow();
         }
-        appender.close();
+        appender.closeSync();
       },
       {
         setup,

@@ -382,14 +382,14 @@ describe('api', () => {
         42,
       ]);
     }
-    instance.close();
+    instance.closeSync();
   });
   test('disconnecting connections', async () => {
     const instance = await DuckDBInstance.create();
     const connection = await instance.connect();
     const prepared1 = await connection.prepare('select 1');
     assert.isDefined(prepared1);
-    connection.disconnect();
+    connection.disconnectSync();
     try {
       await connection.prepare('select 2');
       assert.fail('should throw');
@@ -400,7 +400,7 @@ describe('api', () => {
       );
     }
     // ensure double-disconnect doesn't break anything
-    connection.disconnect();
+    connection.disconnectSync();
   });
   test('should support running prepared statements', async () => {
     await withConnection(async (connection) => {
@@ -1443,7 +1443,7 @@ describe('api', () => {
       await connection.run('create table target(col0 int)');
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
-      appender.flush();
+      appender.flushSync();
 
       const result = await connection.run('from target');
       const resultChunk = await result.fetchChunk();
@@ -1477,7 +1477,7 @@ describe('api', () => {
       await connection.run('create table target1(col0 int)');
       const appender1 = await connection.createAppender('target1');
       appender1.appendDataChunk(chunk);
-      appender1.flush();
+      appender1.flushSync();
 
       const result1 = await connection.run('from target1');
       const result1Chunk = await result1.fetchChunk();
@@ -1494,7 +1494,7 @@ describe('api', () => {
       await connection.run('create table target2(col0 int)');
       const appender2 = await connection.createAppender('target2');
       appender2.appendDataChunk(chunk);
-      appender2.flush();
+      appender2.flushSync();
 
       const result2 = await connection.run('from target2');
       const result2Chunk = await result2.fetchChunk();
@@ -1516,7 +1516,7 @@ describe('api', () => {
       await connection.run('create table target(col0 varchar)');
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
-      appender.flush();
+      appender.flushSync();
 
       const result = await connection.run('from target');
       const resultChunk = await result.fetchChunk();
@@ -1552,7 +1552,7 @@ describe('api', () => {
       await connection.run('create table target(col0 blob)');
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
-      appender.flush();
+      appender.flushSync();
 
       const result = await connection.run('from target');
       const resultChunk = await result.fetchChunk();
@@ -1579,7 +1579,7 @@ describe('api', () => {
       await connection.run('create table target(col0 integer[])');
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
-      appender.flush();
+      appender.flushSync();
 
       const result = await connection.run('from target');
       const resultChunk = await result.fetchChunk();
@@ -1626,7 +1626,7 @@ describe('api', () => {
       await connection.run('create table target(col0 integer[][])');
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
-      appender.flush();
+      appender.flushSync();
 
       const result = await connection.run('from target');
       const resultChunk = await result.fetchChunk();
@@ -1653,7 +1653,7 @@ describe('api', () => {
       await connection.run('create table target(col0 integer[3])');
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
-      appender.flush();
+      appender.flushSync();
 
       const result = await connection.run('from target');
       const resultChunk = await result.fetchChunk();
@@ -1680,7 +1680,7 @@ describe('api', () => {
       await connection.run('create table target(col0 varchar[3])');
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
-      appender.flush();
+      appender.flushSync();
 
       const result = await connection.run('from target');
       const resultChunk = await result.fetchChunk();
@@ -1712,7 +1712,7 @@ describe('api', () => {
       );
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
-      appender.flush();
+      appender.flushSync();
 
       const result = await connection.run('from target');
       const resultChunk = await result.fetchChunk();
@@ -1752,7 +1752,7 @@ describe('api', () => {
       );
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
-      appender.flush();
+      appender.flushSync();
 
       const result = await connection.run('from target');
       const resultChunk = await result.fetchChunk();
@@ -1784,7 +1784,7 @@ describe('api', () => {
       );
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
-      appender.flush();
+      appender.flushSync();
 
       const result = await connection.run('from target');
       const resultChunk = await result.fetchChunk();
@@ -1898,7 +1898,7 @@ describe('api', () => {
         }
         appender.endRow();
       }
-      appender.flush();
+      appender.flushSync();
 
       const result = await connection.run('from target');
       const resultChunk = await result.fetchChunk();
