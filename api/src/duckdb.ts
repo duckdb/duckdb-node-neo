@@ -1,9 +1,10 @@
 export {
-  hugeint_to_double,
   double_to_hugeint,
-  uhugeint_to_double,
   double_to_uhugeint,
+  hugeint_to_double,
+  uhugeint_to_double,
 } from '@duckdb/node-bindings';
+export * from './configurationOptionDescriptions';
 export * from './DuckDBAppender';
 export * from './DuckDBConnection';
 export * from './DuckDBDataChunk';
@@ -19,8 +20,8 @@ export * from './DuckDBTypeId';
 export * from './DuckDBValueConverter';
 export * from './DuckDBValueToJsonConverter';
 export * from './DuckDBVector';
-export * from './configurationOptionDescriptions';
 export * from './enums';
+export * from './Json';
 export * from './sql';
 export * from './values';
 export * from './version';
