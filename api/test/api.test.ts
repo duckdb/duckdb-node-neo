@@ -116,10 +116,12 @@ import { DuckDBInstanceCache } from '../src/DuckDBInstanceCache';
 import { replaceSqlNullWithInteger } from './util/replaceSqlNullWithInteger';
 import {
   ColumnNameAndType,
+  createTestAllTypesColumnNameAndTypeObjects,
+  createTestAllTypesColumnNameAndTypeObjectsJson,
+  createTestAllTypesColumnNamesAndTypesJson,
   createTestAllTypesColumnTypes,
   createTestAllTypesColumns,
   createTestAllTypesColumnsJson,
-  createTestAllTypesColumnsNamesAndTypes,
   createTestAllTypesColumnsObjectJson,
   createTestAllTypesRowObjectsJson,
   createTestAllTypesRowsJson,
@@ -784,7 +786,7 @@ describe('api', () => {
       const result = await connection.run(
         'from test_all_types(use_large_enum=true)'
       );
-      assertColumns(result, createTestAllTypesColumnsNamesAndTypes());
+      assertColumns(result, createTestAllTypesColumnNameAndTypeObjects());
 
       const chunk = await result.fetchChunk();
       assert.isDefined(chunk);
@@ -1264,6 +1266,27 @@ describe('api', () => {
       assert.deepEqual(rowObjectsJson, createTestAllTypesRowObjectsJson());
     });
   });
+  test('column names and types json', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(`from test_all_types(use_large_enum=true)`);
+      const columnNamesAndTypesJson = reader.columnNamesAndTypesJson();
+      assert.deepEqual(
+        columnNamesAndTypesJson,
+        createTestAllTypesColumnNamesAndTypesJson()
+      );
+    });
+  });
+  test('column name and type objects json', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(`from test_all_types(use_large_enum=true)`);
+      const columnNameAndTypeObjectsJson =
+        reader.columnNameAndTypeObjectsJson();
+      assert.deepEqual(
+        columnNameAndTypeObjectsJson,
+        createTestAllTypesColumnNameAndTypeObjectsJson()
+      );
+    });
+  });
   test('result reader', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
@@ -1346,8 +1369,10 @@ describe('api', () => {
     const connection2 = await instance2.connect();
     await connection2.run(`create table mem1.main.t1 as select 1`);
   });
-  // Race with deleting files. Need to support explicitly closing instances.
+  // Need to support explicitly destroying instance cache?
   test.skip('instance cache - different instances', async () => {
+    let instance1: DuckDBInstance | undefined;
+    let instance2: DuckDBInstance | undefined;
     try {
       const cache = new DuckDBInstanceCache();
       const instance1 = await cache.getOrCreateInstance(
@@ -1370,8 +1395,14 @@ describe('api', () => {
         );
       }
     } finally {
-      fs.rmSync('instance_cache_test_a.db');
-      fs.rmSync('instance_cache_test_b.db');
+      if (instance1) {
+        instance1.closeSync();
+        fs.rmSync('instance_cache_test_a.db');
+      }
+      if (instance2) {
+        instance2.closeSync();
+        fs.rmSync('instance_cache_test_b.db');
+      }
     }
   });
   test('instance cache - different config', async () => {
@@ -1769,16 +1800,16 @@ describe('api', () => {
   });
   test('create and append data chunk with all types', async () => {
     await withConnection(async (connection) => {
-      const types = createTestAllTypesColumnTypes() as DuckDBType[];
-      const columns = createTestAllTypesColumns() as (readonly DuckDBValue[])[];
-      const columnNamesAndTypes =
-        createTestAllTypesColumnsNamesAndTypes() as ColumnNameAndType[];
+      const types = createTestAllTypesColumnTypes();
+      const columns = createTestAllTypesColumns();
+      const columnNameAndTypeObjects =
+        createTestAllTypesColumnNameAndTypeObjects();
 
       const chunk = DuckDBDataChunk.create(types);
       chunk.setColumns(columns);
 
       await connection.run(
-        `create table target(${columnNamesAndTypes
+        `create table target(${columnNameAndTypeObjects
           .map(({ name, type }) => `"${name.replace(`"`, `""`)}" ${type}`)
           .join(', ')})`
       );
@@ -1866,13 +1897,13 @@ describe('api', () => {
   });
   test('append all types row-by-row', async () => {
     await withConnection(async (connection) => {
-      const types = createTestAllTypesColumnTypes() as DuckDBType[];
-      const columns = createTestAllTypesColumns() as (readonly DuckDBValue[])[];
-      const columnNamesAndTypes =
-        createTestAllTypesColumnsNamesAndTypes() as ColumnNameAndType[];
+      const types = createTestAllTypesColumnTypes();
+      const columns = createTestAllTypesColumns();
+      const columnNameAndTypeObjects =
+        createTestAllTypesColumnNameAndTypeObjects();
 
       await connection.run(
-        `create table target(${columnNamesAndTypes
+        `create table target(${columnNameAndTypeObjects
           .map(({ name, type }) => `"${name.replace(`"`, `""`)}" ${type}`)
           .join(', ')})`
       );

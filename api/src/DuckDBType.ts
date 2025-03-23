@@ -1,6 +1,7 @@
 import duckdb from '@duckdb/node-bindings';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBTypeId } from './DuckDBTypeId';
+import { Json } from './Json';
 import { quotedIdentifier, quotedString } from './sql';
 import {
   DuckDBDateValue,
@@ -32,6 +33,12 @@ export abstract class BaseDuckDBType<T extends DuckDBTypeId> {
       logicalType.alias = this.alias;
     }
     return logicalType;
+  }
+  public toJson(): Json {
+    return {
+      typeId: this.typeId,
+      ...(this.alias ? { alias: this.alias } : {}),
+    };
   }
 }
 
@@ -401,6 +408,14 @@ export class DuckDBDecimalType extends BaseDuckDBType<DuckDBTypeId.DECIMAL> {
     }
     return logicalType;
   }
+  public override toJson(): Json {
+    return {
+      typeId: this.typeId,
+      width: this.width,
+      scale: this.scale,
+      ...(this.alias ? { alias: this.alias } : {}),
+    };
+  }
   public static readonly default = new DuckDBDecimalType(18, 3);
 }
 export function DECIMAL(
@@ -532,6 +547,14 @@ export class DuckDBEnumType extends BaseDuckDBType<DuckDBTypeId.ENUM> {
     }
     return logicalType;
   }
+  public override toJson(): Json {
+    return {
+      typeId: this.typeId,
+      values: [...this.values],
+      internalTypeId: this.internalTypeId,
+      ...(this.alias ? { alias: this.alias } : {}),
+    };
+  }
 }
 export function ENUM8(
   values: readonly string[],
@@ -585,6 +608,13 @@ export class DuckDBListType extends BaseDuckDBType<DuckDBTypeId.LIST> {
       logicalType.alias = this.alias;
     }
     return logicalType;
+  }
+  public override toJson(): Json {
+    return {
+      typeId: this.typeId,
+      valueType: this.valueType.toJson(),
+      ...(this.alias ? { alias: this.alias } : {}),
+    };
   }
 }
 export function LIST(valueType: DuckDBType, alias?: string): DuckDBListType {
@@ -641,6 +671,14 @@ export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
     }
     return logicalType;
   }
+  public override toJson(): Json {
+    return {
+      typeId: this.typeId,
+      entryNames: [...this.entryNames],
+      entryTypes: this.entryTypes.map(t => t.toJson()),
+      ...(this.alias ? { alias: this.alias } : {}),
+    };
+  }
 }
 export function STRUCT(
   entries: Record<string, DuckDBType>,
@@ -676,6 +714,14 @@ export class DuckDBMapType extends BaseDuckDBType<DuckDBTypeId.MAP> {
     }
     return logicalType;
   }
+  public override toJson(): Json {
+    return {
+      typeId: this.typeId,
+      keyType: this.keyType.toJson(),
+      valueType: this.valueType.toJson(),
+      ...(this.alias ? { alias: this.alias } : {}),
+    };
+  }
 }
 export function MAP(
   keyType: DuckDBType,
@@ -705,6 +751,14 @@ export class DuckDBArrayType extends BaseDuckDBType<DuckDBTypeId.ARRAY> {
       logicalType.alias = this.alias;
     }
     return logicalType;
+  }
+  public override toJson(): Json {
+    return {
+      typeId: this.typeId,
+      valueType: this.valueType.toJson(),
+      length: this.length,
+      ...(this.alias ? { alias: this.alias } : {}),
+    };
   }
 }
 export function ARRAY(
@@ -781,6 +835,14 @@ export class DuckDBUnionType extends BaseDuckDBType<DuckDBTypeId.UNION> {
       logicalType.alias = this.alias;
     }
     return logicalType;
+  }
+  public override toJson(): Json {
+    return {
+      typeId: this.typeId,
+      memberTags: [...this.memberTags],
+      memberTypes: this.memberTypes.map(t => t.toJson()),
+      ...(this.alias ? { alias: this.alias } : {}),
+    };
   }
 }
 export function UNION(

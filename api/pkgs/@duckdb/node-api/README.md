@@ -405,6 +405,127 @@ const columnsObject = reader.getColumnsObjectJson();
 // }
 ```
 
+Column names and types can also be serialized to JSON:
+```ts
+const columnNamesAndTypes = reader.columnNamesAndTypesJson();
+// {
+//   "columnNames": [
+//     "int_array",
+//     "struct",
+//     "map",
+//     "union"
+//   ],
+//   "columnTypes": [
+//     {
+//       "typeId": 24,
+//       "valueType": {
+//         "typeId": 4
+//       }
+//     },
+//     {
+//       "typeId": 25,
+//       "entryNames": [
+//         "a",
+//         "b"
+//       ],
+//       "entryTypes": [
+//         {
+//           "typeId": 4
+//         },
+//         {
+//           "typeId": 17
+//         }
+//       ]
+//     },
+//     {
+//       "typeId": 26,
+//       "keyType": {
+//         "typeId": 17
+//       },
+//       "valueType": {
+//         "typeId": 17
+//       }
+//     },
+//     {
+//       "typeId": 28,
+//       "memberTags": [
+//         "name",
+//         "age"
+//       ],
+//       "memberTypes": [
+//         {
+//           "typeId": 17
+//         },
+//         {
+//           "typeId": 3
+//         }
+//       ]
+//     }
+//   ]
+// }
+
+const columnNameAndTypeObjects = reader.columnNameAndTypeObjectsJson();
+// [
+//   {
+//     "columnName": "int_array",
+//     "columnType": {
+//       "typeId": 24,
+//       "valueType": {
+//         "typeId": 4
+//       }
+//     }
+//   },
+//   {
+//     "columnName": "struct",
+//     "columnType": {
+//       "typeId": 25,
+//       "entryNames": [
+//         "a",
+//         "b"
+//       ],
+//       "entryTypes": [
+//         {
+//           "typeId": 4
+//         },
+//         {
+//           "typeId": 17
+//         }
+//       ]
+//     }
+//   },
+//   {
+//     "columnName": "map",
+//     "columnType": {
+//       "typeId": 26,
+//       "keyType": {
+//         "typeId": 17
+//       },
+//       "valueType": {
+//         "typeId": 17
+//       }
+//     }
+//   },
+//   {
+//     "columnName": "union",
+//     "columnType": {
+//       "typeId": 28,
+//       "memberTags": [
+//         "name",
+//         "age"
+//       ],
+//       "memberTypes": [
+//         {
+//           "typeId": 17
+//         },
+//         {
+//           "typeId": 3
+//         }
+//       ]
+//     }
+//   }
+// ]
+```
+
 ### Fetch Chunks
 
 Fetch all chunks:

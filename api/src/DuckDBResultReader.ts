@@ -7,12 +7,13 @@ import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
-import { DuckDBValueToJsonConverter, Json } from './DuckDBValueToJsonConverter';
+import { DuckDBValueToJsonConverter } from './DuckDBValueToJsonConverter';
 import { ResultReturnType, StatementType } from './enums';
 import { getColumnsFromChunks } from './getColumnsFromChunks';
 import { getColumnsObjectFromChunks } from './getColumnsObjectFromChunks';
 import { getRowObjectsFromChunks } from './getRowObjectsFromChunks';
 import { getRowsFromChunks } from './getRowsFromChunks';
+import { Json } from './Json';
 import { DuckDBValue } from './values';
 
 interface ChunkSizeRun {
@@ -63,8 +64,20 @@ export class DuckDBResultReader {
   public columnType(columnIndex: number): DuckDBType {
     return this.result.columnType(columnIndex);
   }
+  public columnTypeJson(columnIndex: number): Json {
+    return this.result.columnTypeJson(columnIndex);
+  }
   public columnTypes(): DuckDBType[] {
     return this.result.columnTypes();
+  }
+  public columnTypesJson(): Json {
+    return this.result.columnTypesJson();
+  }
+  public columnNamesAndTypesJson(): Json {
+    return this.result.columnNamesAndTypesJson();
+  }
+  public columnNameAndTypeObjectsJson(): Json {
+    return this.result.columnNameAndTypeObjectsJson();
   }
   public get rowsChanged(): number {
     return this.result.rowsChanged;

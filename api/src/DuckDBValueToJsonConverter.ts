@@ -1,6 +1,7 @@
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { DuckDBValueConverter } from './DuckDBValueConverter';
+import { Json } from './Json';
 import {
   DuckDBArrayValue,
   DuckDBIntervalValue,
@@ -10,14 +11,6 @@ import {
   DuckDBUnionValue,
   DuckDBValue,
 } from './values';
-
-export type Json =
-  | null
-  | boolean
-  | number
-  | string
-  | Json[]
-  | { [key: string]: Json };
 
 export class DuckDBValueToJsonConverter implements DuckDBValueConverter<Json> {
   public static readonly default = new DuckDBValueToJsonConverter();

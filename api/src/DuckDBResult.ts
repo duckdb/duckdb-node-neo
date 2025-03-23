@@ -3,7 +3,8 @@ import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
-import { DuckDBValueToJsonConverter, Json } from './DuckDBValueToJsonConverter';
+import { DuckDBValueToJsonConverter } from './DuckDBValueToJsonConverter';
+import { Json } from './Json';
 import { convertColumnsFromChunks } from './convertColumnsFromChunks';
 import { convertColumnsObjectFromChunks } from './convertColumnsObjectFromChunks';
 import { convertRowObjectsFromChunks } from './convertRowObjectsFromChunks';
@@ -72,6 +73,9 @@ export class DuckDBResult {
       duckdb.column_logical_type(this.result, columnIndex)
     ).asType();
   }
+  public columnTypeJson(columnIndex: number): Json {
+    return this.columnType(columnIndex).toJson();
+  }
   public columnTypes(): DuckDBType[] {
     const columnTypes: DuckDBType[] = [];
     const columnCount = this.columnCount;
@@ -79,6 +83,31 @@ export class DuckDBResult {
       columnTypes.push(this.columnType(columnIndex));
     }
     return columnTypes;
+  }
+  public columnTypesJson(): Json {
+    const columnTypesJson: Json[] = [];
+    const columnCount = this.columnCount;
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+      columnTypesJson.push(this.columnTypeJson(columnIndex));
+    }
+    return columnTypesJson;
+  }
+  public columnNamesAndTypesJson(): Json {
+    return {
+      columnNames: this.columnNames(),
+      columnTypes: this.columnTypesJson(),
+    };
+  }
+  public columnNameAndTypeObjectsJson(): Json {
+    const columnNameAndTypeObjects: Json[] = [];
+    const columnCount = this.columnCount;
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+      columnNameAndTypeObjects.push({
+        columnName: this.columnName(columnIndex),
+        columnType: this.columnTypeJson(columnIndex),
+      });
+    }
+    return columnNameAndTypeObjects;
   }
   public get isStreaming(): boolean {
     return duckdb.result_is_streaming(this.result);
