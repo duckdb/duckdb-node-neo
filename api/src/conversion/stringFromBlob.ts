@@ -9,7 +9,7 @@ export function stringFromBlob(bytes: Uint8Array): string {
       byte === 0x27 /* single quote */ ||
       byte >= 0x7f
     ) {
-      byteString += `\\x${byte.toString(16).toUpperCase().padStart(2, '0')}`
+      byteString += `\\x${byte.toString(16).toUpperCase().padStart(2, '0')}`;
     } else {
       byteString += String.fromCharCode(byte);
     }
