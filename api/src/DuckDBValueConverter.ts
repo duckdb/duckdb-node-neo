@@ -1,6 +1,8 @@
 import { DuckDBType } from './DuckDBType';
 import { DuckDBValue } from './values';
 
-export interface DuckDBValueConverter<T> {
-  convertValue(value: DuckDBValue, type: DuckDBType): T;
-}
+export type DuckDBValueConverter<T> = (
+  value: DuckDBValue,
+  type: DuckDBType,
+  converter: DuckDBValueConverter<T>
+) => T | null;
