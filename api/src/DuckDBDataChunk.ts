@@ -68,11 +68,11 @@ export class DuckDBDataChunk {
   public convertColumnValues<T>(
     columnIndex: number,
     converter: DuckDBValueConverter<T>
-  ): T[] {
-    const convertedValues: T[] = [];
+  ): (T | null)[] {
+    const convertedValues: (T | null)[] = [];
     const type = this.getColumnVector(columnIndex).type;
     this.visitColumnValues(columnIndex, (value) =>
-      convertedValues.push(converter.convertValue(value, type))
+      convertedValues.push(converter(value, type, converter))
     );
     return convertedValues;
   }
@@ -107,8 +107,8 @@ export class DuckDBDataChunk {
     this.visitColumns((column) => columns.push(column));
     return columns;
   }
-  public convertColumns<T>(converter: DuckDBValueConverter<T>): T[][] {
-    const convertedColumns: T[][] = [];
+  public convertColumns<T>(converter: DuckDBValueConverter<T>): (T | null)[][] {
+    const convertedColumns: (T | null)[][] = [];
     const columnCount = this.columnCount;
     for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
       convertedColumns.push(this.convertColumnValues(columnIndex, converter));
@@ -159,11 +159,11 @@ export class DuckDBDataChunk {
   public convertRowValues<T>(
     rowIndex: number,
     converter: DuckDBValueConverter<T>
-  ): T[] {
-    const convertedValues: T[] = [];
+  ): (T | null)[] {
+    const convertedValues: (T | null)[] = [];
     this.visitRowValues(rowIndex, (value, _, columnIndex) =>
       convertedValues.push(
-        converter.convertValue(value, this.getColumnVector(columnIndex).type)
+        converter(value, this.getColumnVector(columnIndex).type, converter)
       )
     );
     return convertedValues;
@@ -179,8 +179,8 @@ export class DuckDBDataChunk {
     this.visitRows((row) => rows.push(row));
     return rows;
   }
-  public convertRows<T>(converter: DuckDBValueConverter<T>): T[][] {
-    const convertedRows: T[][] = [];
+  public convertRows<T>(converter: DuckDBValueConverter<T>): (T | null)[][] {
+    const convertedRows: (T | null)[][] = [];
     const rowCount = this.rowCount;
     for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
       convertedRows.push(this.convertRowValues(rowIndex, converter));

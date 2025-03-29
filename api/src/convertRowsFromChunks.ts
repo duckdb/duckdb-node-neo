@@ -4,8 +4,8 @@ import { DuckDBValueConverter } from './DuckDBValueConverter';
 export function convertRowsFromChunks<T>(
   chunks: readonly DuckDBDataChunk[],
   converter: DuckDBValueConverter<T>
-): T[][] {
-  const rows: T[][] = [];
+): (T | null)[][] {
+  const rows: (T | null)[][] = [];
   for (const chunk of chunks) {
     const rowCount = chunk.rowCount;
     for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {

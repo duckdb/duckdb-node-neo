@@ -126,6 +126,13 @@ import {
   createTestAllTypesRowObjectsJson,
   createTestAllTypesRowsJson,
 } from './util/testAllTypes';
+import {
+  createTestJSColumnsJS,
+  createTestJSColumnsObjectJS,
+  createTestJSQuery,
+  createTestJSRowObjectsJS,
+  createTestJSRowsJS,
+} from './util/testJS';
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -1238,6 +1245,34 @@ describe('api', () => {
       });
     });
   });
+  test('columns js', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(createTestJSQuery());
+      const columnsJS = reader.getColumnsJS();
+      assert.deepEqual(columnsJS, createTestJSColumnsJS());
+    });
+  });
+  test('columns object js', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(createTestJSQuery());
+      const columnsJS = reader.getColumnsObjectJS();
+      assert.deepEqual(columnsJS, createTestJSColumnsObjectJS());
+    });
+  });
+  test('rows js', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(createTestJSQuery());
+      const columnsJS = reader.getRowsJS();
+      assert.deepEqual(columnsJS, createTestJSRowsJS());
+    });
+  });
+  test('row objects js', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(createTestJSQuery());
+      const columnsJS = reader.getRowObjectsJS();
+      assert.deepEqual(columnsJS, createTestJSRowObjectsJS());
+    });
+  });
   test('columns json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(`from test_all_types()`);
@@ -1268,7 +1303,9 @@ describe('api', () => {
   });
   test('column names and types json', async () => {
     await withConnection(async (connection) => {
-      const reader = await connection.runAndReadAll(`from test_all_types(use_large_enum=true)`);
+      const reader = await connection.runAndReadAll(
+        `from test_all_types(use_large_enum=true)`
+      );
       const columnNamesAndTypesJson = reader.columnNamesAndTypesJson();
       assert.deepEqual(
         columnNamesAndTypesJson,
@@ -1278,7 +1315,9 @@ describe('api', () => {
   });
   test('column name and type objects json', async () => {
     await withConnection(async (connection) => {
-      const reader = await connection.runAndReadAll(`from test_all_types(use_large_enum=true)`);
+      const reader = await connection.runAndReadAll(
+        `from test_all_types(use_large_enum=true)`
+      );
       const columnNameAndTypeObjectsJson =
         reader.columnNameAndTypeObjectsJson();
       assert.deepEqual(

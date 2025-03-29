@@ -4,7 +4,7 @@ import { DuckDBValueConverter } from './DuckDBValueConverter';
 export function convertColumnsFromChunks<T>(
   chunks: readonly DuckDBDataChunk[],
   converter: DuckDBValueConverter<T>
-): T[][] {
+): (T | null)[][] {
   if (chunks.length === 0) {
     return [];
   }
@@ -19,9 +19,7 @@ export function convertColumnsFromChunks<T>(
       chunk.visitColumnValues(
         columnIndex,
         (value, _rowIndex, _columnIndex, type) =>
-          convertedColumns[columnIndex].push(
-            converter.convertValue(value, type)
-          )
+          convertedColumns[columnIndex].push(converter(value, type, converter))
       );
     }
   }

@@ -7,13 +7,16 @@ import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
-import { DuckDBValueToJsonConverter } from './DuckDBValueToJsonConverter';
+import { DuckDBValueConverter } from './DuckDBValueConverter';
 import { ResultReturnType, StatementType } from './enums';
 import { getColumnsFromChunks } from './getColumnsFromChunks';
 import { getColumnsObjectFromChunks } from './getColumnsObjectFromChunks';
 import { getRowObjectsFromChunks } from './getRowObjectsFromChunks';
 import { getRowsFromChunks } from './getRowsFromChunks';
+import { JS } from './JS';
+import { JSDuckDBValueConverter } from './JSDuckDBValueConverter';
 import { Json } from './Json';
+import { JsonDuckDBValueConverter } from './JsonDuckDBValueConverter';
 import { DuckDBValue } from './values';
 
 interface ChunkSizeRun {
@@ -40,45 +43,59 @@ export class DuckDBResultReader {
   public get returnType(): ResultReturnType {
     return this.result.returnType;
   }
+
   public get statementType(): StatementType {
     return this.result.statementType;
   }
+
   public get columnCount(): number {
     return this.result.columnCount;
   }
+
   public columnName(columnIndex: number): string {
     return this.result.columnName(columnIndex);
   }
+
   public columnNames(): string[] {
     return this.result.columnNames();
   }
+
   public deduplicatedColumnNames(): string[] {
     return this.result.deduplicatedColumnNames();
   }
+
   public columnTypeId(columnIndex: number): DuckDBTypeId {
     return this.result.columnTypeId(columnIndex);
   }
+
   public columnLogicalType(columnIndex: number): DuckDBLogicalType {
     return this.result.columnLogicalType(columnIndex);
   }
+
   public columnType(columnIndex: number): DuckDBType {
     return this.result.columnType(columnIndex);
   }
+
   public columnTypeJson(columnIndex: number): Json {
     return this.result.columnTypeJson(columnIndex);
   }
+
   public columnTypes(): DuckDBType[] {
     return this.result.columnTypes();
   }
+
   public columnTypesJson(): Json {
     return this.result.columnTypesJson();
   }
+
   public columnNamesAndTypesJson(): Json {
     return this.result.columnNamesAndTypesJson();
   }
+
   public columnNameAndTypeObjectsJson(): Json {
     return this.result.columnNameAndTypeObjectsJson();
   }
+  
   public get rowsChanged(): number {
     return this.result.rowsChanged;
   }
@@ -181,11 +198,16 @@ export class DuckDBResultReader {
     return getColumnsFromChunks(this.chunks);
   }
 
+  public convertColumns<T>(converter: DuckDBValueConverter<T>): (T | null)[][] {
+    return convertColumnsFromChunks(this.chunks, converter);
+  }
+
+  public getColumnsJS(): JS[][] {
+    return this.convertColumns(JSDuckDBValueConverter);
+  }
+
   public getColumnsJson(): Json[][] {
-    return convertColumnsFromChunks(
-      this.chunks,
-      DuckDBValueToJsonConverter.default
-    );
+    return this.convertColumns(JsonDuckDBValueConverter);
   }
 
   public getColumnsObject(): Record<string, DuckDBValue[]> {
@@ -195,34 +217,59 @@ export class DuckDBResultReader {
     );
   }
 
-  public getColumnsObjectJson(): Record<string, Json[]> {
+  public convertColumnsObject<T>(
+    converter: DuckDBValueConverter<T>
+  ): Record<string, (T | null)[]> {
     return convertColumnsObjectFromChunks(
       this.chunks,
       this.deduplicatedColumnNames(),
-      DuckDBValueToJsonConverter.default
+      converter
     );
+  }
+
+  public getColumnsObjectJS(): Record<string, JS[]> {
+    return this.convertColumnsObject(JSDuckDBValueConverter);
+  }
+
+  public getColumnsObjectJson(): Record<string, Json[]> {
+    return this.convertColumnsObject(JsonDuckDBValueConverter);
   }
 
   public getRows(): DuckDBValue[][] {
     return getRowsFromChunks(this.chunks);
   }
 
+  public convertRows<T>(converter: DuckDBValueConverter<T>): (T | null)[][] {
+    return convertRowsFromChunks(this.chunks, converter);
+  }
+
+  public getRowsJS(): JS[][] {
+    return this.convertRows(JSDuckDBValueConverter);
+  }
+
   public getRowsJson(): Json[][] {
-    return convertRowsFromChunks(
-      this.chunks,
-      DuckDBValueToJsonConverter.default
-    );
+    return this.convertRows(JsonDuckDBValueConverter);
   }
 
   public getRowObjects(): Record<string, DuckDBValue>[] {
     return getRowObjectsFromChunks(this.chunks, this.deduplicatedColumnNames());
   }
 
-  public getRowObjectsJson(): Record<string, Json>[] {
+  public convertRowObjects<T>(
+    converter: DuckDBValueConverter<T>
+  ): Record<string, T | null>[] {
     return convertRowObjectsFromChunks(
       this.chunks,
       this.deduplicatedColumnNames(),
-      DuckDBValueToJsonConverter.default
+      converter
     );
+  }
+
+  public getRowObjectsJS(): Record<string, JS>[] {
+    return this.convertRowObjects(JSDuckDBValueConverter);
+  }
+
+  public getRowObjectsJson(): Record<string, Json>[] {
+    return this.convertRowObjects(JsonDuckDBValueConverter);
   }
 }

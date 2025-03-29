@@ -5,8 +5,8 @@ export function convertColumnsObjectFromChunks<T>(
   chunks: readonly DuckDBDataChunk[],
   columnNames: readonly string[],
   converter: DuckDBValueConverter<T>
-): Record<string, T[]> {
-  const convertedColumnsObject: Record<string, T[]> = {};
+): Record<string, (T | null)[]> {
+  const convertedColumnsObject: Record<string, (T | null)[]> = {};
   for (const columnName of columnNames) {
     convertedColumnsObject[columnName] = [];
   }
@@ -20,7 +20,7 @@ export function convertColumnsObjectFromChunks<T>(
         columnIndex,
         (value, _rowIndex, _columnIndex, type) =>
           convertedColumnsObject[columnNames[columnIndex]].push(
-            converter.convertValue(value, type)
+            converter(value, type, converter)
           )
       );
     }
