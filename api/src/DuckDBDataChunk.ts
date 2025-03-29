@@ -60,9 +60,12 @@ export class DuckDBDataChunk {
       visitValue(vector.getItem(rowIndex), rowIndex, columnIndex, type);
     }
   }
+  public appendColumnValues(columnIndex: number, values: DuckDBValue[]) {
+    this.visitColumnValues(columnIndex, (value) => values.push(value));
+  }
   public getColumnValues(columnIndex: number): DuckDBValue[] {
     const values: DuckDBValue[] = [];
-    this.visitColumnValues(columnIndex, (value) => values.push(value));
+    this.appendColumnValues(columnIndex, values);
     return values;
   }
   public convertColumnValues<T>(
@@ -70,8 +73,7 @@ export class DuckDBDataChunk {
     converter: DuckDBValueConverter<T>
   ): (T | null)[] {
     const convertedValues: (T | null)[] = [];
-    const type = this.getColumnVector(columnIndex).type;
-    this.visitColumnValues(columnIndex, (value) =>
+    this.visitColumnValues(columnIndex, (value, _r, _c, type) =>
       convertedValues.push(converter(value, type, converter))
     );
     return convertedValues;
@@ -102,6 +104,17 @@ export class DuckDBDataChunk {
       );
     }
   }
+  public appendToColumns(columns: (DuckDBValue[] | undefined)[]) {
+    const columnCount = this.columnCount;
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+      let column = columns[columnIndex];
+      if (!column) {
+        column = [];
+        columns[columnIndex] = column;
+      }
+      this.appendColumnValues(columnIndex, column);
+    }
+  }
   public getColumns(): DuckDBValue[][] {
     const columns: DuckDBValue[][] = [];
     this.visitColumns((column) => columns.push(column));
@@ -122,6 +135,33 @@ export class DuckDBDataChunk {
     for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
       this.setColumnValues(columnIndex, columns[columnIndex]);
     }
+  }
+  public appendToColumnsObject(
+    columnNames: readonly string[],
+    columnsObject: Record<string, DuckDBValue[] | undefined>
+  ) {
+    const columnCount = this.columnCount;
+    if (columnNames.length !== columnCount) {
+      throw new Error(
+        `Provided number of column names (${columnNames.length}) does not match column count (${this.columnCount})`
+      );
+    }
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+      const columnName = columnNames[columnIndex];
+      let columnValues = columnsObject[columnName];
+      if (!columnValues) {
+        columnValues = [];
+        columnsObject[columnName] = columnValues;
+      }
+      this.appendColumnValues(columnIndex, columnValues);
+    }
+  }
+  public getColumnsObject(
+    columnNames: readonly string[]
+  ): Record<string, DuckDBValue[]> {
+    const columnsObject: Record<string, DuckDBValue[]> = {};
+    this.appendToColumnsObject(columnNames, columnsObject);
+    return columnsObject;
   }
   public visitColumnMajor(
     visitValue: (
@@ -151,9 +191,12 @@ export class DuckDBDataChunk {
       visitValue(vector.getItem(rowIndex), rowIndex, columnIndex, vector.type);
     }
   }
+  public appendRowValues(rowIndex: number, values: DuckDBValue[]) {
+    this.visitRowValues(rowIndex, (value) => values.push(value));
+  }
   public getRowValues(rowIndex: number): DuckDBValue[] {
     const values: DuckDBValue[] = [];
-    this.visitRowValues(rowIndex, (value) => values.push(value));
+    this.appendRowValues(rowIndex, values);
     return values;
   }
   public convertRowValues<T>(
@@ -174,9 +217,12 @@ export class DuckDBDataChunk {
       visitRow(this.getRowValues(rowIndex), rowIndex);
     }
   }
+  public appendToRows(rows: DuckDBValue[][]) {
+    this.visitRows((row) => rows.push(row));
+  }
   public getRows(): DuckDBValue[][] {
     const rows: DuckDBValue[][] = [];
-    this.visitRows((row) => rows.push(row));
+    this.appendToRows(rows);
     return rows;
   }
   public convertRows<T>(converter: DuckDBValueConverter<T>): (T | null)[][] {
@@ -197,6 +243,30 @@ export class DuckDBDataChunk {
       }
       vector.flush();
     }
+  }
+  public appendToRowObjects(
+    columnNames: readonly string[],
+    rowObjects: Record<string, DuckDBValue>[]
+  ) {
+    const columnCount = this.columnCount;
+    if (columnNames.length !== columnCount) {
+      throw new Error(
+        `Provided number of column names (${columnNames.length}) does not match column count (${this.columnCount})`
+      );
+    }
+    const rowCount = this.rowCount;
+    for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+      let rowObject: Record<string, DuckDBValue> = {};
+      this.visitRowValues(rowIndex, (value, _, columnIndex) => {
+        rowObject[columnNames[columnIndex]] = value;
+      });
+      rowObjects.push(rowObject);
+    }
+  }
+  public getRowObjects(columnNames: readonly string[]) {
+    const rowObjects: Record<string, DuckDBValue>[] = [];
+    this.appendToRowObjects(columnNames, rowObjects);
+    return rowObjects;
   }
   public visitRowMajor(
     visitValue: (

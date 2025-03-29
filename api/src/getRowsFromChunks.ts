@@ -6,7 +6,7 @@ export function getRowsFromChunks(
 ): DuckDBValue[][] {
   const rows: DuckDBValue[][] = [];
   for (const chunk of chunks) {
-    chunk.visitRows((row) => rows.push(row));
+    chunk.appendToRows(rows);
   }
   return rows;
 }
