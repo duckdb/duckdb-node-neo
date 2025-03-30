@@ -26,6 +26,9 @@ export class DuckDBTimeValue implements Time {
   public static readonly Min = new DuckDBTimeValue(0n);
 }
 
-export function timeValue(micros: bigint): DuckDBTimeValue {
-  return new DuckDBTimeValue(micros);
+export function timeValue(microsOrParts: bigint | TimeParts): DuckDBTimeValue {
+  if (typeof microsOrParts === 'bigint') {
+    return new DuckDBTimeValue(microsOrParts);
+  }
+  return DuckDBTimeValue.fromParts(microsOrParts);
 }

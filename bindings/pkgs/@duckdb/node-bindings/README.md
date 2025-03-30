@@ -6,7 +6,7 @@ See [@duckdb/node-api](https://www.npmjs.com/package/@duckdb/node-api) for a hig
 
 ### Supported Platforms
 
-- Linux arm64 (experimental)
+- Linux arm64
 - Linux x64
 - Mac OS X (Darwin) arm64 (Apple Silicon)
 - Mac OS X (Darwin) x64 (Intel)

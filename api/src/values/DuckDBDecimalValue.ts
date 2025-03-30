@@ -36,6 +36,9 @@ export class DuckDBDecimalValue implements Decimal {
   }
 }
 
-export function decimalValue(value: bigint, width: number, scale: number): DuckDBDecimalValue {
+export function decimalValue(value: bigint | number, width: number, scale: number): DuckDBDecimalValue {
+  if (typeof value === 'number') {
+    return DuckDBDecimalValue.fromDouble(value, width, scale);
+  }
   return new DuckDBDecimalValue(value, width, scale);
 }

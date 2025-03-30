@@ -102,6 +102,16 @@ export class DuckDBBitValue {
   }
 }
 
-export function bitValue(str: string): DuckDBBitValue {
-  return DuckDBBitValue.fromString(str);
+export function bitValue(input: string | readonly boolean[] | readonly number[]): DuckDBBitValue {
+  if (typeof input === 'string') {
+    return DuckDBBitValue.fromString(input);
+  }
+  if (input.length > 0) {
+    if (typeof input[0] === 'boolean') {
+      return DuckDBBitValue.fromBools(input as readonly boolean[]);
+    } else if (typeof input[0] === 'number') {
+      return DuckDBBitValue.fromBits(input as readonly number[]);
+    }
+  }
+  return DuckDBBitValue.fromLengthAndPredicate(0, _ => false);
 }

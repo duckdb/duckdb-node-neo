@@ -25,9 +25,12 @@ Some features are not yet complete:
 - Table description
 - APIs for Arrow
 
+See the [issues list on GitHub](https://github.com/duckdb/duckdb-node-neo/issues)
+for the most up-to-date roadmap.
+
 ### Supported Platforms
 
-- Linux arm64 (experimental)
+- Linux arm64
 - Linux x64
 - Mac OS X (Darwin) arm64 (Apple Silicon)
 - Mac OS X (Darwin) x64 (Intel)
@@ -180,6 +183,36 @@ const result = await connection.run('select $a, $b, $c', {
 });
 ```
 
+### Specifying Values
+
+Values of many data types are represented using one of the JS primitives
+`boolean`, `number`, `bigint`, or `string`.
+Also, any type can have `null` values.
+
+Values of some data types need to be constructed using special functions.
+These are:
+
+| Type | Function |
+| ---- | -------- |
+| `ARRAY` | `arrayValue` |
+| `BIT` | `bitValue` |
+| `BLOB` | `blobValue` |
+| `DATE` | `dateValue` |
+| `DECIMAL` | `decimalValue` |
+| `INTERVAL` | `intervalValue` |
+| `LIST` | `listValue` |
+| `MAP` | `mapValue` |
+| `STRUCT` | `structValue` |
+| `TIME` | `timeValue` |
+| `TIMETZ` | `timeTZValue` |
+| `TIMESTAMP` | `timestampValue` |
+| `TIMESTAMPTZ` | `timestampTZValue` |
+| `TIMESTAMP_S` | `timestampSecondsValue` |
+| `TIMESTAMP_MS` | `timestampMillisValue` |
+| `TIMESTAMP_NS` | `timestampNanosValue` |
+| `UNION` | `unionValue` |
+| `UUID` | `uuidValue` |
+
 ### Stream Results
 
 Streaming results evaluate lazily when rows are read.
@@ -251,13 +284,21 @@ const columnsObject = reader.getColumnsObject();
 // { i: [0, 1, 2], n: [10, 11, 12] }
 ```
 
-### Convert Result Data to JSON
+### Convert Result Data
 
-By default, data values that cannot be represented as JS primitives
-are returned as rich JS objects; see `Inspect Data Values` below.
+By default, data values that cannot be represented as JS built-ins
+are returned as specialized JS objects; see `Inspect Data Values` below.
 
-To retrieve data in a form that can be losslessly serialized to JSON,
-use the `Json` forms of the above result data methods:
+To retrieve data in a different form, such as JS built-ins or values that
+can be losslessly serialized to JSON, use the `JS` or `Json` forms of the
+above result data methods.
+
+Custom converters can be supplied as well. See the implementations of
+[JSDuckDBValueConverter](https://github.com/duckdb/duckdb-node-neo/blob/main/api/src/JSDuckDBValueConverter.ts)
+and [JsonDuckDBValueConverters](https://github.com/duckdb/duckdb-node-neo/blob/main/api/src/JsonDuckDBValueConverter.ts)
+for how to do this.
+
+Examples (using the `Json` forms):
 
 ```ts
 const reader = await connection.runAndReadAll(
@@ -560,11 +601,12 @@ Get chunk data:
 ```ts
 const rows = chunk.getRows();
 
-const rowObjects = chunk.getRowObjects();
+const rowObjects = chunk.getRowObjects(result.deduplicatedColumnNames());
 
 const columns = chunk.getColumns();
 
-const columnsObject = chunk.getColumnsObject();
+const columnsObject =
+  chunk.getColumnsObject(result.deduplicatedColumnNames());
 ```
 
 Get chunk data (one value at a time)
@@ -838,6 +880,8 @@ chunk.setColumns([
 appender.appendDataChunk(chunk);
 appender.flush();
 ```
+
+See "Specifying Values" above for how to supply values to the appender.
 
 ### Extract Statements
 

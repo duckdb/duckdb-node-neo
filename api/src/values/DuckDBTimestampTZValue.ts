@@ -46,6 +46,9 @@ export class DuckDBTimestampTZValue implements Timestamp {
   );
 }
 
-export function timestampTZValue(micros: bigint): DuckDBTimestampTZValue {
-  return new DuckDBTimestampTZValue(micros);
+export function timestampTZValue(microsOrParts: bigint | TimestampParts): DuckDBTimestampTZValue {
+  if (typeof microsOrParts === 'bigint') {
+    return new DuckDBTimestampTZValue(microsOrParts);
+  }
+  return DuckDBTimestampTZValue.fromParts(microsOrParts);
 }
