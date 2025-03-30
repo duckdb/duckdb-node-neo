@@ -37,6 +37,9 @@ export class DuckDBTimestampValue implements Timestamp {
 export type DuckDBTimestampMicrosecondsValue = DuckDBTimestampValue;
 export const DuckDBTimestampMicrosecondsValue = DuckDBTimestampValue;
 
-export function timestampValue(micros: bigint): DuckDBTimestampValue {
-  return new DuckDBTimestampValue(micros);
+export function timestampValue(microsOrParts: bigint | TimestampParts): DuckDBTimestampValue {
+  if (typeof microsOrParts === 'bigint') {
+    return new DuckDBTimestampValue(microsOrParts);
+  }
+  return DuckDBTimestampValue.fromParts(microsOrParts);
 }

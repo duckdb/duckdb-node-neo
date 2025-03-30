@@ -35,6 +35,9 @@ export class DuckDBDateValue implements Date_ {
   public static readonly NegInf = new DuckDBDateValue(-(2 ** 31 - 1));
 }
 
-export function dateValue(days: number): DuckDBDateValue {
-  return new DuckDBDateValue(days);
+export function dateValue(daysOrParts: number | DateParts): DuckDBDateValue {
+  if (typeof daysOrParts === 'number') {
+    return new DuckDBDateValue(daysOrParts);
+  }
+  return DuckDBDateValue.fromParts(daysOrParts);
 }
