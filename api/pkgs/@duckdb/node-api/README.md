@@ -4,26 +4,26 @@ An API for using [DuckDB](https://duckdb.org/) in [Node](https://nodejs.org/).
 
 This is a high-level API meant for applications.
 It depends on low-level bindings that adhere closely to [DuckDB's C API](https://duckdb.org/docs/api/c/overview),
-available separately as [@duckdb/duckdb-bindings](https://www.npmjs.com/package/@duckdb/node-bindings).
+available separately as [@duckdb/node-bindings](https://www.npmjs.com/package/@duckdb/node-bindings).
 
 ## Features
 
-### Main differences from [duckdb-node](https://www.npmjs.com/package/duckdb)
-- Native support for Promises; no need for separate [duckdb-async](https://www.npmjs.com/package/duckdb-async) wrapper.
-- DuckDB-specific API; not based on the [SQLite Node API](https://www.npmjs.com/package/sqlite3).
-- Lossless & efficent support for values of all [DuckDB data types](https://duckdb.org/docs/sql/data_types/overview).
-- Wraps [released DuckDB binaries](https://github.com/duckdb/duckdb/releases) instead of rebuilding DuckDB.
-- Built on [DuckDB's C API](https://duckdb.org/docs/api/c/overview); exposes more functionality.
+### Main Differences from [duckdb-node](https://www.npmjs.com/package/duckdb)
+* Native support for Promises; no need for separate [duckdb-async](https://www.npmjs.com/package/duckdb-async) wrapper.
+* DuckDB-specific API; not based on the [SQLite Node API](https://www.npmjs.com/package/sqlite3).
+* Lossless & efficent support for values of all [DuckDB data types](https://duckdb.org/docs/sql/data_types/overview).
+* Wraps [released DuckDB binaries](https://github.com/duckdb/duckdb/releases) instead of rebuilding DuckDB.
+* Built on [DuckDB's C API](https://duckdb.org/docs/api/c/overview); exposes more functionality.
 
 ### Roadmap
 
 Some features are not yet complete:
-- Binding and appending the MAP and UNION data types
-- Appending default values row-by-row
-- User-defined types & functions
-- Profiling info
-- Table description
-- APIs for Arrow
+* Binding and appending the MAP and UNION data types
+* Appending default values row-by-row
+* User-defined types & functions
+* Profiling info
+* Table description
+* APIs for Arrow
 
 See the [issues list on GitHub](https://github.com/duckdb/duckdb-node-neo/issues)
 for the most up-to-date roadmap.
@@ -118,13 +118,13 @@ Connections will be disconnected automatically soon after their reference
 is dropped, but you can also disconnect explicitly if and when you want:
 
 ```ts
-connection.disconnect();
+connection.disconnectSync();
 ```
 
 or, equivalently:
 
 ```ts
-connection.close();
+connection.closeSync();
 ```
 
 ### Run SQL
@@ -847,13 +847,13 @@ appender.appendInteger(123);
 appender.appendVarchar('mallard');
 appender.endRow();
 
-appender.flush();
+appender.flushSync();
 
 appender.appendInteger(17);
 appender.appendVarchar('goose');
 appender.endRow();
 
-appender.close(); // also flushes
+appender.closeSync(); // also flushes
 ```
 
 ### Append Data Chunk
@@ -878,7 +878,7 @@ chunk.setColumns([
 // ]);
 
 appender.appendDataChunk(chunk);
-appender.flush();
+appender.flushSync();
 ```
 
 See "Specifying Values" above for how to supply values to the appender.
