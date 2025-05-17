@@ -457,19 +457,15 @@ describe('api', () => {
       prepared.bindTimestampMilliseconds(i++, TIMESTAMP_MS.max);
       prepared.bindTimestampNanoseconds(i++, TIMESTAMP_NS.max);
       prepared.bindEnum(i++, 'swim', ENUM(['fly', 'swim', 'walk']));
-      prepared.bindList(i++, listValue([100, 200, 300]), LIST(INTEGER));
+      prepared.bindList(i++, [100, 200, 300]);
       prepared.bindList(
         i++,
-        listValue([decimalValue(9876n, 4, 1), decimalValue(5432n, 4, 1)]),
+        [decimalValue(9876n, 4, 1), decimalValue(5432n, 4, 1)],
         LIST(DECIMAL(4, 1))
       );
-      prepared.bindList(i++, listValue([null]), LIST(SQLNULL));
-      prepared.bindStruct(
-        i++,
-        structValue({ 'a': 42, 'b': 'duck' }),
-        STRUCT({ 'a': INTEGER, 'b': VARCHAR })
-      );
-      prepared.bindArray(i++, arrayValue([100, 200, 300]), ARRAY(INTEGER, 3));
+      prepared.bindList(i++, [null]);
+      prepared.bindStruct(i++, { 'a': 42, 'b': 'duck' });
+      prepared.bindArray(i++, [100, 200, 300]);
       prepared.bindUUID(i++, uuidValue(0xf0e1d2c3b4a596870123456789abcdefn));
       prepared.bindBit(i++, bitValue('0010001001011100010101011010111'));
       prepared.bindTimeTZ(i++, TIMETZ.max);

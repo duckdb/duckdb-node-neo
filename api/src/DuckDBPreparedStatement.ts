@@ -24,6 +24,7 @@ import { DuckDBTypeId } from './DuckDBTypeId';
 import { StatementType } from './enums';
 import { typeForValue } from './typeForValue';
 import {
+  arrayValue,
   DuckDBArrayValue,
   DuckDBBitValue,
   DuckDBDateValue,
@@ -40,6 +41,8 @@ import {
   DuckDBTimeValue,
   DuckDBUUIDValue,
   DuckDBValue,
+  listValue,
+  structValue,
 } from './values';
 
 export class DuckDBPreparedStatement {
@@ -171,24 +174,36 @@ export class DuckDBPreparedStatement {
   }
   public bindArray(
     parameterIndex: number,
-    value: DuckDBArrayValue,
-    type: DuckDBArrayType
+    value: DuckDBArrayValue | readonly DuckDBValue[],
+    type?: DuckDBArrayType
   ) {
-    this.bindValue(parameterIndex, value, type);
+    this.bindValue(
+      parameterIndex,
+      value instanceof DuckDBArrayValue ? value : arrayValue(value),
+      type
+    );
   }
   public bindList(
     parameterIndex: number,
-    value: DuckDBListValue,
-    type: DuckDBListType
+    value: DuckDBListValue | readonly DuckDBValue[],
+    type?: DuckDBListType
   ) {
-    this.bindValue(parameterIndex, value, type);
+    this.bindValue(
+      parameterIndex,
+      value instanceof DuckDBListValue ? value : listValue(value),
+      type
+    );
   }
   public bindStruct(
     parameterIndex: number,
-    value: DuckDBStructValue,
-    type: DuckDBStructType
+    value: DuckDBStructValue | Readonly<Record<string, DuckDBValue>>,
+    type?: DuckDBStructType
   ) {
-    this.bindValue(parameterIndex, value, type);
+    this.bindValue(
+      parameterIndex,
+      value instanceof DuckDBStructValue ? value : structValue(value),
+      type
+    );
   }
   // TODO: bind MAP, UNION
   public bindUUID(parameterIndex: number, value: DuckDBUUIDValue) {
@@ -203,12 +218,12 @@ export class DuckDBPreparedStatement {
   public bindValue(
     parameterIndex: number,
     value: DuckDBValue,
-    type: DuckDBType
+    type?: DuckDBType
   ) {
     duckdb.bind_value(
       this.prepared_statement,
       parameterIndex,
-      createValue(type, value)
+      createValue(type ? type : typeForValue(value), value)
     );
   }
   public bind(
@@ -218,21 +233,16 @@ export class DuckDBPreparedStatement {
     if (Array.isArray(values)) {
       const typesIsArray = Array.isArray(types);
       for (let i = 0; i < values.length; i++) {
-        this.bindValue(
-          i + 1,
-          values[i],
-          typesIsArray ? types[i] : typeForValue(values[i])
-        );
+        this.bindValue(i + 1, values[i], typesIsArray ? types[i] : undefined);
       }
     } else {
       const typesIsRecord = types && !Array.isArray(types);
       for (const key in values) {
-        const index = this.parameterIndex(key);
-        let type = typesIsRecord ? types[key] : undefined;
-        if (type === undefined) {
-          type = typeForValue(values[key]);
-        }
-        this.bindValue(index, values[key], type);
+        this.bindValue(
+          this.parameterIndex(key),
+          values[key],
+          typesIsRecord ? types[key] : undefined
+        );
       }
     }
   }

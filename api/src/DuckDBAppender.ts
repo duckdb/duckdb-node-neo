@@ -18,7 +18,9 @@ import {
   UUID,
   VARINT,
 } from './DuckDBType';
+import { typeForValue } from './typeForValue';
 import {
+  arrayValue,
   DuckDBArrayValue,
   DuckDBBitValue,
   DuckDBDateValue,
@@ -35,6 +37,8 @@ import {
   DuckDBTimeValue,
   DuckDBUUIDValue,
   DuckDBValue,
+  listValue,
+  structValue,
 } from './values';
 
 export class DuckDBAppender {
@@ -141,15 +145,33 @@ export class DuckDBAppender {
   public appendEnum(value: string, type: DuckDBEnumType) {
     this.appendValue(value, type);
   }
-  public appendList(value: DuckDBListValue, type: DuckDBListType) {
-    this.appendValue(value, type);
+  public appendList(
+    value: DuckDBListValue | readonly DuckDBValue[],
+    type?: DuckDBListType
+  ) {
+    this.appendValue(
+      value instanceof DuckDBListValue ? value : listValue(value),
+      type
+    );
   }
-  public appendStruct(value: DuckDBStructValue, type: DuckDBStructType) {
-    this.appendValue(value, type);
+  public appendStruct(
+    value: DuckDBStructValue | Readonly<Record<string, DuckDBValue>>,
+    type?: DuckDBStructType
+  ) {
+    this.appendValue(
+      value instanceof DuckDBStructValue ? value : structValue(value),
+      type
+    );
   }
   // TODO: MAP (when DuckDB C API supports creating MAP values)
-  public appendArray(value: DuckDBArrayValue, type: DuckDBArrayType) {
-    this.appendValue(value, type);
+  public appendArray(
+    value: DuckDBArrayValue | readonly DuckDBValue[],
+    type?: DuckDBArrayType
+  ) {
+    this.appendValue(
+      value instanceof DuckDBArrayValue ? value : arrayValue(value),
+      type
+    );
   }
   // TODO: UNION (when DuckDB C API supports creating UNION values)
   public appendUUID(value: DuckDBUUIDValue) {
@@ -164,8 +186,11 @@ export class DuckDBAppender {
   public appendNull() {
     duckdb.append_null(this.appender);
   }
-  public appendValue(value: DuckDBValue, type: DuckDBType) {
-    duckdb.append_value(this.appender, createValue(type, value));
+  public appendValue(value: DuckDBValue, type?: DuckDBType) {
+    duckdb.append_value(
+      this.appender,
+      createValue(type ? type : typeForValue(value), value)
+    );
   }
   public appendDataChunk(dataChunk: DuckDBDataChunk) {
     duckdb.append_data_chunk(this.appender, dataChunk.chunk);
