@@ -1471,6 +1471,17 @@ describe('api', () => {
     const connection = await DuckDBConnection.create();
     await connection.run('select 1');
   });
+  test('data chunk max rows', () => {
+    try {
+      DuckDBDataChunk.create([INTEGER], 2049);
+      assert.fail('should throw');
+    } catch (err) {
+      assert.deepEqual(
+        err,
+        new Error('A data chunk cannot have more than 2048 rows')
+      );
+    }
+  });
   test('write integer vector', () => {
     const chunk = DuckDBDataChunk.create([INTEGER], 3);
     const vector = chunk.getColumnVector(0) as DuckDBIntegerVector;

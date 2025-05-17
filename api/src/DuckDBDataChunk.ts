@@ -32,6 +32,10 @@ export class DuckDBDataChunk {
     return duckdb.data_chunk_get_size(this.chunk);
   }
   public set rowCount(count: number) {
+    const maxRowCount = duckdb.vector_size();
+    if (count > maxRowCount) {
+      throw new Error(`A data chunk cannot have more than ${maxRowCount} rows`);
+    }
     duckdb.data_chunk_set_size(this.chunk, count);
   }
   public getColumnVector(columnIndex: number): DuckDBVector {
