@@ -398,6 +398,7 @@ describe('api', () => {
     const connection = await instance.connect();
     const prepared1 = await connection.prepare('select 1');
     assert.isDefined(prepared1);
+    prepared1.destroySync();
     connection.disconnectSync();
     try {
       await connection.prepare('select 2');

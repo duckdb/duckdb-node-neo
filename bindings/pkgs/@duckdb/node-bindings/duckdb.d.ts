@@ -455,7 +455,7 @@ export function decimal_to_double(decimal: Decimal): number;
 export function prepare(connection: Connection, query: string): Promise<PreparedStatement>;
 
 // DUCKDB_API void duckdb_destroy_prepare(duckdb_prepared_statement *prepared_statement);
-// not exposed: destroyed in finalizer
+export function destroy_prepare_sync(prepared_statement: PreparedStatement): void;
 
 // DUCKDB_API const char *duckdb_prepare_error(duckdb_prepared_statement prepared_statement);
 // not exposed: prepare rejects promise with error

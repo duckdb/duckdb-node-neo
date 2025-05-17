@@ -47,6 +47,9 @@ export class DuckDBPreparedStatement {
   constructor(prepared_statement: duckdb.PreparedStatement) {
     this.prepared_statement = prepared_statement;
   }
+  public destroySync() {
+    return duckdb.destroy_prepare_sync(this.prepared_statement);
+  }
   public get statementType(): StatementType {
     return duckdb.prepared_statement_type(this.prepared_statement);
   }
