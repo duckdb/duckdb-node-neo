@@ -448,4 +448,10 @@ suite('prepared statements', () => {
       }
     });
   });
+  test('destroy_prepare_sync', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await duckdb.prepare(connection, 'select 1');
+      duckdb.destroy_prepare_sync(prepared);
+    });
+  });
 });

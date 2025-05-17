@@ -544,19 +544,32 @@ static const napi_type_tag PreparedStatementTypeTag = {
   0xA8B03DAD16D34416, 0x9735A7E1F2A1240C
 };
 
-void FinalizePreparedStatement(Napi::BasicEnv, duckdb_prepared_statement prepared_statement) {
-  if (prepared_statement) {
-    duckdb_destroy_prepare(&prepared_statement);
-    prepared_statement = nullptr;
-  }
+typedef struct {
+  duckdb_prepared_statement prepared;
+} duckdb_prepared_statement_holder;
+
+duckdb_prepared_statement_holder *CreatePreparedStatementHolder(duckdb_prepared_statement prepared) {
+  auto prepared_statement_holder_ptr = reinterpret_cast<duckdb_prepared_statement_holder*>(duckdb_malloc(sizeof(duckdb_prepared_statement_holder)));
+  prepared_statement_holder_ptr->prepared = prepared;
+  return prepared_statement_holder_ptr;
 }
 
-Napi::External<_duckdb_prepared_statement> CreateExternalForPreparedStatement(Napi::Env env, duckdb_prepared_statement prepared_statement) {
-  return CreateExternal<_duckdb_prepared_statement>(env, PreparedStatementTypeTag, prepared_statement, FinalizePreparedStatement);
+void FinalizePreparedStatementHolder(Napi::BasicEnv, duckdb_prepared_statement_holder *prepared_statement_holder_ptr) {
+  // duckdb_destroy_prepare is a no-op if already destroyed
+  duckdb_destroy_prepare(&prepared_statement_holder_ptr->prepared);
+  duckdb_free(prepared_statement_holder_ptr);
+}
+
+Napi::External<duckdb_prepared_statement_holder> CreateExternalForPreparedStatement(Napi::Env env, duckdb_prepared_statement prepared_statement) {
+  return CreateExternal<duckdb_prepared_statement_holder>(env, PreparedStatementTypeTag, CreatePreparedStatementHolder(prepared_statement), FinalizePreparedStatementHolder);
+}
+
+duckdb_prepared_statement_holder *GetPreparedStatementHolderFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<duckdb_prepared_statement_holder>(env, PreparedStatementTypeTag, value, "Invalid prepared statement argument");
 }
 
 duckdb_prepared_statement GetPreparedStatementFromExternal(Napi::Env env, Napi::Value value) {
-  return GetDataFromExternal<_duckdb_prepared_statement>(env, PreparedStatementTypeTag, value, "Invalid prepared statement argument");
+  return GetPreparedStatementHolderFromExternal(env, value)->prepared;
 }
 
 static const napi_type_tag ResultTypeTag = {
@@ -1232,6 +1245,7 @@ public:
       InstanceMethod("decimal_to_double", &DuckDBNodeAddon::decimal_to_double),
 
       InstanceMethod("prepare", &DuckDBNodeAddon::prepare),
+      InstanceMethod("destroy_prepare_sync", &DuckDBNodeAddon::destroy_prepare_sync),
       InstanceMethod("nparams", &DuckDBNodeAddon::nparams),
       InstanceMethod("parameter_name", &DuckDBNodeAddon::parameter_name),
       InstanceMethod("param_type", &DuckDBNodeAddon::param_type),
@@ -1996,7 +2010,14 @@ private:
   }
 
   // DUCKDB_API void duckdb_destroy_prepare(duckdb_prepared_statement *prepared_statement);
-  // not exposed: destroyed in finalizer
+  // function destroy_prepare_sync(prepared_statement: PreparedStatement): void
+  Napi::Value destroy_prepare_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement_holder_ptr = GetPreparedStatementHolderFromExternal(env, info[0]);
+    // duckdb_destroy_prepare is a no-op if already destroyed
+    duckdb_destroy_prepare(&prepared_statement_holder_ptr->prepared);
+    return env.Undefined();
+  }
 
   // DUCKDB_API const char *duckdb_prepare_error(duckdb_prepared_statement prepared_statement);
   // not exposed: prepare rejects promise with error
@@ -4391,7 +4412,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   411 total functions
 
-  242 instance methods
+  243 instance methods
     1 unimplemented logical type function
    13 unimplemented scalar function functions
     4 unimplemented scalar function set functions
@@ -4407,7 +4428,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
     6 unimplemented table description functions
     8 unimplemented tasks functions
    12 unimplemented cast function functions
-   24 functions not exposed
+   23 functions not exposed
 +  41 unimplemented deprecated functions (of 47)
   ---
   411 functions accounted for
