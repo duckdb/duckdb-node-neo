@@ -140,6 +140,7 @@ const prepared = await connection.prepare('select $1, $2, $3');
 prepared.bindVarchar(1, 'duck');
 prepared.bindInteger(2, 42);
 prepared.bindList(3, listValue([10, 11, 12]), LIST(INTEGER));
+// OR, with type inference: prepared.bindList(3, [10, 11, 12]);
 const result = await prepared.run();
 ```
 
