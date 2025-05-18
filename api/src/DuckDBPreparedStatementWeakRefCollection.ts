@@ -6,6 +6,7 @@ export class DuckDBPreparedStatementWeakRefCollection
 {
   preparedStatements: WeakRef<DuckDBPreparedStatement>[] = [];
   public add(prepared: DuckDBPreparedStatement) {
+    this.prune();
     this.preparedStatements.push(new WeakRef(prepared));
   }
   public destroySync() {
@@ -16,5 +17,10 @@ export class DuckDBPreparedStatementWeakRefCollection
       }
     }
     this.preparedStatements = [];
+  }
+  private prune() {
+    this.preparedStatements = this.preparedStatements.filter(
+      (ref) => !!ref.deref()
+    );
   }
 }
