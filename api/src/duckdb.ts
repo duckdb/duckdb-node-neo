@@ -15,6 +15,7 @@ export * from './DuckDBLogicalType';
 export * from './DuckDBMaterializedResult';
 export * from './DuckDBPendingResult';
 export * from './DuckDBPreparedStatement';
+export * from './DuckDBPreparedStatementCollection';
 export * from './DuckDBResult';
 export * from './DuckDBType';
 export * from './DuckDBTypeId';

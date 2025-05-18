@@ -5,6 +5,7 @@ import { DuckDBInstance } from './DuckDBInstance';
 import { DuckDBMaterializedResult } from './DuckDBMaterializedResult';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBPreparedStatement } from './DuckDBPreparedStatement';
+import { DuckDBPreparedStatementWeakRefCollection } from './DuckDBPreparedStatementWeakRefCollection';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
 import { DuckDBType } from './DuckDBType';
@@ -12,8 +13,10 @@ import { DuckDBValue } from './values';
 
 export class DuckDBConnection {
   private readonly connection: duckdb.Connection;
+  private readonly preparedStatements: DuckDBPreparedStatementWeakRefCollection;
   constructor(connection: duckdb.Connection) {
     this.connection = connection;
+    this.preparedStatements = new DuckDBPreparedStatementWeakRefCollection();
   }
   public static async create(
     instance?: DuckDBInstance
@@ -28,6 +31,7 @@ export class DuckDBConnection {
     return this.disconnectSync();
   }
   public disconnectSync() {
+    this.preparedStatements.destroySync();
     return duckdb.disconnect_sync(this.connection);
   }
   public interrupt() {
@@ -42,9 +46,13 @@ export class DuckDBConnection {
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBMaterializedResult> {
     if (values) {
-      const prepared = await this.prepare(sql);
-      prepared.bind(values, types);
-      return prepared.run();
+      const prepared = await this.createPrepared(sql);
+      try {
+        prepared.bind(values, types);
+        return prepared.run();
+      } finally {
+        prepared.destroySync();
+      }
     } else {
       return new DuckDBMaterializedResult(
         await duckdb.query(this.connection, sql)
@@ -82,11 +90,15 @@ export class DuckDBConnection {
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBResult> {
-    const prepared = await this.prepare(sql);
-    if (values) {
-      prepared.bind(values, types);
+    const prepared = await this.createPrepared(sql);
+    try {
+      if (values) {
+        prepared.bind(values, types);
+      }
+      return prepared.stream();
+    } finally {
+      prepared.destroySync();
     }
-    return prepared.stream();
   }
   public async streamAndRead(
     sql: string,
@@ -123,24 +135,37 @@ export class DuckDBConnection {
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBPendingResult> {
-    const prepared = await this.prepare(sql);
-    if (values) {
-      prepared.bind(values, types);
+    const prepared = await this.createPrepared(sql);
+    try {
+      if (values) {
+        prepared.bind(values, types);
+      }
+      return prepared.start();
+    } finally {
+      prepared.destroySync();
     }
-    return prepared.start();
   }
   public async startStream(
     sql: string,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBPendingResult> {
-    const prepared = await this.prepare(sql);
-    if (values) {
-      prepared.bind(values, types);
+    const prepared = await this.createPrepared(sql);
+    try {
+      if (values) {
+        prepared.bind(values, types);
+      }
+      return prepared.startStream();
+    } finally {
+      prepared.destroySync();
     }
-    return prepared.startStream();
   }
   public async prepare(sql: string): Promise<DuckDBPreparedStatement> {
+    const prepared = await this.createPrepared(sql);
+    this.preparedStatements.add(prepared);
+    return prepared;
+  }
+  private async createPrepared(sql: string): Promise<DuckDBPreparedStatement> {
     return new DuckDBPreparedStatement(
       await duckdb.prepare(this.connection, sql)
     );
@@ -160,7 +185,8 @@ export class DuckDBConnection {
     return new DuckDBExtractedStatements(
       this.connection,
       extracted_statements,
-      statement_count
+      statement_count,
+      this.preparedStatements
     );
   }
   public async createAppender(
