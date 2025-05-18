@@ -5,6 +5,7 @@ import { DuckDBInstance } from './DuckDBInstance';
 import { DuckDBMaterializedResult } from './DuckDBMaterializedResult';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
 import { DuckDBPreparedStatement } from './DuckDBPreparedStatement';
+import { DuckDBPreparedStatementWeakRefCollection } from './DuckDBPreparedStatementWeakRefCollection';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
 import { DuckDBType } from './DuckDBType';
@@ -12,8 +13,10 @@ import { DuckDBValue } from './values';
 
 export class DuckDBConnection {
   private readonly connection: duckdb.Connection;
+  private readonly preparedStatements: DuckDBPreparedStatementWeakRefCollection;
   constructor(connection: duckdb.Connection) {
     this.connection = connection;
+    this.preparedStatements = new DuckDBPreparedStatementWeakRefCollection();
   }
   public static async create(
     instance?: DuckDBInstance
@@ -28,6 +31,7 @@ export class DuckDBConnection {
     return this.disconnectSync();
   }
   public disconnectSync() {
+    this.preparedStatements.destroySync();
     return duckdb.disconnect_sync(this.connection);
   }
   public interrupt() {
@@ -141,9 +145,11 @@ export class DuckDBConnection {
     return prepared.startStream();
   }
   public async prepare(sql: string): Promise<DuckDBPreparedStatement> {
-    return new DuckDBPreparedStatement(
+    const prepared = new DuckDBPreparedStatement(
       await duckdb.prepare(this.connection, sql)
     );
+    this.preparedStatements.add(prepared);
+    return prepared;
   }
   public async extractStatements(
     sql: string
@@ -160,7 +166,8 @@ export class DuckDBConnection {
     return new DuckDBExtractedStatements(
       this.connection,
       extracted_statements,
-      statement_count
+      statement_count,
+      this.preparedStatements
     );
   }
   public async createAppender(
