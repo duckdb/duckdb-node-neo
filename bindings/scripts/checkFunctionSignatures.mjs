@@ -4,7 +4,7 @@ import path from 'path';
 function getFunctionSignaturesFromHeader(headerFilePath) {
   const sigs = [];
   const headerContents = fs.readFileSync(headerFilePath, { encoding: 'utf-8' });
-  const sigRegex = /^DUCKDB_API (?<sig>([^;]|[\r\n])*);$|^#ifndef (?<startif>DUCKDB_API_NO_DEPRECATED|DUCKDB_NO_EXTENSION_FUNCTIONS)$|^#endif$/gm;
+  const sigRegex = /^DUCKDB_C_API (?<sig>([^;]|[\r\n])*);$|^#ifndef (?<startif>DUCKDB_API_NO_DEPRECATED|DUCKDB_NO_EXTENSION_FUNCTIONS)$|^#endif$/gm;
   var ifndef = undefined;
   var match;
   while (match = sigRegex.exec(headerContents)) {

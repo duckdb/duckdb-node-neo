@@ -32,7 +32,7 @@ suite('appender', () => {
     await withConnection(async (connection) => {
       expect(() =>
         duckdb.appender_create_ext(connection, 'memory', 'main', 'bogus_table')
-      ).toThrowError(`Table "main.bogus_table" could not be found`);
+      ).toThrowError(`Table "memory.main.bogus_table" could not be found`);
     });
   });
   test('one column', async () => {
