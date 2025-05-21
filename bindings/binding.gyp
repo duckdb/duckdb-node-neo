@@ -11,7 +11,7 @@
         }],
         ['OS=="linux" and target_arch=="arm64"', {
           'variables': {
-            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_aarch64.py',
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_arm64.py',
           },
         }],
         ['OS=="mac"', {
