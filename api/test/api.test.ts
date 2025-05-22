@@ -785,6 +785,13 @@ describe('api', () => {
       );
     });
   });
+  test('runAndReadAll with params', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll('select ? as n', [17]);
+      const rows = reader.getRowObjects();
+      assert.deepEqual(rows, [{ n: 17 }]);
+    });
+  });
   test('should support all data types', async () => {
     await withConnection(async (connection) => {
       const result = await connection.run(

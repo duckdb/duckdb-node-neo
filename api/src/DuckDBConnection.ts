@@ -28,11 +28,11 @@ export class DuckDBConnection {
   }
   /** Same as disconnectSync. */
   public closeSync() {
-    return this.disconnectSync();
+    this.disconnectSync();
   }
   public disconnectSync() {
     this.preparedStatements.destroySync();
-    return duckdb.disconnect_sync(this.connection);
+    duckdb.disconnect_sync(this.connection);
   }
   public interrupt() {
     duckdb.interrupt(this.connection);
@@ -49,7 +49,8 @@ export class DuckDBConnection {
       const prepared = await this.createPrepared(sql);
       try {
         prepared.bind(values, types);
-        return prepared.run();
+        const result = await prepared.run();
+        return result;
       } finally {
         prepared.destroySync();
       }
@@ -95,7 +96,8 @@ export class DuckDBConnection {
       if (values) {
         prepared.bind(values, types);
       }
-      return prepared.stream();
+      const result = await prepared.stream();
+      return result;
     } finally {
       prepared.destroySync();
     }
