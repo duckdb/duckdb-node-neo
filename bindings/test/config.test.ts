@@ -5,7 +5,7 @@ import { data } from './utils/expectedVectors';
 
 suite('config', () => {
   test('config_count', () => {
-    expect(duckdb.config_count()).toBe(180);
+    expect(duckdb.config_count()).toBe(181);
   });
   test('get_config_flag', () => {
     expect(duckdb.get_config_flag(0).name).toBe('access_mode');
