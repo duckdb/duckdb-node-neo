@@ -1,6 +1,5 @@
 import { describe, test, assert } from 'vitest';
 import { withConnection } from './api.test';
-import assert from 'assert';
 
 describe('DuckDBResult async iterator', () => {
 
