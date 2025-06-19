@@ -140,7 +140,7 @@ async function sleep(ms: number): Promise<void> {
   });
 }
 
-async function withConnection(
+export async function withConnection(
   fn: (connection: DuckDBConnection) => Promise<void>
 ) {
   const instance = await DuckDBInstance.create();
