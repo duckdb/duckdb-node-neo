@@ -1456,7 +1456,7 @@ public:
 
 private:
 
-  // DUCKDB_API duckdb_instance_cache duckdb_create_instance_cache();
+  // DUCKDB_C_API duckdb_instance_cache duckdb_create_instance_cache();
   // function create_instance_cache(): InstanceCache
   Napi::Value create_instance_cache(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1464,7 +1464,7 @@ private:
     return CreateExternalForInstanceCache(env, instance_cache);
   }
 
-  // DUCKDB_API duckdb_state duckdb_get_or_create_from_cache(duckdb_instance_cache instance_cache, const char *path, duckdb_database *out_database, duckdb_config config, char **out_error);
+  // DUCKDB_C_API duckdb_state duckdb_get_or_create_from_cache(duckdb_instance_cache instance_cache, const char *path, duckdb_database *out_database, duckdb_config config, char **out_error);
   // function get_or_create_from_cache(cache: InstanceCache, path?: string, config?: Config): Promise<Database>
   Napi::Value get_or_create_from_cache(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1484,10 +1484,10 @@ private:
     return worker->Promise();
   }
 
-  // DUCKDB_API void duckdb_destroy_instance_cache(duckdb_instance_cache *instance_cache);
+  // DUCKDB_C_API void duckdb_destroy_instance_cache(duckdb_instance_cache *instance_cache);
   // not exposed: destroyed in finalizer
 
-  // DUCKDB_API duckdb_state duckdb_open(const char *path, duckdb_database *out_database);
+  // DUCKDB_C_API duckdb_state duckdb_open(const char *path, duckdb_database *out_database);
   // function open(path?: string, config?: Config): Promise<Database>
   Napi::Value open(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1506,10 +1506,10 @@ private:
     return worker->Promise();
   }
 
-  // DUCKDB_API duckdb_state duckdb_open_ext(const char *path, duckdb_database *out_database, duckdb_config config, char **out_error);
+  // DUCKDB_C_API duckdb_state duckdb_open_ext(const char *path, duckdb_database *out_database, duckdb_config config, char **out_error);
   // not exposed: consolidated into open
 
-  // DUCKDB_API void duckdb_close(duckdb_database *database);
+  // DUCKDB_C_API void duckdb_close(duckdb_database *database);
   // function close(database: Database): void
   Napi::Value close_sync(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1519,7 +1519,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_connect(duckdb_database database, duckdb_connection *out_connection);
+  // DUCKDB_C_API duckdb_state duckdb_connect(duckdb_database database, duckdb_connection *out_connection);
   // function connect(database: Database): Promise<Connection>
   Napi::Value connect(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1529,7 +1529,7 @@ private:
     return worker->Promise();
   }
 
-  // DUCKDB_API void duckdb_interrupt(duckdb_connection connection);
+  // DUCKDB_C_API void duckdb_interrupt(duckdb_connection connection);
   // function interrupt(connection: Connection): void
   Napi::Value interrupt(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1538,7 +1538,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_query_progress_type duckdb_query_progress(duckdb_connection connection);
+  // DUCKDB_C_API duckdb_query_progress_type duckdb_query_progress(duckdb_connection connection);
   // function query_progress(connection: Connection): QueryProgress
   Napi::Value query_progress(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1551,7 +1551,7 @@ private:
     return result;
   }
 
-  // DUCKDB_API void duckdb_disconnect(duckdb_connection *connection);
+  // DUCKDB_C_API void duckdb_disconnect(duckdb_connection *connection);
   // function disconnect(connection: Connection): void
   Napi::Value disconnect_sync(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1561,13 +1561,13 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API const char *duckdb_library_version();
+  // DUCKDB_C_API const char *duckdb_library_version();
   // function library_version(): string
   Napi::Value library_version(const Napi::CallbackInfo& info) {
     return Napi::String::New(info.Env(), duckdb_library_version());
   }
 
-  // DUCKDB_API duckdb_state duckdb_create_config(duckdb_config *out_config);
+  // DUCKDB_C_API duckdb_state duckdb_create_config(duckdb_config *out_config);
   // function create_config(): Config
   Napi::Value create_config(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1583,13 +1583,13 @@ private:
     return CreateExternalForConfig(env, config);
   }
 
-  // DUCKDB_API size_t duckdb_config_count();
+  // DUCKDB_C_API size_t duckdb_config_count();
   // function config_count(): number
   Napi::Value config_count(const Napi::CallbackInfo& info) {
     return Napi::Number::New(info.Env(), duckdb_config_count());
   }
 
-  // DUCKDB_API duckdb_state duckdb_get_config_flag(size_t index, const char **out_name, const char **out_description);
+  // DUCKDB_C_API duckdb_state duckdb_get_config_flag(size_t index, const char **out_name, const char **out_description);
   // function get_config_flag(index: number): ConfigFlag
   Napi::Value get_config_flag(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1605,7 +1605,7 @@ private:
     return config_flag;
   }
 
-  // DUCKDB_API duckdb_state duckdb_set_config(duckdb_config config, const char *name, const char *option);
+  // DUCKDB_C_API duckdb_state duckdb_set_config(duckdb_config config, const char *name, const char *option);
   // function set_config(config: Config, name: string, option: string): void
   Napi::Value set_config(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1618,10 +1618,10 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API void duckdb_destroy_config(duckdb_config *config);
+  // DUCKDB_C_API void duckdb_destroy_config(duckdb_config *config);
   // not exposed: destroyed in finalizer
 
-  // DUCKDB_API duckdb_state duckdb_query(duckdb_connection connection, const char *query, duckdb_result *out_result);
+  // DUCKDB_C_API duckdb_state duckdb_query(duckdb_connection connection, const char *query, duckdb_result *out_result);
   // function query(connection: Connection, query: string): Promise<Result>
   Napi::Value query(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1633,10 +1633,10 @@ private:
   }
 
 
-  // DUCKDB_API void duckdb_destroy_result(duckdb_result *result);
+  // DUCKDB_C_API void duckdb_destroy_result(duckdb_result *result);
   // not exposed: destroyed in finalizer
 
-  // DUCKDB_API const char *duckdb_column_name(duckdb_result *result, idx_t col);
+  // DUCKDB_C_API const char *duckdb_column_name(duckdb_result *result, idx_t col);
   // function column_name(result: Result, column_index: number): string
   Napi::Value column_name(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1646,7 +1646,7 @@ private:
     return Napi::String::New(env, column_name);
   }
 
-  // DUCKDB_API duckdb_type duckdb_column_type(duckdb_result *result, idx_t col);
+  // DUCKDB_C_API duckdb_type duckdb_column_type(duckdb_result *result, idx_t col);
   // function column_type(result: Result, column_index: number): Type
   Napi::Value column_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1656,7 +1656,7 @@ private:
     return Napi::Number::New(env, column_type);
   }
 
-  // DUCKDB_API duckdb_statement_type duckdb_result_statement_type(duckdb_result result);
+  // DUCKDB_C_API duckdb_statement_type duckdb_result_statement_type(duckdb_result result);
   // function result_statement_type(result: Result): StatementType
   Napi::Value result_statement_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1665,7 +1665,7 @@ private:
     return Napi::Number::New(env, statement_type);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_column_logical_type(duckdb_result *result, idx_t col);
+  // DUCKDB_C_API duckdb_logical_type duckdb_column_logical_type(duckdb_result *result, idx_t col);
   // function column_logical_type(result: Result, column_index: number): LogicalType
   Napi::Value column_logical_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1675,7 +1675,7 @@ private:
     return CreateExternalForLogicalType(env, column_logical_type);
   }
 
-  // DUCKDB_API idx_t duckdb_column_count(duckdb_result *result);
+  // DUCKDB_C_API idx_t duckdb_column_count(duckdb_result *result);
   // function column_count(result: Result): number
   Napi::Value column_count(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1686,7 +1686,7 @@ private:
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
 
-  // DUCKDB_API idx_t duckdb_row_count(duckdb_result *result);
+  // DUCKDB_C_API idx_t duckdb_row_count(duckdb_result *result);
   // function row_count(result: Result): number
   Napi::Value row_count(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1697,7 +1697,7 @@ private:
 
   // #endif
 
-  // DUCKDB_API idx_t duckdb_rows_changed(duckdb_result *result);
+  // DUCKDB_C_API idx_t duckdb_rows_changed(duckdb_result *result);
   // function rows_changed(result: Result): number
   Napi::Value rows_changed(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1707,19 +1707,19 @@ private:
   }
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
-  // DUCKDB_API void *duckdb_column_data(duckdb_result *result, idx_t col);
-  // DUCKDB_API bool *duckdb_nullmask_data(duckdb_result *result, idx_t col);
+  // DUCKDB_C_API void *duckdb_column_data(duckdb_result *result, idx_t col);
+  // DUCKDB_C_API bool *duckdb_nullmask_data(duckdb_result *result, idx_t col);
   // #endif
 
-  // DUCKDB_API const char *duckdb_result_error(duckdb_result *result);
+  // DUCKDB_C_API const char *duckdb_result_error(duckdb_result *result);
   // not exposed: query, execute_prepared, and execute_pending reject promise with error
 
-  // DUCKDB_API duckdb_error_type duckdb_result_error_type(duckdb_result *result);
+  // DUCKDB_C_API duckdb_error_type duckdb_result_error_type(duckdb_result *result);
   // not exposed: query, execute_prepared, and execute_pending reject promise with error
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
 
-  // DUCKDB_API duckdb_data_chunk duckdb_result_get_chunk(duckdb_result result, idx_t chunk_index);
+  // DUCKDB_C_API duckdb_data_chunk duckdb_result_get_chunk(duckdb_result result, idx_t chunk_index);
   // function result_get_chunk(result: Result, chunkIndex: number): DataChunk
   Napi::Value result_get_chunk(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1732,7 +1732,7 @@ private:
     return CreateExternalForDataChunk(env, chunk);
   }
 
-  // DUCKDB_API bool duckdb_result_is_streaming(duckdb_result result);
+  // DUCKDB_C_API bool duckdb_result_is_streaming(duckdb_result result);
   // function result_is_streaming(result: Result): boolean
   Napi::Value result_is_streaming(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1741,7 +1741,7 @@ private:
     return Napi::Boolean::New(env, is_streaming);
   }
 
-  // DUCKDB_API idx_t duckdb_result_chunk_count(duckdb_result result);
+  // DUCKDB_C_API idx_t duckdb_result_chunk_count(duckdb_result result);
   // function result_chunk_count(result: Result): number
   Napi::Value result_chunk_count(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1752,7 +1752,7 @@ private:
 
   // #endif
 
-  // DUCKDB_API duckdb_result_type duckdb_result_return_type(duckdb_result result);
+  // DUCKDB_C_API duckdb_result_type duckdb_result_return_type(duckdb_result result);
   // function result_return_type(result: Result): ResultType
   Napi::Value result_return_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1762,54 +1762,54 @@ private:
   }
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
-  // DUCKDB_API bool duckdb_value_boolean(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API int8_t duckdb_value_int8(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API int16_t duckdb_value_int16(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API int32_t duckdb_value_int32(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API int64_t duckdb_value_int64(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API duckdb_hugeint duckdb_value_hugeint(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API duckdb_uhugeint duckdb_value_uhugeint(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API duckdb_decimal duckdb_value_decimal(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API uint8_t duckdb_value_uint8(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API uint16_t duckdb_value_uint16(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API uint32_t duckdb_value_uint32(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API uint64_t duckdb_value_uint64(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API float duckdb_value_float(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API double duckdb_value_double(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API duckdb_date duckdb_value_date(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API duckdb_time duckdb_value_time(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API duckdb_timestamp duckdb_value_timestamp(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API duckdb_interval duckdb_value_interval(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API char *duckdb_value_varchar(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API duckdb_string duckdb_value_string(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API char *duckdb_value_varchar_internal(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API duckdb_string duckdb_value_string_internal(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API duckdb_blob duckdb_value_blob(duckdb_result *result, idx_t col, idx_t row);
-  // DUCKDB_API bool duckdb_value_is_null(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API bool duckdb_value_boolean(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API int8_t duckdb_value_int8(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API int16_t duckdb_value_int16(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API int32_t duckdb_value_int32(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API int64_t duckdb_value_int64(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API duckdb_hugeint duckdb_value_hugeint(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API duckdb_uhugeint duckdb_value_uhugeint(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API duckdb_decimal duckdb_value_decimal(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API uint8_t duckdb_value_uint8(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API uint16_t duckdb_value_uint16(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API uint32_t duckdb_value_uint32(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API uint64_t duckdb_value_uint64(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API float duckdb_value_float(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API double duckdb_value_double(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API duckdb_date duckdb_value_date(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API duckdb_time duckdb_value_time(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API duckdb_timestamp duckdb_value_timestamp(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API duckdb_interval duckdb_value_interval(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API char *duckdb_value_varchar(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API duckdb_string duckdb_value_string(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API char *duckdb_value_varchar_internal(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API duckdb_string duckdb_value_string_internal(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API duckdb_blob duckdb_value_blob(duckdb_result *result, idx_t col, idx_t row);
+  // DUCKDB_C_API bool duckdb_value_is_null(duckdb_result *result, idx_t col, idx_t row);
   // #endif
 
-  // DUCKDB_API void *duckdb_malloc(size_t size);
+  // DUCKDB_C_API void *duckdb_malloc(size_t size);
   // not exposed: only used internally
 
-  // DUCKDB_API void duckdb_free(void *ptr);
+  // DUCKDB_C_API void duckdb_free(void *ptr);
   // not exposed: only used internally
 
-  // DUCKDB_API idx_t duckdb_vector_size();
+  // DUCKDB_C_API idx_t duckdb_vector_size();
   // function vector_size(): number
   Napi::Value vector_size(const Napi::CallbackInfo& info) {
     return Napi::Number::New(info.Env(), duckdb_vector_size());
   }
 
-  // DUCKDB_API bool duckdb_string_is_inlined(duckdb_string_t string);
+  // DUCKDB_C_API bool duckdb_string_is_inlined(duckdb_string_t string);
   // not exposed: handled internally
 
-  // DUCKDB_API uint32_t duckdb_string_t_length(duckdb_string_t string);
+  // DUCKDB_C_API uint32_t duckdb_string_t_length(duckdb_string_t string);
   // not exposed: handled internally
 
-  // DUCKDB_API const char *duckdb_string_t_data(duckdb_string_t *string);
+  // DUCKDB_C_API const char *duckdb_string_t_data(duckdb_string_t *string);
   // not exposed: handled internally
 
-  // DUCKDB_API duckdb_date_struct duckdb_from_date(duckdb_date date);
+  // DUCKDB_C_API duckdb_date_struct duckdb_from_date(duckdb_date date);
   // function from_date(date: Date_): DateParts
   Napi::Value from_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1819,7 +1819,7 @@ private:
     return MakeDatePartsObject(env, date_parts);
   }
 
-  // DUCKDB_API duckdb_date duckdb_to_date(duckdb_date_struct date);
+  // DUCKDB_C_API duckdb_date duckdb_to_date(duckdb_date_struct date);
   // function to_date(parts: DateParts): Date_
   Napi::Value to_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1829,7 +1829,7 @@ private:
     return MakeDateObject(env, date);
   }
 
-  // DUCKDB_API bool duckdb_is_finite_date(duckdb_date date);
+  // DUCKDB_C_API bool duckdb_is_finite_date(duckdb_date date);
   // function is_finite_date(date: Date_): boolean
   Napi::Value is_finite_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1839,7 +1839,7 @@ private:
     return Napi::Boolean::New(env, is_finite);
   }
 
-  // DUCKDB_API duckdb_time_struct duckdb_from_time(duckdb_time time);
+  // DUCKDB_C_API duckdb_time_struct duckdb_from_time(duckdb_time time);
   // function from_time(time: Time): TimeParts
   Napi::Value from_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1849,7 +1849,7 @@ private:
     return MakeTimePartsObject(env, time_parts);
   }
 
-  // DUCKDB_API duckdb_time_tz duckdb_create_time_tz(int64_t micros, int32_t offset);
+  // DUCKDB_C_API duckdb_time_tz duckdb_create_time_tz(int64_t micros, int32_t offset);
   // function create_time_tz(micros: number, offset: number): TimeTZ
   Napi::Value create_time_tz(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1859,7 +1859,7 @@ private:
     return MakeTimeTZObject(env, time_tz);
   }
 
-  // DUCKDB_API duckdb_time_tz_struct duckdb_from_time_tz(duckdb_time_tz micros);
+  // DUCKDB_C_API duckdb_time_tz_struct duckdb_from_time_tz(duckdb_time_tz micros);
   // function from_time_tz(time_tz: TimeTZ): TimeTZParts
   Napi::Value from_time_tz(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1869,7 +1869,7 @@ private:
     return MakeTimeTZPartsObject(env, time_tz_parts);
   }
 
-  // DUCKDB_API duckdb_time duckdb_to_time(duckdb_time_struct time);
+  // DUCKDB_C_API duckdb_time duckdb_to_time(duckdb_time_struct time);
   // function to_time(parts: TimeParts): Time
   Napi::Value to_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1879,7 +1879,7 @@ private:
     return MakeTimeObject(env, time);
   }
 
-  // DUCKDB_API duckdb_timestamp_struct duckdb_from_timestamp(duckdb_timestamp ts);
+  // DUCKDB_C_API duckdb_timestamp_struct duckdb_from_timestamp(duckdb_timestamp ts);
   // function from_timestamp(timestamp: Timestamp): TimestampParts
   Napi::Value from_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1889,7 +1889,7 @@ private:
     return MakeTimestampPartsObject(env, timestamp_parts);
   }
 
-  // DUCKDB_API duckdb_timestamp duckdb_to_timestamp(duckdb_timestamp_struct ts);
+  // DUCKDB_C_API duckdb_timestamp duckdb_to_timestamp(duckdb_timestamp_struct ts);
   // function to_timestamp(parts: TimestampParts): Timestamp
   Napi::Value to_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1899,7 +1899,7 @@ private:
     return MakeTimestampObject(env, timestamp);
   }
 
-  // DUCKDB_API bool duckdb_is_finite_timestamp(duckdb_timestamp ts);
+  // DUCKDB_C_API bool duckdb_is_finite_timestamp(duckdb_timestamp ts);
   // function is_finite_timestamp(timestamp: Timestamp): boolean
   Napi::Value is_finite_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1909,7 +1909,7 @@ private:
     return Napi::Boolean::New(env, is_finite);
   }
 
-  // DUCKDB_API bool duckdb_is_finite_timestamp_s(duckdb_timestamp_s ts);
+  // DUCKDB_C_API bool duckdb_is_finite_timestamp_s(duckdb_timestamp_s ts);
   // function is_finite_timestamp_s(timestampSeconds: TimestampSeconds): boolean
   Napi::Value is_finite_timestamp_s(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1919,7 +1919,7 @@ private:
     return Napi::Boolean::New(env, is_finite);
   }
 
-  // DUCKDB_API bool duckdb_is_finite_timestamp_ms(duckdb_timestamp_ms ts);
+  // DUCKDB_C_API bool duckdb_is_finite_timestamp_ms(duckdb_timestamp_ms ts);
   // function is_finite_timestamp_ms(timestampMilliseconds: TimestampMilliseconds): boolean
   Napi::Value is_finite_timestamp_ms(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1929,7 +1929,7 @@ private:
     return Napi::Boolean::New(env, is_finite);
   }
 
-  // DUCKDB_API bool duckdb_is_finite_timestamp_ns(duckdb_timestamp_ns ts);
+  // DUCKDB_C_API bool duckdb_is_finite_timestamp_ns(duckdb_timestamp_ns ts);
   // function is_finite_timestamp_ns(timestampNanoseconds: TimestampNanoseconds): boolean
   Napi::Value is_finite_timestamp_ns(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1939,7 +1939,7 @@ private:
     return Napi::Boolean::New(env, is_finite);
   }
 
-  // DUCKDB_API double duckdb_hugeint_to_double(duckdb_hugeint val);
+  // DUCKDB_C_API double duckdb_hugeint_to_double(duckdb_hugeint val);
   // function hugeint_to_double(hugeint: bigint): number
   Napi::Value hugeint_to_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1949,7 +1949,7 @@ private:
     return Napi::Number::New(env, output_double);
   }
 
-  // DUCKDB_API duckdb_hugeint duckdb_double_to_hugeint(double val);
+  // DUCKDB_C_API duckdb_hugeint duckdb_double_to_hugeint(double val);
   // function double_to_hugeint(double: number): bigint
   Napi::Value double_to_hugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1958,7 +1958,7 @@ private:
     return MakeBigIntFromHugeInt(env, hugeint);
   }
 
-  // DUCKDB_API double duckdb_uhugeint_to_double(duckdb_uhugeint val);
+  // DUCKDB_C_API double duckdb_uhugeint_to_double(duckdb_uhugeint val);
   // function uhugeint_to_double(uhugeint: bigint): number
   Napi::Value uhugeint_to_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1968,7 +1968,7 @@ private:
     return Napi::Number::New(env, output_double);
   }
 
-  // DUCKDB_API duckdb_uhugeint duckdb_double_to_uhugeint(double val);
+  // DUCKDB_C_API duckdb_uhugeint duckdb_double_to_uhugeint(double val);
   // function double_to_uhugeint(double: number): bigint
   Napi::Value double_to_uhugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1977,7 +1977,7 @@ private:
     return MakeBigIntFromUHugeInt(env, uhugeint);
   }
 
-  // DUCKDB_API duckdb_decimal duckdb_double_to_decimal(double val, uint8_t width, uint8_t scale);
+  // DUCKDB_C_API duckdb_decimal duckdb_double_to_decimal(double val, uint8_t width, uint8_t scale);
   // function double_to_decimal(double: number, width: number, scale: number): Decimal
   Napi::Value double_to_decimal(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1988,7 +1988,7 @@ private:
     return MakeDecimalObject(env, decimal);
   }
 
-  // DUCKDB_API double duckdb_decimal_to_double(duckdb_decimal val);
+  // DUCKDB_C_API double duckdb_decimal_to_double(duckdb_decimal val);
   // function decimal_to_double(decimal: Decimal): number
   Napi::Value decimal_to_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -1998,7 +1998,7 @@ private:
     return Napi::Number::New(env, output_double); 
   }
 
-  // DUCKDB_API duckdb_state duckdb_prepare(duckdb_connection connection, const char *query, duckdb_prepared_statement *out_prepared_statement);
+  // DUCKDB_C_API duckdb_state duckdb_prepare(duckdb_connection connection, const char *query, duckdb_prepared_statement *out_prepared_statement);
   // function prepare(connection: Connection, query: string): Promise<PreparedStatement>
   Napi::Value prepare(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2009,7 +2009,7 @@ private:
     return worker->Promise();
   }
 
-  // DUCKDB_API void duckdb_destroy_prepare(duckdb_prepared_statement *prepared_statement);
+  // DUCKDB_C_API void duckdb_destroy_prepare(duckdb_prepared_statement *prepared_statement);
   // function destroy_prepare_sync(prepared_statement: PreparedStatement): void
   Napi::Value destroy_prepare_sync(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2019,10 +2019,10 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API const char *duckdb_prepare_error(duckdb_prepared_statement prepared_statement);
+  // DUCKDB_C_API const char *duckdb_prepare_error(duckdb_prepared_statement prepared_statement);
   // not exposed: prepare rejects promise with error
 
-  // DUCKDB_API idx_t duckdb_nparams(duckdb_prepared_statement prepared_statement);
+  // DUCKDB_C_API idx_t duckdb_nparams(duckdb_prepared_statement prepared_statement);
   // function nparams(prepared_statement: PreparedStatement): number
   Napi::Value nparams(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2031,7 +2031,7 @@ private:
     return Napi::Number::New(env, nparams);
   }
 
-  // DUCKDB_API const char *duckdb_parameter_name(duckdb_prepared_statement prepared_statement, idx_t index);
+  // DUCKDB_C_API const char *duckdb_parameter_name(duckdb_prepared_statement prepared_statement, idx_t index);
   // function parameter_name(prepared_statement: PreparedStatement, index: number): string
   Napi::Value parameter_name(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2043,7 +2043,7 @@ private:
     return str;
   }
 
-  // DUCKDB_API duckdb_type duckdb_param_type(duckdb_prepared_statement prepared_statement, idx_t param_idx);
+  // DUCKDB_C_API duckdb_type duckdb_param_type(duckdb_prepared_statement prepared_statement, idx_t param_idx);
   // function param_type(prepared_statement: PreparedStatement, index: number): Type
   Napi::Value param_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2053,7 +2053,7 @@ private:
     return Napi::Number::New(env, type);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_param_logical_type(duckdb_prepared_statement prepared_statement, idx_t param_idx);
+  // DUCKDB_C_API duckdb_logical_type duckdb_param_logical_type(duckdb_prepared_statement prepared_statement, idx_t param_idx);
   // function param_logical_type(prepared_statement: PreparedStatement, index: number): LogicalType
   Napi::Value param_logical_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2066,7 +2066,7 @@ private:
     return CreateExternalForLogicalType(env, logical_type);
   }
 
-  // DUCKDB_API duckdb_state duckdb_clear_bindings(duckdb_prepared_statement prepared_statement);
+  // DUCKDB_C_API duckdb_state duckdb_clear_bindings(duckdb_prepared_statement prepared_statement);
   // function clear_bindings(prepared_statement: PreparedStatement): void
   Napi::Value clear_bindings(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2077,7 +2077,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_statement_type duckdb_prepared_statement_type(duckdb_prepared_statement statement);
+  // DUCKDB_C_API duckdb_statement_type duckdb_prepared_statement_type(duckdb_prepared_statement statement);
   // function prepared_statement_type(prepared_statement: PreparedStatement): StatementType
   Napi::Value prepared_statement_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2086,7 +2086,7 @@ private:
     return Napi::Number::New(env, statement_type);
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_value(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_value val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_value(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_value val);
   // function bind_value(prepared_statement: PreparedStatement, index: number, value: Value): void
   Napi::Value bind_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2099,7 +2099,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_parameter_index(duckdb_prepared_statement prepared_statement, idx_t *param_idx_out, const char *name);
+  // DUCKDB_C_API duckdb_state duckdb_bind_parameter_index(duckdb_prepared_statement prepared_statement, idx_t *param_idx_out, const char *name);
   // function bind_parameter_index(prepared_statement: PreparedStatement, name: string): number
   Napi::Value bind_parameter_index(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2112,7 +2112,7 @@ private:
     return Napi::Number::New(env, param_index);
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_boolean(duckdb_prepared_statement prepared_statement, idx_t param_idx, bool val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_boolean(duckdb_prepared_statement prepared_statement, idx_t param_idx, bool val);
   // function bind_boolean(prepared_statement: PreparedStatement, index: number, bool: boolean): void
   Napi::Value bind_boolean(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2125,7 +2125,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_int8(duckdb_prepared_statement prepared_statement, idx_t param_idx, int8_t val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_int8(duckdb_prepared_statement prepared_statement, idx_t param_idx, int8_t val);
   // function bind_int8(prepared_statement: PreparedStatement, index: number, int8: number): void
   Napi::Value bind_int8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2138,7 +2138,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_int16(duckdb_prepared_statement prepared_statement, idx_t param_idx, int16_t val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_int16(duckdb_prepared_statement prepared_statement, idx_t param_idx, int16_t val);
   // function bind_int16(prepared_statement: PreparedStatement, index: number, int16: number): void
   Napi::Value bind_int16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2151,7 +2151,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_int32(duckdb_prepared_statement prepared_statement, idx_t param_idx, int32_t val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_int32(duckdb_prepared_statement prepared_statement, idx_t param_idx, int32_t val);
   // function bind_int32(prepared_statement: PreparedStatement, index: number, int32: number): void
   Napi::Value bind_int32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2164,7 +2164,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_int64(duckdb_prepared_statement prepared_statement, idx_t param_idx, int64_t val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_int64(duckdb_prepared_statement prepared_statement, idx_t param_idx, int64_t val);
   // function bind_int64(prepared_statement: PreparedStatement, index: number, int64: bigint): void
   Napi::Value bind_int64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2181,7 +2181,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_hugeint(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_hugeint val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_hugeint(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_hugeint val);
   // function bind_hugeint(prepared_statement: PreparedStatement, index: number, hugeint: bigint): void
   Napi::Value bind_hugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2194,7 +2194,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_uhugeint(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_uhugeint val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_uhugeint(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_uhugeint val);
   // function bind_uhugeint(prepared_statement: PreparedStatement, index: number, uhugeint: bigint): void
   Napi::Value bind_uhugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2207,7 +2207,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_decimal(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_decimal val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_decimal(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_decimal val);
   // function bind_decimal(prepared_statement: PreparedStatement, index: number, decimal: Decimal): void
   Napi::Value bind_decimal(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2220,7 +2220,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_uint8(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint8_t val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_uint8(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint8_t val);
   // function bind_uint8(prepared_statement: PreparedStatement, index: number, uint8: number): void
   Napi::Value bind_uint8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2233,7 +2233,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_uint16(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint16_t val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_uint16(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint16_t val);
   // function bind_uint16(prepared_statement: PreparedStatement, index: number, uint16: number): void
   Napi::Value bind_uint16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2246,7 +2246,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_uint32(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint32_t val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_uint32(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint32_t val);
   // function bind_uint32(prepared_statement: PreparedStatement, index: number, uint32: number): void
   Napi::Value bind_uint32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2259,7 +2259,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_uint64(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint64_t val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_uint64(duckdb_prepared_statement prepared_statement, idx_t param_idx, uint64_t val);
   // function bind_uint64(prepared_statement: PreparedStatement, index: number, uint64: bigint): void
   Napi::Value bind_uint64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2276,7 +2276,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_float(duckdb_prepared_statement prepared_statement, idx_t param_idx, float val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_float(duckdb_prepared_statement prepared_statement, idx_t param_idx, float val);
   // function bind_float(prepared_statement: PreparedStatement, index: number, float: number): void
   Napi::Value bind_float(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2289,7 +2289,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_double(duckdb_prepared_statement prepared_statement, idx_t param_idx, double val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_double(duckdb_prepared_statement prepared_statement, idx_t param_idx, double val);
   // function bind_double(prepared_statement: PreparedStatement, index: number, double: number): void
   Napi::Value bind_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2302,7 +2302,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_date(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_date val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_date(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_date val);
   // function bind_date(prepared_statement: PreparedStatement, index: number, date: Date_): void
   Napi::Value bind_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2315,7 +2315,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_time(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_time val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_time(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_time val);
   // function bind_time(prepared_statement: PreparedStatement, index: number, time: Time): void
   Napi::Value bind_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2328,7 +2328,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_timestamp(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_timestamp val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_timestamp(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_timestamp val);
   // function bind_timestamp(prepared_statement: PreparedStatement, index: number, timestamp: Timestamp): void
   Napi::Value bind_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2341,7 +2341,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_timestamp_tz(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_timestamp val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_timestamp_tz(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_timestamp val);
   // function bind_timestamp_tz(prepared_statement: PreparedStatement, index: number, timestamp: Timestamp): void
   Napi::Value bind_timestamp_tz(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2354,7 +2354,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_interval(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_interval val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_interval(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_interval val);
   // function bind_interval(prepared_statement: PreparedStatement, index: number, interval: Interval): void
   Napi::Value bind_interval(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2367,7 +2367,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_varchar(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val);
+  // DUCKDB_C_API duckdb_state duckdb_bind_varchar(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val);
   // function bind_varchar(prepared_statement: PreparedStatement, index: number, varchar: string): void
   Napi::Value bind_varchar(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2380,10 +2380,10 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_varchar_length(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val, idx_t length);
+  // DUCKDB_C_API duckdb_state duckdb_bind_varchar_length(duckdb_prepared_statement prepared_statement, idx_t param_idx, const char *val, idx_t length);
   // not exposed: JS string includes length
 
-  // DUCKDB_API duckdb_state duckdb_bind_blob(duckdb_prepared_statement prepared_statement, idx_t param_idx, const void *data, idx_t length);
+  // DUCKDB_C_API duckdb_state duckdb_bind_blob(duckdb_prepared_statement prepared_statement, idx_t param_idx, const void *data, idx_t length);
   // function bind_blob(prepared_statement: PreparedStatement, index: number, data: Uint8Array): void
   Napi::Value bind_blob(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2398,7 +2398,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_bind_null(duckdb_prepared_statement prepared_statement, idx_t param_idx);
+  // DUCKDB_C_API duckdb_state duckdb_bind_null(duckdb_prepared_statement prepared_statement, idx_t param_idx);
   // function bind_null(prepared_statement: PreparedStatement, index: number): void
   Napi::Value bind_null(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2410,7 +2410,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_execute_prepared(duckdb_prepared_statement prepared_statement, duckdb_result *out_result);
+  // DUCKDB_C_API duckdb_state duckdb_execute_prepared(duckdb_prepared_statement prepared_statement, duckdb_result *out_result);
   // function execute_prepared(prepared_statement: PreparedStatement): Promise<Result>
   Napi::Value execute_prepared(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2422,7 +2422,7 @@ private:
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
 
-  // DUCKDB_API duckdb_state duckdb_execute_prepared_streaming(duckdb_prepared_statement prepared_statement, duckdb_result *out_result);
+  // DUCKDB_C_API duckdb_state duckdb_execute_prepared_streaming(duckdb_prepared_statement prepared_statement, duckdb_result *out_result);
   // function execute_prepared_streaming(prepared_statement: PreparedStatement): Promise<Result>
   Napi::Value execute_prepared_streaming(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2434,7 +2434,7 @@ private:
 
   // #endif
 
-  // DUCKDB_API idx_t duckdb_extract_statements(duckdb_connection connection, const char *query, duckdb_extracted_statements *out_extracted_statements);
+  // DUCKDB_C_API idx_t duckdb_extract_statements(duckdb_connection connection, const char *query, duckdb_extracted_statements *out_extracted_statements);
   // function extract_statements(connection: Connection, query: string): Promise<ExtractedStatementsAndCount>
   Napi::Value extract_statements(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2445,7 +2445,7 @@ private:
     return worker->Promise();
   }
 
-  // DUCKDB_API duckdb_state duckdb_prepare_extracted_statement(duckdb_connection connection, duckdb_extracted_statements extracted_statements, idx_t index, duckdb_prepared_statement *out_prepared_statement);
+  // DUCKDB_C_API duckdb_state duckdb_prepare_extracted_statement(duckdb_connection connection, duckdb_extracted_statements extracted_statements, idx_t index, duckdb_prepared_statement *out_prepared_statement);
   // function prepare_extracted_statement(connection: Connection, extracted_statements: ExtractedStatements, index: number): Promise<PreparedStatement>
   Napi::Value prepare_extracted_statement(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2457,7 +2457,7 @@ private:
     return worker->Promise();
   }
 
-  // DUCKDB_API const char *duckdb_extract_statements_error(duckdb_extracted_statements extracted_statements);
+  // DUCKDB_C_API const char *duckdb_extract_statements_error(duckdb_extracted_statements extracted_statements);
   // function extract_statements_error(extracted_statements: ExtractedStatements): string
   Napi::Value extract_statements_error(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2466,10 +2466,10 @@ private:
     return Napi::String::New(env, str);
   }
 
-  // DUCKDB_API void duckdb_destroy_extracted(duckdb_extracted_statements *extracted_statements);
+  // DUCKDB_C_API void duckdb_destroy_extracted(duckdb_extracted_statements *extracted_statements);
   // not exposed: destroyed in finalizer
 
-  // DUCKDB_API duckdb_state duckdb_pending_prepared(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result);
+  // DUCKDB_C_API duckdb_state duckdb_pending_prepared(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result);
   // function pending_prepared(prepared_statement: PreparedStatement): PendingResult
   Napi::Value pending_prepared(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2485,7 +2485,7 @@ private:
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
 
-  // DUCKDB_API duckdb_state duckdb_pending_prepared_streaming(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result);
+  // DUCKDB_C_API duckdb_state duckdb_pending_prepared_streaming(duckdb_prepared_statement prepared_statement, duckdb_pending_result *out_result);
   // function pending_prepared_streaming(prepared_statement: PreparedStatement): PendingResult
   Napi::Value pending_prepared_streaming(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2501,10 +2501,10 @@ private:
 
   // #endif
 
-  // DUCKDB_API void duckdb_destroy_pending(duckdb_pending_result *pending_result);
+  // DUCKDB_C_API void duckdb_destroy_pending(duckdb_pending_result *pending_result);
   // not exposed: destroyed in finalizer
 
-  // DUCKDB_API const char *duckdb_pending_error(duckdb_pending_result pending_result);
+  // DUCKDB_C_API const char *duckdb_pending_error(duckdb_pending_result pending_result);
   // function pending_error(pending_result: PendingResult): string
   Napi::Value pending_error(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2513,7 +2513,7 @@ private:
     return Napi::String::New(env, error);
   }
 
-  // DUCKDB_API duckdb_pending_state duckdb_pending_execute_task(duckdb_pending_result pending_result);
+  // DUCKDB_C_API duckdb_pending_state duckdb_pending_execute_task(duckdb_pending_result pending_result);
   // function pending_execute_task(pending_result: PendingResult): PendingState
   Napi::Value pending_execute_task(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2522,7 +2522,7 @@ private:
     return Napi::Number::New(env, pending_state);
   }
 
-  // DUCKDB_API duckdb_pending_state duckdb_pending_execute_check_state(duckdb_pending_result pending_result);
+  // DUCKDB_C_API duckdb_pending_state duckdb_pending_execute_check_state(duckdb_pending_result pending_result);
   // function pending_execute_check_state(pending_resulit: PendingResult): PendingState
   Napi::Value pending_execute_check_state(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2531,7 +2531,7 @@ private:
     return Napi::Number::New(env, pending_state);
   }
 
-  // DUCKDB_API duckdb_state duckdb_execute_pending(duckdb_pending_result pending_result, duckdb_result *out_result);
+  // DUCKDB_C_API duckdb_state duckdb_execute_pending(duckdb_pending_result pending_result, duckdb_result *out_result);
   // function execute_pending(pending_result: PendingResult): Promise<Result>
   Napi::Value execute_pending(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2541,7 +2541,7 @@ private:
     return worker->Promise();
   }
 
-  // DUCKDB_API bool duckdb_pending_execution_is_finished(duckdb_pending_state pending_state);
+  // DUCKDB_C_API bool duckdb_pending_execution_is_finished(duckdb_pending_state pending_state);
   // function pending_execution_is_finished(pending_state: PendingState): boolean
   Napi::Value pending_execution_is_finished(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2550,10 +2550,10 @@ private:
     return Napi::Boolean::New(env, is_finished);
   }
 
-  // DUCKDB_API void duckdb_destroy_value(duckdb_value *value);
+  // DUCKDB_C_API void duckdb_destroy_value(duckdb_value *value);
   // not exposed: destroyed in finalizer
 
-  // DUCKDB_API duckdb_value duckdb_create_varchar(const char *text);
+  // DUCKDB_C_API duckdb_value duckdb_create_varchar(const char *text);
   // function create_varchar(text: string): Value
   Napi::Value create_varchar(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2562,10 +2562,10 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_varchar_length(const char *text, idx_t length);
+  // DUCKDB_C_API duckdb_value duckdb_create_varchar_length(const char *text, idx_t length);
   // not exposed: JS string includes length
 
-  // DUCKDB_API duckdb_value duckdb_create_bool(bool input);
+  // DUCKDB_C_API duckdb_value duckdb_create_bool(bool input);
   // function create_bool(input: boolean): Value
   Napi::Value create_bool(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2574,7 +2574,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_int8(int8_t input);
+  // DUCKDB_C_API duckdb_value duckdb_create_int8(int8_t input);
   // function create_int8(input: number): Value
   Napi::Value create_int8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2583,7 +2583,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_uint8(uint8_t input);
+  // DUCKDB_C_API duckdb_value duckdb_create_uint8(uint8_t input);
   // function create_uint8(input: number): Value
   Napi::Value create_uint8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2592,7 +2592,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_int16(int16_t input);
+  // DUCKDB_C_API duckdb_value duckdb_create_int16(int16_t input);
   // function create_int16(input: number): Value
   Napi::Value create_int16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2601,7 +2601,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_uint16(uint16_t input);
+  // DUCKDB_C_API duckdb_value duckdb_create_uint16(uint16_t input);
   // function create_uint16(input: number): Value
   Napi::Value create_uint16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2610,7 +2610,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_int32(int32_t input);
+  // DUCKDB_C_API duckdb_value duckdb_create_int32(int32_t input);
   // function create_int32(input: number): Value
   Napi::Value create_int32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2619,7 +2619,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_uint32(uint32_t input);
+  // DUCKDB_C_API duckdb_value duckdb_create_uint32(uint32_t input);
   // function create_uint32(input: number): Value
   Napi::Value create_uint32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2628,7 +2628,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_uint64(uint64_t input);
+  // DUCKDB_C_API duckdb_value duckdb_create_uint64(uint64_t input);
   // function create_uint64(input: bigint): Value
   Napi::Value create_uint64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2641,7 +2641,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_int64(int64_t val);
+  // DUCKDB_C_API duckdb_value duckdb_create_int64(int64_t val);
   // function create_int64(int64: bigint): Value
   Napi::Value create_int64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2654,7 +2654,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_hugeint(duckdb_hugeint input);
+  // DUCKDB_C_API duckdb_value duckdb_create_hugeint(duckdb_hugeint input);
   // function create_hugeint(input: bigint): Value
   Napi::Value create_hugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2664,7 +2664,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_uhugeint(duckdb_uhugeint input);
+  // DUCKDB_C_API duckdb_value duckdb_create_uhugeint(duckdb_uhugeint input);
   // function create_uhugeint(input: bigint): Value
   Napi::Value create_uhugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2674,7 +2674,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_varint(duckdb_varint input);
+  // DUCKDB_C_API duckdb_value duckdb_create_varint(duckdb_varint input);
   // function create_varint(input: bigint): Value
   Napi::Value create_varint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2685,7 +2685,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_decimal(duckdb_decimal input);
+  // DUCKDB_C_API duckdb_value duckdb_create_decimal(duckdb_decimal input);
   // function create_decimal(input: Decimal): Value
   Napi::Value create_decimal(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2695,7 +2695,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_float(float input);
+  // DUCKDB_C_API duckdb_value duckdb_create_float(float input);
   // function create_float(input: number): Value
   Napi::Value create_float(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2704,7 +2704,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_double(double input);
+  // DUCKDB_C_API duckdb_value duckdb_create_double(double input);
   // function create_double(input: number): Value
   Napi::Value create_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2713,7 +2713,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_date(duckdb_date input);
+  // DUCKDB_C_API duckdb_value duckdb_create_date(duckdb_date input);
   // function create_date(input: Date_): Value
   Napi::Value create_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2722,7 +2722,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_time(duckdb_time input);
+  // DUCKDB_C_API duckdb_value duckdb_create_time(duckdb_time input);
   // function create_time(input: Time): Value
   Napi::Value create_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2731,7 +2731,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_time_tz_value(duckdb_time_tz value);
+  // DUCKDB_C_API duckdb_value duckdb_create_time_tz_value(duckdb_time_tz value);
   // function create_time_tz_value(input: TimeTZ): Value
   Napi::Value create_time_tz_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2740,7 +2740,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_timestamp(duckdb_timestamp input);
+  // DUCKDB_C_API duckdb_value duckdb_create_timestamp(duckdb_timestamp input);
   // function create_timestamp(input: Timestamp): Value
   Napi::Value create_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2749,7 +2749,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_timestamp_tz(duckdb_timestamp input);
+  // DUCKDB_C_API duckdb_value duckdb_create_timestamp_tz(duckdb_timestamp input);
   // function create_timestamp_tz(input: Timestamp): Value
   Napi::Value create_timestamp_tz(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2758,7 +2758,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_timestamp_s(duckdb_timestamp_s input);
+  // DUCKDB_C_API duckdb_value duckdb_create_timestamp_s(duckdb_timestamp_s input);
   // function create_timestamp_s(input: TimestampSeconds): Value
   Napi::Value create_timestamp_s(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2767,7 +2767,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_timestamp_ms(duckdb_timestamp_ms input);
+  // DUCKDB_C_API duckdb_value duckdb_create_timestamp_ms(duckdb_timestamp_ms input);
   // function create_timestamp_ms(input: TimestampMilliseconds): Value
   Napi::Value create_timestamp_ms(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2776,7 +2776,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_timestamp_ns(duckdb_timestamp_ns input);
+  // DUCKDB_C_API duckdb_value duckdb_create_timestamp_ns(duckdb_timestamp_ns input);
   // function create_timestamp_ns(input: TimestampNanoseconds): Value
   Napi::Value create_timestamp_ns(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2785,7 +2785,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_interval(duckdb_interval input);
+  // DUCKDB_C_API duckdb_value duckdb_create_interval(duckdb_interval input);
   // function create_interval(input: Interval): Value
   Napi::Value create_interval(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2794,7 +2794,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_blob(const uint8_t *data, idx_t length);
+  // DUCKDB_C_API duckdb_value duckdb_create_blob(const uint8_t *data, idx_t length);
   // function create_blob(data: Uint8Array): Value
   Napi::Value create_blob(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2805,7 +2805,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_bit(duckdb_bit input);
+  // DUCKDB_C_API duckdb_value duckdb_create_bit(duckdb_bit input);
   // function create_bit(data: Uint8Array): Value
   Napi::Value create_bit(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2816,7 +2816,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_uuid(duckdb_uhugeint input);
+  // DUCKDB_C_API duckdb_value duckdb_create_uuid(duckdb_uhugeint input);
   // function create_uuid(input: bigint): Value
   Napi::Value create_uuid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2826,7 +2826,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API bool duckdb_get_bool(duckdb_value val);
+  // DUCKDB_C_API bool duckdb_get_bool(duckdb_value val);
   // function get_bool(value: Value): boolean
   Napi::Value get_bool(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2835,7 +2835,7 @@ private:
     return Napi::Boolean::New(env, output);
   }
 
-  // DUCKDB_API int8_t duckdb_get_int8(duckdb_value val);
+  // DUCKDB_C_API int8_t duckdb_get_int8(duckdb_value val);
   // function get_int8(value: Value): number
   Napi::Value get_int8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2844,7 +2844,7 @@ private:
     return Napi::Number::New(env, output);
   }
 
-  // DUCKDB_API uint8_t duckdb_get_uint8(duckdb_value val);
+  // DUCKDB_C_API uint8_t duckdb_get_uint8(duckdb_value val);
   // function get_uint8(value: Value): number
   Napi::Value get_uint8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2853,7 +2853,7 @@ private:
     return Napi::Number::New(env, output);
   }
 
-  // DUCKDB_API int16_t duckdb_get_int16(duckdb_value val);
+  // DUCKDB_C_API int16_t duckdb_get_int16(duckdb_value val);
   // function get_int16(value: Value): number
   Napi::Value get_int16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2862,7 +2862,7 @@ private:
     return Napi::Number::New(env, output);
   }
 
-  // DUCKDB_API uint16_t duckdb_get_uint16(duckdb_value val);
+  // DUCKDB_C_API uint16_t duckdb_get_uint16(duckdb_value val);
   // function get_uint16(value: Value): number
   Napi::Value get_uint16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2871,7 +2871,7 @@ private:
     return Napi::Number::New(env, output);
   }
 
-  // DUCKDB_API int32_t duckdb_get_int32(duckdb_value val);
+  // DUCKDB_C_API int32_t duckdb_get_int32(duckdb_value val);
   // function get_int32(value: Value): number
   Napi::Value get_int32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2880,7 +2880,7 @@ private:
     return Napi::Number::New(env, output);
   }
 
-  // DUCKDB_API uint32_t duckdb_get_uint32(duckdb_value val);
+  // DUCKDB_C_API uint32_t duckdb_get_uint32(duckdb_value val);
   // function get_uint32(value: Value): number
   Napi::Value get_uint32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2889,7 +2889,7 @@ private:
     return Napi::Number::New(env, output);
   }
 
-  // DUCKDB_API int64_t duckdb_get_int64(duckdb_value val);
+  // DUCKDB_C_API int64_t duckdb_get_int64(duckdb_value val);
   // function get_int64(value: Value): bigint
   Napi::Value get_int64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2898,7 +2898,7 @@ private:
     return Napi::BigInt::New(env, int64);
   }
 
-  // DUCKDB_API uint64_t duckdb_get_uint64(duckdb_value val);
+  // DUCKDB_C_API uint64_t duckdb_get_uint64(duckdb_value val);
   // function get_uint64(value: Value): bigint
   Napi::Value get_uint64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2907,7 +2907,7 @@ private:
     return Napi::BigInt::New(env, uint64);
   }
 
-  // DUCKDB_API duckdb_hugeint duckdb_get_hugeint(duckdb_value val);
+  // DUCKDB_C_API duckdb_hugeint duckdb_get_hugeint(duckdb_value val);
   // function get_hugeint(value: Value): bigint
   Napi::Value get_hugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2916,7 +2916,7 @@ private:
     return MakeBigIntFromHugeInt(env, hugeint);
   }
 
-  // DUCKDB_API duckdb_uhugeint duckdb_get_uhugeint(duckdb_value val);
+  // DUCKDB_C_API duckdb_uhugeint duckdb_get_uhugeint(duckdb_value val);
   // function get_uhugeint(value: Value): bigint
   Napi::Value get_uhugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2925,7 +2925,7 @@ private:
     return MakeBigIntFromUHugeInt(env, uhugeint);
   }
 
-  // DUCKDB_API duckdb_varint duckdb_get_varint(duckdb_value val);
+  // DUCKDB_C_API duckdb_varint duckdb_get_varint(duckdb_value val);
   // function get_varint(value: Value): bigint
   Napi::Value get_varint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2936,7 +2936,7 @@ private:
     return bigint;
   }
 
-  // DUCKDB_API duckdb_decimal duckdb_get_decimal(duckdb_value val);
+  // DUCKDB_C_API duckdb_decimal duckdb_get_decimal(duckdb_value val);
   // function get_decimal(value: Value): Decimal
   Napi::Value get_decimal(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2945,7 +2945,7 @@ private:
     return MakeDecimalObject(env, decimal);
   }
 
-  // DUCKDB_API float duckdb_get_float(duckdb_value val);
+  // DUCKDB_C_API float duckdb_get_float(duckdb_value val);
   // function get_float(value: Value): number
   Napi::Value get_float(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2954,7 +2954,7 @@ private:
     return Napi::Number::New(env, output);
   }
 
-  // DUCKDB_API double duckdb_get_double(duckdb_value val);
+  // DUCKDB_C_API double duckdb_get_double(duckdb_value val);
   // function get_double(value: Value): number
   Napi::Value get_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2963,7 +2963,7 @@ private:
     return Napi::Number::New(env, output);
   }
 
-  // DUCKDB_API duckdb_date duckdb_get_date(duckdb_value val);
+  // DUCKDB_C_API duckdb_date duckdb_get_date(duckdb_value val);
   // function get_date(value: Value): Date_
   Napi::Value get_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2972,7 +2972,7 @@ private:
     return MakeDateObject(env, date);
   }
 
-  // DUCKDB_API duckdb_time duckdb_get_time(duckdb_value val);
+  // DUCKDB_C_API duckdb_time duckdb_get_time(duckdb_value val);
   // function get_time(value: Value): Time
   Napi::Value get_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2981,7 +2981,7 @@ private:
     return MakeTimeObject(env, time);
   }
 
-  // DUCKDB_API duckdb_time_tz duckdb_get_time_tz(duckdb_value val);
+  // DUCKDB_C_API duckdb_time_tz duckdb_get_time_tz(duckdb_value val);
   // function get_time_tz(value: Value): TimeTZ
   Napi::Value get_time_tz(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2990,7 +2990,7 @@ private:
     return MakeTimeTZObject(env, time_tz);
   }
 
-  // DUCKDB_API duckdb_timestamp duckdb_get_timestamp(duckdb_value val);
+  // DUCKDB_C_API duckdb_timestamp duckdb_get_timestamp(duckdb_value val);
   // function get_timestamp(value: Value): Timestamp
   Napi::Value get_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -2999,7 +2999,7 @@ private:
     return MakeTimestampObject(env, timestamp);
   }
 
-  // DUCKDB_API duckdb_timestamp duckdb_get_timestamp_tz(duckdb_value val);
+  // DUCKDB_C_API duckdb_timestamp duckdb_get_timestamp_tz(duckdb_value val);
   // function get_timestamp_tz(value: Value): Timestamp
   Napi::Value get_timestamp_tz(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3008,7 +3008,7 @@ private:
     return MakeTimestampObject(env, timestamp);
   }
 
-  // DUCKDB_API duckdb_timestamp_s duckdb_get_timestamp_s(duckdb_value val);
+  // DUCKDB_C_API duckdb_timestamp_s duckdb_get_timestamp_s(duckdb_value val);
   // function get_timestamp_s(value: Value): TimestampSeconds
   Napi::Value get_timestamp_s(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3017,7 +3017,7 @@ private:
     return MakeTimestampSecondsObject(env, timestamp_s);
   }
 
-  // DUCKDB_API duckdb_timestamp_ms duckdb_get_timestamp_ms(duckdb_value val);
+  // DUCKDB_C_API duckdb_timestamp_ms duckdb_get_timestamp_ms(duckdb_value val);
   // function get_timestamp_ms(value: Value): TimestampMilliseconds
   Napi::Value get_timestamp_ms(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3026,7 +3026,7 @@ private:
     return MakeTimestampMillisecondsObject(env, timestamp_ms);
   }
 
-  // DUCKDB_API duckdb_timestamp_ns duckdb_get_timestamp_ns(duckdb_value val);
+  // DUCKDB_C_API duckdb_timestamp_ns duckdb_get_timestamp_ns(duckdb_value val);
   // function get_timestamp_ns(value: Value): TimestampNanoseconds
   Napi::Value get_timestamp_ns(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3035,7 +3035,7 @@ private:
     return MakeTimestampNanosecondsObject(env, timestamp_ns);
   }
 
-  // DUCKDB_API duckdb_interval duckdb_get_interval(duckdb_value val);
+  // DUCKDB_C_API duckdb_interval duckdb_get_interval(duckdb_value val);
   // function get_interval(value: Value): Interval
   Napi::Value get_interval(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3044,7 +3044,7 @@ private:
     return MakeIntervalObject(env, interval);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_get_value_type(duckdb_value val);
+  // DUCKDB_C_API duckdb_logical_type duckdb_get_value_type(duckdb_value val);
   // function get_value_type(value: Value): LogicalType
   Napi::Value get_value_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3053,7 +3053,7 @@ private:
     return CreateExternalForLogicalTypeWithoutFinalizer(env, logical_type);
   }
 
-  // DUCKDB_API duckdb_blob duckdb_get_blob(duckdb_value val);
+  // DUCKDB_C_API duckdb_blob duckdb_get_blob(duckdb_value val);
   // function get_blob(value: Value): Uint8Array
   Napi::Value get_blob(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3062,7 +3062,7 @@ private:
     return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(blob.data), blob.size);
   }
 
-  // DUCKDB_API duckdb_bit duckdb_get_bit(duckdb_value val);
+  // DUCKDB_C_API duckdb_bit duckdb_get_bit(duckdb_value val);
   // function get_bit(value: Value): Uint8Array
   Napi::Value get_bit(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3071,7 +3071,7 @@ private:
     return Napi::Buffer<uint8_t>::NewOrCopy(env, bit.data, bit.size);
   }
 
-  // DUCKDB_API duckdb_uhugeint duckdb_get_uuid(duckdb_value val);
+  // DUCKDB_C_API duckdb_uhugeint duckdb_get_uuid(duckdb_value val);
   // function get_uuid(value: Value): bigint
   Napi::Value get_uuid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3080,7 +3080,7 @@ private:
     return MakeBigIntFromUHugeInt(env, uhugeint);
   }
 
-  // DUCKDB_API char *duckdb_get_varchar(duckdb_value value);
+  // DUCKDB_C_API char *duckdb_get_varchar(duckdb_value value);
   // function get_varchar(value: Value): string
   Napi::Value get_varchar(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3091,7 +3091,7 @@ private:
     return str;
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_struct_value(duckdb_logical_type type, duckdb_value *values);
+  // DUCKDB_C_API duckdb_value duckdb_create_struct_value(duckdb_logical_type type, duckdb_value *values);
   // function create_struct_value(logical_type: LogicalType, values: readonly Value[]): Value
   Napi::Value create_struct_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3111,7 +3111,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_list_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count);
+  // DUCKDB_C_API duckdb_value duckdb_create_list_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count);
   // function create_list_value(logical_type: LogicalType, values: readonly Value[]): Value
   Napi::Value create_list_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3131,7 +3131,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_array_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count);
+  // DUCKDB_C_API duckdb_value duckdb_create_array_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count);
   // function create_array_value(logical_type: LogicalType, values: readonly Value[]): Value
   Napi::Value create_array_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3151,7 +3151,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API idx_t duckdb_get_map_size(duckdb_value value);
+  // DUCKDB_C_API idx_t duckdb_get_map_size(duckdb_value value);
   // function get_map_size(value: Value): number
   Napi::Value get_map_size(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3160,7 +3160,7 @@ private:
     return Napi::Number::New(env, size);
   }
 
-  // DUCKDB_API duckdb_value duckdb_get_map_key(duckdb_value value, idx_t index);
+  // DUCKDB_C_API duckdb_value duckdb_get_map_key(duckdb_value value, idx_t index);
   // function get_map_key(value: Value, index: number): Value
   Napi::Value get_map_key(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3173,7 +3173,7 @@ private:
     return CreateExternalForValue(env, output_key);
   }
 
-  // DUCKDB_API duckdb_value duckdb_get_map_value(duckdb_value value, idx_t index);
+  // DUCKDB_C_API duckdb_value duckdb_get_map_value(duckdb_value value, idx_t index);
   // function get_map_value(value: Value, index: number): Value
   Napi::Value get_map_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3186,7 +3186,7 @@ private:
     return CreateExternalForValue(env, output_value);
   }
 
-  // DUCKDB_API bool duckdb_is_null_value(duckdb_value value);
+  // DUCKDB_C_API bool duckdb_is_null_value(duckdb_value value);
   // function is_null_value(value: Value): boolean
   Napi::Value is_null_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3195,7 +3195,7 @@ private:
     return Napi::Boolean::New(env, is_null);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_null_value();
+  // DUCKDB_C_API duckdb_value duckdb_create_null_value();
   // function create_null_value(): Value
   Napi::Value create_null_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3203,7 +3203,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API idx_t duckdb_get_list_size(duckdb_value value);
+  // DUCKDB_C_API idx_t duckdb_get_list_size(duckdb_value value);
   // function get_list_size(value: Value): number
   Napi::Value get_list_size(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3212,7 +3212,7 @@ private:
     return Napi::Number::New(env, size);
   }
 
-  // DUCKDB_API duckdb_value duckdb_get_list_child(duckdb_value value, idx_t index);
+  // DUCKDB_C_API duckdb_value duckdb_get_list_child(duckdb_value value, idx_t index);
   // function get_list_child(value: Value, index: number): Value
   Napi::Value get_list_child(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3225,7 +3225,7 @@ private:
     return CreateExternalForValue(env, output_value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_create_enum_value(duckdb_logical_type type, uint64_t value);
+  // DUCKDB_C_API duckdb_value duckdb_create_enum_value(duckdb_logical_type type, uint64_t value);
   // function create_enum_value(logical_type: LogicalType, value: number): Value
   Napi::Value create_enum_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3238,7 +3238,7 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_API uint64_t duckdb_get_enum_value(duckdb_value value);
+  // DUCKDB_C_API uint64_t duckdb_get_enum_value(duckdb_value value);
   // function get_enum_value(value: Value): number
   Napi::Value get_enum_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3247,7 +3247,7 @@ private:
     return Napi::Number::New(env, output_value);
   }
 
-  // DUCKDB_API duckdb_value duckdb_get_struct_child(duckdb_value value, idx_t index);
+  // DUCKDB_C_API duckdb_value duckdb_get_struct_child(duckdb_value value, idx_t index);
   // function get_struct_child(value: Value, index: number): Value
   Napi::Value get_struct_child(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3260,7 +3260,7 @@ private:
     return CreateExternalForValue(env, output_value);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
+  // DUCKDB_C_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
   // function create_logical_type(type: Type): LogicalType
   Napi::Value create_logical_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3269,7 +3269,7 @@ private:
     return CreateExternalForLogicalType(env, logical_type);
   }
 
-  // DUCKDB_API char *duckdb_logical_type_get_alias(duckdb_logical_type type);
+  // DUCKDB_C_API char *duckdb_logical_type_get_alias(duckdb_logical_type type);
   // function logical_type_get_alias(logical_type: LogicalType): string | null
   Napi::Value logical_type_get_alias(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3283,7 +3283,7 @@ private:
     return str;
   }
 
-  // DUCKDB_API void duckdb_logical_type_set_alias(duckdb_logical_type type, const char *alias);
+  // DUCKDB_C_API void duckdb_logical_type_set_alias(duckdb_logical_type type, const char *alias);
   // function logical_type_set_alias(logical_type: LogicalType, alias: string): void
   Napi::Value logical_type_set_alias(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3293,7 +3293,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_create_list_type(duckdb_logical_type type);
+  // DUCKDB_C_API duckdb_logical_type duckdb_create_list_type(duckdb_logical_type type);
   // function create_list_type(logical_type: LogicalType): LogicalType
   Napi::Value create_list_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3302,7 +3302,7 @@ private:
     return CreateExternalForLogicalType(env, list_logical_type);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_create_array_type(duckdb_logical_type type, idx_t array_size);
+  // DUCKDB_C_API duckdb_logical_type duckdb_create_array_type(duckdb_logical_type type, idx_t array_size);
   // function create_array_type(logical_type: LogicalType, array_size: number): LogicalType
   Napi::Value create_array_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3312,7 +3312,7 @@ private:
     return CreateExternalForLogicalType(env, array_logical_type);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_create_map_type(duckdb_logical_type key_type, duckdb_logical_type value_type);
+  // DUCKDB_C_API duckdb_logical_type duckdb_create_map_type(duckdb_logical_type key_type, duckdb_logical_type value_type);
   // function create_map_type(key_type: LogicalType, value_type: LogicalType): LogicalType
   Napi::Value create_map_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3322,7 +3322,7 @@ private:
     return CreateExternalForLogicalType(env, map_logical_type);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_create_union_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count);
+  // DUCKDB_C_API duckdb_logical_type duckdb_create_union_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count);
   // function create_union_type(member_types: readonly LogicalType[], member_names: readonly string[]): LogicalType
   Napi::Value create_union_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3346,7 +3346,7 @@ private:
     return CreateExternalForLogicalType(env, union_logical_type);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_create_struct_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count);
+  // DUCKDB_C_API duckdb_logical_type duckdb_create_struct_type(duckdb_logical_type *member_types, const char **member_names, idx_t member_count);
   // function create_struct_type(member_types: readonly LogicalType[], member_names: readonly string[]): LogicalType
   Napi::Value create_struct_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3370,7 +3370,7 @@ private:
     return CreateExternalForLogicalType(env, struct_logical_type);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_create_enum_type(const char **member_names, idx_t member_count);
+  // DUCKDB_C_API duckdb_logical_type duckdb_create_enum_type(const char **member_names, idx_t member_count);
   // function create_enum_type(member_names: readonly string[]): LogicalType
   Napi::Value create_enum_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3388,7 +3388,7 @@ private:
     return CreateExternalForLogicalType(env, enum_logical_type);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_create_decimal_type(uint8_t width, uint8_t scale);
+  // DUCKDB_C_API duckdb_logical_type duckdb_create_decimal_type(uint8_t width, uint8_t scale);
   // function create_decimal_type(width: number, scale: number): LogicalType
   Napi::Value create_decimal_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3398,7 +3398,7 @@ private:
     return CreateExternalForLogicalType(env, decimal_logical_type);
   }
 
-  // DUCKDB_API duckdb_type duckdb_get_type_id(duckdb_logical_type type);
+  // DUCKDB_C_API duckdb_type duckdb_get_type_id(duckdb_logical_type type);
   // function get_type_id(logical_type: LogicalType): Type
   Napi::Value get_type_id(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3407,7 +3407,7 @@ private:
     return Napi::Number::New(env, type);
   }
 
-  // DUCKDB_API uint8_t duckdb_decimal_width(duckdb_logical_type type);
+  // DUCKDB_C_API uint8_t duckdb_decimal_width(duckdb_logical_type type);
   // function decimal_width(logical_type: LogicalType): number
   Napi::Value decimal_width(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3416,7 +3416,7 @@ private:
     return Napi::Number::New(env, width);
   }
 
-  // DUCKDB_API uint8_t duckdb_decimal_scale(duckdb_logical_type type);
+  // DUCKDB_C_API uint8_t duckdb_decimal_scale(duckdb_logical_type type);
   // function decimal_scale(logical_type: LogicalType): number
   Napi::Value decimal_scale(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3425,7 +3425,7 @@ private:
     return Napi::Number::New(env, width);
   }
 
-  // DUCKDB_API duckdb_type duckdb_decimal_internal_type(duckdb_logical_type type);
+  // DUCKDB_C_API duckdb_type duckdb_decimal_internal_type(duckdb_logical_type type);
   // function decimal_internal_type(logical_type: LogicalType): Type
   Napi::Value decimal_internal_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3434,7 +3434,7 @@ private:
     return Napi::Number::New(env, type);
   }
 
-  // DUCKDB_API duckdb_type duckdb_enum_internal_type(duckdb_logical_type type);
+  // DUCKDB_C_API duckdb_type duckdb_enum_internal_type(duckdb_logical_type type);
   // function enum_internal_type(logical_type: LogicalType): Type
   Napi::Value enum_internal_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3443,7 +3443,7 @@ private:
     return Napi::Number::New(env, type);
   }
 
-  // DUCKDB_API uint32_t duckdb_enum_dictionary_size(duckdb_logical_type type);
+  // DUCKDB_C_API uint32_t duckdb_enum_dictionary_size(duckdb_logical_type type);
   // function enum_dictionary_size(logical_type: LogicalType): number
   Napi::Value enum_dictionary_size(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3452,7 +3452,7 @@ private:
     return Napi::Number::New(env, size);
   }
 
-  // DUCKDB_API char *duckdb_enum_dictionary_value(duckdb_logical_type type, idx_t index);
+  // DUCKDB_C_API char *duckdb_enum_dictionary_value(duckdb_logical_type type, idx_t index);
   // function enum_dictionary_value(logical_type: LogicalType, index: number): string
   Napi::Value enum_dictionary_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3464,7 +3464,7 @@ private:
     return str;
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_list_type_child_type(duckdb_logical_type type);
+  // DUCKDB_C_API duckdb_logical_type duckdb_list_type_child_type(duckdb_logical_type type);
   // function list_type_child_type(logical_type: LogicalType): LogicalType
   Napi::Value list_type_child_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3473,7 +3473,7 @@ private:
     return CreateExternalForLogicalType(env, child_logical_type);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_array_type_child_type(duckdb_logical_type type);
+  // DUCKDB_C_API duckdb_logical_type duckdb_array_type_child_type(duckdb_logical_type type);
   // function array_type_child_type(logical_type: LogicalType): LogicalType
   Napi::Value array_type_child_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3482,7 +3482,7 @@ private:
     return CreateExternalForLogicalType(env, child_logical_type);
   }
 
-  // DUCKDB_API idx_t duckdb_array_type_array_size(duckdb_logical_type type);
+  // DUCKDB_C_API idx_t duckdb_array_type_array_size(duckdb_logical_type type);
   // function array_type_array_size(logical_type: LogicalType): number
   Napi::Value array_type_array_size(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3491,7 +3491,7 @@ private:
     return Napi::Number::New(env, array_size);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_map_type_key_type(duckdb_logical_type type);
+  // DUCKDB_C_API duckdb_logical_type duckdb_map_type_key_type(duckdb_logical_type type);
   // function map_type_key_type(logical_type: LogicalType): LogicalType
   Napi::Value map_type_key_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3500,7 +3500,7 @@ private:
     return CreateExternalForLogicalType(env, key_logical_type);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_map_type_value_type(duckdb_logical_type type);
+  // DUCKDB_C_API duckdb_logical_type duckdb_map_type_value_type(duckdb_logical_type type);
   // function map_type_value_type(logical_type: LogicalType): LogicalType
   Napi::Value map_type_value_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3509,7 +3509,7 @@ private:
     return CreateExternalForLogicalType(env, value_logical_type);
   }
 
-  // DUCKDB_API idx_t duckdb_struct_type_child_count(duckdb_logical_type type);
+  // DUCKDB_C_API idx_t duckdb_struct_type_child_count(duckdb_logical_type type);
   // function struct_type_child_count(logical_type: LogicalType): number
   Napi::Value struct_type_child_count(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3518,7 +3518,7 @@ private:
     return Napi::Number::New(env, child_count);
   }
 
-  // DUCKDB_API char *duckdb_struct_type_child_name(duckdb_logical_type type, idx_t index);
+  // DUCKDB_C_API char *duckdb_struct_type_child_name(duckdb_logical_type type, idx_t index);
   // function struct_type_child_name(logical_type: LogicalType, index: number): string
   Napi::Value struct_type_child_name(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3530,7 +3530,7 @@ private:
     return str;
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_struct_type_child_type(duckdb_logical_type type, idx_t index);
+  // DUCKDB_C_API duckdb_logical_type duckdb_struct_type_child_type(duckdb_logical_type type, idx_t index);
   // function struct_type_child_type(logical_type: LogicalType, index: number): LogicalType
   Napi::Value struct_type_child_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3540,7 +3540,7 @@ private:
     return CreateExternalForLogicalType(env, child_logical_type);
   }
 
-  // DUCKDB_API idx_t duckdb_union_type_member_count(duckdb_logical_type type);
+  // DUCKDB_C_API idx_t duckdb_union_type_member_count(duckdb_logical_type type);
   // function union_type_member_count(logical_type: LogicalType): number
   Napi::Value union_type_member_count(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3549,7 +3549,7 @@ private:
     return Napi::Number::New(env, member_count);
   }
 
-  // DUCKDB_API char *duckdb_union_type_member_name(duckdb_logical_type type, idx_t index);
+  // DUCKDB_C_API char *duckdb_union_type_member_name(duckdb_logical_type type, idx_t index);
   // function union_type_member_name(logical_type: LogicalType, index: number): string
   Napi::Value union_type_member_name(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3561,7 +3561,7 @@ private:
     return str;
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_union_type_member_type(duckdb_logical_type type, idx_t index);
+  // DUCKDB_C_API duckdb_logical_type duckdb_union_type_member_type(duckdb_logical_type type, idx_t index);
   // function union_type_member_type(logical_type: LogicalType, index: number): LogicalType
   Napi::Value union_type_member_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3571,13 +3571,13 @@ private:
     return CreateExternalForLogicalType(env, member_logical_type);
   }
 
-  // DUCKDB_API void duckdb_destroy_logical_type(duckdb_logical_type *type);
+  // DUCKDB_C_API void duckdb_destroy_logical_type(duckdb_logical_type *type);
   // not exposed: destroyed in finalizer
 
-  // DUCKDB_API duckdb_state duckdb_register_logical_type(duckdb_connection con, duckdb_logical_type type, duckdb_create_type_info info);
+  // DUCKDB_C_API duckdb_state duckdb_register_logical_type(duckdb_connection con, duckdb_logical_type type, duckdb_create_type_info info);
   // function register_logical_type(connection: Connection, logical_type: LogicalType, info: CreateTypeInfo): void
 
-  // DUCKDB_API duckdb_data_chunk duckdb_create_data_chunk(duckdb_logical_type *types, idx_t column_count);
+  // DUCKDB_C_API duckdb_data_chunk duckdb_create_data_chunk(duckdb_logical_type *types, idx_t column_count);
   // function create_data_chunk(logical_types: readonly LogicalType[]): DataChunk
   Napi::Value create_data_chunk(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3593,10 +3593,10 @@ private:
     return CreateExternalForDataChunk(env, data_chunk);
   }
 
-  // DUCKDB_API void duckdb_destroy_data_chunk(duckdb_data_chunk *chunk);
+  // DUCKDB_C_API void duckdb_destroy_data_chunk(duckdb_data_chunk *chunk);
   // not exposed: destroyed in finalizer
 
-  // DUCKDB_API void duckdb_data_chunk_reset(duckdb_data_chunk chunk);
+  // DUCKDB_C_API void duckdb_data_chunk_reset(duckdb_data_chunk chunk);
   // function data_chunk_reset(chunk: DataChunk): void
   Napi::Value data_chunk_reset(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3605,7 +3605,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API idx_t duckdb_data_chunk_get_column_count(duckdb_data_chunk chunk);
+  // DUCKDB_C_API idx_t duckdb_data_chunk_get_column_count(duckdb_data_chunk chunk);
   // function data_chunk_get_column_count(chunk: DataChunk): number
   Napi::Value data_chunk_get_column_count(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3614,7 +3614,7 @@ private:
     return Napi::Number::New(env, column_count);
   }
 
-  // DUCKDB_API duckdb_vector duckdb_data_chunk_get_vector(duckdb_data_chunk chunk, idx_t col_idx);
+  // DUCKDB_C_API duckdb_vector duckdb_data_chunk_get_vector(duckdb_data_chunk chunk, idx_t col_idx);
   // function data_chunk_get_vector(chunk: DataChunk, column_index: number): Vector
   Napi::Value data_chunk_get_vector(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3624,7 +3624,7 @@ private:
     return CreateExternalForVector(env, vector);
   }
 
-  // DUCKDB_API idx_t duckdb_data_chunk_get_size(duckdb_data_chunk chunk);
+  // DUCKDB_C_API idx_t duckdb_data_chunk_get_size(duckdb_data_chunk chunk);
   // function data_chunk_get_size(chunk: DataChunk): number
   Napi::Value data_chunk_get_size(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3633,7 +3633,7 @@ private:
     return Napi::Number::New(env, size);
   }
 
-  // DUCKDB_API void duckdb_data_chunk_set_size(duckdb_data_chunk chunk, idx_t size);
+  // DUCKDB_C_API void duckdb_data_chunk_set_size(duckdb_data_chunk chunk, idx_t size);
   // function data_chunk_set_size(chunk: DataChunk, size: number): void
   Napi::Value data_chunk_set_size(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3643,7 +3643,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector);
+  // DUCKDB_C_API duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector);
   // function vector_get_column_type(vector: Vector): LogicalType
   Napi::Value vector_get_column_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3652,7 +3652,7 @@ private:
     return CreateExternalForLogicalType(env, logical_type);
   }
 
-  // DUCKDB_API void *duckdb_vector_get_data(duckdb_vector vector);
+  // DUCKDB_C_API void *duckdb_vector_get_data(duckdb_vector vector);
   // function vector_get_data(vector: Vector, byte_count: number): Uint8Array
   Napi::Value vector_get_data(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3662,7 +3662,7 @@ private:
     return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(data), byte_count);
   }
 
-  // DUCKDB_API uint64_t *duckdb_vector_get_validity(duckdb_vector vector);
+  // DUCKDB_C_API uint64_t *duckdb_vector_get_validity(duckdb_vector vector);
   // function vector_get_validity(vector: Vector, byte_count: number): Uint8Array
   Napi::Value vector_get_validity(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3675,7 +3675,7 @@ private:
     return Napi::Buffer<uint8_t>::NewOrCopy(env, reinterpret_cast<uint8_t*>(data), byte_count);
   }
 
-  // DUCKDB_API void duckdb_vector_ensure_validity_writable(duckdb_vector vector);
+  // DUCKDB_C_API void duckdb_vector_ensure_validity_writable(duckdb_vector vector);
   // function vector_ensure_validity_writable(vector: Vector): void
   Napi::Value vector_ensure_validity_writable(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3684,7 +3684,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API void duckdb_vector_assign_string_element(duckdb_vector vector, idx_t index, const char *str);
+  // DUCKDB_C_API void duckdb_vector_assign_string_element(duckdb_vector vector, idx_t index, const char *str);
   // function vector_assign_string_element(vector: Vector, index: number, str: string): void
   Napi::Value vector_assign_string_element(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3697,7 +3697,7 @@ private:
     return env.Undefined();
   }
   
-  // DUCKDB_API void duckdb_vector_assign_string_element_len(duckdb_vector vector, idx_t index, const char *str, idx_t str_len);
+  // DUCKDB_C_API void duckdb_vector_assign_string_element_len(duckdb_vector vector, idx_t index, const char *str, idx_t str_len);
   // function vector_assign_string_element_len(vector: Vector, index: number, data: Uint8Array): void
   Napi::Value vector_assign_string_element_len(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3710,7 +3710,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_vector duckdb_list_vector_get_child(duckdb_vector vector);
+  // DUCKDB_C_API duckdb_vector duckdb_list_vector_get_child(duckdb_vector vector);
   // function list_vector_get_child(vector: Vector): Vector
   Napi::Value list_vector_get_child(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3719,7 +3719,7 @@ private:
     return CreateExternalForVector(env, child);
   }
 
-  // DUCKDB_API idx_t duckdb_list_vector_get_size(duckdb_vector vector);
+  // DUCKDB_C_API idx_t duckdb_list_vector_get_size(duckdb_vector vector);
   // function list_vector_get_size(vector: Vector): number
   Napi::Value list_vector_get_size(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3728,7 +3728,7 @@ private:
     return Napi::Number::New(env, size);
   }
 
-  // DUCKDB_API duckdb_state duckdb_list_vector_set_size(duckdb_vector vector, idx_t size);
+  // DUCKDB_C_API duckdb_state duckdb_list_vector_set_size(duckdb_vector vector, idx_t size);
   // function list_vector_set_size(vector: Vector, size: number): void
   Napi::Value list_vector_set_size(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3738,7 +3738,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_list_vector_reserve(duckdb_vector vector, idx_t required_capacity);
+  // DUCKDB_C_API duckdb_state duckdb_list_vector_reserve(duckdb_vector vector, idx_t required_capacity);
   // function list_vector_reserve(vector: Vector, required_capacity: number): void
   Napi::Value list_vector_reserve(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3748,7 +3748,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_vector duckdb_struct_vector_get_child(duckdb_vector vector, idx_t index);
+  // DUCKDB_C_API duckdb_vector duckdb_struct_vector_get_child(duckdb_vector vector, idx_t index);
   // function struct_vector_get_child(vector: Vector, index: number): Vector
   Napi::Value struct_vector_get_child(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3758,7 +3758,7 @@ private:
     return CreateExternalForVector(env, child);
   }
 
-  // DUCKDB_API duckdb_vector duckdb_array_vector_get_child(duckdb_vector vector);
+  // DUCKDB_C_API duckdb_vector duckdb_array_vector_get_child(duckdb_vector vector);
   // function array_vector_get_child(vector: Vector): Vector
   Napi::Value array_vector_get_child(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3767,7 +3767,7 @@ private:
     return CreateExternalForVector(env, child);
   }
 
-  // DUCKDB_API bool duckdb_validity_row_is_valid(uint64_t *validity, idx_t row);
+  // DUCKDB_C_API bool duckdb_validity_row_is_valid(uint64_t *validity, idx_t row);
   // function validity_row_is_valid(validity: Uint8Array | null, row_index: number): boolean
   Napi::Value validity_row_is_valid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3777,7 +3777,7 @@ private:
     return Napi::Boolean::New(env, valid);
   }
 
-  // DUCKDB_API void duckdb_validity_set_row_validity(uint64_t *validity, idx_t row, bool valid);
+  // DUCKDB_C_API void duckdb_validity_set_row_validity(uint64_t *validity, idx_t row, bool valid);
   // function validity_set_row_validity(validity: Uint8Array, row_index: number, valid: boolean): void
   Napi::Value validity_set_row_validity(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3788,7 +3788,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API void duckdb_validity_set_row_invalid(uint64_t *validity, idx_t row);
+  // DUCKDB_C_API void duckdb_validity_set_row_invalid(uint64_t *validity, idx_t row);
   // function validity_set_row_invalid(validity: Uint8Array, row_index: number): void
   Napi::Value validity_set_row_invalid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3798,7 +3798,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API void duckdb_validity_set_row_valid(uint64_t *validity, idx_t row);
+  // DUCKDB_C_API void duckdb_validity_set_row_valid(uint64_t *validity, idx_t row);
   // function validity_set_row_valid(validity: Uint8Array, row_index: number): void
   Napi::Value validity_set_row_valid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3808,91 +3808,91 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_scalar_function duckdb_create_scalar_function();
-  // DUCKDB_API void duckdb_destroy_scalar_function(duckdb_scalar_function *scalar_function);
-  // DUCKDB_API void duckdb_scalar_function_set_name(duckdb_scalar_function scalar_function, const char *name);
-  // DUCKDB_API void duckdb_scalar_function_set_varargs(duckdb_scalar_function scalar_function, duckdb_logical_type type);
-  // DUCKDB_API void duckdb_scalar_function_set_special_handling(duckdb_scalar_function scalar_function);
-  // DUCKDB_API void duckdb_scalar_function_set_volatile(duckdb_scalar_function scalar_function);
-  // DUCKDB_API void duckdb_scalar_function_add_parameter(duckdb_scalar_function scalar_function, duckdb_logical_type type);
-  // DUCKDB_API void duckdb_scalar_function_set_return_type(duckdb_scalar_function scalar_function, duckdb_logical_type type);
-  // DUCKDB_API void duckdb_scalar_function_set_extra_info(duckdb_scalar_function scalar_function, void *extra_info, duckdb_delete_callback_t destroy);
-  // DUCKDB_API void duckdb_scalar_function_set_function(duckdb_scalar_function scalar_function, duckdb_scalar_function_t function);
-  // DUCKDB_API duckdb_state duckdb_register_scalar_function(duckdb_connection con, duckdb_scalar_function scalar_function);
-  // DUCKDB_API void *duckdb_scalar_function_get_extra_info(duckdb_function_info info);
-  // DUCKDB_API void duckdb_scalar_function_set_error(duckdb_function_info info, const char *error);
+  // DUCKDB_C_API duckdb_scalar_function duckdb_create_scalar_function();
+  // DUCKDB_C_API void duckdb_destroy_scalar_function(duckdb_scalar_function *scalar_function);
+  // DUCKDB_C_API void duckdb_scalar_function_set_name(duckdb_scalar_function scalar_function, const char *name);
+  // DUCKDB_C_API void duckdb_scalar_function_set_varargs(duckdb_scalar_function scalar_function, duckdb_logical_type type);
+  // DUCKDB_C_API void duckdb_scalar_function_set_special_handling(duckdb_scalar_function scalar_function);
+  // DUCKDB_C_API void duckdb_scalar_function_set_volatile(duckdb_scalar_function scalar_function);
+  // DUCKDB_C_API void duckdb_scalar_function_add_parameter(duckdb_scalar_function scalar_function, duckdb_logical_type type);
+  // DUCKDB_C_API void duckdb_scalar_function_set_return_type(duckdb_scalar_function scalar_function, duckdb_logical_type type);
+  // DUCKDB_C_API void duckdb_scalar_function_set_extra_info(duckdb_scalar_function scalar_function, void *extra_info, duckdb_delete_callback_t destroy);
+  // DUCKDB_C_API void duckdb_scalar_function_set_function(duckdb_scalar_function scalar_function, duckdb_scalar_function_t function);
+  // DUCKDB_C_API duckdb_state duckdb_register_scalar_function(duckdb_connection con, duckdb_scalar_function scalar_function);
+  // DUCKDB_C_API void *duckdb_scalar_function_get_extra_info(duckdb_function_info info);
+  // DUCKDB_C_API void duckdb_scalar_function_set_error(duckdb_function_info info, const char *error);
 
-  // DUCKDB_API duckdb_scalar_function_set duckdb_create_scalar_function_set(const char *name);
-  // DUCKDB_API void duckdb_destroy_scalar_function_set(duckdb_scalar_function_set *scalar_function_set);
-  // DUCKDB_API duckdb_state duckdb_add_scalar_function_to_set(duckdb_scalar_function_set set, duckdb_scalar_function function);
-  // DUCKDB_API duckdb_state duckdb_register_scalar_function_set(duckdb_connection con, duckdb_scalar_function_set set);
+  // DUCKDB_C_API duckdb_scalar_function_set duckdb_create_scalar_function_set(const char *name);
+  // DUCKDB_C_API void duckdb_destroy_scalar_function_set(duckdb_scalar_function_set *scalar_function_set);
+  // DUCKDB_C_API duckdb_state duckdb_add_scalar_function_to_set(duckdb_scalar_function_set set, duckdb_scalar_function function);
+  // DUCKDB_C_API duckdb_state duckdb_register_scalar_function_set(duckdb_connection con, duckdb_scalar_function_set set);
 
-  // DUCKDB_API duckdb_aggregate_function duckdb_create_aggregate_function();
-  // DUCKDB_API void duckdb_destroy_aggregate_function(duckdb_aggregate_function *aggregate_function);
-  // DUCKDB_API void duckdb_aggregate_function_set_name(duckdb_aggregate_function aggregate_function, const char *name);
-  // DUCKDB_API void duckdb_aggregate_function_add_parameter(duckdb_aggregate_function aggregate_function, duckdb_logical_type type);
-  // DUCKDB_API void duckdb_aggregate_function_set_return_type(duckdb_aggregate_function aggregate_function, duckdb_logical_type type);
-  // DUCKDB_API void duckdb_aggregate_function_set_functions(duckdb_aggregate_function aggregate_function, duckdb_aggregate_state_size state_size, duckdb_aggregate_init_t state_init, duckdb_aggregate_update_t update, duckdb_aggregate_combine_t combine, duckdb_aggregate_finalize_t finalize);
-  // DUCKDB_API void duckdb_aggregate_function_set_destructor(duckdb_aggregate_function aggregate_function, duckdb_aggregate_destroy_t destroy);
-  // DUCKDB_API duckdb_state duckdb_register_aggregate_function(duckdb_connection con, duckdb_aggregate_function aggregate_function);
-  // DUCKDB_API void duckdb_aggregate_function_set_special_handling(duckdb_aggregate_function aggregate_function);
-  // DUCKDB_API void duckdb_aggregate_function_set_extra_info(duckdb_aggregate_function aggregate_function, void *extra_info, duckdb_delete_callback_t destroy);
-  // DUCKDB_API void *duckdb_aggregate_function_get_extra_info(duckdb_function_info info);
-  // DUCKDB_API void duckdb_aggregate_function_set_error(duckdb_function_info info, const char *error);
+  // DUCKDB_C_API duckdb_aggregate_function duckdb_create_aggregate_function();
+  // DUCKDB_C_API void duckdb_destroy_aggregate_function(duckdb_aggregate_function *aggregate_function);
+  // DUCKDB_C_API void duckdb_aggregate_function_set_name(duckdb_aggregate_function aggregate_function, const char *name);
+  // DUCKDB_C_API void duckdb_aggregate_function_add_parameter(duckdb_aggregate_function aggregate_function, duckdb_logical_type type);
+  // DUCKDB_C_API void duckdb_aggregate_function_set_return_type(duckdb_aggregate_function aggregate_function, duckdb_logical_type type);
+  // DUCKDB_C_API void duckdb_aggregate_function_set_functions(duckdb_aggregate_function aggregate_function, duckdb_aggregate_state_size state_size, duckdb_aggregate_init_t state_init, duckdb_aggregate_update_t update, duckdb_aggregate_combine_t combine, duckdb_aggregate_finalize_t finalize);
+  // DUCKDB_C_API void duckdb_aggregate_function_set_destructor(duckdb_aggregate_function aggregate_function, duckdb_aggregate_destroy_t destroy);
+  // DUCKDB_C_API duckdb_state duckdb_register_aggregate_function(duckdb_connection con, duckdb_aggregate_function aggregate_function);
+  // DUCKDB_C_API void duckdb_aggregate_function_set_special_handling(duckdb_aggregate_function aggregate_function);
+  // DUCKDB_C_API void duckdb_aggregate_function_set_extra_info(duckdb_aggregate_function aggregate_function, void *extra_info, duckdb_delete_callback_t destroy);
+  // DUCKDB_C_API void *duckdb_aggregate_function_get_extra_info(duckdb_function_info info);
+  // DUCKDB_C_API void duckdb_aggregate_function_set_error(duckdb_function_info info, const char *error);
 
-  // DUCKDB_API duckdb_aggregate_function_set duckdb_create_aggregate_function_set(const char *name);
-  // DUCKDB_API void duckdb_destroy_aggregate_function_set(duckdb_aggregate_function_set *aggregate_function_set);
-  // DUCKDB_API duckdb_state duckdb_add_aggregate_function_to_set(duckdb_aggregate_function_set set, duckdb_aggregate_function function);
-  // DUCKDB_API duckdb_state duckdb_register_aggregate_function_set(duckdb_connection con, duckdb_aggregate_function_set set);
+  // DUCKDB_C_API duckdb_aggregate_function_set duckdb_create_aggregate_function_set(const char *name);
+  // DUCKDB_C_API void duckdb_destroy_aggregate_function_set(duckdb_aggregate_function_set *aggregate_function_set);
+  // DUCKDB_C_API duckdb_state duckdb_add_aggregate_function_to_set(duckdb_aggregate_function_set set, duckdb_aggregate_function function);
+  // DUCKDB_C_API duckdb_state duckdb_register_aggregate_function_set(duckdb_connection con, duckdb_aggregate_function_set set);
 
-  // DUCKDB_API duckdb_table_function duckdb_create_table_function();
-  // DUCKDB_API void duckdb_destroy_table_function(duckdb_table_function *table_function);
-  // DUCKDB_API void duckdb_table_function_set_name(duckdb_table_function table_function, const char *name);
-  // DUCKDB_API void duckdb_table_function_add_parameter(duckdb_table_function table_function, duckdb_logical_type type);
-  // DUCKDB_API void duckdb_table_function_add_named_parameter(duckdb_table_function table_function, const char *name, duckdb_logical_type type);
-  // DUCKDB_API void duckdb_table_function_set_extra_info(duckdb_table_function table_function, void *extra_info, duckdb_delete_callback_t destroy);
-  // DUCKDB_API void duckdb_table_function_set_bind(duckdb_table_function table_function, duckdb_table_function_bind_t bind);
-  // DUCKDB_API void duckdb_table_function_set_init(duckdb_table_function table_function, duckdb_table_function_init_t init);
-  // DUCKDB_API void duckdb_table_function_set_local_init(duckdb_table_function table_function, duckdb_table_function_init_t init);
-  // DUCKDB_API void duckdb_table_function_set_function(duckdb_table_function table_function, duckdb_table_function_t function);
-  // DUCKDB_API void duckdb_table_function_supports_projection_pushdown(duckdb_table_function table_function, bool pushdown);
-  // DUCKDB_API duckdb_state duckdb_register_table_function(duckdb_connection con, duckdb_table_function function);
+  // DUCKDB_C_API duckdb_table_function duckdb_create_table_function();
+  // DUCKDB_C_API void duckdb_destroy_table_function(duckdb_table_function *table_function);
+  // DUCKDB_C_API void duckdb_table_function_set_name(duckdb_table_function table_function, const char *name);
+  // DUCKDB_C_API void duckdb_table_function_add_parameter(duckdb_table_function table_function, duckdb_logical_type type);
+  // DUCKDB_C_API void duckdb_table_function_add_named_parameter(duckdb_table_function table_function, const char *name, duckdb_logical_type type);
+  // DUCKDB_C_API void duckdb_table_function_set_extra_info(duckdb_table_function table_function, void *extra_info, duckdb_delete_callback_t destroy);
+  // DUCKDB_C_API void duckdb_table_function_set_bind(duckdb_table_function table_function, duckdb_table_function_bind_t bind);
+  // DUCKDB_C_API void duckdb_table_function_set_init(duckdb_table_function table_function, duckdb_table_function_init_t init);
+  // DUCKDB_C_API void duckdb_table_function_set_local_init(duckdb_table_function table_function, duckdb_table_function_init_t init);
+  // DUCKDB_C_API void duckdb_table_function_set_function(duckdb_table_function table_function, duckdb_table_function_t function);
+  // DUCKDB_C_API void duckdb_table_function_supports_projection_pushdown(duckdb_table_function table_function, bool pushdown);
+  // DUCKDB_C_API duckdb_state duckdb_register_table_function(duckdb_connection con, duckdb_table_function function);
 
-  // DUCKDB_API void *duckdb_bind_get_extra_info(duckdb_bind_info info);
-  // DUCKDB_API void duckdb_bind_add_result_column(duckdb_bind_info info, const char *name, duckdb_logical_type type);
-  // DUCKDB_API idx_t duckdb_bind_get_parameter_count(duckdb_bind_info info);
-  // DUCKDB_API duckdb_value duckdb_bind_get_parameter(duckdb_bind_info info, idx_t index);
-  // DUCKDB_API duckdb_value duckdb_bind_get_named_parameter(duckdb_bind_info info, const char *name);
-  // DUCKDB_API void duckdb_bind_set_bind_data(duckdb_bind_info info, void *bind_data, duckdb_delete_callback_t destroy);
-  // DUCKDB_API void duckdb_bind_set_cardinality(duckdb_bind_info info, idx_t cardinality, bool is_exact);
-  // DUCKDB_API void duckdb_bind_set_error(duckdb_bind_info info, const char *error);
+  // DUCKDB_C_API void *duckdb_bind_get_extra_info(duckdb_bind_info info);
+  // DUCKDB_C_API void duckdb_bind_add_result_column(duckdb_bind_info info, const char *name, duckdb_logical_type type);
+  // DUCKDB_C_API idx_t duckdb_bind_get_parameter_count(duckdb_bind_info info);
+  // DUCKDB_C_API duckdb_value duckdb_bind_get_parameter(duckdb_bind_info info, idx_t index);
+  // DUCKDB_C_API duckdb_value duckdb_bind_get_named_parameter(duckdb_bind_info info, const char *name);
+  // DUCKDB_C_API void duckdb_bind_set_bind_data(duckdb_bind_info info, void *bind_data, duckdb_delete_callback_t destroy);
+  // DUCKDB_C_API void duckdb_bind_set_cardinality(duckdb_bind_info info, idx_t cardinality, bool is_exact);
+  // DUCKDB_C_API void duckdb_bind_set_error(duckdb_bind_info info, const char *error);
 
-  // DUCKDB_API void *duckdb_init_get_extra_info(duckdb_init_info info);
-  // DUCKDB_API void *duckdb_init_get_bind_data(duckdb_init_info info);
-  // DUCKDB_API void duckdb_init_set_init_data(duckdb_init_info info, void *init_data, duckdb_delete_callback_t destroy);
-  // DUCKDB_API idx_t duckdb_init_get_column_count(duckdb_init_info info);
-  // DUCKDB_API idx_t duckdb_init_get_column_index(duckdb_init_info info, idx_t column_index);
-  // DUCKDB_API void duckdb_init_set_max_threads(duckdb_init_info info, idx_t max_threads);
-  // DUCKDB_API void duckdb_init_set_error(duckdb_init_info info, const char *error);
+  // DUCKDB_C_API void *duckdb_init_get_extra_info(duckdb_init_info info);
+  // DUCKDB_C_API void *duckdb_init_get_bind_data(duckdb_init_info info);
+  // DUCKDB_C_API void duckdb_init_set_init_data(duckdb_init_info info, void *init_data, duckdb_delete_callback_t destroy);
+  // DUCKDB_C_API idx_t duckdb_init_get_column_count(duckdb_init_info info);
+  // DUCKDB_C_API idx_t duckdb_init_get_column_index(duckdb_init_info info, idx_t column_index);
+  // DUCKDB_C_API void duckdb_init_set_max_threads(duckdb_init_info info, idx_t max_threads);
+  // DUCKDB_C_API void duckdb_init_set_error(duckdb_init_info info, const char *error);
 
-  // DUCKDB_API void *duckdb_function_get_extra_info(duckdb_function_info info);
-  // DUCKDB_API void *duckdb_function_get_bind_data(duckdb_function_info info);
-  // DUCKDB_API void *duckdb_function_get_init_data(duckdb_function_info info);
-  // DUCKDB_API void *duckdb_function_get_local_init_data(duckdb_function_info info);
-  // DUCKDB_API void duckdb_function_set_error(duckdb_function_info info, const char *error);
+  // DUCKDB_C_API void *duckdb_function_get_extra_info(duckdb_function_info info);
+  // DUCKDB_C_API void *duckdb_function_get_bind_data(duckdb_function_info info);
+  // DUCKDB_C_API void *duckdb_function_get_init_data(duckdb_function_info info);
+  // DUCKDB_C_API void *duckdb_function_get_local_init_data(duckdb_function_info info);
+  // DUCKDB_C_API void duckdb_function_set_error(duckdb_function_info info, const char *error);
 
-  // DUCKDB_API void duckdb_add_replacement_scan(duckdb_database db, duckdb_replacement_callback_t replacement, void *extra_data, duckdb_delete_callback_t delete_callback);
-  // DUCKDB_API void duckdb_replacement_scan_set_function_name(duckdb_replacement_scan_info info, const char *function_name);
-  // DUCKDB_API void duckdb_replacement_scan_add_parameter(duckdb_replacement_scan_info info, duckdb_value parameter);
-  // DUCKDB_API void duckdb_replacement_scan_set_error(duckdb_replacement_scan_info info, const char *error);
+  // DUCKDB_C_API void duckdb_add_replacement_scan(duckdb_database db, duckdb_replacement_callback_t replacement, void *extra_data, duckdb_delete_callback_t delete_callback);
+  // DUCKDB_C_API void duckdb_replacement_scan_set_function_name(duckdb_replacement_scan_info info, const char *function_name);
+  // DUCKDB_C_API void duckdb_replacement_scan_add_parameter(duckdb_replacement_scan_info info, duckdb_value parameter);
+  // DUCKDB_C_API void duckdb_replacement_scan_set_error(duckdb_replacement_scan_info info, const char *error);
 
-  // DUCKDB_API duckdb_profiling_info duckdb_get_profiling_info(duckdb_connection connection);
-  // DUCKDB_API duckdb_value duckdb_profiling_info_get_value(duckdb_profiling_info info, const char *key);
-  // DUCKDB_API duckdb_value duckdb_profiling_info_get_metrics(duckdb_profiling_info info);
-  // DUCKDB_API idx_t duckdb_profiling_info_get_child_count(duckdb_profiling_info info);
-  // DUCKDB_API duckdb_profiling_info duckdb_profiling_info_get_child(duckdb_profiling_info info, idx_t index);
+  // DUCKDB_C_API duckdb_profiling_info duckdb_get_profiling_info(duckdb_connection connection);
+  // DUCKDB_C_API duckdb_value duckdb_profiling_info_get_value(duckdb_profiling_info info, const char *key);
+  // DUCKDB_C_API duckdb_value duckdb_profiling_info_get_metrics(duckdb_profiling_info info);
+  // DUCKDB_C_API idx_t duckdb_profiling_info_get_child_count(duckdb_profiling_info info);
+  // DUCKDB_C_API duckdb_profiling_info duckdb_profiling_info_get_child(duckdb_profiling_info info, idx_t index);
 
-  // DUCKDB_API duckdb_state duckdb_appender_create(duckdb_connection connection, const char *schema, const char *table, duckdb_appender *out_appender);
+  // DUCKDB_C_API duckdb_state duckdb_appender_create(duckdb_connection connection, const char *schema, const char *table, duckdb_appender *out_appender);
   // function appender_create(connection: Connection, schema: string | null, table: string): Appender
   Napi::Value appender_create(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3918,7 +3918,7 @@ private:
     return CreateExternalForAppender(env, appender);
   }
 
-  // DUCKDB_API duckdb_state duckdb_appender_create_ext(duckdb_connection connection, const char *catalog, const char *schema, const char *table, duckdb_appender *out_appender);
+  // DUCKDB_C_API duckdb_state duckdb_appender_create_ext(duckdb_connection connection, const char *catalog, const char *schema, const char *table, duckdb_appender *out_appender);
   // function appender_create_ext(connection: Connection, catalog: string | null, schema: string | null, table: string): Appender
   Napi::Value appender_create_ext(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3946,7 +3946,7 @@ private:
     return CreateExternalForAppender(env, appender);
   }
 
-  // DUCKDB_API idx_t duckdb_appender_column_count(duckdb_appender appender);
+  // DUCKDB_C_API idx_t duckdb_appender_column_count(duckdb_appender appender);
   // function appender_column_count(appender: Appender): number
   Napi::Value appender_column_count(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3955,7 +3955,7 @@ private:
     return Napi::Number::New(env, column_count);
   }
 
-  // DUCKDB_API duckdb_logical_type duckdb_appender_column_type(duckdb_appender appender, idx_t col_idx);
+  // DUCKDB_C_API duckdb_logical_type duckdb_appender_column_type(duckdb_appender appender, idx_t col_idx);
   // function appender_column_type(appender: Appender, column_index: number): LogicalType
   Napi::Value appender_column_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3965,10 +3965,10 @@ private:
     return CreateExternalForLogicalType(env, logical_type);
   }
 
-  // DUCKDB_API const char *duckdb_appender_error(duckdb_appender appender);
+  // DUCKDB_C_API const char *duckdb_appender_error(duckdb_appender appender);
   // not exposed: other appender functions throw
 
-  // DUCKDB_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
+  // DUCKDB_C_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
   // function appender_flush(appender: Appender): void
   Napi::Value appender_flush_sync(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3979,7 +3979,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_appender_close(duckdb_appender appender);
+  // DUCKDB_C_API duckdb_state duckdb_appender_close(duckdb_appender appender);
   // function appender_close(appender: Appender): void
   Napi::Value appender_close_sync(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -3990,16 +3990,16 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_appender_destroy(duckdb_appender *appender);
+  // DUCKDB_C_API duckdb_state duckdb_appender_destroy(duckdb_appender *appender);
   // not exposed: destroyed in finalizer
 
-  // DUCKDB_API duckdb_state duckdb_appender_add_column(duckdb_appender appender, const char *name);
-  // DUCKDB_API duckdb_state duckdb_appender_clear_columns(duckdb_appender appender);
+  // DUCKDB_C_API duckdb_state duckdb_appender_add_column(duckdb_appender appender, const char *name);
+  // DUCKDB_C_API duckdb_state duckdb_appender_clear_columns(duckdb_appender appender);
 
-  // DUCKDB_API duckdb_state duckdb_appender_begin_row(duckdb_appender appender);
+  // DUCKDB_C_API duckdb_state duckdb_appender_begin_row(duckdb_appender appender);
   // not exposed: no-op
 
-  // DUCKDB_API duckdb_state duckdb_appender_end_row(duckdb_appender appender);
+  // DUCKDB_C_API duckdb_state duckdb_appender_end_row(duckdb_appender appender);
   // function appender_end_row(appender: Appender): void
   Napi::Value appender_end_row(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4010,7 +4010,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_default(duckdb_appender appender);
+  // DUCKDB_C_API duckdb_state duckdb_append_default(duckdb_appender appender);
   // function append_default(appender: Appender): void
   Napi::Value append_default(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4021,9 +4021,9 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_default_to_chunk(duckdb_appender appender, duckdb_data_chunk chunk, idx_t col, idx_t row);
+  // DUCKDB_C_API duckdb_state duckdb_append_default_to_chunk(duckdb_appender appender, duckdb_data_chunk chunk, idx_t col, idx_t row);
 
-  // DUCKDB_API duckdb_state duckdb_append_bool(duckdb_appender appender, bool value);
+  // DUCKDB_C_API duckdb_state duckdb_append_bool(duckdb_appender appender, bool value);
   // function append_bool(appender: Appender, bool: boolean): void
   Napi::Value append_bool(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4035,7 +4035,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_int8(duckdb_appender appender, int8_t value);
+  // DUCKDB_C_API duckdb_state duckdb_append_int8(duckdb_appender appender, int8_t value);
   // function append_int8(appender: Appender, int8: number): void
   Napi::Value append_int8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4047,7 +4047,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_int16(duckdb_appender appender, int16_t value);
+  // DUCKDB_C_API duckdb_state duckdb_append_int16(duckdb_appender appender, int16_t value);
   // function append_int16(appender: Appender, int16: number): void
   Napi::Value append_int16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4059,7 +4059,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_int32(duckdb_appender appender, int32_t value);
+  // DUCKDB_C_API duckdb_state duckdb_append_int32(duckdb_appender appender, int32_t value);
   // function append_int32(appender: Appender, int32: number): void
   Napi::Value append_int32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4071,7 +4071,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_int64(duckdb_appender appender, int64_t value);
+  // DUCKDB_C_API duckdb_state duckdb_append_int64(duckdb_appender appender, int64_t value);
   // function append_int64(appender: Appender, int64: bigint): void
   Napi::Value append_int64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4087,7 +4087,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_hugeint(duckdb_appender appender, duckdb_hugeint value);
+  // DUCKDB_C_API duckdb_state duckdb_append_hugeint(duckdb_appender appender, duckdb_hugeint value);
   // function append_hugeint(appender: Appender, hugeint: bigint): void
   Napi::Value append_hugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4100,7 +4100,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_uint8(duckdb_appender appender, uint8_t value);
+  // DUCKDB_C_API duckdb_state duckdb_append_uint8(duckdb_appender appender, uint8_t value);
   // function append_uint8(appender: Appender, uint8: number): void
   Napi::Value append_uint8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4112,7 +4112,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_uint16(duckdb_appender appender, uint16_t value);
+  // DUCKDB_C_API duckdb_state duckdb_append_uint16(duckdb_appender appender, uint16_t value);
   // function append_uint16(appender: Appender, uint16: number): void
   Napi::Value append_uint16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4124,7 +4124,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_uint32(duckdb_appender appender, uint32_t value);
+  // DUCKDB_C_API duckdb_state duckdb_append_uint32(duckdb_appender appender, uint32_t value);
   // function append_uint32(appender: Appender, uint32: number): void
   Napi::Value append_uint32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4136,7 +4136,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_uint64(duckdb_appender appender, uint64_t value);
+  // DUCKDB_C_API duckdb_state duckdb_append_uint64(duckdb_appender appender, uint64_t value);
   // function append_uint64(appender: Appender, uint64: bigint): void
   Napi::Value append_uint64(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4152,7 +4152,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_uhugeint(duckdb_appender appender, duckdb_uhugeint value);
+  // DUCKDB_C_API duckdb_state duckdb_append_uhugeint(duckdb_appender appender, duckdb_uhugeint value);
   // function append_uhugeint(appender: Appender, uhugeint: bigint): void
   Napi::Value append_uhugeint(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4165,7 +4165,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_float(duckdb_appender appender, float value);
+  // DUCKDB_C_API duckdb_state duckdb_append_float(duckdb_appender appender, float value);
   // function append_float(appender: Appender, float: number): void
   Napi::Value append_float(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4177,7 +4177,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_double(duckdb_appender appender, double value);
+  // DUCKDB_C_API duckdb_state duckdb_append_double(duckdb_appender appender, double value);
   // function append_double(appender: Appender, double: number): void
   Napi::Value append_double(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4189,7 +4189,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_date(duckdb_appender appender, duckdb_date value);
+  // DUCKDB_C_API duckdb_state duckdb_append_date(duckdb_appender appender, duckdb_date value);
   // function append_date(appender: Appender, date: Date_): void
   Napi::Value append_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4201,7 +4201,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_time(duckdb_appender appender, duckdb_time value);
+  // DUCKDB_C_API duckdb_state duckdb_append_time(duckdb_appender appender, duckdb_time value);
   // function append_time(appender: Appender, time: Time): void
   Napi::Value append_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4213,7 +4213,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_timestamp(duckdb_appender appender, duckdb_timestamp value);
+  // DUCKDB_C_API duckdb_state duckdb_append_timestamp(duckdb_appender appender, duckdb_timestamp value);
   // function append_timestamp(appender: Appender, timestamp: Timestamp): void
   Napi::Value append_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4225,7 +4225,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_interval(duckdb_appender appender, duckdb_interval value);
+  // DUCKDB_C_API duckdb_state duckdb_append_interval(duckdb_appender appender, duckdb_interval value);
   // function append_interval(appender: Appender, interval: Interval): void
   Napi::Value append_interval(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4237,7 +4237,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_varchar(duckdb_appender appender, const char *val);
+  // DUCKDB_C_API duckdb_state duckdb_append_varchar(duckdb_appender appender, const char *val);
   // function append_varchar(appender: Appender, varchar: string): void
   Napi::Value append_varchar(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4249,10 +4249,10 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_varchar_length(duckdb_appender appender, const char *val, idx_t length);
+  // DUCKDB_C_API duckdb_state duckdb_append_varchar_length(duckdb_appender appender, const char *val, idx_t length);
   // not exposed: JS string includes length
 
-  // DUCKDB_API duckdb_state duckdb_append_blob(duckdb_appender appender, const void *data, idx_t length);
+  // DUCKDB_C_API duckdb_state duckdb_append_blob(duckdb_appender appender, const void *data, idx_t length);
   // function append_blob(appender: Appender, data: Uint8Array): void
   Napi::Value append_blob(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4266,7 +4266,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_null(duckdb_appender appender);
+  // DUCKDB_C_API duckdb_state duckdb_append_null(duckdb_appender appender);
   // function append_null(appender: Appender): void
   Napi::Value append_null(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4277,7 +4277,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_value(duckdb_appender appender, duckdb_value value);
+  // DUCKDB_C_API duckdb_state duckdb_append_value(duckdb_appender appender, duckdb_value value);
   // function append_value(appender: Appender, value: Value): void
   Napi::Value append_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4289,7 +4289,7 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk);
+  // DUCKDB_C_API duckdb_state duckdb_append_data_chunk(duckdb_appender appender, duckdb_data_chunk chunk);
   // function append_data_chunk(appender: Appender, chunk: DataChunk): void
   Napi::Value append_data_chunk(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4301,44 +4301,44 @@ private:
     return env.Undefined();
   }
 
-  // DUCKDB_API duckdb_state duckdb_table_description_create(duckdb_connection connection, const char *schema, const char *table, duckdb_table_description *out);
-  // DUCKDB_API duckdb_state duckdb_table_description_create_ext(duckdb_connection connection, const char *catalog, const char *schema, const char *table, duckdb_table_description *out);
-  // DUCKDB_API void duckdb_table_description_destroy(duckdb_table_description *table_description);
-  // DUCKDB_API const char *duckdb_table_description_error(duckdb_table_description table_description);
-  // DUCKDB_API duckdb_state duckdb_column_has_default(duckdb_table_description table_description, idx_t index, bool *out);
-  // DUCKDB_API char *duckdb_table_description_get_column_name(duckdb_table_description table_description, idx_t index);
+  // DUCKDB_C_API duckdb_state duckdb_table_description_create(duckdb_connection connection, const char *schema, const char *table, duckdb_table_description *out);
+  // DUCKDB_C_API duckdb_state duckdb_table_description_create_ext(duckdb_connection connection, const char *catalog, const char *schema, const char *table, duckdb_table_description *out);
+  // DUCKDB_C_API void duckdb_table_description_destroy(duckdb_table_description *table_description);
+  // DUCKDB_C_API const char *duckdb_table_description_error(duckdb_table_description table_description);
+  // DUCKDB_C_API duckdb_state duckdb_column_has_default(duckdb_table_description table_description, idx_t index, bool *out);
+  // DUCKDB_C_API char *duckdb_table_description_get_column_name(duckdb_table_description table_description, idx_t index);
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
-  // DUCKDB_API duckdb_state duckdb_query_arrow(duckdb_connection connection, const char *query, duckdb_arrow *out_result);
-  // DUCKDB_API duckdb_state duckdb_query_arrow_schema(duckdb_arrow result, duckdb_arrow_schema *out_schema);
-  // DUCKDB_API duckdb_state duckdb_prepared_arrow_schema(duckdb_prepared_statement prepared, duckdb_arrow_schema *out_schema);
-  // DUCKDB_API void duckdb_result_arrow_array(duckdb_result result, duckdb_data_chunk chunk, duckdb_arrow_array *out_array);
-  // DUCKDB_API duckdb_state duckdb_query_arrow_array(duckdb_arrow result, duckdb_arrow_array *out_array);
-  // DUCKDB_API idx_t duckdb_arrow_column_count(duckdb_arrow result);
-  // DUCKDB_API idx_t duckdb_arrow_row_count(duckdb_arrow result);
-  // DUCKDB_API idx_t duckdb_arrow_rows_changed(duckdb_arrow result);
-  // DUCKDB_API const char *duckdb_query_arrow_error(duckdb_arrow result);
-  // DUCKDB_API void duckdb_destroy_arrow(duckdb_arrow *result);
-  // DUCKDB_API void duckdb_destroy_arrow_stream(duckdb_arrow_stream *stream_p);
-  // DUCKDB_API duckdb_state duckdb_execute_prepared_arrow(duckdb_prepared_statement prepared_statement, duckdb_arrow *out_result);
-  // DUCKDB_API duckdb_state duckdb_arrow_scan(duckdb_connection connection, const char *table_name, duckdb_arrow_stream arrow);
-  // DUCKDB_API duckdb_state duckdb_arrow_array_scan(duckdb_connection connection, const char *table_name, duckdb_arrow_schema arrow_schema, duckdb_arrow_array arrow_array, duckdb_arrow_stream *out_stream);
+  // DUCKDB_C_API duckdb_state duckdb_query_arrow(duckdb_connection connection, const char *query, duckdb_arrow *out_result);
+  // DUCKDB_C_API duckdb_state duckdb_query_arrow_schema(duckdb_arrow result, duckdb_arrow_schema *out_schema);
+  // DUCKDB_C_API duckdb_state duckdb_prepared_arrow_schema(duckdb_prepared_statement prepared, duckdb_arrow_schema *out_schema);
+  // DUCKDB_C_API void duckdb_result_arrow_array(duckdb_result result, duckdb_data_chunk chunk, duckdb_arrow_array *out_array);
+  // DUCKDB_C_API duckdb_state duckdb_query_arrow_array(duckdb_arrow result, duckdb_arrow_array *out_array);
+  // DUCKDB_C_API idx_t duckdb_arrow_column_count(duckdb_arrow result);
+  // DUCKDB_C_API idx_t duckdb_arrow_row_count(duckdb_arrow result);
+  // DUCKDB_C_API idx_t duckdb_arrow_rows_changed(duckdb_arrow result);
+  // DUCKDB_C_API const char *duckdb_query_arrow_error(duckdb_arrow result);
+  // DUCKDB_C_API void duckdb_destroy_arrow(duckdb_arrow *result);
+  // DUCKDB_C_API void duckdb_destroy_arrow_stream(duckdb_arrow_stream *stream_p);
+  // DUCKDB_C_API duckdb_state duckdb_execute_prepared_arrow(duckdb_prepared_statement prepared_statement, duckdb_arrow *out_result);
+  // DUCKDB_C_API duckdb_state duckdb_arrow_scan(duckdb_connection connection, const char *table_name, duckdb_arrow_stream arrow);
+  // DUCKDB_C_API duckdb_state duckdb_arrow_array_scan(duckdb_connection connection, const char *table_name, duckdb_arrow_schema arrow_schema, duckdb_arrow_array arrow_array, duckdb_arrow_stream *out_stream);
   // #endif
 
-  // DUCKDB_API void duckdb_execute_tasks(duckdb_database database, idx_t max_tasks);
-  // DUCKDB_API duckdb_task_state duckdb_create_task_state(duckdb_database database);
-  // DUCKDB_API void duckdb_execute_tasks_state(duckdb_task_state state);
-  // DUCKDB_API idx_t duckdb_execute_n_tasks_state(duckdb_task_state state, idx_t max_tasks);
-  // DUCKDB_API void duckdb_finish_execution(duckdb_task_state state);
-  // DUCKDB_API bool duckdb_task_state_is_finished(duckdb_task_state state);
-  // DUCKDB_API void duckdb_destroy_task_state(duckdb_task_state state);
-  // DUCKDB_API bool duckdb_execution_is_finished(duckdb_connection con);
+  // DUCKDB_C_API void duckdb_execute_tasks(duckdb_database database, idx_t max_tasks);
+  // DUCKDB_C_API duckdb_task_state duckdb_create_task_state(duckdb_database database);
+  // DUCKDB_C_API void duckdb_execute_tasks_state(duckdb_task_state state);
+  // DUCKDB_C_API idx_t duckdb_execute_n_tasks_state(duckdb_task_state state, idx_t max_tasks);
+  // DUCKDB_C_API void duckdb_finish_execution(duckdb_task_state state);
+  // DUCKDB_C_API bool duckdb_task_state_is_finished(duckdb_task_state state);
+  // DUCKDB_C_API void duckdb_destroy_task_state(duckdb_task_state state);
+  // DUCKDB_C_API bool duckdb_execution_is_finished(duckdb_connection con);
 
   // #ifndef DUCKDB_API_NO_DEPRECATED
-  // DUCKDB_API duckdb_data_chunk duckdb_stream_fetch_chunk(duckdb_result result);
+  // DUCKDB_C_API duckdb_data_chunk duckdb_stream_fetch_chunk(duckdb_result result);
   // #endif
 
-  // DUCKDB_API duckdb_data_chunk duckdb_fetch_chunk(duckdb_result result);
+  // DUCKDB_C_API duckdb_data_chunk duckdb_fetch_chunk(duckdb_result result);
   // function fetch_chunk(result: Result): Promise<DataChunk | null>
   Napi::Value fetch_chunk(const Napi::CallbackInfo& info) {
     auto env = info.Env();
@@ -4348,18 +4348,18 @@ private:
     return worker->Promise();
   }
 
-  // DUCKDB_API duckdb_cast_function duckdb_create_cast_function();
-  // DUCKDB_API void duckdb_cast_function_set_source_type(duckdb_cast_function cast_function, duckdb_logical_type source_type);
-  // DUCKDB_API void duckdb_cast_function_set_target_type(duckdb_cast_function cast_function, duckdb_logical_type target_type);
-  // DUCKDB_API void duckdb_cast_function_set_implicit_cast_cost(duckdb_cast_function cast_function, int64_t cost);
-  // DUCKDB_API void duckdb_cast_function_set_function(duckdb_cast_function cast_function, duckdb_cast_function_t function);
-  // DUCKDB_API void duckdb_cast_function_set_extra_info(duckdb_cast_function cast_function, void *extra_info, duckdb_delete_callback_t destroy);
-  // DUCKDB_API void *duckdb_cast_function_get_extra_info(duckdb_function_info info);
-  // DUCKDB_API duckdb_cast_mode duckdb_cast_function_get_cast_mode(duckdb_function_info info);
-  // DUCKDB_API void duckdb_cast_function_set_error(duckdb_function_info info, const char *error);
-  // DUCKDB_API void duckdb_cast_function_set_row_error(duckdb_function_info info, const char *error, idx_t row, duckdb_vector output);
-  // DUCKDB_API duckdb_state duckdb_register_cast_function(duckdb_connection con, duckdb_cast_function cast_function);
-  // DUCKDB_API void duckdb_destroy_cast_function(duckdb_cast_function *cast_function);
+  // DUCKDB_C_API duckdb_cast_function duckdb_create_cast_function();
+  // DUCKDB_C_API void duckdb_cast_function_set_source_type(duckdb_cast_function cast_function, duckdb_logical_type source_type);
+  // DUCKDB_C_API void duckdb_cast_function_set_target_type(duckdb_cast_function cast_function, duckdb_logical_type target_type);
+  // DUCKDB_C_API void duckdb_cast_function_set_implicit_cast_cost(duckdb_cast_function cast_function, int64_t cost);
+  // DUCKDB_C_API void duckdb_cast_function_set_function(duckdb_cast_function cast_function, duckdb_cast_function_t function);
+  // DUCKDB_C_API void duckdb_cast_function_set_extra_info(duckdb_cast_function cast_function, void *extra_info, duckdb_delete_callback_t destroy);
+  // DUCKDB_C_API void *duckdb_cast_function_get_extra_info(duckdb_function_info info);
+  // DUCKDB_C_API duckdb_cast_mode duckdb_cast_function_get_cast_mode(duckdb_function_info info);
+  // DUCKDB_C_API void duckdb_cast_function_set_error(duckdb_function_info info, const char *error);
+  // DUCKDB_C_API void duckdb_cast_function_set_row_error(duckdb_function_info info, const char *error, idx_t row, duckdb_vector output);
+  // DUCKDB_C_API duckdb_state duckdb_register_cast_function(duckdb_connection con, duckdb_cast_function cast_function);
+  // DUCKDB_C_API void duckdb_destroy_cast_function(duckdb_cast_function *cast_function);
 
   // ADDED
   // function get_data_from_pointer(array_buffer: ArrayBuffer, pointer_offset: number, byte_count: number): Uint8Array

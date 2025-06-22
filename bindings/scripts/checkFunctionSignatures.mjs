@@ -22,7 +22,7 @@ function getFunctionSignaturesFromHeader(headerFilePath) {
 function getFunctionSignaturesFromComments(filePath) {
   const sigs = [];
   const fileContents = fs.readFileSync(filePath, { encoding: 'utf-8' });
-  const sigRegex = /^\s*\/\/ DUCKDB_API (?<sig>([^;])*);$|^\s*\/\/ #ifndef (?<startif>DUCKDB_API_NO_DEPRECATED|DUCKDB_NO_EXTENSION_FUNCTIONS)$|^\s*\/\/ #endif$/gm;
+  const sigRegex = /^\s*\/\/ DUCKDB_C_API (?<sig>([^;])*);$|^\s*\/\/ #ifndef (?<startif>DUCKDB_API_NO_DEPRECATED|DUCKDB_NO_EXTENSION_FUNCTIONS)$|^\s*\/\/ #endif$/gm;
   var ifndef = undefined;
   var match;
   while (match = sigRegex.exec(fileContents)) {
