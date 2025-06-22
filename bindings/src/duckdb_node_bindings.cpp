@@ -1561,11 +1561,19 @@ private:
     return env.Undefined();
   }
 
+  // DUCKDB_C_API void duckdb_connection_get_client_context(duckdb_connection connection, duckdb_client_context *out_context);
+
+  // DUCKDB_C_API idx_t duckdb_client_context_get_connection_id(duckdb_client_context context);
+
+  // DUCKDB_C_API void duckdb_destroy_client_context(duckdb_client_context *context);
+
   // DUCKDB_C_API const char *duckdb_library_version();
   // function library_version(): string
   Napi::Value library_version(const Napi::CallbackInfo& info) {
     return Napi::String::New(info.Env(), duckdb_library_version());
   }
+
+  // DUCKDB_C_API duckdb_value duckdb_get_table_names(duckdb_connection connection, const char *query, bool qualified);
 
   // DUCKDB_C_API duckdb_state duckdb_create_config(duckdb_config *out_config);
   // function create_config(): Config
@@ -3151,6 +3159,10 @@ private:
     return CreateExternalForValue(env, value);
   }
 
+  // DUCKDB_C_API duckdb_value duckdb_create_map_value(duckdb_logical_type map_type, duckdb_value *keys, duckdb_value *values, idx_t entry_count);
+
+  // DUCKDB_C_API duckdb_value duckdb_create_union_value(duckdb_logical_type union_type, idx_t tag_index, duckdb_value value);
+
   // DUCKDB_C_API idx_t duckdb_get_map_size(duckdb_value value);
   // function get_map_size(value: Value): number
   Napi::Value get_map_size(const Napi::CallbackInfo& info) {
@@ -3259,6 +3271,8 @@ private:
     }
     return CreateExternalForValue(env, output_value);
   }
+
+  // DUCKDB_C_API char *duckdb_value_to_string(duckdb_value value);
 
   // DUCKDB_C_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
   // function create_logical_type(type: Type): LogicalType
@@ -3643,6 +3657,10 @@ private:
     return env.Undefined();
   }
 
+  // DUCKDB_C_API duckdb_vector duckdb_create_vector(duckdb_logical_type type, idx_t capacity);
+
+  // DUCKDB_C_API void duckdb_destroy_vector(duckdb_vector *vector);
+
   // DUCKDB_C_API duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector);
   // function vector_get_column_type(vector: Vector): LogicalType
   Napi::Value vector_get_column_type(const Napi::CallbackInfo& info) {
@@ -3767,6 +3785,12 @@ private:
     return CreateExternalForVector(env, child);
   }
 
+  // DUCKDB_C_API void duckdb_slice_vector(duckdb_vector vector, duckdb_selection_vector selection, idx_t len);
+
+  // DUCKDB_C_API void duckdb_vector_reference_value(duckdb_vector vector, duckdb_value value);
+
+  // DUCKDB_C_API void duckdb_vector_reference_vector(duckdb_vector to_vector, duckdb_vector from_vector);
+
   // DUCKDB_C_API bool duckdb_validity_row_is_valid(uint64_t *validity, idx_t row);
   // function validity_row_is_valid(validity: Uint8Array | null, row_index: number): boolean
   Napi::Value validity_row_is_valid(const Napi::CallbackInfo& info) {
@@ -3817,15 +3841,24 @@ private:
   // DUCKDB_C_API void duckdb_scalar_function_add_parameter(duckdb_scalar_function scalar_function, duckdb_logical_type type);
   // DUCKDB_C_API void duckdb_scalar_function_set_return_type(duckdb_scalar_function scalar_function, duckdb_logical_type type);
   // DUCKDB_C_API void duckdb_scalar_function_set_extra_info(duckdb_scalar_function scalar_function, void *extra_info, duckdb_delete_callback_t destroy);
+  // DUCKDB_C_API void duckdb_scalar_function_set_bind(duckdb_scalar_function scalar_function, duckdb_scalar_function_bind_t bind);
+  // DUCKDB_C_API void duckdb_scalar_function_set_bind_data(duckdb_bind_info info, void *bind_data, duckdb_delete_callback_t destroy);
+  // DUCKDB_C_API void duckdb_scalar_function_bind_set_error(duckdb_bind_info info, const char *error);
   // DUCKDB_C_API void duckdb_scalar_function_set_function(duckdb_scalar_function scalar_function, duckdb_scalar_function_t function);
   // DUCKDB_C_API duckdb_state duckdb_register_scalar_function(duckdb_connection con, duckdb_scalar_function scalar_function);
   // DUCKDB_C_API void *duckdb_scalar_function_get_extra_info(duckdb_function_info info);
+  // DUCKDB_C_API void *duckdb_scalar_function_get_bind_data(duckdb_function_info info);
+  // DUCKDB_C_API void duckdb_scalar_function_get_client_context(duckdb_bind_info info, duckdb_client_context *out_context);
   // DUCKDB_C_API void duckdb_scalar_function_set_error(duckdb_function_info info, const char *error);
 
   // DUCKDB_C_API duckdb_scalar_function_set duckdb_create_scalar_function_set(const char *name);
   // DUCKDB_C_API void duckdb_destroy_scalar_function_set(duckdb_scalar_function_set *scalar_function_set);
   // DUCKDB_C_API duckdb_state duckdb_add_scalar_function_to_set(duckdb_scalar_function_set set, duckdb_scalar_function function);
   // DUCKDB_C_API duckdb_state duckdb_register_scalar_function_set(duckdb_connection con, duckdb_scalar_function_set set);
+
+  // DUCKDB_C_API duckdb_selection_vector duckdb_create_selection_vector(idx_t size);
+  // DUCKDB_C_API void duckdb_destroy_selection_vector(duckdb_selection_vector vector);
+  // DUCKDB_C_API sel_t *duckdb_selection_vector_get_data_ptr(duckdb_selection_vector vector);
 
   // DUCKDB_C_API duckdb_aggregate_function duckdb_create_aggregate_function();
   // DUCKDB_C_API void duckdb_destroy_aggregate_function(duckdb_aggregate_function *aggregate_function);
@@ -4407,15 +4440,22 @@ NODE_API_ADDON(DuckDBNodeAddon)
 
 /*
 
-  408 duckdb api functions
+  428 duckdb c api functions
 +   3 added functions
   ---
-  411 total functions
+  431 total functions
 
   243 instance methods
+    3 unimplemented client context functions
+    1 unimplemented table names function
+    2 unimplemented value creation functions
+    1 unimplemented value to string function
     1 unimplemented logical type function
-   13 unimplemented scalar function functions
+    2 unimplemented vector creation functions
+    3 unimplemented vector manipulation functions
+   18 unimplemented scalar function functions
     4 unimplemented scalar function set functions
+    3 unimplemented selection vector functions
    12 unimplemented aggregate function functions
     4 unimplemented aggregate function set functions
    12 unimplemented table function functions
@@ -4431,6 +4471,6 @@ NODE_API_ADDON(DuckDBNodeAddon)
    23 functions not exposed
 +  41 unimplemented deprecated functions (of 47)
   ---
-  411 functions accounted for
+  431 functions accounted for
 
 */
