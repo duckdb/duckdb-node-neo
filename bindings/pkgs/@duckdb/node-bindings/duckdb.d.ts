@@ -180,6 +180,10 @@ export interface Appender {
   __duckdb_type: 'duckdb_appender';
 }
 
+// export interface ClientContext {
+//   __duckdb_type: 'duckdb_client_context';
+// }
+
 export interface Config {
   __duckdb_type: 'duckdb_config';
 }
@@ -223,6 +227,10 @@ export interface PreparedStatement {
 export interface Result {
   __duckdb_type: 'duckdb_result';
 }
+
+// export interface SelectionVector {
+//   __duckdb_type: 'duckdb_selection_vector';
+// }
 
 export interface Value {
   __duckdb_type: 'duckdb_value';
@@ -273,8 +281,16 @@ export function query_progress(connection: Connection): QueryProgress;
 // DUCKDB_C_API void duckdb_disconnect(duckdb_connection *connection);
 export function disconnect_sync(connection: Connection): void;
 
+// DUCKDB_C_API void duckdb_connection_get_client_context(duckdb_connection connection, duckdb_client_context *out_context);
+
+// DUCKDB_C_API idx_t duckdb_client_context_get_connection_id(duckdb_client_context context);
+
+// DUCKDB_C_API void duckdb_destroy_client_context(duckdb_client_context *context);
+
 // DUCKDB_C_API const char *duckdb_library_version();
 export function library_version(): string;
+
+// DUCKDB_C_API duckdb_value duckdb_get_table_names(duckdb_connection connection, const char *query, bool qualified);
 
 // DUCKDB_C_API duckdb_state duckdb_create_config(duckdb_config *out_config);
 export function create_config(): Config;
@@ -789,6 +805,10 @@ export function create_list_value(logical_type: LogicalType, values: readonly Va
 // DUCKDB_C_API duckdb_value duckdb_create_array_value(duckdb_logical_type type, duckdb_value *values, idx_t value_count);
 export function create_array_value(logical_type: LogicalType, values: readonly Value[]): Value;
 
+// DUCKDB_C_API duckdb_value duckdb_create_map_value(duckdb_logical_type map_type, duckdb_value *keys, duckdb_value *values, idx_t entry_count);
+
+// DUCKDB_C_API duckdb_value duckdb_create_union_value(duckdb_logical_type union_type, idx_t tag_index, duckdb_value value);
+
 // DUCKDB_C_API idx_t duckdb_get_map_size(duckdb_value value);
 export function get_map_size(value: Value): number;
 
@@ -818,6 +838,8 @@ export function get_enum_value(value: Value): number;
 
 // DUCKDB_C_API duckdb_value duckdb_get_struct_child(duckdb_value value, idx_t index);
 export function get_struct_child(value: Value, index: number): Value;
+
+// DUCKDB_C_API char *duckdb_value_to_string(duckdb_value value);
 
 // DUCKDB_C_API duckdb_logical_type duckdb_create_logical_type(duckdb_type type);
 export function create_logical_type(type: Type): LogicalType;
@@ -930,6 +952,10 @@ export function data_chunk_get_size(chunk: DataChunk): number;
 // DUCKDB_C_API void duckdb_data_chunk_set_size(duckdb_data_chunk chunk, idx_t size);
 export function data_chunk_set_size(chunk: DataChunk, size: number): void;
 
+// DUCKDB_C_API duckdb_vector duckdb_create_vector(duckdb_logical_type type, idx_t capacity);
+
+// DUCKDB_C_API void duckdb_destroy_vector(duckdb_vector *vector);
+
 // DUCKDB_C_API duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector);
 export function vector_get_column_type(vector: Vector): LogicalType;
 
@@ -966,6 +992,12 @@ export function struct_vector_get_child(vector: Vector, index: number): Vector;
 // DUCKDB_C_API duckdb_vector duckdb_array_vector_get_child(duckdb_vector vector);
 export function array_vector_get_child(vector: Vector): Vector;
 
+// DUCKDB_C_API void duckdb_slice_vector(duckdb_vector vector, duckdb_selection_vector selection, idx_t len);
+
+// DUCKDB_C_API void duckdb_vector_reference_value(duckdb_vector vector, duckdb_value value);
+
+// DUCKDB_C_API void duckdb_vector_reference_vector(duckdb_vector to_vector, duckdb_vector from_vector);
+
 // DUCKDB_C_API bool duckdb_validity_row_is_valid(uint64_t *validity, idx_t row);
 export function validity_row_is_valid(validity: Uint8Array | null, row_index: number): boolean;
 
@@ -987,15 +1019,24 @@ export function validity_set_row_valid(validity: Uint8Array, row_index: number):
 // DUCKDB_C_API void duckdb_scalar_function_add_parameter(duckdb_scalar_function scalar_function, duckdb_logical_type type);
 // DUCKDB_C_API void duckdb_scalar_function_set_return_type(duckdb_scalar_function scalar_function, duckdb_logical_type type);
 // DUCKDB_C_API void duckdb_scalar_function_set_extra_info(duckdb_scalar_function scalar_function, void *extra_info, duckdb_delete_callback_t destroy);
+// DUCKDB_C_API void duckdb_scalar_function_set_bind(duckdb_scalar_function scalar_function, duckdb_scalar_function_bind_t bind);
+// DUCKDB_C_API void duckdb_scalar_function_set_bind_data(duckdb_bind_info info, void *bind_data, duckdb_delete_callback_t destroy);
+// DUCKDB_C_API void duckdb_scalar_function_bind_set_error(duckdb_bind_info info, const char *error);
 // DUCKDB_C_API void duckdb_scalar_function_set_function(duckdb_scalar_function scalar_function, duckdb_scalar_function_t function);
 // DUCKDB_C_API duckdb_state duckdb_register_scalar_function(duckdb_connection con, duckdb_scalar_function scalar_function);
 // DUCKDB_C_API void *duckdb_scalar_function_get_extra_info(duckdb_function_info info);
+// DUCKDB_C_API void *duckdb_scalar_function_get_bind_data(duckdb_function_info info);
+// DUCKDB_C_API void duckdb_scalar_function_get_client_context(duckdb_bind_info info, duckdb_client_context *out_context);
 // DUCKDB_C_API void duckdb_scalar_function_set_error(duckdb_function_info info, const char *error);
 
 // DUCKDB_C_API duckdb_scalar_function_set duckdb_create_scalar_function_set(const char *name);
 // DUCKDB_C_API void duckdb_destroy_scalar_function_set(duckdb_scalar_function_set *scalar_function_set);
 // DUCKDB_C_API duckdb_state duckdb_add_scalar_function_to_set(duckdb_scalar_function_set set, duckdb_scalar_function function);
 // DUCKDB_C_API duckdb_state duckdb_register_scalar_function_set(duckdb_connection con, duckdb_scalar_function_set set);
+
+// DUCKDB_C_API duckdb_selection_vector duckdb_create_selection_vector(idx_t size);
+// DUCKDB_C_API void duckdb_destroy_selection_vector(duckdb_selection_vector vector);
+// DUCKDB_C_API sel_t *duckdb_selection_vector_get_data_ptr(duckdb_selection_vector vector);
 
 // DUCKDB_C_API duckdb_aggregate_function duckdb_create_aggregate_function();
 // DUCKDB_C_API void duckdb_destroy_aggregate_function(duckdb_aggregate_function *aggregate_function);
