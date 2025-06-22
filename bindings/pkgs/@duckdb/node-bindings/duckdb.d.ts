@@ -806,8 +806,10 @@ export function create_list_value(logical_type: LogicalType, values: readonly Va
 export function create_array_value(logical_type: LogicalType, values: readonly Value[]): Value;
 
 // DUCKDB_C_API duckdb_value duckdb_create_map_value(duckdb_logical_type map_type, duckdb_value *keys, duckdb_value *values, idx_t entry_count);
+export function create_map_value(map_type: LogicalType, keys: readonly Value[], values: readonly Value[]): Value;
 
 // DUCKDB_C_API duckdb_value duckdb_create_union_value(duckdb_logical_type union_type, idx_t tag_index, duckdb_value value);
+export function create_union_value(union_type: LogicalType, tag_index: number, value: Value): Value;
 
 // DUCKDB_C_API idx_t duckdb_get_map_size(duckdb_value value);
 export function get_map_size(value: Value): number;

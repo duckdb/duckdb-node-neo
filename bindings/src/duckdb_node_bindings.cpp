@@ -1351,6 +1351,8 @@ public:
       InstanceMethod("create_struct_value", &DuckDBNodeAddon::create_struct_value),
       InstanceMethod("create_list_value", &DuckDBNodeAddon::create_list_value),
       InstanceMethod("create_array_value", &DuckDBNodeAddon::create_array_value),
+      InstanceMethod("create_map_value", &DuckDBNodeAddon::create_map_value),
+      InstanceMethod("create_union_value", &DuckDBNodeAddon::create_union_value),
       InstanceMethod("get_map_size", &DuckDBNodeAddon::get_map_size),
       InstanceMethod("get_map_key", &DuckDBNodeAddon::get_map_key),
       InstanceMethod("get_map_value", &DuckDBNodeAddon::get_map_value),
@@ -3160,8 +3162,47 @@ private:
   }
 
   // DUCKDB_C_API duckdb_value duckdb_create_map_value(duckdb_logical_type map_type, duckdb_value *keys, duckdb_value *values, idx_t entry_count);
+  // function create_map_value(map_type: LogicalType, keys: readonly Value[], values: readonly Value[]): Value
+  Napi::Value create_map_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto map_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto keys_array = info[1].As<Napi::Array>();
+    auto keys_count = keys_array.Length();
+    auto values_array = info[2].As<Napi::Array>();
+    auto values_count = values_array.Length();
+    if (keys_count != values_count) {
+      throw Napi::Error::New(env, "Failed to create map value: must have same number of keys and values");
+    }
+    auto entry_count = keys_count;
+    // If there are no entries, we still need valid data pointers, so create single element vectors containing a null.
+    std::vector<duckdb_value> keys_vector(entry_count > 0 ? entry_count : 1);
+    keys_vector[0] = nullptr;
+    std::vector<duckdb_value> values_vector(entry_count > 0 ? entry_count : 1);
+    values_vector[0] = nullptr;
+    for (uint32_t i = 0; i < entry_count; i++) {
+      keys_vector[i] = GetValueFromExternal(env, keys_array.Get(i));
+      values_vector[i] = GetValueFromExternal(env, values_array.Get(i));
+    }
+    auto value = duckdb_create_map_value(map_type, keys_vector.data(), values_vector.data(), entry_count);
+    if (!value) {
+      throw Napi::Error::New(env, "Failed to create map value");
+    }
+    return CreateExternalForValue(env, value);
+  }
 
   // DUCKDB_C_API duckdb_value duckdb_create_union_value(duckdb_logical_type union_type, idx_t tag_index, duckdb_value value);
+  // function create_union_value(union_type: LogicalType, tag_index: number, value: Value): Value
+  Napi::Value create_union_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto union_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto tag_index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = GetValueFromExternal(env, info[2]);
+    auto union_value = duckdb_create_union_value(union_type, tag_index, value);
+    if (!union_value) {
+      throw Napi::Error::New(env, "Failed to create union value");
+    }
+    return CreateExternalForValue(env, union_value);
+  }
 
   // DUCKDB_C_API idx_t duckdb_get_map_size(duckdb_value value);
   // function get_map_size(value: Value): number
@@ -4445,10 +4486,9 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   431 total functions
 
-  243 instance methods
+  245 instance methods
     3 unimplemented client context functions
     1 unimplemented table names function
-    2 unimplemented value creation functions
     1 unimplemented value to string function
     1 unimplemented logical type function
     2 unimplemented vector creation functions
