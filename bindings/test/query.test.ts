@@ -211,7 +211,7 @@ suite('query', () => {
                   data(16, [false, true], [null, '🦆🦆🦆🦆🦆🦆']),
                 ])
               ), // 43: array_of_structs
-              map(validity, [[0n, 0n], [0n, 2n], null],
+              map(validity, [[0n, 0n], [0n, 2n], null], 2,
                 data(16, [true, true], ['key1', 'key2']),
                 data(16, [true, true], ['🦆🦆🦆🦆🦆🦆', 'goose']),
               ), // 44: map

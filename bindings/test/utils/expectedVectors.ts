@@ -53,6 +53,7 @@ export function list(
 export function map(
   validity: boolean[] | null,
   entries: (ExpectedListEntry | null)[],
+  childItemCount: number,
   keys: ExpectedVector,
   values: ExpectedVector
 ): ExpectedMapVector {
@@ -60,6 +61,7 @@ export function map(
     kind: 'map',
     validity,
     entries,
+    childItemCount,
     keys,
     values,
   };

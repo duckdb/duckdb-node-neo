@@ -26,6 +26,7 @@ export interface ExpectedMapVector {
   kind: 'map';
   validity: boolean[] | null;
   entries: (ExpectedListEntry | null)[];
+  childItemCount: number;
   keys: ExpectedVector;
   values: ExpectedVector;
 }
