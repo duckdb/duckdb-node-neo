@@ -18,7 +18,6 @@ available separately as [@duckdb/node-bindings](https://www.npmjs.com/package/@d
 ### Roadmap
 
 Some features are not yet complete:
-* Binding and appending the MAP and UNION data types
 * Appending default values row-by-row
 * User-defined types & functions
 * Profiling info
