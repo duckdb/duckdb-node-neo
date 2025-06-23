@@ -427,6 +427,8 @@ describe('api', () => {
         { name: 'list_null', type: LIST(SQLNULL) },
         { name: 'struct', type: STRUCT({ 'a': INTEGER, 'b': VARCHAR }) },
         { name: 'array', type: ARRAY(INTEGER, 3) },
+        { name: 'map', type: MAP(INTEGER, VARCHAR) },
+        { name: 'union', type: UNION({ 'name': VARCHAR, 'age': SMALLINT }) },
         { name: 'uuid', type: UUID },
         { name: 'bit', type: BIT },
         { name: 'timetz', type: TIMETZ },
@@ -466,7 +468,20 @@ describe('api', () => {
       prepared.bindList(i++, [null]);
       prepared.bindStruct(i++, { 'a': 42, 'b': 'duck' });
       prepared.bindArray(i++, [100, 200, 300]);
-      prepared.bindUUID(i++, uuidValue(0xf0e1d2c3b4a596870123456789abcdefn));
+      prepared.bindMap(
+        i++,
+        mapValue([
+          { key: 100, value: 'swim' },
+          { key: 101, value: 'walk' },
+          { key: 102, value: 'fly' },
+        ])
+      );
+      prepared.bindUnion(
+        i++,
+        unionValue('age', 42),
+        UNION({ 'name': VARCHAR, 'age': SMALLINT })
+      ),
+        prepared.bindUUID(i++, uuidValue(0xf0e1d2c3b4a596870123456789abcdefn));
       prepared.bindBit(i++, bitValue('0010001001011100010101011010111'));
       prepared.bindTimeTZ(i++, TIMETZ.max);
       prepared.bindTimestampTZ(i++, TIMESTAMPTZ.max);
@@ -554,6 +569,14 @@ describe('api', () => {
         assertValues(chunk, i++, DuckDBArrayVector, [
           arrayValue([100, 200, 300]),
         ]);
+        assertValues(chunk, i++, DuckDBMapVector, [
+          mapValue([
+            { key: 100, value: 'swim' },
+            { key: 101, value: 'walk' },
+            { key: 102, value: 'fly' },
+          ]),
+        ]);
+        assertValues(chunk, i++, DuckDBUnionVector, [unionValue('age', 42)]);
         assertValues(chunk, i++, DuckDBUUIDVector, [
           uuidValue(0xf0e1d2c3b4a596870123456789abcdefn),
         ]);
@@ -1970,15 +1993,7 @@ describe('api', () => {
           if (value === null) {
             appender.appendNull();
           } else {
-            switch (type.typeId) {
-              case DuckDBTypeId.MAP:
-              case DuckDBTypeId.UNION:
-                appender.appendNull(); // TODO: once the C API supports creating MAP and UNION values
-                break;
-              default:
-                appender.appendValue(value, type);
-                break;
-            }
+            appender.appendValue(value, type);
           }
         }
         appender.endRow();
@@ -2050,8 +2065,8 @@ describe('api', () => {
         assertValues(resultChunk, 41, DuckDBStructVector, columns[41]);
         assertValues(resultChunk, 42, DuckDBStructVector, columns[42]); // struct_of_arrays
         assertValues(resultChunk, 43, DuckDBListVector, columns[43]); // array_of_structs
-        // assertValues(resultChunk, 44, DuckDBMapVector, columns[44]);
-        // assertValues(resultChunk, 45, DuckDBUnionVector, columns[45]);
+        assertValues(resultChunk, 44, DuckDBMapVector, columns[44]);
+        assertValues(resultChunk, 45, DuckDBUnionVector, columns[45]);
         assertValues(resultChunk, 46, DuckDBArrayVector, columns[46]); // fixed_int_array
         assertValues(resultChunk, 47, DuckDBArrayVector, columns[47]); // fixed_varchar_array
         assertValues(resultChunk, 48, DuckDBArrayVector, columns[48]); // fixed_nested_int_array

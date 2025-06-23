@@ -8,8 +8,10 @@ import {
   DuckDBArrayType,
   DuckDBEnumType,
   DuckDBListType,
+  DuckDBMapType,
   DuckDBStructType,
   DuckDBType,
+  DuckDBUnionType,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
   TIMESTAMP_S,
@@ -27,6 +29,7 @@ import {
   DuckDBDecimalValue,
   DuckDBIntervalValue,
   DuckDBListValue,
+  DuckDBMapValue,
   DuckDBStructValue,
   DuckDBTimestampMillisecondsValue,
   DuckDBTimestampNanosecondsValue,
@@ -35,6 +38,7 @@ import {
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
+  DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
   listValue,
@@ -163,7 +167,9 @@ export class DuckDBAppender {
       type
     );
   }
-  // TODO: MAP (when DuckDB C API supports creating MAP values)
+  public appendMap(value: DuckDBMapValue, type?: DuckDBMapType) {
+    this.appendValue(value, type);
+  }
   public appendArray(
     value: DuckDBArrayValue | readonly DuckDBValue[],
     type?: DuckDBArrayType
@@ -173,7 +179,9 @@ export class DuckDBAppender {
       type
     );
   }
-  // TODO: UNION (when DuckDB C API supports creating UNION values)
+  public appendUnion(value: DuckDBUnionValue, type?: DuckDBUnionType) {
+    this.appendValue(value, type);
+  }
   public appendUUID(value: DuckDBUUIDValue) {
     this.appendValue(value, UUID);
   }

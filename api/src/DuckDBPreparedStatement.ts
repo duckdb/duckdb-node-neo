@@ -10,8 +10,10 @@ import {
   DuckDBArrayType,
   DuckDBEnumType,
   DuckDBListType,
+  DuckDBMapType,
   DuckDBStructType,
   DuckDBType,
+  DuckDBUnionType,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
   TIMESTAMP_S,
@@ -31,6 +33,7 @@ import {
   DuckDBDecimalValue,
   DuckDBIntervalValue,
   DuckDBListValue,
+  DuckDBMapValue,
   DuckDBStructValue,
   DuckDBTimestampMillisecondsValue,
   DuckDBTimestampNanosecondsValue,
@@ -39,6 +42,7 @@ import {
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
+  DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
   listValue,
@@ -205,7 +209,20 @@ export class DuckDBPreparedStatement {
       type
     );
   }
-  // TODO: bind MAP, UNION
+  public bindMap(
+    parameterIndex: number,
+    value: DuckDBMapValue,
+    type?: DuckDBMapType
+  ) {
+    this.bindValue(parameterIndex, value, type);
+  }
+  public bindUnion(
+    parameterIndex: number,
+    value: DuckDBUnionValue,
+    type?: DuckDBUnionType
+  ) {
+    this.bindValue(parameterIndex, value, type);
+  }
   public bindUUID(parameterIndex: number, value: DuckDBUUIDValue) {
     this.bindValue(parameterIndex, value, UUID);
   }

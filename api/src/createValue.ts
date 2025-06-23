@@ -9,6 +9,7 @@ import {
   DuckDBDecimalValue,
   DuckDBIntervalValue,
   DuckDBListValue,
+  DuckDBMapValue,
   DuckDBStructValue,
   DuckDBTimestampMillisecondsValue,
   DuckDBTimestampNanosecondsValue,
@@ -17,6 +18,7 @@ import {
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
+  DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
 } from './values';
@@ -183,7 +185,24 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a DuckDBStructValue`);
     case DuckDBTypeId.MAP:
-      throw new Error(`not yet implemented for MAP`); // TODO: implement when available
+      if (input instanceof DuckDBMapValue) {
+        if (type.keyType.typeId === DuckDBTypeId.ANY) {
+          throw new Error(
+            'Cannot create maps with key type of ANY. Specify a specific type.'
+          );
+        }
+        if (type.valueType.typeId === DuckDBTypeId.ANY) {
+          throw new Error(
+            'Cannot create maps with value type of ANY. Specify a specific type.'
+          );
+        }
+        return duckdb.create_map_value(
+          type.toLogicalType().logical_type,
+          input.entries.map((entry) => createValue(type.keyType, entry.key)),
+          input.entries.map((entry) => createValue(type.valueType, entry.value))
+        );
+      }
+      throw new Error(`input is not a DuckDBMapValue`);
     case DuckDBTypeId.ARRAY:
       if (input instanceof DuckDBArrayValue) {
         if (type.valueType.typeId === DuckDBTypeId.ANY) {
@@ -203,7 +222,19 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a bigint`);
     case DuckDBTypeId.UNION:
-      throw new Error(`not yet implemented for UNION`); // TODO: implement when available
+      if (input instanceof DuckDBUnionValue) {
+        const tagIndex = type.memberIndexForTag(input.tag);
+        const memberType = type.memberTypes[tagIndex];
+        if (memberType.typeId === DuckDBTypeId.ANY) {
+          throw new Error('Cannot create union values with type of ANY.');
+        }
+        return duckdb.create_union_value(
+          type.toLogicalType().logical_type,
+          tagIndex,
+          createValue(memberType, input.value)
+        );
+      }
+      throw new Error(`input is not a DuckDBUnionValue`);
     case DuckDBTypeId.BIT:
       if (input instanceof DuckDBBitValue) {
         return duckdb.create_bit(input.data);
