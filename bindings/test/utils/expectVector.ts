@@ -115,7 +115,7 @@ function expectMapVector(vector: duckdb.Vector, expectedVector: ExpectedMapVecto
 
   const childItemCount = duckdb.list_vector_get_size(vector);
   const childVector = duckdb.list_vector_get_child(vector);
-  expect(childItemCount).toBe(2);
+  expect(childItemCount).toBe(expectedVector.childItemCount);
   const keysVector = duckdb.struct_vector_get_child(childVector, 0);
   const valuesVector = duckdb.struct_vector_get_child(childVector, 1);
   expectVector(keysVector, expectedVector.keys, expectedLogicalType.keyType, `${vectorName} map_keys`);
