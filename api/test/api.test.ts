@@ -815,6 +815,80 @@ describe('api', () => {
       assert.deepEqual(rows, [{ n: 17 }]);
     });
   });
+  test('should support PIVOT (no parameters)', async () => {
+    await withConnection(async (connection) => {
+      await connection.run(`
+CREATE TABLE cities (
+    country VARCHAR, name VARCHAR, year INTEGER, population INTEGER
+);
+INSERT INTO cities VALUES
+    ('NL', 'Amsterdam', 2000, 1005),
+    ('NL', 'Amsterdam', 2010, 1065),
+    ('NL', 'Amsterdam', 2020, 1158),
+    ('US', 'Seattle', 2000, 564),
+    ('US', 'Seattle', 2010, 608),
+    ('US', 'Seattle', 2020, 738),
+    ('US', 'New York City', 2000, 8015),
+    ('US', 'New York City', 2010, 8175),
+    ('US', 'New York City', 2020, 8772);
+    `);
+      const reader = await connection.runAndReadAll(`
+FROM (
+  PIVOT cities
+  ON year
+  USING sum(population)
+)
+ORDER BY name
+      `);
+      const columns = reader.getColumnsObject();
+      assert.deepEqual(columns, {
+        country: ['NL', 'US', 'US'],
+        name: ['Amsterdam', 'New York City', 'Seattle'],
+        '2000': [1005n, 8015n, 564n],
+        '2010': [1065n, 8175n, 608n],
+        '2020': [1158n, 8772n, 738n],
+      });
+    });
+  });
+  test('should support PIVOT (with parameters)', async () => {
+    await withConnection(async (connection) => {
+      await connection.run(`
+CREATE TABLE cities (
+    country VARCHAR, name VARCHAR, year INTEGER, population INTEGER
+);
+INSERT INTO cities VALUES
+    ('NL', 'Amsterdam', 2000, 1005),
+    ('NL', 'Amsterdam', 2010, 1065),
+    ('NL', 'Amsterdam', 2020, 1158),
+    ('US', 'Seattle', 2000, 564),
+    ('US', 'Seattle', 2010, 608),
+    ('US', 'Seattle', 2020, 738),
+    ('US', 'New York City', 2000, 8015),
+    ('US', 'New York City', 2010, 8175),
+    ('US', 'New York City', 2020, 8772);
+    `);
+      const reader = await connection.runAndReadAll(
+        `
+FROM (
+  PIVOT cities
+  ON year
+  USING sum(population)
+)
+WHERE country = $country
+ORDER BY name
+      `,
+        { country: 'US' }
+      );
+      const columns = reader.getColumnsObject();
+      assert.deepEqual(columns, {
+        country: ['US', 'US'],
+        name: ['New York City', 'Seattle'],
+        '2000': [8015n, 564n],
+        '2010': [8175n, 608n],
+        '2020': [8772n, 738n],
+      });
+    });
+  });
   test('should support all data types', async () => {
     await withConnection(async (connection) => {
       const result = await connection.run(

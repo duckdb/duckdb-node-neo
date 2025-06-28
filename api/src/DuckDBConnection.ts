@@ -46,7 +46,7 @@ export class DuckDBConnection {
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBMaterializedResult> {
     if (values) {
-      const prepared = await this.createPrepared(sql);
+      const prepared = await this.runUntilLast(sql);
       try {
         prepared.bind(values, types);
         const result = await prepared.run();
@@ -91,7 +91,7 @@ export class DuckDBConnection {
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBResult> {
-    const prepared = await this.createPrepared(sql);
+    const prepared = await this.runUntilLast(sql);
     try {
       if (values) {
         prepared.bind(values, types);
@@ -137,7 +137,7 @@ export class DuckDBConnection {
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBPendingResult> {
-    const prepared = await this.createPrepared(sql);
+    const prepared = await this.runUntilLast(sql);
     try {
       if (values) {
         prepared.bind(values, types);
@@ -152,7 +152,7 @@ export class DuckDBConnection {
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBPendingResult> {
-    const prepared = await this.createPrepared(sql);
+    const prepared = await this.runUntilLast(sql);
     try {
       if (values) {
         prepared.bind(values, types);
@@ -190,6 +190,21 @@ export class DuckDBConnection {
       statement_count,
       this.preparedStatements
     );
+  }
+  private async runUntilLast(sql: string): Promise<DuckDBPreparedStatement> {
+    const extractedStatements = await this.extractStatements(sql);
+    const statementCount = extractedStatements.count;
+    if (statementCount > 1) {
+      for (let i = 0; i < statementCount - 1; i++) {
+        const prepared = await extractedStatements.prepare(i);
+        try {
+          await prepared.run();
+        } finally {
+          prepared.destroySync();
+        }
+      }
+    }
+    return extractedStatements.prepare(statementCount - 1);
   }
   public async createAppender(
     table: string,
