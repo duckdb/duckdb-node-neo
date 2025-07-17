@@ -2152,4 +2152,56 @@ ORDER BY name
       }
     });
   });
+
+    test('should not segfault with concurrent prepared statement creation and execution', async () => {
+    await withConnection(async (connection) => {
+      // Create test table with some data
+      await connection.run(`
+        CREATE TABLE test_table (
+          id INTEGER, 
+          name VARCHAR, 
+          value INTEGER, 
+          created_at VARCHAR
+        )
+      `);
+      
+      await connection.run(`
+        INSERT INTO test_table VALUES 
+        (1, 'test1', 100, '2023-01-01'),
+        (2, 'test2', 200, '2023-01-02'),
+        (3, 'test3', 300, '2023-01-03'),
+        (4, 'test4', 400, '2023-01-04'),
+        (5, 'test5', 500, '2023-01-05')
+      `);
+      
+      const iterations = 1000;
+      const concurrency = 12;
+      
+      const runIteration = async (i: number) => {
+        const prepared = await connection.prepare('SELECT * FROM test_table WHERE id = $1',);
+        prepared.bindInteger(1, (i % 5) + 1);
+        
+        await prepared.run();
+      };
+      
+      // Run iterations in batches with controlled concurrency
+      let processed = 0;
+      
+      while (processed < iterations) {
+        const batch = [];
+        const batchEnd = Math.min(processed + concurrency, iterations);
+        
+        for (let i = processed; i < batchEnd; i++) {
+          batch.push(runIteration(i));
+        }
+        
+        // Wait for all in the batch to complete
+        await Promise.allSettled(batch);
+        processed = batchEnd;
+      }
+      
+      // If we reach here without segfaulting, the test passes
+      assert.isTrue(true, 'Test completed without error');
+    });
+  }); 
 });
