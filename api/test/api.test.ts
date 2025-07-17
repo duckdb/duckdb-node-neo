@@ -2152,4 +2152,86 @@ ORDER BY name
       }
     });
   });
+
+    test('should not segfault with concurrent prepared statement creation and execution', async () => {
+    await withConnection(async (connection) => {
+      // Create test table
+      await connection.run(`
+        CREATE TABLE test_table (
+          id INTEGER, 
+          name VARCHAR, 
+          value INTEGER, 
+          created_at VARCHAR
+        )
+      `);
+      
+      // Insert test data
+      await connection.run(`
+        INSERT INTO test_table VALUES 
+        (1, 'test1', 100, '2023-01-01'),
+        (2, 'test2', 200, '2023-01-02'),
+        (3, 'test3', 300, '2023-01-03'),
+        (4, 'test4', 400, '2023-01-04'),
+        (5, 'test5', 500, '2023-01-05')
+      `);
+      
+      const queries = [
+        'SELECT * FROM test_table WHERE id = $1',
+        'SELECT COUNT(*) FROM test_table WHERE value > $1',
+        'SELECT name, value FROM test_table WHERE created_at > $1',
+        'SELECT AVG(value) FROM test_table WHERE id BETWEEN $1 AND $2',
+        'SELECT * FROM test_table WHERE name LIKE $1 ORDER BY id LIMIT $2'
+      ];
+      
+      const iterations = 100;
+      const concurrency = 12;
+      
+      const runIteration = async (i: number) => {
+        const query = queries[i % queries.length];
+        const prepared = await connection.prepare(query);
+        
+        // Bind parameters and execute based on query type
+        switch (i % queries.length) {
+          case 0:
+            prepared.bindInteger(1, (i % 5) + 1);
+            break;
+          case 1:
+            prepared.bindInteger(1, 150);
+            break;
+          case 2:
+            prepared.bindVarchar(1, '2023-01-01');
+            break;
+          case 3:
+            prepared.bindInteger(1, 1);
+            prepared.bindInteger(2, 5);
+            break;
+          case 4:
+            prepared.bindVarchar(1, 'test_%');
+            prepared.bindInteger(2, 10);
+            break;
+        }
+        
+        await prepared.run();
+      };
+      
+      // Run iterations in batches with controlled concurrency
+      let processed = 0;
+      
+      while (processed < iterations) {
+        const batch = [];
+        const batchEnd = Math.min(processed + concurrency, iterations);
+        
+        for (let i = processed; i < batchEnd; i++) {
+          batch.push(runIteration(i));
+        }
+        
+        // Wait for all in the batch to complete
+        await Promise.allSettled(batch);
+        processed = batchEnd;
+      }
+      
+      // If we reach here without segfaulting, the test passes
+      assert.isTrue(true, 'Test completed without segfault');
+    });
+  }); 
 });
