@@ -806,6 +806,7 @@ protected:
     }
     result_ptr_ = reinterpret_cast<duckdb_result*>(duckdb_malloc(sizeof(duckdb_result)));
     result_ptr_->internal_data = nullptr;
+    result_ptr_->deprecated_columns = nullptr;
     if (duckdb_query(connection_, query_.c_str(), result_ptr_)) {
       auto error = duckdb_result_error(result_ptr_);
       if (error) {
@@ -881,6 +882,7 @@ protected:
   void Execute() override {
     result_ptr_ = reinterpret_cast<duckdb_result*>(duckdb_malloc(sizeof(duckdb_result)));
     result_ptr_->internal_data = nullptr;
+    result_ptr_->deprecated_columns = nullptr;
     if (duckdb_execute_prepared(prepared_statement_, result_ptr_)) {
       auto error = duckdb_result_error(result_ptr_);
       if (error) {
@@ -918,6 +920,7 @@ protected:
   void Execute() override {
     result_ptr_ = reinterpret_cast<duckdb_result*>(duckdb_malloc(sizeof(duckdb_result)));
     result_ptr_->internal_data = nullptr;
+    result_ptr_->deprecated_columns = nullptr;
     if (duckdb_execute_prepared_streaming(prepared_statement_, result_ptr_)) {
       auto error = duckdb_result_error(result_ptr_);
       if (error) {
@@ -1027,6 +1030,7 @@ protected:
   void Execute() override {
     result_ptr_ = reinterpret_cast<duckdb_result*>(duckdb_malloc(sizeof(duckdb_result)));
     result_ptr_->internal_data = nullptr;
+    result_ptr_->deprecated_columns = nullptr;
     if (duckdb_execute_pending(pending_result_, result_ptr_)) {
       auto error = duckdb_result_error(result_ptr_);
       if (error) {
