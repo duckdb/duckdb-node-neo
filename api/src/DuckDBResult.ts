@@ -239,4 +239,35 @@ export class DuckDBResult {
   public async getRowObjectsJson(): Promise<Record<string, Json>[]> {
     return this.convertRowObjects(JsonDuckDBValueConverter);
   }
+
+  /**
+   * Async iterator that yields rows one by one as objects
+   * Usage: for await (const row of result) { ... }
+   */
+  public async *[Symbol.asyncIterator](): AsyncIterableIterator<Record<string, JS>> {
+    const columnNames = this.deduplicatedColumnNames();
+    while (true) {
+      const chunk = await this.fetchChunk();
+      if (!chunk || chunk.rowCount === 0) {
+        break;
+      }
+      // Pre-fetch all column vectors for this chunk for efficiency
+      const columnVectors = [];
+      for (let colIndex = 0; colIndex < this.columnCount; colIndex++) {
+        columnVectors.push(chunk.getColumnVector(colIndex));
+      }
+      // Yield each row in the chunk
+      for (let rowIndex = 0; rowIndex < chunk.rowCount; rowIndex++) {
+        const row: Record<string, JS> = {};
+
+        for (let colIndex = 0; colIndex < this.columnCount; colIndex++) {
+          const columnName = columnNames[colIndex];
+          const value = columnVectors[colIndex].getItem(rowIndex);
+          row[columnName] = JSDuckDBValueConverter(value, columnVectors[colIndex].type, JSDuckDBValueConverter);
+        }
+
+        yield row;
+      }
+    }
+  }
 }
