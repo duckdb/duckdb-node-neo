@@ -493,7 +493,7 @@ static const napi_type_tag FunctionInfoTypeTag = {
   0xB0E6739D698048EA, 0x9E79734E3E137AC3
 };
 
-Napi::External<_duckdb_function_info> CreateExternalForFunctionInfo(Napi::Env env, duckdb_function_info function_info) {
+Napi::External<_duckdb_function_info> CreateExternalForFunctionInfoWithoutFinalizer(Napi::Env env, duckdb_function_info function_info) {
   // FunctionInfo objects are never explicitly created; they are passed in to function callbacks.
   return CreateExternalWithoutFinalizer<_duckdb_function_info>(env, FunctionInfoTypeTag, function_info);
 }
@@ -650,7 +650,7 @@ static const napi_type_tag VectorTypeTag = {
   0x9FE56DE8E3124D07, 0x9ABF31145EDE1C9E
 };
 
-Napi::External<_duckdb_vector> CreateExternalForVector(Napi::Env env, duckdb_vector vector) {
+Napi::External<_duckdb_vector> CreateExternalForVectorWithoutFinalizer(Napi::Env env, duckdb_vector vector) {
   // Vectors live as long as their containing data chunk; they cannot be explicitly destroyed.
   return CreateExternalWithoutFinalizer<_duckdb_vector>(env, VectorTypeTag, vector);
 }
@@ -676,9 +676,9 @@ void ScalarFunctionMainCallback(Napi::Env env, Napi::Function callback, ScalarFu
       callback.Call(
         env.Undefined(),
         {
-          CreateExternalForFunctionInfo(env, data->info),
+          CreateExternalForFunctionInfoWithoutFinalizer(env, data->info),
           CreateExternalForDataChunkWithoutFinalizer(env, data->input),
-          CreateExternalForVector(env, data->output)
+          CreateExternalForVectorWithoutFinalizer(env, data->output)
         }
       );
     }
@@ -3794,7 +3794,7 @@ private:
     auto chunk = GetDataChunkFromExternal(env, info[0]);
     auto column_index = info[1].As<Napi::Number>().Uint32Value();
     auto vector = duckdb_data_chunk_get_vector(chunk, column_index);
-    return CreateExternalForVector(env, vector);
+    return CreateExternalForVectorWithoutFinalizer(env, vector);
   }
 
   // DUCKDB_C_API idx_t duckdb_data_chunk_get_size(duckdb_data_chunk chunk);
@@ -3893,7 +3893,7 @@ private:
     auto env = info.Env();
     auto vector = GetVectorFromExternal(env, info[0]);
     auto child = duckdb_list_vector_get_child(vector);
-    return CreateExternalForVector(env, child);
+    return CreateExternalForVectorWithoutFinalizer(env, child);
   }
 
   // DUCKDB_C_API idx_t duckdb_list_vector_get_size(duckdb_vector vector);
@@ -3932,7 +3932,7 @@ private:
     auto vector = GetVectorFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto child = duckdb_struct_vector_get_child(vector, index);
-    return CreateExternalForVector(env, child);
+    return CreateExternalForVectorWithoutFinalizer(env, child);
   }
 
   // DUCKDB_C_API duckdb_vector duckdb_array_vector_get_child(duckdb_vector vector);
@@ -3941,7 +3941,7 @@ private:
     auto env = info.Env();
     auto vector = GetVectorFromExternal(env, info[0]);
     auto child = duckdb_array_vector_get_child(vector);
-    return CreateExternalForVector(env, child);
+    return CreateExternalForVectorWithoutFinalizer(env, child);
   }
 
   // DUCKDB_C_API void duckdb_slice_vector(duckdb_vector vector, duckdb_selection_vector selection, idx_t len);
