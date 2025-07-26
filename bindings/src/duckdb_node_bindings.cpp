@@ -3,8 +3,8 @@
 #define NODE_API_NO_EXTERNAL_BUFFERS_ALLOWED
 #include "napi.h"
 
-#include <cstddef>
 #include <condition_variable>
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <optional>
