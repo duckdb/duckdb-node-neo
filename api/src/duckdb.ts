@@ -11,6 +11,7 @@ export * from './DuckDBConnection';
 export * from './DuckDBDataChunk';
 export * from './DuckDBExtractedStatements';
 export * from './DuckDBInstance';
+export * from './DuckDBInstanceCache';
 export * from './DuckDBLogicalType';
 export * from './DuckDBMaterializedResult';
 export * from './DuckDBPendingResult';
