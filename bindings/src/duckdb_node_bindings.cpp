@@ -5,7 +5,6 @@
 
 #include <condition_variable>
 #include <cstddef>
-#include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -670,8 +669,8 @@ struct ScalarFunctionMainData {
   duckdb_function_info info;
   duckdb_data_chunk input;
   duckdb_vector output;
-  std::unique_ptr<std::condition_variable> cv;
-  std::unique_ptr<std::mutex> cv_mutex;
+  std::condition_variable *cv;
+  std::mutex *cv_mutex;
   bool done;
 };
 void ScalarFunctionMainCallback(Napi::Env env, Napi::Function callback, ScalarFunctionMainContext *context, ScalarFunctionMainData *data) {
@@ -717,8 +716,8 @@ void ScalarFunctionMainFunction(duckdb_function_info info, duckdb_data_chunk inp
   data->info = info;
   data->input = input;
   data->output = output;
-  data->cv = std::make_unique<std::condition_variable>();
-  data->cv_mutex = std::make_unique<std::mutex>();
+  data->cv = new std::condition_variable;
+  data->cv_mutex = new std::mutex;
   data->done = false;
   // The "blocking" part of this call only waits for queue space, not for the JS function call to complete.
   // Since we specify no limit to the queue space, it in fact never blocks.
@@ -730,8 +729,8 @@ void ScalarFunctionMainFunction(duckdb_function_info info, duckdb_data_chunk inp
   } else {
     duckdb_scalar_function_set_error(info, "BlockingCall returned not ok");
   }
-  data->cv.reset();
-  data->cv_mutex.reset();
+  delete data->cv;
+  delete data->cv_mutex;
   duckdb_free(data);
 }
 
