@@ -170,6 +170,10 @@ export interface TimestampParts {
   time: TimeParts;
 }
 
+export interface FunctionInfo {
+  __duckdb_type: 'duckdb_function_info';
+}
+
 export interface Vector {
   __duckdb_type: 'duckdb_vector';
 }
@@ -228,6 +232,10 @@ export interface Result {
   __duckdb_type: 'duckdb_result';
 }
 
+export interface ScalarFunction {
+  __duckdb_type: 'duckdb_scalar_function';
+}
+
 // export interface SelectionVector {
 //   __duckdb_type: 'duckdb_selection_vector';
 // }
@@ -248,6 +256,7 @@ export interface ExtractedStatementsAndCount {
   statement_count: number;
 }
 
+export type ScalarFunctionMainFunction = (info: FunctionInfo, input: DataChunk, output: Vector) => void;
 
 // Functions
 
@@ -1013,23 +1022,39 @@ export function validity_set_row_invalid(validity: Uint8Array, row_index: number
 export function validity_set_row_valid(validity: Uint8Array, row_index: number): void;
 
 // DUCKDB_C_API duckdb_scalar_function duckdb_create_scalar_function();
+export function create_scalar_function(): ScalarFunction;
+
 // DUCKDB_C_API void duckdb_destroy_scalar_function(duckdb_scalar_function *scalar_function);
+export function destroy_scalar_function_sync(scalar_function: ScalarFunction): void;
+
 // DUCKDB_C_API void duckdb_scalar_function_set_name(duckdb_scalar_function scalar_function, const char *name);
+export function scalar_function_set_name(scalar_function: ScalarFunction, name: string): void;
+
 // DUCKDB_C_API void duckdb_scalar_function_set_varargs(duckdb_scalar_function scalar_function, duckdb_logical_type type);
 // DUCKDB_C_API void duckdb_scalar_function_set_special_handling(duckdb_scalar_function scalar_function);
 // DUCKDB_C_API void duckdb_scalar_function_set_volatile(duckdb_scalar_function scalar_function);
 // DUCKDB_C_API void duckdb_scalar_function_add_parameter(duckdb_scalar_function scalar_function, duckdb_logical_type type);
+
 // DUCKDB_C_API void duckdb_scalar_function_set_return_type(duckdb_scalar_function scalar_function, duckdb_logical_type type);
+export function scalar_function_set_return_type(scalar_function: ScalarFunction, logical_type: LogicalType): void;
+
 // DUCKDB_C_API void duckdb_scalar_function_set_extra_info(duckdb_scalar_function scalar_function, void *extra_info, duckdb_delete_callback_t destroy);
 // DUCKDB_C_API void duckdb_scalar_function_set_bind(duckdb_scalar_function scalar_function, duckdb_scalar_function_bind_t bind);
 // DUCKDB_C_API void duckdb_scalar_function_set_bind_data(duckdb_bind_info info, void *bind_data, duckdb_delete_callback_t destroy);
 // DUCKDB_C_API void duckdb_scalar_function_bind_set_error(duckdb_bind_info info, const char *error);
+
 // DUCKDB_C_API void duckdb_scalar_function_set_function(duckdb_scalar_function scalar_function, duckdb_scalar_function_t function);
+export function scalar_function_set_function(scalar_function: ScalarFunction, func: ScalarFunctionMainFunction): void;
+
 // DUCKDB_C_API duckdb_state duckdb_register_scalar_function(duckdb_connection con, duckdb_scalar_function scalar_function);
+export function register_scalar_function(connection: Connection, scalar_function: ScalarFunction): void;
+
 // DUCKDB_C_API void *duckdb_scalar_function_get_extra_info(duckdb_function_info info);
 // DUCKDB_C_API void *duckdb_scalar_function_get_bind_data(duckdb_function_info info);
 // DUCKDB_C_API void duckdb_scalar_function_get_client_context(duckdb_bind_info info, duckdb_client_context *out_context);
+
 // DUCKDB_C_API void duckdb_scalar_function_set_error(duckdb_function_info info, const char *error);
+export function scalar_function_set_error(function_info: FunctionInfo, error: string): void;
 
 // DUCKDB_C_API duckdb_scalar_function_set duckdb_create_scalar_function_set(const char *name);
 // DUCKDB_C_API void duckdb_destroy_scalar_function_set(duckdb_scalar_function_set *scalar_function_set);
