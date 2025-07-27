@@ -618,16 +618,32 @@ static const napi_type_tag ScalarFunctionTypeTag = {
   0x95D48B7051D14994, 0x9F883D7DF5DEA86D
 };
 
-void FinalizeScalarFunction(Napi::BasicEnv, duckdb_scalar_function scalar_function) {
-  duckdb_destroy_scalar_function(&scalar_function);
+typedef struct {
+  duckdb_scalar_function scalar_function;
+} duckdb_scalar_function_holder;
+
+duckdb_scalar_function_holder *CreateScalarFunctionHolder(duckdb_scalar_function scalar_function) {
+  auto scalar_function_holder_ptr = reinterpret_cast<duckdb_scalar_function_holder*>(duckdb_malloc(sizeof(duckdb_scalar_function_holder)));
+  scalar_function_holder_ptr->scalar_function = scalar_function;
+  return scalar_function_holder_ptr;
 }
 
-Napi::External<_duckdb_scalar_function> CreateExternalForScalarFunction(Napi::Env env, duckdb_scalar_function scalar_function) {
-  return CreateExternal<_duckdb_scalar_function>(env, ScalarFunctionTypeTag, scalar_function, FinalizeScalarFunction);
+void FinalizeScalarFunctionHolder(Napi::BasicEnv, duckdb_scalar_function_holder *scalar_function_holder_ptr) {
+  // duckdb_destroy_scalar_function is a no-op if already closed
+  duckdb_destroy_scalar_function(&scalar_function_holder_ptr->scalar_function);
+  duckdb_free(scalar_function_holder_ptr);
+}
+
+Napi::External<duckdb_scalar_function_holder> CreateExternalForScalarFunction(Napi::Env env, duckdb_scalar_function scalar_function) {
+  return CreateExternal<duckdb_scalar_function_holder>(env, ScalarFunctionTypeTag, CreateScalarFunctionHolder(scalar_function), FinalizeScalarFunctionHolder);
+}
+
+duckdb_scalar_function_holder *GetScalarFunctionHolderFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<duckdb_scalar_function_holder>(env, ScalarFunctionTypeTag, value, "Invalid scalar function argument");
 }
 
 duckdb_scalar_function GetScalarFunctionFromExternal(Napi::Env env, Napi::Value value) {
-  return GetDataFromExternal<_duckdb_scalar_function>(env, ScalarFunctionTypeTag, value, "Invalid scalar function argument");
+  return GetScalarFunctionHolderFromExternal(env, value)->scalar_function;
 }
 
 static const napi_type_tag ValueTypeTag = {
@@ -1532,6 +1548,7 @@ public:
       InstanceMethod("validity_set_row_valid", &DuckDBNodeAddon::validity_set_row_valid),
 
       InstanceMethod("create_scalar_function", &DuckDBNodeAddon::create_scalar_function),
+      InstanceMethod("destroy_scalar_function_sync", &DuckDBNodeAddon::destroy_scalar_function_sync),
       InstanceMethod("scalar_function_set_name", &DuckDBNodeAddon::scalar_function_set_name),
       InstanceMethod("scalar_function_set_return_type", &DuckDBNodeAddon::scalar_function_set_return_type),
       InstanceMethod("scalar_function_set_function", &DuckDBNodeAddon::scalar_function_set_function),
@@ -4003,7 +4020,14 @@ private:
   }
 
   // DUCKDB_C_API void duckdb_destroy_scalar_function(duckdb_scalar_function *scalar_function);
-  // not exposed: destroyed in finalizer
+  // function destroy_scalar_function_sync(scalar_function: ScalarFunction): void
+  Napi::Value destroy_scalar_function_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto scalar_function_holder_ptr = GetScalarFunctionHolderFromExternal(env, info[0]);
+    // duckdb_destroy_scalar_function is a no-op if already closed
+    duckdb_destroy_scalar_function(&scalar_function_holder_ptr->scalar_function);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_name(duckdb_scalar_function scalar_function, const char *name);
   // function scalar_function_set_name(scalar_function: ScalarFunction, name: string): void
@@ -4667,14 +4691,14 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   431 total functions
 
-  245 instance methods
+  253 instance methods
     3 unimplemented client context functions
     1 unimplemented table names function
     1 unimplemented value to string function
     1 unimplemented logical type function
     2 unimplemented vector creation functions
     3 unimplemented vector manipulation functions
-   18 unimplemented scalar function functions
+   11 unimplemented scalar function functions
     4 unimplemented scalar function set functions
     3 unimplemented selection vector functions
    12 unimplemented aggregate function functions

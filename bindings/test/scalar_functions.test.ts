@@ -43,6 +43,7 @@ suite('scalar functions', () => {
           { rowCount: 1, vectors: [data(16, [true], ['output_0'])]}
         ],
       });
+      duckdb.destroy_scalar_function_sync(scalar_function);
     });
   });
 });

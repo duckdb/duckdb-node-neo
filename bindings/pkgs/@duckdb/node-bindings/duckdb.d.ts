@@ -1025,7 +1025,7 @@ export function validity_set_row_valid(validity: Uint8Array, row_index: number):
 export function create_scalar_function(): ScalarFunction;
 
 // DUCKDB_C_API void duckdb_destroy_scalar_function(duckdb_scalar_function *scalar_function);
-// not exposed: destroyed in finalizer
+export function destroy_scalar_function_sync(scalar_function: ScalarFunction): void;
 
 // DUCKDB_C_API void duckdb_scalar_function_set_name(duckdb_scalar_function scalar_function, const char *name);
 export function scalar_function_set_name(scalar_function: ScalarFunction, name: string): void;
