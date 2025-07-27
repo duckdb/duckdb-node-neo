@@ -2153,7 +2153,7 @@ ORDER BY name
     });
   });
 
-    test('should not segfault with concurrent prepared statement creation and execution', async () => {
+  test('should not segfault with concurrent prepared statement creation and execution', async () => {
     await withConnection(async (connection) => {
       // Create test table with some data
       await connection.run(`

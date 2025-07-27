@@ -5,8 +5,13 @@ export class DuckDBPreparedStatementWeakRefCollection
   implements DuckDBPreparedStatementCollection
 {
   preparedStatements: WeakRef<DuckDBPreparedStatement>[] = [];
+  lastPruneTime: number = 0;
   public add(prepared: DuckDBPreparedStatement) {
-    this.prune();
+    const now = performance.now();
+    if (now - this.lastPruneTime > 1000) {
+      this.lastPruneTime = now;
+      this.prune();
+    }
     this.preparedStatements.push(new WeakRef(prepared));
   }
   public destroySync() {
