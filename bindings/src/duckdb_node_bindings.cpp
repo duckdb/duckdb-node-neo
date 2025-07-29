@@ -712,22 +712,28 @@ using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainC
 
 struct ScalarFunctionMainExtraInfo {
   ScalarFunctionMainTSFN tsfn;
-  // TODO: user extra info
+  Napi::ObjectReference user_extra_info_ref;
 };
 
-ScalarFunctionMainExtraInfo *CreateScalarFunctionMainExtraInfo(Napi::Env env, Napi::Function func) {
+ScalarFunctionMainExtraInfo *CreateScalarFunctionMainExtraInfo(Napi::Env env, Napi::Function func, Napi::Object user_extra_info) {
   auto extra_info = reinterpret_cast<ScalarFunctionMainExtraInfo*>(duckdb_malloc(sizeof(ScalarFunctionMainExtraInfo)));
   extra_info->tsfn = ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1);
+  extra_info->user_extra_info_ref = user_extra_info.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_extra_info);
   return extra_info;
+}
+
+ScalarFunctionMainExtraInfo *GetScalarFunctionMainExtraInfo(duckdb_function_info function_info) {
+  return reinterpret_cast<ScalarFunctionMainExtraInfo*>(duckdb_scalar_function_get_extra_info(function_info));
 }
 
 void DeleteScalarFunctionMainExtraInfo(ScalarFunctionMainExtraInfo *extra_info) {
   extra_info->tsfn.Release();
+  extra_info->user_extra_info_ref.Reset();
   duckdb_free(extra_info);
 }
 
 void ScalarFunctionMainFunction(duckdb_function_info info, duckdb_data_chunk input, duckdb_vector output) {
-  auto extra_info = reinterpret_cast<ScalarFunctionMainExtraInfo*>(duckdb_scalar_function_get_extra_info(info));
+  auto extra_info = GetScalarFunctionMainExtraInfo(info);
   auto data = reinterpret_cast<ScalarFunctionMainData*>(duckdb_malloc(sizeof(ScalarFunctionMainData)));
   data->info = info;
   data->input = input;
@@ -1553,6 +1559,7 @@ public:
       InstanceMethod("scalar_function_set_return_type", &DuckDBNodeAddon::scalar_function_set_return_type),
       InstanceMethod("scalar_function_set_function", &DuckDBNodeAddon::scalar_function_set_function),
       InstanceMethod("register_scalar_function", &DuckDBNodeAddon::register_scalar_function),
+      InstanceMethod("scalar_function_get_extra_info", &DuckDBNodeAddon::scalar_function_get_extra_info),
       InstanceMethod("scalar_function_set_error", &DuckDBNodeAddon::scalar_function_set_error),
 
       InstanceMethod("appender_create", &DuckDBNodeAddon::appender_create),
@@ -4055,17 +4062,20 @@ private:
   }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_extra_info(duckdb_scalar_function scalar_function, void *extra_info, duckdb_delete_callback_t destroy);
+  // not exposed: combined with scalar_function_set_function
+
   // DUCKDB_C_API void duckdb_scalar_function_set_bind(duckdb_scalar_function scalar_function, duckdb_scalar_function_bind_t bind);
   // DUCKDB_C_API void duckdb_scalar_function_set_bind_data(duckdb_bind_info info, void *bind_data, duckdb_delete_callback_t destroy);
   // DUCKDB_C_API void duckdb_scalar_function_bind_set_error(duckdb_bind_info info, const char *error);
 
   // DUCKDB_C_API void duckdb_scalar_function_set_function(duckdb_scalar_function scalar_function, duckdb_scalar_function_t function);
-  // function scalar_function_set_function(scalar_function: ScalarFunction, func: ScalarFunctionMainFunction): void
+  // function scalar_function_set_function(scalar_function: ScalarFunction, func: ScalarFunctionMainFunction, extra_info?: object): void
   Napi::Value scalar_function_set_function(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto scalar_function = GetScalarFunctionFromExternal(env, info[0]);
     auto func = info[1].As<Napi::Function>();
-    auto extra_info = CreateScalarFunctionMainExtraInfo(env, func);
+    auto user_extra_info = info[2].As<Napi::Object>();
+    auto extra_info = CreateScalarFunctionMainExtraInfo(env, func, user_extra_info);
     duckdb_scalar_function_set_extra_info(scalar_function, extra_info, reinterpret_cast<duckdb_delete_callback_t>(DeleteScalarFunctionMainExtraInfo));
     duckdb_scalar_function_set_function(scalar_function, &ScalarFunctionMainFunction);
     return env.Undefined();
@@ -4084,6 +4094,17 @@ private:
   }
 
   // DUCKDB_C_API void *duckdb_scalar_function_get_extra_info(duckdb_function_info info);
+  // function scalar_function_get_extra_info(function_info: FunctionInfo): object | undefined
+  Napi::Value scalar_function_get_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto function_info = GetFunctionInfoFromExternal(env, info[0]);
+    auto extra_info = GetScalarFunctionMainExtraInfo(function_info);
+    if (extra_info->user_extra_info_ref.IsEmpty()) {
+      return env.Undefined();
+    }
+    return extra_info->user_extra_info_ref.Value();
+  }
+
   // DUCKDB_C_API void *duckdb_scalar_function_get_bind_data(duckdb_function_info info);
   // DUCKDB_C_API void duckdb_scalar_function_get_client_context(duckdb_bind_info info, duckdb_client_context *out_context);
 
@@ -4691,14 +4712,14 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   431 total functions
 
-  252 instance methods
+  253 instance methods
     3 unimplemented client context functions
     1 unimplemented table names function
     1 unimplemented value to string function
     1 unimplemented logical type function
     2 unimplemented vector creation functions
     3 unimplemented vector manipulation functions
-   11 unimplemented scalar function functions
+   10 unimplemented scalar function functions
     4 unimplemented scalar function set functions
     3 unimplemented selection vector functions
    12 unimplemented aggregate function functions
@@ -4713,7 +4734,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
     6 unimplemented table description functions
     8 unimplemented tasks functions
    12 unimplemented cast function functions
-   23 functions not exposed
+   24 functions not exposed
 +  41 unimplemented deprecated functions (of 47)
   ---
   431 functions accounted for
