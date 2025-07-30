@@ -713,13 +713,18 @@ using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainC
 struct ScalarFunctionMainExtraInfo {
   ScalarFunctionMainTSFN tsfn;
   Napi::ObjectReference user_extra_info_ref;
+
+  ScalarFunctionMainExtraInfo(Napi::Env env, Napi::Function func, Napi::Object user_extra_info) :
+    tsfn(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1)),
+    user_extra_info_ref(user_extra_info.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_extra_info)) {}
+
+  ~ScalarFunctionMainExtraInfo() {
+    tsfn.Release();
+  }
 };
 
 ScalarFunctionMainExtraInfo *CreateScalarFunctionMainExtraInfo(Napi::Env env, Napi::Function func, Napi::Object user_extra_info) {
-  auto extra_info = reinterpret_cast<ScalarFunctionMainExtraInfo*>(duckdb_malloc(sizeof(ScalarFunctionMainExtraInfo)));
-  extra_info->tsfn = ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1);
-  extra_info->user_extra_info_ref = user_extra_info.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_extra_info);
-  return extra_info;
+  return new ScalarFunctionMainExtraInfo(env, func, user_extra_info);
 }
 
 ScalarFunctionMainExtraInfo *GetScalarFunctionMainExtraInfo(duckdb_function_info function_info) {
@@ -727,9 +732,7 @@ ScalarFunctionMainExtraInfo *GetScalarFunctionMainExtraInfo(duckdb_function_info
 }
 
 void DeleteScalarFunctionMainExtraInfo(ScalarFunctionMainExtraInfo *extra_info) {
-  extra_info->tsfn.Release();
-  extra_info->user_extra_info_ref.Reset();
-  duckdb_free(extra_info);
+  delete extra_info;
 }
 
 void ScalarFunctionMainFunction(duckdb_function_info info, duckdb_data_chunk input, duckdb_vector output) {
