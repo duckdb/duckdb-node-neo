@@ -692,14 +692,18 @@ struct ScalarFunctionMainData {
 void ScalarFunctionMainCallback(Napi::Env env, Napi::Function callback, ScalarFunctionMainContext *context, ScalarFunctionMainData *data) {
   if (env != nullptr) {
     if (callback != nullptr) {
-      callback.Call(
-        env.Undefined(),
-        {
-          CreateExternalForFunctionInfoWithoutFinalizer(env, data->info),
-          CreateExternalForDataChunkWithoutFinalizer(env, data->input),
-          CreateExternalForVectorWithoutFinalizer(env, data->output)
-        }
-      );
+      try {
+        callback.Call(
+          env.Undefined(),
+          {
+            CreateExternalForFunctionInfoWithoutFinalizer(env, data->info),
+            CreateExternalForDataChunkWithoutFinalizer(env, data->input),
+            CreateExternalForVectorWithoutFinalizer(env, data->output)
+          }
+        );
+      } catch (const Napi::Error &err) {
+        duckdb_scalar_function_set_error(data->info, err.Message().c_str());
+      }
     }
   }
   {
