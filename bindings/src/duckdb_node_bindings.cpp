@@ -1563,6 +1563,10 @@ public:
       InstanceMethod("create_scalar_function", &DuckDBNodeAddon::create_scalar_function),
       InstanceMethod("destroy_scalar_function_sync", &DuckDBNodeAddon::destroy_scalar_function_sync),
       InstanceMethod("scalar_function_set_name", &DuckDBNodeAddon::scalar_function_set_name),
+      InstanceMethod("scalar_function_set_varargs", &DuckDBNodeAddon::scalar_function_set_varargs),
+      InstanceMethod("scalar_function_set_special_handling", &DuckDBNodeAddon::scalar_function_set_special_handling),
+      InstanceMethod("scalar_function_set_volatile", &DuckDBNodeAddon::scalar_function_set_volatile),
+      InstanceMethod("scalar_function_add_parameter", &DuckDBNodeAddon::scalar_function_add_parameter),
       InstanceMethod("scalar_function_set_return_type", &DuckDBNodeAddon::scalar_function_set_return_type),
       InstanceMethod("scalar_function_set_function", &DuckDBNodeAddon::scalar_function_set_function),
       InstanceMethod("register_scalar_function", &DuckDBNodeAddon::register_scalar_function),
@@ -4054,9 +4058,42 @@ private:
   }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_varargs(duckdb_scalar_function scalar_function, duckdb_logical_type type);
+  // function scalar_function_set_varargs(scalar_function: ScalarFunction, logical_type: LogicalType): void
+  Napi::Value scalar_function_set_varargs(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto scalar_function = GetScalarFunctionFromExternal(env, info[0]);
+    auto logical_type = GetLogicalTypeFromExternal(env, info[1]);
+    duckdb_scalar_function_set_varargs(scalar_function, logical_type);
+    return env.Undefined();
+  }
+
   // DUCKDB_C_API void duckdb_scalar_function_set_special_handling(duckdb_scalar_function scalar_function);
+  // function scalar_function_set_special_handling(scalar_function: ScalarFunction): void
+  Napi::Value scalar_function_set_special_handling(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto scalar_function = GetScalarFunctionFromExternal(env, info[0]);
+    duckdb_scalar_function_set_special_handling(scalar_function);
+    return env.Undefined();
+  }
+
   // DUCKDB_C_API void duckdb_scalar_function_set_volatile(duckdb_scalar_function scalar_function);
+  // function scalar_function_set_volatile(scalar_function: ScalarFunction): void
+  Napi::Value scalar_function_set_volatile(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto scalar_function = GetScalarFunctionFromExternal(env, info[0]);
+    duckdb_scalar_function_set_volatile(scalar_function);
+    return env.Undefined();
+  }
+
   // DUCKDB_C_API void duckdb_scalar_function_add_parameter(duckdb_scalar_function scalar_function, duckdb_logical_type type);
+  // function scalar_function_add_parameter(scalar_function: ScalarFunction, logical_type: LogicalType): void
+  Napi::Value scalar_function_add_parameter(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto scalar_function = GetScalarFunctionFromExternal(env, info[0]);
+    auto logical_type = GetLogicalTypeFromExternal(env, info[1]);
+    duckdb_scalar_function_add_parameter(scalar_function, logical_type);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_return_type(duckdb_scalar_function scalar_function, duckdb_logical_type type);
   // function scalar_function_set_return_type(scalar_function: ScalarFunction, logical_type: LogicalType): void
@@ -4719,14 +4756,14 @@ NODE_API_ADDON(DuckDBNodeAddon)
   ---
   431 total functions
 
-  253 instance methods
+  257 instance methods
     3 unimplemented client context functions
     1 unimplemented table names function
     1 unimplemented value to string function
     1 unimplemented logical type function
     2 unimplemented vector creation functions
     3 unimplemented vector manipulation functions
-   10 unimplemented scalar function functions
+    5 unimplemented scalar function functions
     4 unimplemented scalar function set functions
     3 unimplemented selection vector functions
    12 unimplemented aggregate function functions

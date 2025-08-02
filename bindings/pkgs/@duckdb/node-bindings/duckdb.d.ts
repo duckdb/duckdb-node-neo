@@ -1031,9 +1031,16 @@ export function destroy_scalar_function_sync(scalar_function: ScalarFunction): v
 export function scalar_function_set_name(scalar_function: ScalarFunction, name: string): void;
 
 // DUCKDB_C_API void duckdb_scalar_function_set_varargs(duckdb_scalar_function scalar_function, duckdb_logical_type type);
+export function scalar_function_set_varargs(scalar_function: ScalarFunction, logical_type: LogicalType): void;
+
 // DUCKDB_C_API void duckdb_scalar_function_set_special_handling(duckdb_scalar_function scalar_function);
+export function scalar_function_set_special_handling(scalar_function: ScalarFunction): void;
+
 // DUCKDB_C_API void duckdb_scalar_function_set_volatile(duckdb_scalar_function scalar_function);
+export function scalar_function_set_volatile(scalar_function: ScalarFunction): void;
+
 // DUCKDB_C_API void duckdb_scalar_function_add_parameter(duckdb_scalar_function scalar_function, duckdb_logical_type type);
+export function scalar_function_add_parameter(scalar_function: ScalarFunction, logical_type: LogicalType): void;
 
 // DUCKDB_C_API void duckdb_scalar_function_set_return_type(duckdb_scalar_function scalar_function, duckdb_logical_type type);
 export function scalar_function_set_return_type(scalar_function: ScalarFunction, logical_type: LogicalType): void;
