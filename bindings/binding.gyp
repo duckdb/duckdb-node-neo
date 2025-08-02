@@ -39,7 +39,7 @@
       'target_name': 'duckdb',
       'dependencies': [
         'fetch_libduckdb',
-        '<!(node -p "require(\'node-addon-api\').targets"):node_addon_api_except',
+        '<!(node -p "require(\'node-addon-api\').targets"):node_addon_api_except_all',
       ],
       'sources': ['src/duckdb_node_bindings.cpp'],
       'include_dirs': ['<(module_root_dir)/libduckdb'],
