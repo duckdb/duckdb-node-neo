@@ -31,6 +31,7 @@ suite('scalar functions', () => {
         }
       });
       duckdb.register_scalar_function(connection, scalar_function);
+      duckdb.destroy_scalar_function_sync(scalar_function);
 
       const result = await duckdb.query(connection, "select my_func()");
       await expectResult(result, {
@@ -43,7 +44,6 @@ suite('scalar functions', () => {
           { rowCount: 1, vectors: [data(16, [true], ['output_0'])]}
         ],
       });
-      duckdb.destroy_scalar_function_sync(scalar_function);
     });
   });
   test('register & run (extra info)', async () => {
@@ -60,6 +60,7 @@ suite('scalar functions', () => {
         }
       }, { 'my_extra_info_key': 'my_extra_info_value' });
       duckdb.register_scalar_function(connection, scalar_function);
+      duckdb.destroy_scalar_function_sync(scalar_function);
 
       const result = await duckdb.query(connection, "select my_func()");
       await expectResult(result, {
@@ -72,7 +73,21 @@ suite('scalar functions', () => {
           { rowCount: 1, vectors: [data(16, [true], ['output_0_{"my_extra_info_key":"my_extra_info_value"}'])]}
         ],
       });
+    });
+  });
+  test('error handling', async () => {
+    await withConnection(async (connection) => {
+      const scalar_function = duckdb.create_scalar_function();
+      duckdb.scalar_function_set_name(scalar_function, 'my_func');
+      const int_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
+      duckdb.scalar_function_set_return_type(scalar_function, int_type);
+      duckdb.scalar_function_set_function(scalar_function, (_info, _input, _output) => {
+        throw new Error('my_error');
+      });
+      duckdb.register_scalar_function(connection, scalar_function);
       duckdb.destroy_scalar_function_sync(scalar_function);
+
+      await expect(duckdb.query(connection, "select my_func()")).rejects.toThrow('Invalid Input Error: my_error');;
     });
   });
 });
