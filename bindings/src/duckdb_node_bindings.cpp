@@ -631,13 +631,13 @@ struct ScalarFunctionInternalExtraInfo {
   ScalarFunctionInternalExtraInfo() {}
 
   ~ScalarFunctionInternalExtraInfo() {
-    if (main_tsfn) {
+    if (bool(main_tsfn)) {
       main_tsfn->Release();
     }
   }
 
   void SetMainFunction(Napi::Env env, Napi::Function func) {
-    if (main_tsfn) {
+    if (bool(main_tsfn)) {
       main_tsfn->Release();
     }
     main_tsfn = std::make_unique<ScalarFunctionMainTSFN>(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1));
@@ -656,7 +656,7 @@ struct ScalarFunctionHolder {
   duckdb_scalar_function scalar_function;
   ScalarFunctionInternalExtraInfo *internal_extra_info;
 
-  ScalarFunctionHolder(duckdb_scalar_function scalar_function_in): scalar_function(scalar_function_in) {}
+  ScalarFunctionHolder(duckdb_scalar_function scalar_function_in): scalar_function(scalar_function_in), internal_extra_info(nullptr) {}
 
   ~ScalarFunctionHolder() {
     // duckdb_destroy_scalar_function is a no-op if already destroyed
