@@ -5,6 +5,7 @@
 
 #include <condition_variable>
 #include <cstddef>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -718,15 +719,18 @@ void ScalarFunctionMainTSFNCallback(Napi::Env env, Napi::Function callback, Scal
 using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainTSFNContext, ScalarFunctionMainTSFNData, ScalarFunctionMainTSFNCallback>;
 
 struct ScalarFunctionMainExtraInfo {
-  ScalarFunctionMainTSFN tsfn;
+  std::unique_ptr<ScalarFunctionMainTSFN> tsfn;
   Napi::ObjectReference user_extra_info_ref;
 
   ScalarFunctionMainExtraInfo(Napi::Env env, Napi::Function func, Napi::Object user_extra_info) :
-    tsfn(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1)),
-    user_extra_info_ref(user_extra_info.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_extra_info)) {}
+    user_extra_info_ref(user_extra_info.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_extra_info)) {
+    tsfn = std::make_unique<ScalarFunctionMainTSFN>(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1));
+  }
 
   ~ScalarFunctionMainExtraInfo() {
-    tsfn.Release();
+    if (tsfn) {
+      tsfn->Release();
+    }
   }
 };
 
@@ -753,7 +757,7 @@ void ScalarFunctionMainFunction(duckdb_function_info info, duckdb_data_chunk inp
   data->done = false;
   // The "blocking" part of this call only waits for queue space, not for the JS function call to complete.
   // Since we specify no limit to the queue space, it in fact never blocks.
-  auto status = extra_info->tsfn.BlockingCall(data);
+  auto status = extra_info->tsfn->BlockingCall(data);
   if (status == napi_ok) {
     // Wait for the JS function call to complete.
     std::unique_lock<std::mutex> lk(*data->cv_mutex);
