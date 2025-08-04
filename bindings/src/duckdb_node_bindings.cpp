@@ -680,8 +680,8 @@ duckdb_vector GetVectorFromExternal(Napi::Env env, Napi::Value value) {
 
 // Scalar functions
 
-using ScalarFunctionMainContext = std::nullptr_t;
-struct ScalarFunctionMainData {
+using ScalarFunctionMainTSFNContext = std::nullptr_t;
+struct ScalarFunctionMainTSFNData {
   duckdb_function_info info;
   duckdb_data_chunk input;
   duckdb_vector output;
@@ -689,7 +689,7 @@ struct ScalarFunctionMainData {
   std::mutex *cv_mutex;
   bool done;
 };
-void ScalarFunctionMainCallback(Napi::Env env, Napi::Function callback, ScalarFunctionMainContext *context, ScalarFunctionMainData *data) {
+void ScalarFunctionMainTSFNCallback(Napi::Env env, Napi::Function callback, ScalarFunctionMainTSFNContext *context, ScalarFunctionMainTSFNData *data) {
   if (env != nullptr) {
     if (callback != nullptr) {
       try {
@@ -712,7 +712,7 @@ void ScalarFunctionMainCallback(Napi::Env env, Napi::Function callback, ScalarFu
   }
   data->cv->notify_one();
 }
-using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainContext, ScalarFunctionMainData, ScalarFunctionMainCallback>;
+using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainTSFNContext, ScalarFunctionMainTSFNData, ScalarFunctionMainTSFNCallback>;
 
 struct ScalarFunctionMainExtraInfo {
   ScalarFunctionMainTSFN tsfn;
@@ -741,7 +741,7 @@ void DeleteScalarFunctionMainExtraInfo(ScalarFunctionMainExtraInfo *extra_info) 
 
 void ScalarFunctionMainFunction(duckdb_function_info info, duckdb_data_chunk input, duckdb_vector output) {
   auto extra_info = GetScalarFunctionMainExtraInfo(info);
-  auto data = reinterpret_cast<ScalarFunctionMainData*>(duckdb_malloc(sizeof(ScalarFunctionMainData)));
+  auto data = reinterpret_cast<ScalarFunctionMainTSFNData*>(duckdb_malloc(sizeof(ScalarFunctionMainTSFNData)));
   data->info = info;
   data->input = input;
   data->output = output;
