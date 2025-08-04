@@ -65,9 +65,9 @@ suite('scalar functions', () => {
               `output_${i}_${JSON.stringify(extra_info)}`
             );
           }
-        },
-        { 'my_extra_info_key': 'my_extra_info_value' }
+        }
       );
+      duckdb.scalar_function_set_extra_info(scalar_function, { 'my_extra_info_key': 'my_extra_info_value' });
       duckdb.register_scalar_function(connection, scalar_function);
       duckdb.destroy_scalar_function_sync(scalar_function);
 
