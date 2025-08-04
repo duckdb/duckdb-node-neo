@@ -618,28 +618,31 @@ static const napi_type_tag ScalarFunctionTypeTag = {
   0x95D48B7051D14994, 0x9F883D7DF5DEA86D
 };
 
-typedef struct {
+struct ScalarFunctionHolder {
   duckdb_scalar_function scalar_function;
-} duckdb_scalar_function_holder;
 
-duckdb_scalar_function_holder *CreateScalarFunctionHolder(duckdb_scalar_function scalar_function) {
-  auto scalar_function_holder_ptr = reinterpret_cast<duckdb_scalar_function_holder*>(duckdb_malloc(sizeof(duckdb_scalar_function_holder)));
-  scalar_function_holder_ptr->scalar_function = scalar_function;
-  return scalar_function_holder_ptr;
+  ScalarFunctionHolder(duckdb_scalar_function scalar_function_in): scalar_function(scalar_function_in) {}
+
+  ~ScalarFunctionHolder() {
+    // duckdb_destroy_scalar_function is a no-op if already destroyed
+    duckdb_destroy_scalar_function(&scalar_function);
+  }
+};
+
+ScalarFunctionHolder *CreateScalarFunctionHolder(duckdb_scalar_function scalar_function) {
+  return new ScalarFunctionHolder(scalar_function);
 }
 
-void FinalizeScalarFunctionHolder(Napi::BasicEnv, duckdb_scalar_function_holder *scalar_function_holder_ptr) {
-  // duckdb_destroy_scalar_function is a no-op if already closed
-  duckdb_destroy_scalar_function(&scalar_function_holder_ptr->scalar_function);
-  duckdb_free(scalar_function_holder_ptr);
+void FinalizeScalarFunctionHolder(Napi::BasicEnv, ScalarFunctionHolder *holder) {
+  delete holder;
 }
 
-Napi::External<duckdb_scalar_function_holder> CreateExternalForScalarFunction(Napi::Env env, duckdb_scalar_function scalar_function) {
-  return CreateExternal<duckdb_scalar_function_holder>(env, ScalarFunctionTypeTag, CreateScalarFunctionHolder(scalar_function), FinalizeScalarFunctionHolder);
+Napi::External<ScalarFunctionHolder> CreateExternalForScalarFunction(Napi::Env env, duckdb_scalar_function scalar_function) {
+  return CreateExternal<ScalarFunctionHolder>(env, ScalarFunctionTypeTag, CreateScalarFunctionHolder(scalar_function), FinalizeScalarFunctionHolder);
 }
 
-duckdb_scalar_function_holder *GetScalarFunctionHolderFromExternal(Napi::Env env, Napi::Value value) {
-  return GetDataFromExternal<duckdb_scalar_function_holder>(env, ScalarFunctionTypeTag, value, "Invalid scalar function argument");
+ScalarFunctionHolder *GetScalarFunctionHolderFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<ScalarFunctionHolder>(env, ScalarFunctionTypeTag, value, "Invalid scalar function argument");
 }
 
 duckdb_scalar_function GetScalarFunctionFromExternal(Napi::Env env, Napi::Value value) {
@@ -4041,9 +4044,9 @@ private:
   // function destroy_scalar_function_sync(scalar_function: ScalarFunction): void
   Napi::Value destroy_scalar_function_sync(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto scalar_function_holder_ptr = GetScalarFunctionHolderFromExternal(env, info[0]);
-    // duckdb_destroy_scalar_function is a no-op if already closed
-    duckdb_destroy_scalar_function(&scalar_function_holder_ptr->scalar_function);
+    auto holder = GetScalarFunctionHolderFromExternal(env, info[0]);
+    // duckdb_destroy_scalar_function is a no-op if already destroyed
+    duckdb_destroy_scalar_function(&holder->scalar_function);
     return env.Undefined();
   }
 
