@@ -625,22 +625,22 @@ void ScalarFunctionMainTSFNCallback(Napi::Env env, Napi::Function callback, Scal
 using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainTSFNContext, ScalarFunctionMainTSFNData, ScalarFunctionMainTSFNCallback>;
 
 struct ScalarFunctionInternalExtraInfo {
-  std::unique_ptr<ScalarFunctionMainTSFN> tsfn;
+  std::unique_ptr<ScalarFunctionMainTSFN> main_tsfn;
   std::unique_ptr<Napi::ObjectReference> user_extra_info_ref;
 
   ScalarFunctionInternalExtraInfo() {}
 
   ~ScalarFunctionInternalExtraInfo() {
-    if (tsfn) {
-      tsfn->Release();
+    if (main_tsfn) {
+      main_tsfn->Release();
     }
   }
 
   void SetMainFunction(Napi::Env env, Napi::Function func) {
-    if (tsfn) {
-      tsfn->Release();
+    if (main_tsfn) {
+      main_tsfn->Release();
     }
-    tsfn = std::make_unique<ScalarFunctionMainTSFN>(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1));
+    main_tsfn = std::make_unique<ScalarFunctionMainTSFN>(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1));
   }
 
   void SetUserExtraInfo(Napi::Object user_extra_info) {
@@ -774,7 +774,7 @@ void ScalarFunctionMainFunction(duckdb_function_info info, duckdb_data_chunk inp
   data->done = false;
   // The "blocking" part of this call only waits for queue space, not for the JS function call to complete.
   // Since we specify no limit to the queue space, it in fact never blocks.
-  auto status = internal_extra_info->tsfn->BlockingCall(data);
+  auto status = internal_extra_info->main_tsfn->BlockingCall(data);
   if (status == napi_ok) {
     // Wait for the JS function call to complete.
     std::unique_lock<std::mutex> lk(*data->cv_mutex);
@@ -4168,7 +4168,7 @@ private:
     auto env = info.Env();
     auto function_info = GetFunctionInfoFromExternal(env, info[0]);
     auto internal_extra_info = GetScalarFunctionInternalExtraInfo(function_info);
-    if (!internal_extra_info->user_extra_info_ref || internal_extra_info->user_extra_info_ref->IsEmpty()) {
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref || internal_extra_info->user_extra_info_ref->IsEmpty()) {
       return env.Undefined();
     }
     return internal_extra_info->user_extra_info_ref->Value();
