@@ -619,7 +619,38 @@ static const napi_type_tag ScalarFunctionTypeTag = {
   0x95D48B7051D14994, 0x9F883D7DF5DEA86D
 };
 
-struct ScalarFunctionInternalExtraInfo;
+using ScalarFunctionMainTSFNContext = std::nullptr_t;
+struct ScalarFunctionMainTSFNData;
+void ScalarFunctionMainTSFNCallback(Napi::Env env, Napi::Function callback, ScalarFunctionMainTSFNContext *context, ScalarFunctionMainTSFNData *data);
+using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainTSFNContext, ScalarFunctionMainTSFNData, ScalarFunctionMainTSFNCallback>;
+
+struct ScalarFunctionInternalExtraInfo {
+  std::unique_ptr<ScalarFunctionMainTSFN> tsfn;
+  std::unique_ptr<Napi::ObjectReference> user_extra_info_ref;
+
+  ScalarFunctionInternalExtraInfo() {}
+
+  ~ScalarFunctionInternalExtraInfo() {
+    if (tsfn) {
+      tsfn->Release();
+    }
+  }
+
+  void SetMainFunction(Napi::Env env, Napi::Function func) {
+    if (tsfn) {
+      tsfn->Release();
+    }
+    tsfn = std::make_unique<ScalarFunctionMainTSFN>(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1));
+  }
+
+  void SetUserExtraInfo(Napi::Object user_extra_info) {
+    user_extra_info_ref = std::make_unique<Napi::ObjectReference>(user_extra_info.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_extra_info));
+  }
+};
+
+void DeleteScalarFunctionInternalExtraInfo(ScalarFunctionInternalExtraInfo *internal_extra_info) {
+  delete internal_extra_info;
+}
 
 struct ScalarFunctionHolder {
   duckdb_scalar_function scalar_function;
@@ -630,6 +661,14 @@ struct ScalarFunctionHolder {
   ~ScalarFunctionHolder() {
     // duckdb_destroy_scalar_function is a no-op if already destroyed
     duckdb_destroy_scalar_function(&scalar_function);
+  }
+
+  ScalarFunctionInternalExtraInfo *EnsureInternalExtraInfo() {
+    if (!internal_extra_info) {
+      internal_extra_info = new ScalarFunctionInternalExtraInfo();
+      duckdb_scalar_function_set_extra_info(scalar_function, internal_extra_info, reinterpret_cast<duckdb_delete_callback_t>(DeleteScalarFunctionInternalExtraInfo));
+    }
+    return internal_extra_info;
   }
 };
 
@@ -687,7 +726,6 @@ duckdb_vector GetVectorFromExternal(Napi::Env env, Napi::Value value) {
 
 // Scalar functions
 
-using ScalarFunctionMainTSFNContext = std::nullptr_t;
 struct ScalarFunctionMainTSFNData {
   duckdb_function_info info;
   duckdb_data_chunk input;
@@ -696,6 +734,7 @@ struct ScalarFunctionMainTSFNData {
   std::mutex *cv_mutex;
   bool done;
 };
+
 void ScalarFunctionMainTSFNCallback(Napi::Env env, Napi::Function callback, ScalarFunctionMainTSFNContext *context, ScalarFunctionMainTSFNData *data) {
   if (env != nullptr) {
     if (callback != nullptr) {
@@ -719,39 +758,9 @@ void ScalarFunctionMainTSFNCallback(Napi::Env env, Napi::Function callback, Scal
   }
   data->cv->notify_one();
 }
-using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainTSFNContext, ScalarFunctionMainTSFNData, ScalarFunctionMainTSFNCallback>;
-
-struct ScalarFunctionInternalExtraInfo {
-  std::unique_ptr<ScalarFunctionMainTSFN> tsfn;
-  std::unique_ptr<Napi::ObjectReference> user_extra_info_ref;
-
-  ScalarFunctionInternalExtraInfo() {}
-
-  ~ScalarFunctionInternalExtraInfo() {
-    if (tsfn) {
-      tsfn->Release();
-    }
-  }
-
-  void SetMainFunction(Napi::Env env, Napi::Function func) {
-    tsfn = std::make_unique<ScalarFunctionMainTSFN>(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1));
-  }
-
-  void SetUserExtraInfo(Napi::Object user_extra_info) {
-    user_extra_info_ref = std::make_unique<Napi::ObjectReference>(user_extra_info.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_extra_info));
-  }
-};
-
-ScalarFunctionInternalExtraInfo *CreateScalarFunctionInternalExtraInfo() {
-  return new ScalarFunctionInternalExtraInfo();
-}
 
 ScalarFunctionInternalExtraInfo *GetScalarFunctionInternalExtraInfo(duckdb_function_info function_info) {
   return reinterpret_cast<ScalarFunctionInternalExtraInfo*>(duckdb_scalar_function_get_extra_info(function_info));
-}
-
-void DeleteScalarFunctionInternalExtraInfo(ScalarFunctionInternalExtraInfo *internal_extra_info) {
-  delete internal_extra_info;
 }
 
 void ScalarFunctionMainFunction(duckdb_function_info info, duckdb_data_chunk input, duckdb_vector output) {
@@ -4132,14 +4141,12 @@ private:
   Napi::Value scalar_function_set_function(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto holder = GetScalarFunctionHolderFromExternal(env, info[0]);
-    auto scalar_function = holder->scalar_function;
     auto func = info[1].As<Napi::Function>();
     auto user_extra_info = info[2].As<Napi::Object>();
-    holder->internal_extra_info = CreateScalarFunctionInternalExtraInfo();
+    holder->EnsureInternalExtraInfo();
     holder->internal_extra_info->SetMainFunction(env, func);
     holder->internal_extra_info->SetUserExtraInfo(user_extra_info);
-    duckdb_scalar_function_set_extra_info(scalar_function, holder->internal_extra_info, reinterpret_cast<duckdb_delete_callback_t>(DeleteScalarFunctionInternalExtraInfo));
-    duckdb_scalar_function_set_function(scalar_function, &ScalarFunctionMainFunction);
+    duckdb_scalar_function_set_function(holder->scalar_function, &ScalarFunctionMainFunction);
     return env.Undefined();
   }
 
