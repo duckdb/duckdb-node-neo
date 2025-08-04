@@ -720,11 +720,11 @@ using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainT
 
 struct ScalarFunctionMainExtraInfo {
   std::unique_ptr<ScalarFunctionMainTSFN> tsfn;
-  Napi::ObjectReference user_extra_info_ref;
+  std::unique_ptr<Napi::ObjectReference> user_extra_info_ref;
 
-  ScalarFunctionMainExtraInfo(Napi::Env env, Napi::Function func, Napi::Object user_extra_info) :
-    user_extra_info_ref(user_extra_info.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_extra_info)) {
+  ScalarFunctionMainExtraInfo(Napi::Env env, Napi::Function func, Napi::Object user_extra_info) {
     tsfn = std::make_unique<ScalarFunctionMainTSFN>(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1));
+    user_extra_info_ref = std::make_unique<Napi::ObjectReference>(user_extra_info.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_extra_info));
   }
 
   ~ScalarFunctionMainExtraInfo() {
@@ -4150,10 +4150,10 @@ private:
     auto env = info.Env();
     auto function_info = GetFunctionInfoFromExternal(env, info[0]);
     auto extra_info = GetScalarFunctionMainExtraInfo(function_info);
-    if (extra_info->user_extra_info_ref.IsEmpty()) {
+    if (!extra_info->user_extra_info_ref || extra_info->user_extra_info_ref->IsEmpty()) {
       return env.Undefined();
     }
-    return extra_info->user_extra_info_ref.Value();
+    return extra_info->user_extra_info_ref->Value();
   }
 
   // DUCKDB_C_API void *duckdb_scalar_function_get_bind_data(duckdb_function_info info);
