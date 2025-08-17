@@ -113,6 +113,7 @@ import {
   version,
 } from '../src';
 import { DuckDBInstanceCache } from '../src/DuckDBInstanceCache';
+import { DuckDBScalarFunction } from '../src/DuckDBScalarFunction';
 import { replaceSqlNullWithInteger } from './util/replaceSqlNullWithInteger';
 import {
   ColumnNameAndType,
@@ -2164,7 +2165,7 @@ ORDER BY name
           created_at VARCHAR
         )
       `);
-      
+
       await connection.run(`
         INSERT INTO test_table VALUES 
         (1, 'test1', 100, '2023-01-01'),
@@ -2173,35 +2174,232 @@ ORDER BY name
         (4, 'test4', 400, '2023-01-04'),
         (5, 'test5', 500, '2023-01-05')
       `);
-      
+
       const iterations = 1000;
       const concurrency = 12;
-      
+
       const runIteration = async (i: number) => {
-        const prepared = await connection.prepare('SELECT * FROM test_table WHERE id = $1',);
+        const prepared = await connection.prepare(
+          'SELECT * FROM test_table WHERE id = $1'
+        );
         prepared.bindInteger(1, (i % 5) + 1);
-        
+
         await prepared.run();
       };
-      
+
       // Run iterations in batches with controlled concurrency
       let processed = 0;
-      
+
       while (processed < iterations) {
         const batch = [];
         const batchEnd = Math.min(processed + concurrency, iterations);
-        
+
         for (let i = processed; i < batchEnd; i++) {
           batch.push(runIteration(i));
         }
-        
+
         // Wait for all in the batch to complete
         await Promise.allSettled(batch);
         processed = batchEnd;
       }
-      
+
       // If we reach here without segfaulting, the test passes
       assert.isTrue(true, 'Test completed without error');
     });
-  }); 
+  });
+
+  test('scalar function (no params)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          mainFunction: (_info, input, output) => {
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+              output.setItem(rowIndex, `my_output_${rowIndex}`);
+            }
+            output.flush();
+          },
+          returnType: VARCHAR,
+        })
+      );
+      const reader = await connection.runAndReadAll('select my_func()');
+      const columns = reader.getColumnsObject();
+      assert.deepEqual(columns, { 'my_func()': ['my_output_0'] });
+    });
+  });
+
+  test('scalar function (extra info)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          mainFunction: (info, input, output) => {
+            const extraInfo = info.getExtraInfo();
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+              output.setItem(
+                rowIndex,
+                `my_output_${rowIndex}_${JSON.stringify(extraInfo)}`
+              );
+            }
+            output.flush();
+          },
+          returnType: VARCHAR,
+          extraInfo: { 'my_extra_info_key': 'my_extra_info_value' },
+        })
+      );
+      const reader = await connection.runAndReadAll('select my_func()');
+      const columns = reader.getColumnsObject();
+      assert.deepEqual(columns, {
+        'my_func()': [
+          'my_output_0_{"my_extra_info_key":"my_extra_info_value"}',
+        ],
+      });
+    });
+  });
+
+  test('scalar function (error handling: throw)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          mainFunction: (_info, _input, _output) => {
+            throw new Error('my_error');
+          },
+          returnType: VARCHAR,
+        })
+      );
+      try {
+        await connection.run('select my_func()');
+        assert.fail('should throw');
+      } catch (err) {
+        assert.deepEqual(err, new Error('Invalid Input Error: my_error'));
+      }
+    });
+  });
+
+  test('scalar function (error handling: setError)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          mainFunction: (info, _input, _output) => {
+            info.setError('my_error');
+          },
+          returnType: VARCHAR,
+        })
+      );
+      try {
+        await connection.run('select my_func()');
+        assert.fail('should throw');
+      } catch (err) {
+        assert.deepEqual(err, new Error('Invalid Input Error: my_error'));
+      }
+    });
+  });
+
+  test('scalar function (params, volatile)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          mainFunction: (_info, input, output) => {
+            const v0 = input.getColumnVector(0);
+            const v1 = input.getColumnVector(1);
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+              output.setItem(
+                rowIndex,
+                `my_output_${rowIndex}_${v0.getItem(rowIndex)}_${v1.getItem(
+                  rowIndex
+                )}`
+              );
+            }
+            output.flush();
+          },
+          returnType: VARCHAR,
+          parameterTypes: [INTEGER, VARCHAR],
+          volatile: true,
+        })
+      );
+      const reader = await connection.runAndReadAll(
+        `select my_func(42, 'duck') as my_func_result from range(3)`
+      );
+      const columns = reader.getColumnsObject();
+      assert.deepEqual(columns, {
+        'my_func_result': [
+          'my_output_0_42_duck',
+          'my_output_1_42_duck',
+          'my_output_2_42_duck',
+        ],
+      });
+    });
+  });
+
+  test('scalar function (varargs, volatile)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          mainFunction: (_info, input, output) => {
+            // const v0 = input.getColumnVector(0);
+            // const v1 = input.getColumnVector(1);
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+              const argValues: DuckDBValue[] = [];
+              for (
+                let columnIndex = 0;
+                columnIndex < input.columnCount;
+                columnIndex++
+              ) {
+                argValues.push(
+                  input.getColumnVector(columnIndex).getItem(rowIndex)
+                );
+              }
+              output.setItem(
+                rowIndex,
+                `my_output_${rowIndex}_${argValues.join('_')}`
+              );
+            }
+            output.flush();
+          },
+          returnType: VARCHAR,
+          varArgsType: INTEGER,
+          volatile: true,
+        })
+      );
+      const reader = await connection.runAndReadAll(
+        `select my_func(11, 13, 17) as my_func_result from range(3)`
+      );
+      const columns = reader.getColumnsObject();
+      assert.deepEqual(columns, {
+        'my_func_result': [
+          'my_output_0_11_13_17',
+          'my_output_1_11_13_17',
+          'my_output_2_11_13_17',
+        ],
+      });
+    });
+  });
+
+  test('scalar function (special handling)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          mainFunction: (_info, input, output) => {
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+              output.setItem(rowIndex, 'output_is_not_null');
+            }
+            output.flush();
+          },
+          returnType: VARCHAR,
+          parameterTypes: [INTEGER],
+          specialHandling: true,
+        })
+      );
+      const reader = await connection.runAndReadAll(`select my_func(NULL)`);
+      const columns = reader.getColumnsObject();
+      assert.deepEqual(columns, {
+        'my_func(NULL)': ['output_is_not_null'],
+      });
+    });
+  });
 });
