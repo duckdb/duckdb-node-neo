@@ -17,14 +17,7 @@ available separately as [@duckdb/node-bindings](https://www.npmjs.com/package/@d
 
 ### Roadmap
 
-Some features are not yet complete:
-* Appending default values row-by-row
-* User-defined types & functions
-* Profiling info
-* Table description
-* APIs for Arrow
-
-See the [issues list on GitHub](https://github.com/duckdb/duckdb-node-neo/issues)
+Some features are not yet complete. See the [issues list on GitHub](https://github.com/duckdb/duckdb-node-neo/issues)
 for the most up-to-date roadmap.
 
 ### Supported Platforms
@@ -882,6 +875,32 @@ appender.flushSync();
 ```
 
 See "Specifying Values" above for how to supply values to the appender.
+
+### Scalar Functions
+
+```ts
+connection.registerScalarFunction(
+  DuckDBScalarFunction.create({
+    name: 'my_add',
+    mainFunction: (info, input, output) => {
+      const v0 = input.getColumnVector(0);
+      const v1 = input.getColumnVector(1);
+      for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+        output.setItem(
+          rowIndex,
+          v0.getItem(rowIndex) + v1.getItem(rowIndex)
+        );
+      }
+      output.flush();
+    },
+    returnType: INTEGER,
+    parameterTypes: [INTEGER, INTEGER],
+  })
+);
+const reader = await connection.runAndReadAll('select my_add(2, 3)');
+const rows = reader.getRows();
+// [ [ 5 ] ]
+```
 
 ### Extract Statements
 

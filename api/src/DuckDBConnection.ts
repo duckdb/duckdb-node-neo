@@ -8,6 +8,7 @@ import { DuckDBPreparedStatement } from './DuckDBPreparedStatement';
 import { DuckDBPreparedStatementWeakRefCollection } from './DuckDBPreparedStatementWeakRefCollection';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
+import { DuckDBScalarFunction } from './DuckDBScalarFunction';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBValue } from './values';
 
@@ -218,6 +219,12 @@ export class DuckDBConnection {
         schema ?? null,
         table
       )
+    );
+  }
+  public registerScalarFunction(scalarFunction: DuckDBScalarFunction) {
+    duckdb.register_scalar_function(
+      this.connection,
+      scalarFunction.scalar_function
     );
   }
 }
