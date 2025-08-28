@@ -52,7 +52,7 @@ function col(
   name: string,
   type: DuckDBType,
   valuesStr: string[],
-  valuesJS: readonly JS[]
+  valuesJS: readonly JS[],
 ): ColumnData {
   return { name, type, valuesStr, valuesJS };
 }
@@ -64,79 +64,79 @@ export function createTestJSData(): ColumnData[] {
       'tinyint',
       TINYINT,
       [String(TINYINT.min), String(TINYINT.max), 'null'],
-      [TINYINT.min, TINYINT.max, null]
+      [TINYINT.min, TINYINT.max, null],
     ),
     col(
       'smallint',
       SMALLINT,
       [String(SMALLINT.min), String(SMALLINT.max), 'null'],
-      [SMALLINT.min, SMALLINT.max, null]
+      [SMALLINT.min, SMALLINT.max, null],
     ),
     col(
       'int',
       INTEGER,
       [String(INTEGER.min), String(INTEGER.max), 'null'],
-      [INTEGER.min, INTEGER.max, null]
+      [INTEGER.min, INTEGER.max, null],
     ),
     col(
       'bigint',
       BIGINT,
       [String(BIGINT.min), String(BIGINT.max), 'null'],
-      [BIGINT.min, BIGINT.max, null]
+      [BIGINT.min, BIGINT.max, null],
     ),
     col(
       'hugeint',
       HUGEINT,
       [String(HUGEINT.min), String(HUGEINT.max), 'null'],
-      [HUGEINT.min, HUGEINT.max, null]
+      [HUGEINT.min, HUGEINT.max, null],
     ),
     col(
       'uhugeint',
       UHUGEINT,
       [String(UHUGEINT.min), String(UHUGEINT.max), 'null'],
-      [UHUGEINT.min, UHUGEINT.max, null]
+      [UHUGEINT.min, UHUGEINT.max, null],
     ),
     col(
       'utinyint',
       UTINYINT,
       [String(UTINYINT.min), String(UTINYINT.max), 'null'],
-      [UTINYINT.min, UTINYINT.max, null]
+      [UTINYINT.min, UTINYINT.max, null],
     ),
     col(
       'usmallint',
       USMALLINT,
       [String(USMALLINT.min), String(USMALLINT.max), 'null'],
-      [USMALLINT.min, USMALLINT.max, null]
+      [USMALLINT.min, USMALLINT.max, null],
     ),
     col(
       'uint',
       UINTEGER,
       [String(UINTEGER.min), String(UINTEGER.max), 'null'],
-      [UINTEGER.min, UINTEGER.max, null]
+      [UINTEGER.min, UINTEGER.max, null],
     ),
     col(
       'ubigint',
       UBIGINT,
       [String(UBIGINT.min), String(UBIGINT.max), 'null'],
-      [UBIGINT.min, UBIGINT.max, null]
+      [UBIGINT.min, UBIGINT.max, null],
     ),
     col(
       'varint',
       VARINT,
       [String(VARINT.min), String(VARINT.max), 'null'],
-      [VARINT.min, VARINT.max, null]
+      [VARINT.min, VARINT.max, null],
     ),
     col(
       'date',
       DATE,
       [`'-271821-04-20'`, `'275760-09-13'`, 'null'],
-      [new Date('-271821-04-20'), new Date('+275760-09-13'), null]
+      [new Date('-271821-04-20'), new Date('+275760-09-13'), null],
     ),
     col(
       'time',
       TIME,
       [`'${TIME.min}'`, `'${TIME.max}'`, 'null'],
-      [TIME.min.micros, TIME.max.micros, null]
+      [TIME.min.micros, TIME.max.micros, null],
     ),
     col(
       'timestamp',
@@ -150,7 +150,7 @@ export function createTestJSData(): ColumnData[] {
         new Date('-271821-04-20T00:00:00.000Z'),
         new Date('+275760-09-13T00:00:00.000Z'),
         null,
-      ]
+      ],
     ),
     col(
       'timestamp_s',
@@ -160,7 +160,7 @@ export function createTestJSData(): ColumnData[] {
         new Date('-271821-04-20T00:00:00Z'),
         new Date('+275760-09-13T00:00:00Z'),
         null,
-      ]
+      ],
     ),
     col(
       'timestamp_ms',
@@ -170,7 +170,7 @@ export function createTestJSData(): ColumnData[] {
         new Date('-271821-04-20T00:00:00.000Z'),
         new Date('+275760-09-13T00:00:00.000Z'),
         null,
-      ]
+      ],
     ),
     col(
       'timestamp_ns',
@@ -184,7 +184,7 @@ export function createTestJSData(): ColumnData[] {
         new Date('1677-09-22T00:00:00.000Z'),
         new Date('+2262-04-11 23:47:16.854Z'),
         null,
-      ]
+      ],
     ),
     col(
       'time_tz',
@@ -194,7 +194,7 @@ export function createTestJSData(): ColumnData[] {
         { micros: TIMETZ.min.micros, offset: TIMETZ.min.offset },
         { micros: TIMETZ.max.micros, offset: TIMETZ.max.offset },
         null,
-      ]
+      ],
     ),
     col(
       'timestamp_tz',
@@ -208,37 +208,37 @@ export function createTestJSData(): ColumnData[] {
         new Date('-271821-04-20T00:00:00.000Z'),
         new Date('+275760-09-13T00:00:00.000Z'),
         null,
-      ]
+      ],
     ),
     col(
       'float',
       FLOAT,
       [String(FLOAT.min), String(FLOAT.max), 'null'],
-      [FLOAT.min, FLOAT.max, null]
+      [FLOAT.min, FLOAT.max, null],
     ),
     col(
       'double',
       DOUBLE,
       [String(DOUBLE.min), String(DOUBLE.max), 'null'],
-      [DOUBLE.min, DOUBLE.max, null]
+      [DOUBLE.min, DOUBLE.max, null],
     ),
     col(
       'dec_4_1',
       DECIMAL(4, 1),
       ['-999.9', '999.9', 'null'],
-      [-999.9, 999.9, null]
+      [-999.9, 999.9, null],
     ),
     col(
       'dec_9_4',
       DECIMAL(9, 4),
       ['-99999.9999', '99999.9999', 'null'],
-      [-99999.9999, 99999.9999, null]
+      [-99999.9999, 99999.9999, null],
     ),
     col(
       'dec_18_6',
       DECIMAL(18, 6),
       ['-999999999999.999999', '999999999999.999999', 'null'],
-      [-999999999999.999999, 999999999999.999999, null]
+      [-999999999999.999999, 999999999999.999999, null],
     ),
     col(
       'dec38_10',
@@ -252,13 +252,13 @@ export function createTestJSData(): ColumnData[] {
         -9999999999999999999999999999.9999999999,
         9999999999999999999999999999.9999999999,
         null,
-      ]
+      ],
     ),
     col(
       'uuid',
       UUID,
       [`'${UUID.min}'`, `'${UUID.max}'`, 'null'],
-      [String(UUID.min), String(UUID.max), null]
+      [String(UUID.min), String(UUID.max), null],
     ),
     col(
       'interval',
@@ -272,13 +272,13 @@ export function createTestJSData(): ColumnData[] {
         { months: 0, days: 0, micros: 0n },
         { months: 999, days: 999, micros: 999999999n },
         null,
-      ]
+      ],
     ),
     col(
       'varchar',
       VARCHAR,
       [`'🦆🦆🦆🦆🦆🦆'`, `'goo\\0se'`, 'null'],
-      ['🦆🦆🦆🦆🦆🦆', 'goo\\0se', null]
+      ['🦆🦆🦆🦆🦆🦆', 'goo\\0se', null],
     ),
     col(
       'blob',
@@ -288,7 +288,7 @@ export function createTestJSData(): ColumnData[] {
         bytesFromString('thisisalongblob\x00withnullbytes'),
         bytesFromString('\x00\x00\x00a'),
         null,
-      ]
+      ],
     ),
     col(
       'bit',
@@ -298,7 +298,7 @@ export function createTestJSData(): ColumnData[] {
         bitValue('0010001001011100010101011010111').data,
         bitValue('10101').data,
         null,
-      ]
+      ],
     ),
     col(
       'small_enum',
@@ -308,13 +308,13 @@ export function createTestJSData(): ColumnData[] {
         `'${smallEnumValues[smallEnumValues.length - 1]}'`,
         'null',
       ],
-      [smallEnumValues[0], smallEnumValues[smallEnumValues.length - 1], null]
+      [smallEnumValues[0], smallEnumValues[smallEnumValues.length - 1], null],
     ),
     col(
       'int_array',
       LIST(INTEGER),
       [`[]`, `[42, 999, null, null, -42]`, 'null'],
-      [[], [42, 999, null, null, -42], null]
+      [[], [42, 999, null, null, -42], null],
     ),
     col(
       'double_array',
@@ -324,7 +324,7 @@ export function createTestJSData(): ColumnData[] {
         `[42.0::double, 'NaN', 'Infinity', '-Infinity', null, -42.0]`,
         'null',
       ],
-      [[], [42, NaN, Infinity, -Infinity, null, -42], null]
+      [[], [42, NaN, Infinity, -Infinity, null, -42], null],
     ),
     col(
       'date_array',
@@ -350,7 +350,7 @@ export function createTestJSData(): ColumnData[] {
           new Date('2022-05-12'),
         ],
         null,
-      ]
+      ],
     ),
     col(
       'timestamp_array',
@@ -376,7 +376,7 @@ export function createTestJSData(): ColumnData[] {
           new Date('2022-05-12T16:23:45.000000Z'),
         ],
         null,
-      ]
+      ],
     ),
     col(
       'timestamptz_array',
@@ -402,13 +402,13 @@ export function createTestJSData(): ColumnData[] {
           new Date('2022-05-12T16:23:45.000000Z'),
         ],
         null,
-      ]
+      ],
     ),
     col(
       'varchar_array',
       LIST(VARCHAR),
       [`[]`, `['🦆🦆🦆🦆🦆🦆', 'goose', null, '']`, 'null'],
-      [[], ['🦆🦆🦆🦆🦆🦆', 'goose', null, ''], null]
+      [[], ['🦆🦆🦆🦆🦆🦆', 'goose', null, ''], null],
     ),
     col(
       'nested_int_array',
@@ -428,17 +428,17 @@ export function createTestJSData(): ColumnData[] {
         [],
         [[], [42, 999, null, null, -42], null, [], [42, 999, null, null, -42]],
         null,
-      ]
+      ],
     ),
     col(
       'struct',
-      STRUCT({ 'a': INTEGER, 'b': VARCHAR }),
+      STRUCT({ a: INTEGER, b: VARCHAR }),
       [`{ 'a': null, 'b': null }`, `{ 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }`, 'null'],
-      [{ 'a': null, 'b': null }, { 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }, null]
+      [{ a: null, b: null }, { a: 42, b: '🦆🦆🦆🦆🦆🦆' }, null],
     ),
     col(
       'struct_of_arrays',
-      STRUCT({ 'a': LIST(INTEGER), 'b': LIST(VARCHAR) }),
+      STRUCT({ a: LIST(INTEGER), b: LIST(VARCHAR) }),
       [
         `{ 'a': null, 'b': null }`,
         `{
@@ -448,17 +448,17 @@ export function createTestJSData(): ColumnData[] {
         'null',
       ],
       [
-        { 'a': null, 'b': null },
+        { a: null, b: null },
         {
-          'a': [42, 999, null, null, -42],
-          'b': ['🦆🦆🦆🦆🦆🦆', 'goose', null, ''],
+          a: [42, 999, null, null, -42],
+          b: ['🦆🦆🦆🦆🦆🦆', 'goose', null, ''],
         },
         null,
-      ]
+      ],
     ),
     col(
       'array_of_structs',
-      LIST(STRUCT({ 'a': INTEGER, 'b': VARCHAR })),
+      LIST(STRUCT({ a: INTEGER, b: VARCHAR })),
       [
         `[]`,
         `[
@@ -468,11 +468,7 @@ export function createTestJSData(): ColumnData[] {
         ]`,
         'null',
       ],
-      [
-        [],
-        [{ 'a': null, 'b': null }, { 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' }, null],
-        null,
-      ]
+      [[], [{ a: null, b: null }, { a: 42, b: '🦆🦆🦆🦆🦆🦆' }, null], null],
     ),
     col(
       'map',
@@ -485,29 +481,29 @@ export function createTestJSData(): ColumnData[] {
       [
         [],
         [
-          { 'key': 'key1', 'value': '🦆🦆🦆🦆🦆🦆' },
-          { 'key': 'key2', 'value': 'goose' },
+          { key: 'key1', value: '🦆🦆🦆🦆🦆🦆' },
+          { key: 'key2', value: 'goose' },
         ],
         null,
-      ]
+      ],
     ),
     col(
       'union',
-      UNION({ 'name': VARCHAR, 'age': SMALLINT }),
+      UNION({ name: VARCHAR, age: SMALLINT }),
       [`union_value(name => 'Frank')`, `union_value(age => 5)`, 'null'],
-      [{ tag: 'name', value: 'Frank' }, { tag: 'age', value: 5 }, null]
+      [{ tag: 'name', value: 'Frank' }, { tag: 'age', value: 5 }, null],
     ),
     col(
       'fixed_int_array',
       ARRAY(INTEGER, 3),
       [`[null, 2, 3]`, `[4, 5, 6]`, 'null'],
-      [[null, 2, 3], [4, 5, 6], null]
+      [[null, 2, 3], [4, 5, 6], null],
     ),
     col(
       'fixed_varchar_array',
       ARRAY(VARCHAR, 3),
       [`['a', null, 'c']`, `['d', 'e', 'f']`, 'null'],
-      [['a', null, 'c'], ['d', 'e', 'f'], null]
+      [['a', null, 'c'], ['d', 'e', 'f'], null],
     ),
     col(
       'fixed_nested_int_array',
@@ -525,7 +521,7 @@ export function createTestJSData(): ColumnData[] {
           [4, 5, 6],
         ],
         null,
-      ]
+      ],
     ),
     col(
       'fixed_nested_varchar_array',
@@ -551,11 +547,11 @@ export function createTestJSData(): ColumnData[] {
           ['d', 'e', 'f'],
         ],
         null,
-      ]
+      ],
     ),
     col(
       'fixed_struct_array',
-      ARRAY(STRUCT({ 'a': INTEGER, 'b': VARCHAR }), 3),
+      ARRAY(STRUCT({ a: INTEGER, b: VARCHAR }), 3),
       [
         `[
           { 'a': null, 'b': null },
@@ -571,21 +567,21 @@ export function createTestJSData(): ColumnData[] {
       ],
       [
         [
-          { 'a': null, 'b': null },
-          { 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' },
-          { 'a': null, 'b': null },
+          { a: null, b: null },
+          { a: 42, b: '🦆🦆🦆🦆🦆🦆' },
+          { a: null, b: null },
         ],
         [
-          { 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' },
-          { 'a': null, 'b': null },
-          { 'a': 42, 'b': '🦆🦆🦆🦆🦆🦆' },
+          { a: 42, b: '🦆🦆🦆🦆🦆🦆' },
+          { a: null, b: null },
+          { a: 42, b: '🦆🦆🦆🦆🦆🦆' },
         ],
         null,
-      ]
+      ],
     ),
     col(
       'struct_of_fixed_array',
-      STRUCT({ 'a': ARRAY(INTEGER, 3), 'b': ARRAY(VARCHAR, 3) }),
+      STRUCT({ a: ARRAY(INTEGER, 3), b: ARRAY(VARCHAR, 3) }),
       [
         `{
           'a': [null, 2, 3],
@@ -598,10 +594,10 @@ export function createTestJSData(): ColumnData[] {
         'null',
       ],
       [
-        { 'a': [null, 2, 3], 'b': ['a', null, 'c'] },
-        { 'a': [4, 5, 6], 'b': ['d', 'e', 'f'] },
+        { a: [null, 2, 3], b: ['a', null, 'c'] },
+        { a: [4, 5, 6], b: ['d', 'e', 'f'] },
         null,
-      ]
+      ],
     ),
     col(
       'fixed_array_of_int_list',
@@ -623,7 +619,7 @@ export function createTestJSData(): ColumnData[] {
         [[], [42, 999, null, null, -42], []],
         [[42, 999, null, null, -42], [], [42, 999, null, null, -42]],
         null,
-      ]
+      ],
     ),
     col(
       'list_of_fixed_int_array',
@@ -653,7 +649,7 @@ export function createTestJSData(): ColumnData[] {
           [4, 5, 6],
         ],
         null,
-      ]
+      ],
     ),
   ];
 }
@@ -678,7 +674,7 @@ export function createTestJSColumnNames(): readonly string[] {
 }
 
 export function createTestJSQuery(): string {
-  return `select * from (${createTestJSValuesClause()}) t(${createTestJSColumnNames().join(',')})`
+  return `select * from (${createTestJSValuesClause()}) t(${createTestJSColumnNames().join(',')})`;
 }
 
 export function createTestJSColumnsJS(): readonly (readonly JS[])[] {

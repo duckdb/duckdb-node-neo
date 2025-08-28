@@ -4,7 +4,7 @@ import { DuckDBValueConverter } from './DuckDBValueConverter';
 export function convertColumnsObjectFromChunks<T>(
   chunks: readonly DuckDBDataChunk[],
   columnNames: readonly string[],
-  converter: DuckDBValueConverter<T>
+  converter: DuckDBValueConverter<T>,
 ): Record<string, (T | null)[]> {
   const convertedColumnsObject: Record<string, (T | null)[]> = {};
   for (const columnName of columnNames) {
@@ -20,8 +20,8 @@ export function convertColumnsObjectFromChunks<T>(
         columnIndex,
         (value, _rowIndex, _columnIndex, type) =>
           convertedColumnsObject[columnNames[columnIndex]].push(
-            converter(value, type, converter)
-          )
+            converter(value, type, converter),
+          ),
       );
     }
   }

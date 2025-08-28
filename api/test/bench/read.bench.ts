@@ -1,9 +1,9 @@
-import { bench, describe } from "vitest";
+import { bench, describe } from 'vitest';
 import {
   DuckDBConnection,
   DuckDBInstance,
   DuckDBPendingResultState,
-} from "../../src";
+} from '../../src';
 
 let instance: DuckDBInstance;
 let connection: DuckDBConnection;
@@ -36,7 +36,7 @@ type Example = {
 
 const examples: Example[] = [
   {
-    name: "Row Fetching",
+    name: 'Row Fetching',
     factory: (start, end) =>
       `SELECT *
        FROM test
@@ -44,7 +44,7 @@ const examples: Example[] = [
                            AND TIMESTAMP '2025-01-01' + ${end};`,
   },
   {
-    name: "Overall Aggregates",
+    name: 'Overall Aggregates',
     factory: (start, end) =>
       `SELECT mean("value"), min("value"), max("value")
        FROM test
@@ -52,7 +52,7 @@ const examples: Example[] = [
                            AND TIMESTAMP '2025-01-01' + ${end};`,
   },
   {
-    name: "Rolling Aggregates",
+    name: 'Rolling Aggregates',
     factory: (start, end) =>
       `SELECT mean("value") OVER previous_second, 
        min("value") OVER previous_second, 
@@ -69,7 +69,7 @@ const examples: Example[] = [
 
 function queryFactory(example: Example) {
   const s = BigInt(
-    Math.floor(Math.random() * Number(TOTAL_SIZE - SELECTION_SIZE))
+    Math.floor(Math.random() * Number(TOTAL_SIZE - SELECTION_SIZE)),
   );
   const e = s + SELECTION_SIZE;
   const startInterval = `INTERVAL ${s} MILLISECONDS`;
@@ -83,11 +83,11 @@ function queryFactory(example: Example) {
 for (const full of [false, true]) {
   for (const example of examples) {
     describe(`${example.name} - ${
-      full ? "Full Result" : "Time to First Row"
+      full ? 'Full Result' : 'Time to First Row'
     }`, () => {
       bench(
         `${example.name} - ${
-          full ? "runAndReadAll()" : "runAndReadUntil(q, 1)"
+          full ? 'runAndReadAll()' : 'runAndReadUntil(q, 1)'
         }`,
         async () => {
           const query = queryFactory(example);
@@ -101,13 +101,13 @@ for (const full of [false, true]) {
         {
           setup,
           iterations: 20,
-        }
+        },
       );
       bench(
         `${example.name} - ${
           full
-            ? "start runTask pending.readAll()"
-            : "start runTask pending.readUntil(1)"
+            ? 'start runTask pending.readAll()'
+            : 'start runTask pending.readUntil(1)'
         }`,
         async () => {
           const query = queryFactory(example);
@@ -127,13 +127,13 @@ for (const full of [false, true]) {
         {
           setup,
           iterations: 20,
-        }
+        },
       );
       bench(
         `${example.name} - ${
           full
-            ? "start runTask fetchChunks loop"
-            : "start runTask single fetchChunk"
+            ? 'start runTask fetchChunks loop'
+            : 'start runTask single fetchChunk'
         }`,
         async () => {
           const query = queryFactory(example);
@@ -161,12 +161,12 @@ for (const full of [false, true]) {
         {
           setup,
           iterations: 20,
-        }
+        },
       );
 
       bench(
         `${example.name} - ${
-          full ? "streamAndReadAll()" : "streamAndReadUntil(q, 1)"
+          full ? 'streamAndReadAll()' : 'streamAndReadUntil(q, 1)'
         }`,
         async () => {
           const query = queryFactory(example);
@@ -180,13 +180,13 @@ for (const full of [false, true]) {
         {
           setup,
           iterations: 20,
-        }
+        },
       );
       bench(
         `${example.name} - ${
           full
-            ? "startStream runTask pending.readAll()"
-            : "startStream runTask pending.readUntil(1)"
+            ? 'startStream runTask pending.readAll()'
+            : 'startStream runTask pending.readUntil(1)'
         }`,
         async () => {
           const query = queryFactory(example);
@@ -206,13 +206,13 @@ for (const full of [false, true]) {
         {
           setup,
           iterations: 20,
-        }
+        },
       );
       bench(
         `${example.name} - ${
           full
-            ? "startStream runTask fetchChunks loop"
-            : "startStream runTask single fetchChunk"
+            ? 'startStream runTask fetchChunks loop'
+            : 'startStream runTask single fetchChunk'
         }`,
         async () => {
           const query = queryFactory(example);
@@ -240,11 +240,11 @@ for (const full of [false, true]) {
         {
           setup,
           iterations: 20,
-        }
+        },
       );
       bench(
         `${example.name} - ${
-          full ? "run fetchChunks loop" : "run single fetchChunk"
+          full ? 'run fetchChunks loop' : 'run single fetchChunk'
         }`,
         async () => {
           const query = queryFactory(example);
@@ -266,11 +266,11 @@ for (const full of [false, true]) {
         {
           setup,
           iterations: 20,
-        }
+        },
       );
       bench(
         `${example.name} - ${
-          full ? "stream fetchChunks loop" : "stream single fetchChunk"
+          full ? 'stream fetchChunks loop' : 'stream single fetchChunk'
         }`,
         async () => {
           const query = queryFactory(example);
@@ -292,7 +292,7 @@ for (const full of [false, true]) {
         {
           setup,
           iterations: 20,
-        }
+        },
       );
     });
   }

@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { expect, suite, test } from 'vitest';
 import {
   ALT,
@@ -54,20 +54,23 @@ suite('query', () => {
         columns: [
           { name: 'seventeen', logicalType: { typeId: duckdb.Type.INTEGER } },
         ],
-        chunks: [
-          { rowCount: 1, vectors: [data(4, [true], [17])]},
-        ],
+        chunks: [{ rowCount: 1, vectors: [data(4, [true], [17])] }],
       });
     });
   });
   test('basic error', async () => {
     await withConnection(async (connection) => {
-      await expect(duckdb.query(connection, 'selct 1')).rejects.toThrow('Parser Error');
+      await expect(duckdb.query(connection, 'selct 1')).rejects.toThrow(
+        'Parser Error',
+      );
     });
   });
   test('test_all_types()', async () => {
     await withConnection(async (connection) => {
-      const result = await duckdb.query(connection, `from test_all_types(use_large_enum=${useLargeEnum})`);
+      const result = await duckdb.query(
+        connection,
+        `from test_all_types(use_large_enum=${useLargeEnum})`,
+      );
       const validity = [true, true, false];
       await expectResult(result, {
         chunkCount: 1,
@@ -98,17 +101,37 @@ suite('query', () => {
           { name: 'dec_4_1', logicalType: DECIMAL(4, 1, duckdb.Type.SMALLINT) },
           { name: 'dec_9_4', logicalType: DECIMAL(9, 4, duckdb.Type.INTEGER) },
           { name: 'dec_18_6', logicalType: DECIMAL(18, 6, duckdb.Type.BIGINT) },
-          { name: 'dec38_10', logicalType: DECIMAL(38, 10, duckdb.Type.HUGEINT) },
+          {
+            name: 'dec38_10',
+            logicalType: DECIMAL(38, 10, duckdb.Type.HUGEINT),
+          },
           { name: 'uuid', logicalType: UUID },
           { name: 'interval', logicalType: INTERVAL },
           { name: 'varchar', logicalType: VARCHAR },
           { name: 'blob', logicalType: BLOB },
           { name: 'bit', logicalType: BIT },
-          { name: 'small_enum', logicalType: ENUM(['DUCK_DUCK_ENUM', 'GOOSE'], duckdb.Type.UTINYINT) },
-          { name: 'medium_enum', logicalType: ENUM(Array.from({ length: 300}).map((_, i) => `enum_${i}`), duckdb.Type.USMALLINT) },
-          { name: 'large_enum', logicalType: useLargeEnum
-            ? ENUM(Array.from({ length: 70000}).map((_, i) => `enum_${i}`), duckdb.Type.UINTEGER)
-            : ENUM(['enum_0', 'enum_69999'], duckdb.Type.UTINYINT)
+          {
+            name: 'small_enum',
+            logicalType: ENUM(
+              ['DUCK_DUCK_ENUM', 'GOOSE'],
+              duckdb.Type.UTINYINT,
+            ),
+          },
+          {
+            name: 'medium_enum',
+            logicalType: ENUM(
+              Array.from({ length: 300 }).map((_, i) => `enum_${i}`),
+              duckdb.Type.USMALLINT,
+            ),
+          },
+          {
+            name: 'large_enum',
+            logicalType: useLargeEnum
+              ? ENUM(
+                  Array.from({ length: 70000 }).map((_, i) => `enum_${i}`),
+                  duckdb.Type.UINTEGER,
+                )
+              : ENUM(['enum_0', 'enum_69999'], duckdb.Type.UTINYINT),
           },
           { name: 'int_array', logicalType: LIST(INTEGER) },
           { name: 'double_array', logicalType: LIST(DOUBLE) },
@@ -117,19 +140,58 @@ suite('query', () => {
           { name: 'timestamptz_array', logicalType: LIST(TIMESTAMP_TZ) },
           { name: 'varchar_array', logicalType: LIST(VARCHAR) },
           { name: 'nested_int_array', logicalType: LIST(LIST(INTEGER)) },
-          { name: 'struct', logicalType: STRUCT(ENTRY('a', INTEGER), ENTRY('b', VARCHAR)) },
-          { name: 'struct_of_arrays', logicalType: STRUCT(ENTRY('a', LIST(INTEGER)), ENTRY('b', LIST(VARCHAR))) },
-          { name: 'array_of_structs', logicalType: LIST(STRUCT(ENTRY('a', INTEGER), ENTRY('b', VARCHAR))) },
+          {
+            name: 'struct',
+            logicalType: STRUCT(ENTRY('a', INTEGER), ENTRY('b', VARCHAR)),
+          },
+          {
+            name: 'struct_of_arrays',
+            logicalType: STRUCT(
+              ENTRY('a', LIST(INTEGER)),
+              ENTRY('b', LIST(VARCHAR)),
+            ),
+          },
+          {
+            name: 'array_of_structs',
+            logicalType: LIST(STRUCT(ENTRY('a', INTEGER), ENTRY('b', VARCHAR))),
+          },
           { name: 'map', logicalType: MAP(VARCHAR, VARCHAR) },
-          { name: 'union', logicalType: UNION(ALT('name', VARCHAR), ALT('age', SMALLINT)) },
+          {
+            name: 'union',
+            logicalType: UNION(ALT('name', VARCHAR), ALT('age', SMALLINT)),
+          },
           { name: 'fixed_int_array', logicalType: ARRAY(INTEGER, 3) },
           { name: 'fixed_varchar_array', logicalType: ARRAY(VARCHAR, 3) },
-          { name: 'fixed_nested_int_array', logicalType: ARRAY(ARRAY(INTEGER, 3), 3) },
-          { name: 'fixed_nested_varchar_array', logicalType: ARRAY(ARRAY(VARCHAR, 3), 3) },
-          { name: 'fixed_struct_array', logicalType: ARRAY(STRUCT(ENTRY('a', INTEGER), ENTRY('b', VARCHAR)), 3) },
-          { name: 'struct_of_fixed_array', logicalType: STRUCT(ENTRY('a', ARRAY(INTEGER, 3)), ENTRY('b', ARRAY(VARCHAR, 3))) },
-          { name: 'fixed_array_of_int_list', logicalType: ARRAY(LIST(INTEGER), 3) },
-          { name: 'list_of_fixed_int_array', logicalType: LIST(ARRAY(INTEGER, 3)) },
+          {
+            name: 'fixed_nested_int_array',
+            logicalType: ARRAY(ARRAY(INTEGER, 3), 3),
+          },
+          {
+            name: 'fixed_nested_varchar_array',
+            logicalType: ARRAY(ARRAY(VARCHAR, 3), 3),
+          },
+          {
+            name: 'fixed_struct_array',
+            logicalType: ARRAY(
+              STRUCT(ENTRY('a', INTEGER), ENTRY('b', VARCHAR)),
+              3,
+            ),
+          },
+          {
+            name: 'struct_of_fixed_array',
+            logicalType: STRUCT(
+              ENTRY('a', ARRAY(INTEGER, 3)),
+              ENTRY('b', ARRAY(VARCHAR, 3)),
+            ),
+          },
+          {
+            name: 'fixed_array_of_int_list',
+            logicalType: ARRAY(LIST(INTEGER), 3),
+          },
+          {
+            name: 'list_of_fixed_int_array',
+            logicalType: LIST(ARRAY(INTEGER, 3)),
+          },
         ],
         chunks: [
           {
@@ -139,122 +201,581 @@ suite('query', () => {
               data(1, validity, [-128, 127, null]), // 1: tinyint
               data(2, validity, [-32768, 32767, null]), // 2: smallint
               data(4, validity, [-2147483648, 2147483647, null]), // 3: int
-              data(8, validity, [-9223372036854775808n, 9223372036854775807n, null]), // 4: bigint
-              data(16, validity, [-170141183460469231731687303715884105728n, 170141183460469231731687303715884105727n, null]), // 5: hugeint
-              data(16, validity, [0n, 340282366920938463463374607431768211455n, null]), // 6: uhugeint
+              data(8, validity, [
+                -9223372036854775808n,
+                9223372036854775807n,
+                null,
+              ]), // 4: bigint
+              data(16, validity, [
+                -170141183460469231731687303715884105728n,
+                170141183460469231731687303715884105727n,
+                null,
+              ]), // 5: hugeint
+              data(16, validity, [
+                0n,
+                340282366920938463463374607431768211455n,
+                null,
+              ]), // 6: uhugeint
               data(1, validity, [0, 255, null]), // 7: utinyint
               data(2, validity, [0, 65535, null]), // 8: usmallint
               data(4, validity, [0, 4294967295, null]), // 9: uint
               data(8, validity, [0n, 18446744073709551615n, null]), // 10: ubigint
               data(16, validity, [
-                Buffer.from(new Uint8Array([0x7F, 0xFF, 0x7F,
-                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                ])),
-                Buffer.from(new Uint8Array([0x80, 0x00, 0x80,
-                  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                ])),
-                null]
-              ), // 11: varint
+                Buffer.from(
+                  new Uint8Array([
+                    0x7f, 0xff, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                    0xff,
+                  ]),
+                ),
+                Buffer.from(
+                  new Uint8Array([
+                    0x80, 0x00, 0x80, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf8,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00,
+                  ]),
+                ),
+                null,
+              ]), // 11: varint
               data(4, validity, [-2147483646, 2147483646, null]), // 12: date
               data(8, validity, [0n, 86400000000n, null]), // 13: time
-              data(8, validity, [-9223372022400000000n, 9223372036854775806n, null]), // 14: timestamp
+              data(8, validity, [
+                -9223372022400000000n,
+                9223372036854775806n,
+                null,
+              ]), // 14: timestamp
               data(8, validity, [-9223372022400n, 9223372036854n, null]), // 15: timestamp_s
               data(8, validity, [-9223372022400000n, 9223372036854775n, null]), // 16: timestamp_ms
-              data(8, validity, [-9223286400000000000n, 9223372036854775806n, null]), // 17: timestamp_ns
+              data(8, validity, [
+                -9223286400000000000n,
+                9223372036854775806n,
+                null,
+              ]), // 17: timestamp_ns
               data(8, validity, [0n, 1449551462400115198n, null]), // 18: time_tz
-              data(8, validity, [-9223372022400000000n, 9223372036854775806n, null]), // 19: timestamp_tz
-              data(4, validity, [-3.4028234663852886e+38, 3.4028234663852886e+38, null]), // 20: float
-              data(8, validity, [-1.7976931348623157e+308, 1.7976931348623157e+308, null]), // 21: double
+              data(8, validity, [
+                -9223372022400000000n,
+                9223372036854775806n,
+                null,
+              ]), // 19: timestamp_tz
+              data(4, validity, [
+                -3.4028234663852886e38,
+                3.4028234663852886e38,
+                null,
+              ]), // 20: float
+              data(8, validity, [
+                -1.7976931348623157e308,
+                1.7976931348623157e308,
+                null,
+              ]), // 21: double
               data(2, validity, [-9999, 9999, null]), // 22: dec_4_1
               data(4, validity, [-999999999, 999999999, null]), // 23: dec_9_4
-              data(8, validity, [-999999999999999999n, 999999999999999999n, null]), // 24: dec_18_6
-              data(16, validity, [-99999999999999999999999999999999999999n, 99999999999999999999999999999999999999n, null]), // 25: dec38_10
-              data(16, validity, [-170141183460469231731687303715884105728n, 170141183460469231731687303715884105727n, null]), // 26: uuid
-              data(16, validity, [{ months: 0, days: 0, micros: 0n }, { months: 999, days: 999, micros: 999999999n }, null]), // 27: interval
+              data(8, validity, [
+                -999999999999999999n,
+                999999999999999999n,
+                null,
+              ]), // 24: dec_18_6
+              data(16, validity, [
+                -99999999999999999999999999999999999999n,
+                99999999999999999999999999999999999999n,
+                null,
+              ]), // 25: dec38_10
+              data(16, validity, [
+                -170141183460469231731687303715884105728n,
+                170141183460469231731687303715884105727n,
+                null,
+              ]), // 26: uuid
+              data(16, validity, [
+                { months: 0, days: 0, micros: 0n },
+                { months: 999, days: 999, micros: 999999999n },
+                null,
+              ]), // 27: interval
               data(16, validity, ['🦆🦆🦆🦆🦆🦆', 'goo\0se', null]), // 28: varchar
-              data(16, validity, [Buffer.from('thisisalongblob\x00withnullbytes'), Buffer.from('\x00\x00\x00a'), null]), // 29: blob
-              data(16, validity, [Buffer.from([1, 0b10010001, 0b00101110, 0b00101010, 0b11010111]), Buffer.from([3, 0b11110101]), null]), // 30: bit (x0010001 00101110 00101010 11010111, xxx10101)
-              data(1, validity,  [0, 1, null]), // 31: small_enum
+              data(16, validity, [
+                Buffer.from('thisisalongblob\x00withnullbytes'),
+                Buffer.from('\x00\x00\x00a'),
+                null,
+              ]), // 29: blob
+              data(16, validity, [
+                Buffer.from([
+                  1, 0b10010001, 0b00101110, 0b00101010, 0b11010111,
+                ]),
+                Buffer.from([3, 0b11110101]),
+                null,
+              ]), // 30: bit (x0010001 00101110 00101010 11010111, xxx10101)
+              data(1, validity, [0, 1, null]), // 31: small_enum
               data(2, validity, [0, 299, null]), // 32: medium_enum
               data(4, validity, [0, useLargeEnum ? 69999 : 1, null]), // 33: large_enum
-              list(validity, [[0n, 0n], [0n, 5n], null], 5, data(4, [true, true, false, false, true], [42, 999, null, null, -42])), // 34: int_array
-              list(validity, [[0n, 0n], [0n, 6n], null], 6, data(8, [true, true, true, true, false, true], [42.0, NaN, Infinity, -Infinity, null, -42.0])), // 35: double_array
-              list(validity, [[0n, 0n], [0n, 5n], null], 5, data(4, [true, true, true, false, true], [0, 2147483647, -2147483647, null, 19124])), // 36: date_array
-              list(validity, [[0n, 0n], [0n, 5n], null], 5, data(8, [true, true, true, false, true], [0n, 9223372036854775807n, -9223372036854775807n, null, 1652372625000000n])), // 37: timestamp_array
-              list(validity, [[0n, 0n], [0n, 5n], null], 5, data(8, [true, true, true, false, true], [0n, 9223372036854775807n, -9223372036854775807n, null, 1652397825000000n])), // 38: timestamptz_array
-              list(validity, [[0n, 0n], [0n, 4n], null], 4, data(16, [true, true, false, true], ['🦆🦆🦆🦆🦆🦆', 'goose', null, ''])), // 39: varchar_array
-              list(validity, [[0n, 0n], [0n, 5n], null], 5,
-                list([true, true, false, true, true], [[0n, 0n], [0n, 5n], null, [5n, 0n], [5n, 5n]], 10,
-                  data(10, [true, true, false, false, true, true, true, false, false, true], [42, 999, null, null, -42, 42, 999, null, null, -42]))), // 40: nested_int_array
-              struct(3, validity, [data(4, [false, true, false], [null, 42, null]), data(16, [false, true, false], [null, '🦆🦆🦆🦆🦆🦆', null])]), // 41: struct
+              list(
+                validity,
+                [[0n, 0n], [0n, 5n], null],
+                5,
+                data(
+                  4,
+                  [true, true, false, false, true],
+                  [42, 999, null, null, -42],
+                ),
+              ), // 34: int_array
+              list(
+                validity,
+                [[0n, 0n], [0n, 6n], null],
+                6,
+                data(
+                  8,
+                  [true, true, true, true, false, true],
+                  [42.0, NaN, Infinity, -Infinity, null, -42.0],
+                ),
+              ), // 35: double_array
+              list(
+                validity,
+                [[0n, 0n], [0n, 5n], null],
+                5,
+                data(
+                  4,
+                  [true, true, true, false, true],
+                  [0, 2147483647, -2147483647, null, 19124],
+                ),
+              ), // 36: date_array
+              list(
+                validity,
+                [[0n, 0n], [0n, 5n], null],
+                5,
+                data(
+                  8,
+                  [true, true, true, false, true],
+                  [
+                    0n,
+                    9223372036854775807n,
+                    -9223372036854775807n,
+                    null,
+                    1652372625000000n,
+                  ],
+                ),
+              ), // 37: timestamp_array
+              list(
+                validity,
+                [[0n, 0n], [0n, 5n], null],
+                5,
+                data(
+                  8,
+                  [true, true, true, false, true],
+                  [
+                    0n,
+                    9223372036854775807n,
+                    -9223372036854775807n,
+                    null,
+                    1652397825000000n,
+                  ],
+                ),
+              ), // 38: timestamptz_array
+              list(
+                validity,
+                [[0n, 0n], [0n, 4n], null],
+                4,
+                data(
+                  16,
+                  [true, true, false, true],
+                  ['🦆🦆🦆🦆🦆🦆', 'goose', null, ''],
+                ),
+              ), // 39: varchar_array
+              list(
+                validity,
+                [[0n, 0n], [0n, 5n], null],
+                5,
+                list(
+                  [true, true, false, true, true],
+                  [[0n, 0n], [0n, 5n], null, [5n, 0n], [5n, 5n]],
+                  10,
+                  data(
+                    10,
+                    [
+                      true,
+                      true,
+                      false,
+                      false,
+                      true,
+                      true,
+                      true,
+                      false,
+                      false,
+                      true,
+                    ],
+                    [42, 999, null, null, -42, 42, 999, null, null, -42],
+                  ),
+                ),
+              ), // 40: nested_int_array
               struct(3, validity, [
-                list([false, true, false], [null, [0n, 5n], null], 5, data(4, [true, true, false, false, true], [42, 999, null, null, -42])),
-                list([false, true, false], [null, [0n, 4n], null], 4, data(16, [true, true, false, true], ['🦆🦆🦆🦆🦆🦆', 'goose', null, ''])),
+                data(4, [false, true, false], [null, 42, null]),
+                data(16, [false, true, false], [null, '🦆🦆🦆🦆🦆🦆', null]),
+              ]), // 41: struct
+              struct(3, validity, [
+                list(
+                  [false, true, false],
+                  [null, [0n, 5n], null],
+                  5,
+                  data(
+                    4,
+                    [true, true, false, false, true],
+                    [42, 999, null, null, -42],
+                  ),
+                ),
+                list(
+                  [false, true, false],
+                  [null, [0n, 4n], null],
+                  4,
+                  data(
+                    16,
+                    [true, true, false, true],
+                    ['🦆🦆🦆🦆🦆🦆', 'goose', null, ''],
+                  ),
+                ),
               ]), // 42: struct_of_arrays
-              list(validity, [[0n, 0n], [0n, 3n], null], 3,
-                struct(3, [true, true, false], [
-                  data(4, [false, true], [null, 42]),
-                  data(16, [false, true], [null, '🦆🦆🦆🦆🦆🦆']),
-                ])
+              list(
+                validity,
+                [[0n, 0n], [0n, 3n], null],
+                3,
+                struct(
+                  3,
+                  [true, true, false],
+                  [
+                    data(4, [false, true], [null, 42]),
+                    data(16, [false, true], [null, '🦆🦆🦆🦆🦆🦆']),
+                  ],
+                ),
               ), // 43: array_of_structs
-              map(validity, [[0n, 0n], [0n, 2n], null], 2,
+              map(
+                validity,
+                [[0n, 0n], [0n, 2n], null],
+                2,
                 data(16, [true, true], ['key1', 'key2']),
                 data(16, [true, true], ['🦆🦆🦆🦆🦆🦆', 'goose']),
               ), // 44: map
               union([
                 data(1, validity, [0, 1, null]), // tags
-                data(16, [true, false, false], ['Frank', null, null]), 
+                data(16, [true, false, false], ['Frank', null, null]),
                 data(2, [false, true, false], [null, 5, null]),
               ]), // 45: union
-              array(3, validity, data(4, [false, true, true, true, true, true], [null, 2, 3, 4, 5, 6])), // 46: fixed_int_array
-              array(3, validity, data(16, [true, false, true, true, true, true], ['a', null, 'c', 'd', 'e', 'f'])), // 47: fixed_varchar_array
-              array(3, validity,
-                array(3, [true, false, true, true, true, true, false, false, false],
-                  data(4, [false, true, true, false, false, false, false, true, true, true, true, true, false, true, true, true, true, true],
-                    [null, 2, 3, null, null, null, null, 2, 3, 4, 5, 6, null, 2, 3, 4, 5, 6])
-                )
+              array(
+                3,
+                validity,
+                data(
+                  4,
+                  [false, true, true, true, true, true],
+                  [null, 2, 3, 4, 5, 6],
+                ),
+              ), // 46: fixed_int_array
+              array(
+                3,
+                validity,
+                data(
+                  16,
+                  [true, false, true, true, true, true],
+                  ['a', null, 'c', 'd', 'e', 'f'],
+                ),
+              ), // 47: fixed_varchar_array
+              array(
+                3,
+                validity,
+                array(
+                  3,
+                  [true, false, true, true, true, true, false, false, false],
+                  data(
+                    4,
+                    [
+                      false,
+                      true,
+                      true,
+                      false,
+                      false,
+                      false,
+                      false,
+                      true,
+                      true,
+                      true,
+                      true,
+                      true,
+                      false,
+                      true,
+                      true,
+                      true,
+                      true,
+                      true,
+                    ],
+                    [
+                      null,
+                      2,
+                      3,
+                      null,
+                      null,
+                      null,
+                      null,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      null,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                    ],
+                  ),
+                ),
               ), // 48: fixed_nested_int_array
-              array(3, validity,
-                array(3, [true, false, true, true, true, true, false, false, false],
-                  data(16, [true, false, true, false, false, false, true, false, true, true, true, true, true, false, true, true, true, true],
-                    ['a', null, 'c', null, null, null, 'a', null, 'c', 'd', 'e', 'f', 'a', null, 'c', 'd', 'e', 'f'])
-                )
+              array(
+                3,
+                validity,
+                array(
+                  3,
+                  [true, false, true, true, true, true, false, false, false],
+                  data(
+                    16,
+                    [
+                      true,
+                      false,
+                      true,
+                      false,
+                      false,
+                      false,
+                      true,
+                      false,
+                      true,
+                      true,
+                      true,
+                      true,
+                      true,
+                      false,
+                      true,
+                      true,
+                      true,
+                      true,
+                    ],
+                    [
+                      'a',
+                      null,
+                      'c',
+                      null,
+                      null,
+                      null,
+                      'a',
+                      null,
+                      'c',
+                      'd',
+                      'e',
+                      'f',
+                      'a',
+                      null,
+                      'c',
+                      'd',
+                      'e',
+                      'f',
+                    ],
+                  ),
+                ),
               ), // 49: fixed_nested_varchar_array
-              array(3, validity,
-                struct(9, [true, true, true, true, true, true, false, false, false], [
-                  data(4, [false, true, false, true, false, true, false, false, false], [null, 42, null, 42, null, 42, null, null, null]),
-                  data(16, [false, true, false, true, false, true, false, false, false], [null, '🦆🦆🦆🦆🦆🦆', null, '🦆🦆🦆🦆🦆🦆', null, '🦆🦆🦆🦆🦆🦆', null, null, null]),
-                ])
+              array(
+                3,
+                validity,
+                struct(
+                  9,
+                  [true, true, true, true, true, true, false, false, false],
+                  [
+                    data(
+                      4,
+                      [
+                        false,
+                        true,
+                        false,
+                        true,
+                        false,
+                        true,
+                        false,
+                        false,
+                        false,
+                      ],
+                      [null, 42, null, 42, null, 42, null, null, null],
+                    ),
+                    data(
+                      16,
+                      [
+                        false,
+                        true,
+                        false,
+                        true,
+                        false,
+                        true,
+                        false,
+                        false,
+                        false,
+                      ],
+                      [
+                        null,
+                        '🦆🦆🦆🦆🦆🦆',
+                        null,
+                        '🦆🦆🦆🦆🦆🦆',
+                        null,
+                        '🦆🦆🦆🦆🦆🦆',
+                        null,
+                        null,
+                        null,
+                      ],
+                    ),
+                  ],
+                ),
               ), // 50: fixed_struct_array
               struct(3, validity, [
-                array(2, [true, true], data(4, [false, true, true, true, true, true], [null, 2, 3, 4, 5, 6])),
-                array(2, [true, true], data(16, [true, false, true, true, true, true], ['a', null, 'c', 'd', 'e', 'f'])),
+                array(
+                  2,
+                  [true, true],
+                  data(
+                    4,
+                    [false, true, true, true, true, true],
+                    [null, 2, 3, 4, 5, 6],
+                  ),
+                ),
+                array(
+                  2,
+                  [true, true],
+                  data(
+                    16,
+                    [true, false, true, true, true, true],
+                    ['a', null, 'c', 'd', 'e', 'f'],
+                  ),
+                ),
               ]), // 51: struct_of_fixed_array
-              array(3, validity,
-                list([true, true, true, true, true, true, false, false, false], [[0n, 0n], [0n, 5n], [5n, 0n], [5n, 5n], [10n, 0n], [10n, 5n], null, null, null], 15,
-                  data(4, [true, true, false, false, true, true, true, false, false, true, true, true, false, false, true],
-                    [42, 999, null, null, -42, 42, 999, null, null, -42, 42, 999, null, null, -42])
-                )
+              array(
+                3,
+                validity,
+                list(
+                  [true, true, true, true, true, true, false, false, false],
+                  [
+                    [0n, 0n],
+                    [0n, 5n],
+                    [5n, 0n],
+                    [5n, 5n],
+                    [10n, 0n],
+                    [10n, 5n],
+                    null,
+                    null,
+                    null,
+                  ],
+                  15,
+                  data(
+                    4,
+                    [
+                      true,
+                      true,
+                      false,
+                      false,
+                      true,
+                      true,
+                      true,
+                      false,
+                      false,
+                      true,
+                      true,
+                      true,
+                      false,
+                      false,
+                      true,
+                    ],
+                    [
+                      42,
+                      999,
+                      null,
+                      null,
+                      -42,
+                      42,
+                      999,
+                      null,
+                      null,
+                      -42,
+                      42,
+                      999,
+                      null,
+                      null,
+                      -42,
+                    ],
+                  ),
+                ),
               ), // 52: fixed_array_of_int_list
-              list(validity, [[0n, 3n], [3n, 3n]], 6,
-                array(6, [true, true, true, true, true, true],
-                  data(4, [false, true, true, true, true, true, false, true, true, true, true, true, false, true, true, true, true, true],
-                    [null, 2, 3, 4, 5, 6, null, 2, 3, 4, 5, 6, null, 2, 3, 4, 5, 6])
-                )
+              list(
+                validity,
+                [
+                  [0n, 3n],
+                  [3n, 3n],
+                ],
+                6,
+                array(
+                  6,
+                  [true, true, true, true, true, true],
+                  data(
+                    4,
+                    [
+                      false,
+                      true,
+                      true,
+                      true,
+                      true,
+                      true,
+                      false,
+                      true,
+                      true,
+                      true,
+                      true,
+                      true,
+                      false,
+                      true,
+                      true,
+                      true,
+                      true,
+                      true,
+                    ],
+                    [
+                      null,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      null,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      null,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                    ],
+                  ),
+                ),
               ), // 53: list_of_fixed_int_array
             ],
           },
@@ -264,30 +785,30 @@ suite('query', () => {
   });
   test('create and insert', async () => {
     await withConnection(async (connection) => {
-      const createResult = await duckdb.query(connection, 'create table test_create_and_insert(i integer)');
+      const createResult = await duckdb.query(
+        connection,
+        'create table test_create_and_insert(i integer)',
+      );
       await expectResult(createResult, {
         statementType: duckdb.StatementType.CREATE,
         resultType: duckdb.ResultType.NOTHING,
         chunkCount: 0,
         rowCount: 0,
-        columns: [
-          { name: 'Count', logicalType: BIGINT },
-        ],
+        columns: [{ name: 'Count', logicalType: BIGINT }],
         chunks: [],
       });
-      const insertResult = await duckdb.query(connection, 'insert into test_create_and_insert from range(17)');
+      const insertResult = await duckdb.query(
+        connection,
+        'insert into test_create_and_insert from range(17)',
+      );
       await expectResult(insertResult, {
         statementType: duckdb.StatementType.INSERT,
         resultType: duckdb.ResultType.CHANGED_ROWS,
         chunkCount: 1,
         rowCount: 1,
         rowsChanged: 17,
-        columns: [
-          { name: 'Count', logicalType: BIGINT },
-        ],
-        chunks: [
-          { rowCount: 1, vectors: [data(8, [true], [17n])] },
-        ],
+        columns: [{ name: 'Count', logicalType: BIGINT }],
+        chunks: [{ rowCount: 1, vectors: [data(8, [true], [17n])] }],
       });
     });
   });

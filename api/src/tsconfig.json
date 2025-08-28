@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.library.json",
   "compilerOptions": {
-    "outDir": "../pkgs/@duckdb/node-api/lib"
+    "outDir": "../pkgs/@databrainhq/node-api/lib"
   }
 }

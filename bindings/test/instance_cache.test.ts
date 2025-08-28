@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { expect, suite, test } from 'vitest';
 
 suite('instance_cache', () => {

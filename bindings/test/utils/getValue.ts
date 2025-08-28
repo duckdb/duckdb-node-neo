@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import os from 'os';
 import { ExpectedLogicalType } from './ExpectedLogicalType';
 import { isValid } from './isValid';
@@ -54,7 +54,7 @@ function getInt128(dataView: DataView, offset: number): bigint {
 function getUInt128(dataView: DataView, offset: number): bigint {
   const lower = getUInt64(dataView, offset);
   const upper = getUInt64(dataView, offset + 8);
-  return BigInt.asUintN(64, upper) << BigInt(64) | BigInt.asUintN(64, lower);
+  return (BigInt.asUintN(64, upper) << BigInt(64)) | BigInt.asUintN(64, lower);
 }
 
 /**
@@ -66,7 +66,11 @@ function getStringBytes(dv: DataView, offset: number): Uint8Array {
   if (lengthInBytes <= 12) {
     return new Uint8Array(dv.buffer, dv.byteOffset + offset + 4, lengthInBytes);
   } else {
-    return duckdb.get_data_from_pointer(dv.buffer as ArrayBuffer, dv.byteOffset + offset + 8, lengthInBytes);
+    return duckdb.get_data_from_pointer(
+      dv.buffer as ArrayBuffer,
+      dv.byteOffset + offset + 8,
+      lengthInBytes,
+    );
   }
 }
 
@@ -84,7 +88,12 @@ function getBuffer(dv: DataView, offset: number): Buffer {
   return Buffer.from(getStringBytes(dv, offset));
 }
 
-export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Array | null, dv: DataView, index: number): any {
+export function getValue(
+  logicalType: ExpectedLogicalType,
+  validity: BigUint64Array | null,
+  dv: DataView,
+  index: number,
+): any {
   if (!isValid(validity, index)) {
     return null;
   }
@@ -100,7 +109,7 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
       return getInt32(dv, index * 4);
     case duckdb.Type.BIGINT:
       return getInt64(dv, index * 8);
-    
+
     case duckdb.Type.UTINYINT:
       return getUInt8(dv, index);
     case duckdb.Type.USMALLINT:
@@ -109,12 +118,12 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
       return getUInt32(dv, index * 4);
     case duckdb.Type.UBIGINT:
       return getUInt64(dv, index * 8);
-    
+
     case duckdb.Type.FLOAT:
       return getFloat32(dv, index * 4);
     case duckdb.Type.DOUBLE:
       return getFloat64(dv, index * 8);
-    
+
     case duckdb.Type.TIMESTAMP:
       return getInt64(dv, index * 8);
     case duckdb.Type.DATE:
@@ -127,7 +136,7 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
         days: getInt32(dv, index * 16 + 4),
         micros: getInt64(dv, index * 16 + 8),
       };
-    
+
     case duckdb.Type.HUGEINT:
       return getInt128(dv, index * 16);
     case duckdb.Type.UHUGEINT:
@@ -149,7 +158,11 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
         case duckdb.Type.HUGEINT:
           return getInt128(dv, index * 16);
         default:
-          throw new Error(`unsupported DECIMAL internal type: ${duckdb.Type[logicalType.typeId]}`);
+          throw new Error(
+            `unsupported DECIMAL internal type: ${
+              duckdb.Type[logicalType.typeId]
+            }`,
+          );
       }
 
     case duckdb.Type.TIMESTAMP_S:
@@ -158,7 +171,7 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
       return getInt64(dv, index * 8);
     case duckdb.Type.TIMESTAMP_NS:
       return getInt64(dv, index * 8);
-    
+
     case duckdb.Type.ENUM:
       switch (logicalType.internalType) {
         case duckdb.Type.UTINYINT:
@@ -168,9 +181,11 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
         case duckdb.Type.UINTEGER:
           return getUInt32(dv, index * 4);
         default:
-          throw new Error(`unsupported ENUM internal type: ${duckdb.Type[logicalType.typeId]}`);
+          throw new Error(
+            `unsupported ENUM internal type: ${duckdb.Type[logicalType.typeId]}`,
+          );
       }
-    
+
     // LIST
     // STRUCT
     // MAP
@@ -178,9 +193,9 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
 
     case duckdb.Type.UUID:
       return getInt128(dv, index * 16);
-    
+
     // UNION
-    
+
     case duckdb.Type.BIT:
       return getBuffer(dv, index * 16);
 
@@ -191,16 +206,22 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
 
     case duckdb.Type.VARINT:
       return getBuffer(dv, index * 16);
-    
+
     case duckdb.Type.SQLNULL:
       return null;
-    
+
     default:
-      throw new Error(`getValue not implemented for type: ${duckdb.Type[logicalType.typeId]}`);
+      throw new Error(
+        `getValue not implemented for type: ${duckdb.Type[logicalType.typeId]}`,
+      );
   }
 }
 
-export function getListEntry(validity: BigUint64Array | null, dv: DataView, index: number): [bigint, bigint] | null {
+export function getListEntry(
+  validity: BigUint64Array | null,
+  dv: DataView,
+  index: number,
+): [bigint, bigint] | null {
   if (!isValid(validity, index)) {
     return null;
   }

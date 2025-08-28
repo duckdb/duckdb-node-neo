@@ -52,18 +52,30 @@ export class DuckDBBitValue {
   }
 
   public static fromString(str: string, on: string = '1'): DuckDBBitValue {
-    return DuckDBBitValue.fromLengthAndPredicate(str.length, i => str[i] === on);
+    return DuckDBBitValue.fromLengthAndPredicate(
+      str.length,
+      (i) => str[i] === on,
+    );
   }
 
-  public static fromBits(bits: readonly number[], on: number = 1): DuckDBBitValue {
-    return DuckDBBitValue.fromLengthAndPredicate(bits.length, i => bits[i] === on);
+  public static fromBits(
+    bits: readonly number[],
+    on: number = 1,
+  ): DuckDBBitValue {
+    return DuckDBBitValue.fromLengthAndPredicate(
+      bits.length,
+      (i) => bits[i] === on,
+    );
   }
 
   public static fromBools(bools: readonly boolean[]): DuckDBBitValue {
-    return DuckDBBitValue.fromLengthAndPredicate(bools.length, i => bools[i]);
+    return DuckDBBitValue.fromLengthAndPredicate(bools.length, (i) => bools[i]);
   }
 
-  public static fromLengthAndPredicate(length: number, predicate: (index: number) => boolean): DuckDBBitValue {
+  public static fromLengthAndPredicate(
+    length: number,
+    predicate: (index: number) => boolean,
+  ): DuckDBBitValue {
     const byteCount = Math.ceil(length / 8) + 1;
     const paddingBitCount = (8 - (length % 8)) % 8;
 
@@ -102,7 +114,9 @@ export class DuckDBBitValue {
   }
 }
 
-export function bitValue(input: string | readonly boolean[] | readonly number[]): DuckDBBitValue {
+export function bitValue(
+  input: string | readonly boolean[] | readonly number[],
+): DuckDBBitValue {
   if (typeof input === 'string') {
     return DuckDBBitValue.fromString(input);
   }
@@ -113,5 +127,5 @@ export function bitValue(input: string | readonly boolean[] | readonly number[])
       return DuckDBBitValue.fromBits(input as readonly number[]);
     }
   }
-  return DuckDBBitValue.fromLengthAndPredicate(0, _ => false);
+  return DuckDBBitValue.fromLengthAndPredicate(0, (_) => false);
 }

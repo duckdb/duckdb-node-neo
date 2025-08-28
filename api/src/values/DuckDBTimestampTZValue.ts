@@ -1,4 +1,4 @@
-import duckdb, { Timestamp, TimestampParts } from '@duckdb/node-bindings';
+import duckdb, { Timestamp, TimestampParts } from '@databrainhq/node-bindings';
 import { getDuckDBTimestampStringFromMicroseconds } from '../conversion/dateTimeStringConversion';
 import { DuckDBTimestampValue } from './DuckDBTimestampValue';
 
@@ -19,7 +19,7 @@ export class DuckDBTimestampTZValue implements Timestamp {
   public toString(): string {
     return getDuckDBTimestampStringFromMicroseconds(
       this.micros,
-      DuckDBTimestampTZValue.timezoneOffsetInMinutes
+      DuckDBTimestampTZValue.timezoneOffsetInMinutes,
     );
   }
 
@@ -33,20 +33,22 @@ export class DuckDBTimestampTZValue implements Timestamp {
 
   public static readonly Epoch = new DuckDBTimestampTZValue(0n);
   public static readonly Max = new DuckDBTimestampTZValue(
-    DuckDBTimestampValue.Max.micros
+    DuckDBTimestampValue.Max.micros,
   );
   public static readonly Min = new DuckDBTimestampTZValue(
-    DuckDBTimestampValue.Min.micros
+    DuckDBTimestampValue.Min.micros,
   );
   public static readonly PosInf = new DuckDBTimestampTZValue(
-    DuckDBTimestampValue.PosInf.micros
+    DuckDBTimestampValue.PosInf.micros,
   );
   public static readonly NegInf = new DuckDBTimestampTZValue(
-    DuckDBTimestampValue.NegInf.micros
+    DuckDBTimestampValue.NegInf.micros,
   );
 }
 
-export function timestampTZValue(microsOrParts: bigint | TimestampParts): DuckDBTimestampTZValue {
+export function timestampTZValue(
+  microsOrParts: bigint | TimestampParts,
+): DuckDBTimestampTZValue {
   if (typeof microsOrParts === 'bigint') {
     return new DuckDBTimestampTZValue(microsOrParts);
   }

@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { ExpectedLogicalType } from './ExpectedLogicalType';
 import { ExpectedVector } from './ExpectedVector';
 

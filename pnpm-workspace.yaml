@@ -1,4 +1,4 @@
 packages:
   - './*'
-  - 'api/pkgs/@duckdb/*'
-  - 'bindings/pkgs/@duckdb/*'
+  - 'api/pkgs/@databrainhq/*'
+  - 'bindings/pkgs/@databrainhq/*'

@@ -38,7 +38,7 @@ export function stringFromBlobArrayJoin(bytes: Uint8Array): string {
       byte >= 0x7f
     ) {
       byteStrings.push(
-        `\\x${byte.toString(16).toUpperCase().padStart(2, '0')}`
+        `\\x${byte.toString(16).toUpperCase().padStart(2, '0')}`,
       );
     } else {
       byteStrings.push(String.fromCharCode(byte));

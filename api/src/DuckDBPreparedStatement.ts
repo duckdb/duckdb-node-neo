@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { createValue } from './createValue';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBMaterializedResult } from './DuckDBMaterializedResult';
@@ -69,12 +69,12 @@ export class DuckDBPreparedStatement {
   public parameterTypeId(parameterIndex: number): DuckDBTypeId {
     return duckdb.param_type(
       this.prepared_statement,
-      parameterIndex
+      parameterIndex,
     ) as number as DuckDBTypeId;
   }
   public parameterType(parameterIndex: number): DuckDBType {
     return DuckDBLogicalType.create(
-      duckdb.param_logical_type(this.prepared_statement, parameterIndex)
+      duckdb.param_logical_type(this.prepared_statement, parameterIndex),
     ).asType();
   }
   public clearBindings() {
@@ -142,25 +142,25 @@ export class DuckDBPreparedStatement {
   }
   public bindTimestampTZ(
     parameterIndex: number,
-    value: DuckDBTimestampTZValue
+    value: DuckDBTimestampTZValue,
   ) {
     this.bindValue(parameterIndex, value, TIMESTAMPTZ);
   }
   public bindTimestampSeconds(
     parameterIndex: number,
-    value: DuckDBTimestampSecondsValue
+    value: DuckDBTimestampSecondsValue,
   ) {
     this.bindValue(parameterIndex, value, TIMESTAMP_S);
   }
   public bindTimestampMilliseconds(
     parameterIndex: number,
-    value: DuckDBTimestampMillisecondsValue
+    value: DuckDBTimestampMillisecondsValue,
   ) {
     this.bindValue(parameterIndex, value, TIMESTAMP_MS);
   }
   public bindTimestampNanoseconds(
     parameterIndex: number,
-    value: DuckDBTimestampNanosecondsValue
+    value: DuckDBTimestampNanosecondsValue,
   ) {
     this.bindValue(parameterIndex, value, TIMESTAMP_NS);
   }
@@ -179,47 +179,47 @@ export class DuckDBPreparedStatement {
   public bindArray(
     parameterIndex: number,
     value: DuckDBArrayValue | readonly DuckDBValue[],
-    type?: DuckDBArrayType
+    type?: DuckDBArrayType,
   ) {
     this.bindValue(
       parameterIndex,
       value instanceof DuckDBArrayValue ? value : arrayValue(value),
-      type
+      type,
     );
   }
   public bindList(
     parameterIndex: number,
     value: DuckDBListValue | readonly DuckDBValue[],
-    type?: DuckDBListType
+    type?: DuckDBListType,
   ) {
     this.bindValue(
       parameterIndex,
       value instanceof DuckDBListValue ? value : listValue(value),
-      type
+      type,
     );
   }
   public bindStruct(
     parameterIndex: number,
     value: DuckDBStructValue | Readonly<Record<string, DuckDBValue>>,
-    type?: DuckDBStructType
+    type?: DuckDBStructType,
   ) {
     this.bindValue(
       parameterIndex,
       value instanceof DuckDBStructValue ? value : structValue(value),
-      type
+      type,
     );
   }
   public bindMap(
     parameterIndex: number,
     value: DuckDBMapValue,
-    type?: DuckDBMapType
+    type?: DuckDBMapType,
   ) {
     this.bindValue(parameterIndex, value, type);
   }
   public bindUnion(
     parameterIndex: number,
     value: DuckDBUnionValue,
-    type?: DuckDBUnionType
+    type?: DuckDBUnionType,
   ) {
     this.bindValue(parameterIndex, value, type);
   }
@@ -235,17 +235,17 @@ export class DuckDBPreparedStatement {
   public bindValue(
     parameterIndex: number,
     value: DuckDBValue,
-    type?: DuckDBType
+    type?: DuckDBType,
   ) {
     duckdb.bind_value(
       this.prepared_statement,
       parameterIndex,
-      createValue(type ? type : typeForValue(value), value)
+      createValue(type ? type : typeForValue(value), value),
     );
   }
   public bind(
     values: DuckDBValue[] | Record<string, DuckDBValue>,
-    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>,
   ) {
     if (Array.isArray(values)) {
       const typesIsArray = Array.isArray(types);
@@ -258,14 +258,14 @@ export class DuckDBPreparedStatement {
         this.bindValue(
           this.parameterIndex(key),
           values[key],
-          typesIsRecord ? types[key] : undefined
+          typesIsRecord ? types[key] : undefined,
         );
       }
     }
   }
   public async run(): Promise<DuckDBMaterializedResult> {
     return new DuckDBMaterializedResult(
-      await duckdb.execute_prepared(this.prepared_statement)
+      await duckdb.execute_prepared(this.prepared_statement),
     );
   }
   public async runAndRead(): Promise<DuckDBResultReader> {
@@ -277,7 +277,7 @@ export class DuckDBPreparedStatement {
     return reader;
   }
   public async runAndReadUntil(
-    targetRowCount: number
+    targetRowCount: number,
   ): Promise<DuckDBResultReader> {
     const reader = new DuckDBResultReader(await this.run());
     await reader.readUntil(targetRowCount);
@@ -285,7 +285,7 @@ export class DuckDBPreparedStatement {
   }
   public async stream(): Promise<DuckDBResult> {
     return new DuckDBResult(
-      await duckdb.execute_prepared_streaming(this.prepared_statement)
+      await duckdb.execute_prepared_streaming(this.prepared_statement),
     );
   }
   public async streamAndRead(): Promise<DuckDBResultReader> {
@@ -297,7 +297,7 @@ export class DuckDBPreparedStatement {
     return reader;
   }
   public async streamAndReadUntil(
-    targetRowCount: number
+    targetRowCount: number,
   ): Promise<DuckDBResultReader> {
     const reader = new DuckDBResultReader(await this.stream());
     await reader.readUntil(targetRowCount);
@@ -305,12 +305,12 @@ export class DuckDBPreparedStatement {
   }
   public start(): DuckDBPendingResult {
     return new DuckDBPendingResult(
-      duckdb.pending_prepared(this.prepared_statement)
+      duckdb.pending_prepared(this.prepared_statement),
     );
   }
   public startStream(): DuckDBPendingResult {
     return new DuckDBPendingResult(
-      duckdb.pending_prepared_streaming(this.prepared_statement)
+      duckdb.pending_prepared_streaming(this.prepared_statement),
     );
   }
 }

@@ -26,19 +26,19 @@ const JsonConvertersByTypeId: Record<
   [DuckDBTypeId.TINYINT]: numberFromValue,
   [DuckDBTypeId.SMALLINT]: numberFromValue,
   [DuckDBTypeId.INTEGER]: numberFromValue,
-  [DuckDBTypeId.BIGINT]: stringFromValue,
+  [DuckDBTypeId.BIGINT]: numberFromValue,
   [DuckDBTypeId.UTINYINT]: numberFromValue,
   [DuckDBTypeId.USMALLINT]: numberFromValue,
   [DuckDBTypeId.UINTEGER]: numberFromValue,
-  [DuckDBTypeId.UBIGINT]: stringFromValue,
+  [DuckDBTypeId.UBIGINT]: numberFromValue,
   [DuckDBTypeId.FLOAT]: jsonNumberFromValue,
   [DuckDBTypeId.DOUBLE]: jsonNumberFromValue,
   [DuckDBTypeId.TIMESTAMP]: stringFromValue,
   [DuckDBTypeId.DATE]: stringFromValue,
   [DuckDBTypeId.TIME]: stringFromValue,
   [DuckDBTypeId.INTERVAL]: jsonObjectFromIntervalValue,
-  [DuckDBTypeId.HUGEINT]: stringFromValue,
-  [DuckDBTypeId.UHUGEINT]: stringFromValue,
+  [DuckDBTypeId.HUGEINT]: numberFromValue,
+  [DuckDBTypeId.UHUGEINT]: numberFromValue,
   [DuckDBTypeId.VARCHAR]: stringFromValue,
   [DuckDBTypeId.BLOB]: stringFromValue,
   [DuckDBTypeId.DECIMAL]: stringFromValue,
@@ -61,5 +61,5 @@ const JsonConvertersByTypeId: Record<
 };
 
 export const JsonDuckDBValueConverter = createDuckDBValueConverter(
-  JsonConvertersByTypeId
+  JsonConvertersByTypeId,
 );

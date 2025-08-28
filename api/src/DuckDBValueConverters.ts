@@ -60,7 +60,7 @@ export function jsonNumberFromValue(value: DuckDBValue): number | string {
 
 export function bigintFromBigIntValue(
   value: DuckDBValue,
-  type: DuckDBType
+  type: DuckDBType,
 ): bigint {
   if (typeof value === 'bigint') {
     return value;
@@ -110,7 +110,7 @@ export function dateFromTimestampValue(value: DuckDBValue): Date {
       return new Date(Number(millis));
     }
     throw new Error(
-      `TIMESTAMP value out of range for JS Date: ${value.micros} micros`
+      `TIMESTAMP value out of range for JS Date: ${value.micros} micros`,
     );
   }
   throw new Error(`Expected DuckDBTimestampValue`);
@@ -123,7 +123,7 @@ export function dateFromTimestampSecondsValue(value: DuckDBValue): Date {
       return new Date(Number(millis));
     }
     throw new Error(
-      `TIMESTAMP_S value out of range for JS Date: ${value.seconds} seconds`
+      `TIMESTAMP_S value out of range for JS Date: ${value.seconds} seconds`,
     );
   }
   throw new Error(`Expected DuckDBTimestampSecondsValue`);
@@ -136,7 +136,7 @@ export function dateFromTimestampMillisecondsValue(value: DuckDBValue): Date {
       return new Date(Number(millis));
     }
     throw new Error(
-      `TIMESTAMP_MS value out of range for JS Date: ${value.millis} millis`
+      `TIMESTAMP_MS value out of range for JS Date: ${value.millis} millis`,
     );
   }
   throw new Error(`Expected DuckDBTimestampMillisecondsValue`);
@@ -149,7 +149,7 @@ export function dateFromTimestampNanosecondsValue(value: DuckDBValue): Date {
       return new Date(Number(millis));
     }
     throw new Error(
-      `TIMESTAMP_NS value out of range for JS Date: ${value.nanos} nanos`
+      `TIMESTAMP_NS value out of range for JS Date: ${value.nanos} nanos`,
     );
   }
   throw new Error(`Expected DuckDBTimestampNanosecondsValue`);
@@ -175,7 +175,7 @@ export function dateFromTimestampTZValue(value: DuckDBValue): Date {
       return new Date(Number(millis));
     }
     throw new Error(
-      `TIMESTAMPTZ value out of range for JS Date: ${value.micros} micros`
+      `TIMESTAMPTZ value out of range for JS Date: ${value.micros} micros`,
     );
   }
   throw new Error(`Expected DuckDBTimestampTZValue`);
@@ -221,7 +221,7 @@ export function doubleFromDecimalValue(value: DuckDBValue): number {
 export function arrayFromListValue<T>(
   value: DuckDBValue,
   type: DuckDBType,
-  converter: DuckDBValueConverter<T>
+  converter: DuckDBValueConverter<T>,
 ): (T | null)[] {
   if (value instanceof DuckDBListValue && type instanceof DuckDBListType) {
     return value.items.map((v) => converter(v, type.valueType, converter));
@@ -232,7 +232,7 @@ export function arrayFromListValue<T>(
 export function objectFromStructValue<T>(
   value: DuckDBValue,
   type: DuckDBType,
-  converter: DuckDBValueConverter<T>
+  converter: DuckDBValueConverter<T>,
 ): { [key: string]: T | null } {
   if (value instanceof DuckDBStructValue && type instanceof DuckDBStructType) {
     const result: { [key: string]: T | null } = {};
@@ -240,7 +240,7 @@ export function objectFromStructValue<T>(
       result[key] = converter(
         value.entries[key],
         type.typeForEntry(key),
-        converter
+        converter,
       );
     }
     return result;
@@ -251,7 +251,7 @@ export function objectFromStructValue<T>(
 export function objectArrayFromMapValue<T>(
   value: DuckDBValue,
   type: DuckDBType,
-  converter: DuckDBValueConverter<T>
+  converter: DuckDBValueConverter<T>,
 ): { key: T | null; value: T | null }[] {
   if (value instanceof DuckDBMapValue && type instanceof DuckDBMapType) {
     return value.entries.map((entry) => ({
@@ -265,7 +265,7 @@ export function objectArrayFromMapValue<T>(
 export function arrayFromArrayValue<T>(
   value: DuckDBValue,
   type: DuckDBType,
-  converter: DuckDBValueConverter<T>
+  converter: DuckDBValueConverter<T>,
 ): (T | null)[] {
   if (value instanceof DuckDBArrayValue && type instanceof DuckDBArrayType) {
     return value.items.map((v) => converter(v, type.valueType, converter));
@@ -276,7 +276,7 @@ export function arrayFromArrayValue<T>(
 export function objectFromUnionValue<T>(
   value: DuckDBValue,
   type: DuckDBType,
-  converter: DuckDBValueConverter<T>
+  converter: DuckDBValueConverter<T>,
 ): { tag: string; value: T | null } {
   if (value instanceof DuckDBUnionValue && type instanceof DuckDBUnionType) {
     return {
@@ -284,7 +284,7 @@ export function objectFromUnionValue<T>(
       value: converter(
         value.value,
         type.memberTypeForTag(value.tag),
-        converter
+        converter,
       ),
     };
   }

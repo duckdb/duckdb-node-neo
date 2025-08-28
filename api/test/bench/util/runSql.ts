@@ -1,6 +1,9 @@
 import { DuckDBConnection } from '../../../src';
 
-export async function runSql(connection: DuckDBConnection, sql: string): Promise<void> {
+export async function runSql(
+  connection: DuckDBConnection,
+  sql: string,
+): Promise<void> {
   const result = await connection.run(sql);
   let valueCount = 0;
   let nullCount = 0;

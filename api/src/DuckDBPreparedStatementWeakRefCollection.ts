@@ -25,7 +25,7 @@ export class DuckDBPreparedStatementWeakRefCollection
   }
   private prune() {
     this.preparedStatements = this.preparedStatements.filter(
-      (ref) => !!ref.deref()
+      (ref) => !!ref.deref(),
     );
   }
 }

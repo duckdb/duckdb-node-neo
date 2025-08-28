@@ -11,12 +11,16 @@ export class DuckDBStructValue {
   public toString(): string {
     const parts: string[] = [];
     for (const name in this.entries) {
-      parts.push(`${displayStringForDuckDBValue(name)}: ${displayStringForDuckDBValue(this.entries[name])}`);
+      parts.push(
+        `${displayStringForDuckDBValue(name)}: ${displayStringForDuckDBValue(this.entries[name])}`,
+      );
     }
     return `{${parts.join(', ')}}`;
   }
 }
 
-export function structValue(entries: Readonly<Record<string, DuckDBValue>>): DuckDBStructValue {
+export function structValue(
+  entries: Readonly<Record<string, DuckDBValue>>,
+): DuckDBStructValue {
   return new DuckDBStructValue(entries);
 }

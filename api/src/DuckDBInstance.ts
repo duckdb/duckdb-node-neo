@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { createConfig } from './createConfig';
 import { DuckDBConnection } from './DuckDBConnection';
 import { DuckDBInstanceCache } from './DuckDBInstanceCache';
@@ -12,7 +12,7 @@ export class DuckDBInstance {
 
   public static async create(
     path?: string,
-    options?: Record<string, string>
+    options?: Record<string, string>,
   ): Promise<DuckDBInstance> {
     const config = createConfig(options);
     return new DuckDBInstance(await duckdb.open(path, config));
@@ -20,7 +20,7 @@ export class DuckDBInstance {
 
   public static async fromCache(
     path?: string,
-    options?: Record<string, string>
+    options?: Record<string, string>,
   ): Promise<DuckDBInstance> {
     return DuckDBInstanceCache.singleton.getOrCreateInstance(path, options);
   }

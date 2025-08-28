@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBType } from './DuckDBType';
@@ -71,19 +71,19 @@ export class DuckDBResult {
   public columnTypeId(columnIndex: number): DuckDBTypeId {
     return duckdb.column_type(
       this.result,
-      columnIndex
+      columnIndex,
     ) as number as DuckDBTypeId;
   }
 
   public columnLogicalType(columnIndex: number): DuckDBLogicalType {
     return DuckDBLogicalType.create(
-      duckdb.column_logical_type(this.result, columnIndex)
+      duckdb.column_logical_type(this.result, columnIndex),
     );
   }
 
   public columnType(columnIndex: number): DuckDBType {
     return DuckDBLogicalType.create(
-      duckdb.column_logical_type(this.result, columnIndex)
+      duckdb.column_logical_type(this.result, columnIndex),
     ).asType();
   }
 
@@ -158,7 +158,7 @@ export class DuckDBResult {
   }
 
   public async convertColumns<T>(
-    converter: DuckDBValueConverter<T>
+    converter: DuckDBValueConverter<T>,
   ): Promise<(T | null)[][]> {
     const chunks = await this.fetchAllChunks();
     return convertColumnsFromChunks(chunks, converter);
@@ -178,13 +178,13 @@ export class DuckDBResult {
   }
 
   public async convertColumnsObject<T>(
-    converter: DuckDBValueConverter<T>
+    converter: DuckDBValueConverter<T>,
   ): Promise<Record<string, (T | null)[]>> {
     const chunks = await this.fetchAllChunks();
     return convertColumnsObjectFromChunks(
       chunks,
       this.deduplicatedColumnNames(),
-      converter
+      converter,
     );
   }
 
@@ -202,7 +202,7 @@ export class DuckDBResult {
   }
 
   public async convertRows<T>(
-    converter: DuckDBValueConverter<T>
+    converter: DuckDBValueConverter<T>,
   ): Promise<(T | null)[][]> {
     const chunks = await this.fetchAllChunks();
     return convertRowsFromChunks(chunks, converter);
@@ -222,13 +222,13 @@ export class DuckDBResult {
   }
 
   public async convertRowObjects<T>(
-    converter: DuckDBValueConverter<T>
+    converter: DuckDBValueConverter<T>,
   ): Promise<Record<string, T | null>[]> {
     const chunks = await this.fetchAllChunks();
     return convertRowObjectsFromChunks(
       chunks,
       this.deduplicatedColumnNames(),
-      converter
+      converter,
     );
   }
 

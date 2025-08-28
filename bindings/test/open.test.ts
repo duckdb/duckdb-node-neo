@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { expect, suite, test } from 'vitest';
 
 suite('open', () => {
@@ -24,7 +24,7 @@ suite('open', () => {
     expect(db).toBeTruthy();
     duckdb.close_sync(db);
     await expect(async () => await duckdb.connect(db)).rejects.toStrictEqual(
-      new Error('Failed to connect: instance closed')
+      new Error('Failed to connect: instance closed'),
     );
     // double-close should be a no-op
     duckdb.close_sync(db);

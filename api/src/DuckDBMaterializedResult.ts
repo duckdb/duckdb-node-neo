@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBResult } from './DuckDBResult';
 
@@ -13,6 +13,8 @@ export class DuckDBMaterializedResult extends DuckDBResult {
     return duckdb.result_chunk_count(this.result);
   }
   public getChunk(chunkIndex: number): DuckDBDataChunk {
-    return new DuckDBDataChunk(duckdb.result_get_chunk(this.result, chunkIndex));
+    return new DuckDBDataChunk(
+      duckdb.result_get_chunk(this.result, chunkIndex),
+    );
   }
 }

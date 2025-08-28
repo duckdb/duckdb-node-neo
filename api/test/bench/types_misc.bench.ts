@@ -10,5 +10,9 @@ describe('types (uuid)', () => {
 });
 
 describe('types (union)', () => {
-  bench('union', benchFn(`select union_value(t := 'a') from range(1000000)`), benchOpts());
+  bench(
+    'union',
+    benchFn(`select union_value(t := 'a') from range(1000000)`),
+    benchOpts(),
+  );
 });

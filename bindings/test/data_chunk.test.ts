@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { expect, suite, test } from 'vitest';
 import { expectLogicalType } from './utils/expectLogicalType';
 import { INTEGER, VARCHAR } from './utils/expectedLogicalTypes';
@@ -48,10 +48,20 @@ suite('data chunk', () => {
     duckdb.data_chunk_set_size(chunk, 3);
     const vector = duckdb.data_chunk_get_vector(chunk, 0);
     duckdb.vector_ensure_validity_writable(vector);
-    duckdb.copy_data_to_vector_validity(vector, 0, source_buffer, 0, source_buffer.byteLength);
+    duckdb.copy_data_to_vector_validity(
+      vector,
+      0,
+      source_buffer,
+      0,
+      source_buffer.byteLength,
+    );
 
     const validity_bytes = duckdb.vector_get_validity(vector, 8);
-    const validity_array = new BigUint64Array(validity_bytes.buffer, validity_bytes.byteOffset, 1);
+    const validity_array = new BigUint64Array(
+      validity_bytes.buffer,
+      validity_bytes.byteOffset,
+      1,
+    );
     expect(validity_array[0]).toBe(0xfedcba9876543210n);
   });
   test('write integer vector', () => {
@@ -65,10 +75,20 @@ suite('data chunk', () => {
     const chunk = duckdb.create_data_chunk([integer_type]);
     duckdb.data_chunk_set_size(chunk, 3);
     const vector = duckdb.data_chunk_get_vector(chunk, 0);
-    duckdb.copy_data_to_vector(vector, 0, source_buffer, 0, source_buffer.byteLength);
+    duckdb.copy_data_to_vector(
+      vector,
+      0,
+      source_buffer,
+      0,
+      source_buffer.byteLength,
+    );
 
     const vector_data = duckdb.vector_get_data(vector, 3 * 4);
-    const vector_dv = new DataView(vector_data.buffer, vector_data.byteOffset, vector_data.byteLength);
+    const vector_dv = new DataView(
+      vector_data.buffer,
+      vector_data.byteOffset,
+      vector_data.byteLength,
+    );
     expect(vector_dv.getInt32(0, true)).toBe(42);
     expect(vector_dv.getInt32(4, true)).toBe(12345);
     expect(vector_dv.getInt32(8, true)).toBe(67890);
@@ -80,7 +100,11 @@ suite('data chunk', () => {
     const vector = duckdb.data_chunk_get_vector(chunk, 0);
     duckdb.vector_assign_string_element(vector, 0, 'ABC');
     duckdb.vector_assign_string_element(vector, 1, 'abcdefghijkl');
-    duckdb.vector_assign_string_element(vector, 2, 'longer than twelve characters');
+    duckdb.vector_assign_string_element(
+      vector,
+      2,
+      'longer than twelve characters',
+    );
     const data = duckdb.vector_get_data(vector, 3 * 16);
     const dv = new DataView(data.buffer);
     expect(dv.getUint32(0, true)).toBe(3);
@@ -88,40 +112,65 @@ suite('data chunk', () => {
     expect(dv.getUint32(16, true)).toBe(12);
     expect([data[20], data[31]]).toStrictEqual([0x61, 0x6c]); // a, l
     expect(dv.getUint32(32, true)).toBe('longer than twelve characters'.length);
-    expect([data[36], data[37], data[38], data[39]]).toStrictEqual([0x6c, 0x6f, 0x6e, 0x67]); // l, o, n, g
+    expect([data[36], data[37], data[38], data[39]]).toStrictEqual([
+      0x6c, 0x6f, 0x6e, 0x67,
+    ]); // l, o, n, g
   });
   test('write blob vector', () => {
     const blob_type = duckdb.create_logical_type(duckdb.Type.BLOB);
     const chunk = duckdb.create_data_chunk([blob_type]);
     duckdb.data_chunk_set_size(chunk, 3);
     const vector = duckdb.data_chunk_get_vector(chunk, 0);
-    duckdb.vector_assign_string_element_len(vector, 0, new Uint8Array([0xAB, 0xCD, 0xEF]));
-    duckdb.vector_assign_string_element_len(vector, 1,
-      new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C]));
-    duckdb.vector_assign_string_element_len(vector, 2,
-      new Uint8Array([0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D])
+    duckdb.vector_assign_string_element_len(
+      vector,
+      0,
+      new Uint8Array([0xab, 0xcd, 0xef]),
+    );
+    duckdb.vector_assign_string_element_len(
+      vector,
+      1,
+      new Uint8Array([
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
+      ]),
+    );
+    duckdb.vector_assign_string_element_len(
+      vector,
+      2,
+      new Uint8Array([
+        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c,
+        0x1d,
+      ]),
     );
     const data = duckdb.vector_get_data(vector, 3 * 16);
     const dv = new DataView(data.buffer);
     expect(dv.getUint32(0, true)).toBe(3);
-    expect([data[4], data[5], data[6]]).toStrictEqual([0xAB, 0xCD, 0xEF]);
+    expect([data[4], data[5], data[6]]).toStrictEqual([0xab, 0xcd, 0xef]);
     expect(dv.getUint32(16, true)).toBe(12);
-    expect([data[20], data[31]]).toStrictEqual([0x01, 0x0C]);
+    expect([data[20], data[31]]).toStrictEqual([0x01, 0x0c]);
     expect(dv.getUint32(32, true)).toBe(13);
-    expect([data[36], data[37], data[38], data[39]]).toStrictEqual([0x11, 0x12, 0x13, 0x14]);
+    expect([data[36], data[37], data[38], data[39]]).toStrictEqual([
+      0x11, 0x12, 0x13, 0x14,
+    ]);
   });
-  test.skip('write varint vector', () => { // See https://github.com/duckdb/duckdb/pull/15670
+  test.skip('write varint vector', () => {
+    // See https://github.com/databrainhq/duckdb/pull/15670
     const varint_type = duckdb.create_logical_type(duckdb.Type.VARINT);
     const chunk = duckdb.create_data_chunk([varint_type]);
     duckdb.data_chunk_set_size(chunk, 1);
     const vector = duckdb.data_chunk_get_vector(chunk, 0);
     expect(vector).toBeDefined();
-    duckdb.vector_assign_string_element_len(vector, 0, new Uint8Array([0x80, 0x00, 0x01, 0x2a])); // VARINT 42
+    duckdb.vector_assign_string_element_len(
+      vector,
+      0,
+      new Uint8Array([0x80, 0x00, 0x01, 0x2a]),
+    ); // VARINT 42
     const data = duckdb.vector_get_data(vector, 1);
     expect(data).toBeDefined();
     const dv = new DataView(data.buffer);
     expect(dv.getUint32(0, true)).toBe(4);
-    expect([data[4], data[5], data[6], data[7]]).toStrictEqual([0x80, 0x00, 0x01, 0x2a]); // VARINT 42
+    expect([data[4], data[5], data[6], data[7]]).toStrictEqual([
+      0x80, 0x00, 0x01, 0x2a,
+    ]); // VARINT 42
   });
   test('set list vector size', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);

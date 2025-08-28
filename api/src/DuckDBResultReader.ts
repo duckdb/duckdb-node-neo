@@ -95,7 +95,7 @@ export class DuckDBResultReader {
   public columnNameAndTypeObjectsJson(): Json {
     return this.result.columnNameAndTypeObjectsJson();
   }
-  
+
   public get rowsChanged(): number {
     return this.result.rowsChanged;
   }
@@ -139,7 +139,7 @@ export class DuckDBResultReader {
     }
     // We didn't find our row. It must have been out of range.
     throw Error(
-      `Row index ${rowIndex} requested, but only ${this.currentRowCount_} row have been read so far.`
+      `Row index ${rowIndex} requested, but only ${this.currentRowCount_} row have been read so far.`,
     );
   }
 
@@ -213,17 +213,17 @@ export class DuckDBResultReader {
   public getColumnsObject(): Record<string, DuckDBValue[]> {
     return getColumnsObjectFromChunks(
       this.chunks,
-      this.deduplicatedColumnNames()
+      this.deduplicatedColumnNames(),
     );
   }
 
   public convertColumnsObject<T>(
-    converter: DuckDBValueConverter<T>
+    converter: DuckDBValueConverter<T>,
   ): Record<string, (T | null)[]> {
     return convertColumnsObjectFromChunks(
       this.chunks,
       this.deduplicatedColumnNames(),
-      converter
+      converter,
     );
   }
 
@@ -256,12 +256,12 @@ export class DuckDBResultReader {
   }
 
   public convertRowObjects<T>(
-    converter: DuckDBValueConverter<T>
+    converter: DuckDBValueConverter<T>,
   ): Record<string, T | null>[] {
     return convertRowObjectsFromChunks(
       this.chunks,
       this.deduplicatedColumnNames(),
-      converter
+      converter,
     );
   }
 

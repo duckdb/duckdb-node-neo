@@ -1,10 +1,10 @@
-import { bench, describe } from "vitest";
+import { bench, describe } from 'vitest';
 import {
   DuckDBConnection,
   DuckDBInstance,
   DuckDBIntervalValue,
   DuckDBPreparedStatement,
-} from "../../src";
+} from '../../src';
 
 let instance: DuckDBInstance;
 let connection: DuckDBConnection;
@@ -37,7 +37,7 @@ FROM
  */
 function startMS() {
   return BigInt(
-    Math.floor(Math.random() * Number(TOTAL_SIZE - SELECTION_SIZE))
+    Math.floor(Math.random() * Number(TOTAL_SIZE - SELECTION_SIZE)),
   );
 }
 
@@ -61,7 +61,7 @@ describe(`Parameterised queries`, () => {
     },
     {
       setup,
-    }
+    },
   );
 
   bench(
@@ -72,11 +72,11 @@ describe(`Parameterised queries`, () => {
 
       prepared.bindInterval(
         1,
-        new DuckDBIntervalValue(0, 0, startInterval * 1000n)
+        new DuckDBIntervalValue(0, 0, startInterval * 1000n),
       );
       prepared.bindInterval(
         2,
-        new DuckDBIntervalValue(0, 0, endInterval * 1000n)
+        new DuckDBIntervalValue(0, 0, endInterval * 1000n),
       );
 
       await prepared.runAndReadAll();
@@ -85,10 +85,10 @@ describe(`Parameterised queries`, () => {
       setup: async () => {
         await setup();
 
-        const query = factory("$1", "$2");
+        const query = factory('$1', '$2');
         prepared = await connection.prepare(query);
       },
-    }
+    },
   );
 
   bench(
@@ -97,22 +97,22 @@ describe(`Parameterised queries`, () => {
       const startInterval = startMS();
       const endInterval = startInterval + SELECTION_SIZE;
 
-      const query = factory("$1", "$2");
+      const query = factory('$1', '$2');
       prepared = await connection.prepare(query);
 
       prepared.bindInterval(
         1,
-        new DuckDBIntervalValue(0, 0, startInterval * 1000n)
+        new DuckDBIntervalValue(0, 0, startInterval * 1000n),
       );
       prepared.bindInterval(
         2,
-        new DuckDBIntervalValue(0, 0, endInterval * 1000n)
+        new DuckDBIntervalValue(0, 0, endInterval * 1000n),
       );
 
       await prepared.runAndReadAll();
     },
     {
       setup,
-    }
+    },
   );
 });

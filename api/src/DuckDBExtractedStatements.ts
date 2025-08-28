@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { DuckDBPreparedStatement } from './DuckDBPreparedStatement';
 import { DuckDBPreparedStatementCollection } from './DuckDBPreparedStatementCollection';
 
@@ -11,7 +11,7 @@ export class DuckDBExtractedStatements {
     connection: duckdb.Connection,
     extracted_statements: duckdb.ExtractedStatements,
     statement_count: number,
-    preparedStatements?: DuckDBPreparedStatementCollection
+    preparedStatements?: DuckDBPreparedStatementCollection,
   ) {
     this.connection = connection;
     this.extracted_statements = extracted_statements;
@@ -26,8 +26,8 @@ export class DuckDBExtractedStatements {
       await duckdb.prepare_extracted_statement(
         this.connection,
         this.extracted_statements,
-        index
-      )
+        index,
+      ),
     );
     if (this.preparedStatements) {
       this.preparedStatements.add(prepared);

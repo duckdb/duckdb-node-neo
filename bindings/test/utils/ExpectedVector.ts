@@ -49,5 +49,4 @@ export type ExpectedVector =
   | ExpectedListVector
   | ExpectedMapVector
   | ExpectedStructVector
-  | ExpectedUnionVector
-  ;
+  | ExpectedUnionVector;

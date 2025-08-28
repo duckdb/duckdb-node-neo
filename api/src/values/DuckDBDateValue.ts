@@ -1,4 +1,4 @@
-import duckdb, { Date_, DateParts } from '@duckdb/node-bindings';
+import duckdb, { Date_, DateParts } from '@databrainhq/node-bindings';
 import { getDuckDBDateStringFromDays } from '../conversion/dateTimeStringConversion';
 
 export type { DateParts };

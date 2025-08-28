@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { expect, suite, test } from 'vitest';
 
 suite('logical_type', () => {
@@ -24,7 +24,9 @@ suite('logical_type', () => {
     expect(duckdb.logical_type_get_alias(decimal_type)).toBeNull();
     expect(duckdb.decimal_width(decimal_type)).toBe(4);
     expect(duckdb.decimal_scale(decimal_type)).toBe(1);
-    expect(duckdb.decimal_internal_type(decimal_type)).toBe(duckdb.Type.SMALLINT);
+    expect(duckdb.decimal_internal_type(decimal_type)).toBe(
+      duckdb.Type.SMALLINT,
+    );
   });
   test('decimal (INTEGER)', () => {
     const decimal_type = duckdb.create_decimal_type(9, 4);
@@ -32,7 +34,9 @@ suite('logical_type', () => {
     expect(duckdb.logical_type_get_alias(decimal_type)).toBeNull();
     expect(duckdb.decimal_width(decimal_type)).toBe(9);
     expect(duckdb.decimal_scale(decimal_type)).toBe(4);
-    expect(duckdb.decimal_internal_type(decimal_type)).toBe(duckdb.Type.INTEGER);
+    expect(duckdb.decimal_internal_type(decimal_type)).toBe(
+      duckdb.Type.INTEGER,
+    );
   });
   test('decimal (BIGINT)', () => {
     const decimal_type = duckdb.create_decimal_type(18, 6);
@@ -48,7 +52,9 @@ suite('logical_type', () => {
     expect(duckdb.logical_type_get_alias(decimal_type)).toBeNull();
     expect(duckdb.decimal_width(decimal_type)).toBe(38);
     expect(duckdb.decimal_scale(decimal_type)).toBe(10);
-    expect(duckdb.decimal_internal_type(decimal_type)).toBe(duckdb.Type.HUGEINT);
+    expect(duckdb.decimal_internal_type(decimal_type)).toBe(
+      duckdb.Type.HUGEINT,
+    );
   });
   test('enum (small)', () => {
     const enum_type = duckdb.create_enum_type(['DUCK_DUCK_ENUM', 'GOOSE']);
@@ -60,7 +66,9 @@ suite('logical_type', () => {
     expect(duckdb.enum_dictionary_value(enum_type, 1)).toBe('GOOSE');
   });
   test('enum (medium)', () => {
-    const enum_type = duckdb.create_enum_type(Array.from({ length: 300 }).map((_, i) => `enum_${i}`));
+    const enum_type = duckdb.create_enum_type(
+      Array.from({ length: 300 }).map((_, i) => `enum_${i}`),
+    );
     expect(duckdb.get_type_id(enum_type)).toBe(duckdb.Type.ENUM);
     expect(duckdb.logical_type_get_alias(enum_type)).toBeNull();
     expect(duckdb.enum_internal_type(enum_type)).toBe(duckdb.Type.USMALLINT);
@@ -69,7 +77,9 @@ suite('logical_type', () => {
     expect(duckdb.enum_dictionary_value(enum_type, 299)).toBe('enum_299');
   });
   test('enum (large)', () => {
-    const enum_type = duckdb.create_enum_type(Array.from({ length: 70000 }).map((_, i) => `enum_${i}`));
+    const enum_type = duckdb.create_enum_type(
+      Array.from({ length: 70000 }).map((_, i) => `enum_${i}`),
+    );
     expect(duckdb.get_type_id(enum_type)).toBe(duckdb.Type.ENUM);
     expect(duckdb.logical_type_get_alias(enum_type)).toBeNull();
     expect(duckdb.enum_internal_type(enum_type)).toBe(duckdb.Type.UINTEGER);
@@ -106,7 +116,10 @@ suite('logical_type', () => {
   test('struct', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
     const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
-    const struct_type = duckdb.create_struct_type([int_type, varchar_type], ['a', 'b']);
+    const struct_type = duckdb.create_struct_type(
+      [int_type, varchar_type],
+      ['a', 'b'],
+    );
     expect(duckdb.get_type_id(struct_type)).toBe(duckdb.Type.STRUCT);
     expect(duckdb.logical_type_get_alias(struct_type)).toBeNull();
     expect(duckdb.struct_type_child_count(struct_type)).toBe(2);
@@ -126,7 +139,10 @@ suite('logical_type', () => {
   test('union', () => {
     const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
     const smallint_type = duckdb.create_logical_type(duckdb.Type.SMALLINT);
-    const union_type = duckdb.create_union_type([varchar_type, smallint_type], ['name', 'age']);
+    const union_type = duckdb.create_union_type(
+      [varchar_type, smallint_type],
+      ['name', 'age'],
+    );
     expect(duckdb.get_type_id(union_type)).toBe(duckdb.Type.UNION);
     expect(duckdb.logical_type_get_alias(union_type)).toBeNull();
     expect(duckdb.union_type_member_count(union_type)).toBe(2);

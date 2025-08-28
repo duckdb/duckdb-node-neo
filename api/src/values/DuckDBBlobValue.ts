@@ -24,4 +24,3 @@ export function blobValue(input: Uint8Array | string): DuckDBBlobValue {
   }
   return new DuckDBBlobValue(input);
 }
-

@@ -19,7 +19,7 @@ export function replaceSqlNullWithInteger(input: DuckDBType): DuckDBType {
       const entries: Record<string, DuckDBType> = {};
       for (let i = 0; i < input.entryCount; i++) {
         entries[input.entryNames[i]] = replaceSqlNullWithInteger(
-          input.entryTypes[i]
+          input.entryTypes[i],
         );
       }
       return STRUCT(entries, input.alias);
@@ -28,19 +28,19 @@ export function replaceSqlNullWithInteger(input: DuckDBType): DuckDBType {
       return ARRAY(
         replaceSqlNullWithInteger(input.valueType),
         input.length,
-        input.alias
+        input.alias,
       );
     case DuckDBTypeId.MAP:
       return MAP(
         replaceSqlNullWithInteger(input.keyType),
         replaceSqlNullWithInteger(input.valueType),
-        input.alias
+        input.alias,
       );
     case DuckDBTypeId.UNION: {
       const members: Record<string, DuckDBType> = {};
       for (let i = 0; i < input.memberCount; i++) {
         members[input.memberTags[i]] = replaceSqlNullWithInteger(
-          input.memberTypes[i]
+          input.memberTypes[i],
         );
       }
       return UNION(members, input.alias);

@@ -40,5 +40,4 @@ export type DuckDBValue =
   | DuckDBTimeTZValue
   | DuckDBTimeValue
   | DuckDBUnionValue
-  | DuckDBUUIDValue
-  ;
+  | DuckDBUUIDValue;

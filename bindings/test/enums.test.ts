@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { expect, suite, test } from 'vitest';
 
 suite('enums', () => {
@@ -9,9 +9,13 @@ suite('enums', () => {
     expect(duckdb.ResultType.QUERY_RESULT).toBe(3);
 
     expect(duckdb.ResultType[duckdb.ResultType.INVALID]).toBe('INVALID');
-    expect(duckdb.ResultType[duckdb.ResultType.CHANGED_ROWS]).toBe('CHANGED_ROWS');
+    expect(duckdb.ResultType[duckdb.ResultType.CHANGED_ROWS]).toBe(
+      'CHANGED_ROWS',
+    );
     expect(duckdb.ResultType[duckdb.ResultType.NOTHING]).toBe('NOTHING');
-    expect(duckdb.ResultType[duckdb.ResultType.QUERY_RESULT]).toBe('QUERY_RESULT');
+    expect(duckdb.ResultType[duckdb.ResultType.QUERY_RESULT]).toBe(
+      'QUERY_RESULT',
+    );
   });
   test('StatementType', () => {
     expect(duckdb.StatementType.INVALID).toBe(0);
@@ -53,11 +57,17 @@ suite('enums', () => {
     expect(duckdb.StatementType[duckdb.StatementType.CREATE]).toBe('CREATE');
     expect(duckdb.StatementType[duckdb.StatementType.EXECUTE]).toBe('EXECUTE');
     expect(duckdb.StatementType[duckdb.StatementType.ALTER]).toBe('ALTER');
-    expect(duckdb.StatementType[duckdb.StatementType.TRANSACTION]).toBe('TRANSACTION');
+    expect(duckdb.StatementType[duckdb.StatementType.TRANSACTION]).toBe(
+      'TRANSACTION',
+    );
     expect(duckdb.StatementType[duckdb.StatementType.COPY]).toBe('COPY');
     expect(duckdb.StatementType[duckdb.StatementType.ANALYZE]).toBe('ANALYZE');
-    expect(duckdb.StatementType[duckdb.StatementType.VARIABLE_SET]).toBe('VARIABLE_SET');
-    expect(duckdb.StatementType[duckdb.StatementType.CREATE_FUNC]).toBe('CREATE_FUNC');
+    expect(duckdb.StatementType[duckdb.StatementType.VARIABLE_SET]).toBe(
+      'VARIABLE_SET',
+    );
+    expect(duckdb.StatementType[duckdb.StatementType.CREATE_FUNC]).toBe(
+      'CREATE_FUNC',
+    );
     expect(duckdb.StatementType[duckdb.StatementType.DROP]).toBe('DROP');
     expect(duckdb.StatementType[duckdb.StatementType.EXPORT]).toBe('EXPORT');
     expect(duckdb.StatementType[duckdb.StatementType.PRAGMA]).toBe('PRAGMA');
@@ -65,9 +75,15 @@ suite('enums', () => {
     expect(duckdb.StatementType[duckdb.StatementType.CALL]).toBe('CALL');
     expect(duckdb.StatementType[duckdb.StatementType.SET]).toBe('SET');
     expect(duckdb.StatementType[duckdb.StatementType.LOAD]).toBe('LOAD');
-    expect(duckdb.StatementType[duckdb.StatementType.RELATION]).toBe('RELATION');
-    expect(duckdb.StatementType[duckdb.StatementType.EXTENSION]).toBe('EXTENSION');
-    expect(duckdb.StatementType[duckdb.StatementType.LOGICAL_PLAN]).toBe('LOGICAL_PLAN');
+    expect(duckdb.StatementType[duckdb.StatementType.RELATION]).toBe(
+      'RELATION',
+    );
+    expect(duckdb.StatementType[duckdb.StatementType.EXTENSION]).toBe(
+      'EXTENSION',
+    );
+    expect(duckdb.StatementType[duckdb.StatementType.LOGICAL_PLAN]).toBe(
+      'LOGICAL_PLAN',
+    );
     expect(duckdb.StatementType[duckdb.StatementType.ATTACH]).toBe('ATTACH');
     expect(duckdb.StatementType[duckdb.StatementType.DETACH]).toBe('DETACH');
     expect(duckdb.StatementType[duckdb.StatementType.MULTI]).toBe('MULTI');
@@ -110,7 +126,7 @@ suite('enums', () => {
     expect(duckdb.Type.VARINT).toBe(35);
     expect(duckdb.Type.SQLNULL).toBe(36);
 
-    expect(duckdb.Type[duckdb.Type.BOOLEAN]).toBe('BOOLEAN')
+    expect(duckdb.Type[duckdb.Type.BOOLEAN]).toBe('BOOLEAN');
     expect(duckdb.Type[duckdb.Type.TINYINT]).toBe('TINYINT');
     expect(duckdb.Type[duckdb.Type.SMALLINT]).toBe('SMALLINT');
     expect(duckdb.Type[duckdb.Type.INTEGER]).toBe('INTEGER');

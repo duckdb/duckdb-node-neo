@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { expect, suite, test } from 'vitest';
 import { data } from './utils/expectedVectors';
 import { expectResult } from './utils/expectResult';
@@ -31,7 +31,7 @@ suite('scalar functions', () => {
           for (let i = 0; i < rowCount; i++) {
             duckdb.vector_assign_string_element(output, i, `output_${i}`);
           }
-        }
+        },
       );
       duckdb.register_scalar_function(connection, scalar_function);
       duckdb.destroy_scalar_function_sync(scalar_function);
@@ -62,12 +62,14 @@ suite('scalar functions', () => {
             duckdb.vector_assign_string_element(
               output,
               i,
-              `output_${i}_${JSON.stringify(extra_info)}`
+              `output_${i}_${JSON.stringify(extra_info)}`,
             );
           }
-        }
+        },
       );
-      duckdb.scalar_function_set_extra_info(scalar_function, { 'my_extra_info_key': 'my_extra_info_value' });
+      duckdb.scalar_function_set_extra_info(scalar_function, {
+        my_extra_info_key: 'my_extra_info_value',
+      });
       duckdb.register_scalar_function(connection, scalar_function);
       duckdb.destroy_scalar_function_sync(scalar_function);
 
@@ -85,7 +87,7 @@ suite('scalar functions', () => {
               data(
                 16,
                 [true],
-                ['output_0_{"my_extra_info_key":"my_extra_info_value"}']
+                ['output_0_{"my_extra_info_key":"my_extra_info_value"}'],
               ),
             ],
           },
@@ -103,13 +105,13 @@ suite('scalar functions', () => {
         scalar_function,
         (_info, _input, _output) => {
           throw new Error('my_error');
-        }
+        },
       );
       duckdb.register_scalar_function(connection, scalar_function);
       duckdb.destroy_scalar_function_sync(scalar_function);
 
       await expect(
-        duckdb.query(connection, 'select my_func()')
+        duckdb.query(connection, 'select my_func()'),
       ).rejects.toThrow('Invalid Input Error: my_error');
     });
   });
@@ -139,18 +141,18 @@ suite('scalar functions', () => {
               i,
               `output_${i}_${dv0.getInt32(i * 4, true)}_${dv1.getUint32(
                 i * 16,
-                true
-              )}`
+                true,
+              )}`,
             );
           }
-        }
+        },
       );
       duckdb.register_scalar_function(connection, scalar_function);
       duckdb.destroy_scalar_function_sync(scalar_function);
 
       const result = await duckdb.query(
         connection,
-        "select my_func(42, 'duck') as my_func_result from range(3)"
+        "select my_func(42, 'duck') as my_func_result from range(3)",
       );
       await expectResult(result, {
         chunkCount: 1,
@@ -168,7 +170,7 @@ suite('scalar functions', () => {
               data(
                 16,
                 [true, true, true],
-                ['output_0_42_4', 'output_1_42_4', 'output_2_42_4']
+                ['output_0_42_4', 'output_1_42_4', 'output_2_42_4'],
               ),
             ],
           },
@@ -202,17 +204,17 @@ suite('scalar functions', () => {
             duckdb.vector_assign_string_element(
               output,
               r,
-              `output_${r}_${params.join('_')}`
+              `output_${r}_${params.join('_')}`,
             );
           }
-        }
+        },
       );
       duckdb.register_scalar_function(connection, scalar_function);
       duckdb.destroy_scalar_function_sync(scalar_function);
 
       const result = await duckdb.query(
         connection,
-        'select my_func(11, 13, 17) as my_func_result from range(3)'
+        'select my_func(11, 13, 17) as my_func_result from range(3)',
       );
       await expectResult(result, {
         chunkCount: 1,
@@ -230,7 +232,7 @@ suite('scalar functions', () => {
               data(
                 16,
                 [true, true, true],
-                ['output_0_11_13_17', 'output_1_11_13_17', 'output_2_11_13_17']
+                ['output_0_11_13_17', 'output_1_11_13_17', 'output_2_11_13_17'],
               ),
             ],
           },
@@ -255,10 +257,10 @@ suite('scalar functions', () => {
             duckdb.vector_assign_string_element(
               output,
               i,
-              `output_is_not_null`
+              `output_is_not_null`,
             );
           }
-        }
+        },
       );
       duckdb.register_scalar_function(connection, scalar_function);
       duckdb.destroy_scalar_function_sync(scalar_function);

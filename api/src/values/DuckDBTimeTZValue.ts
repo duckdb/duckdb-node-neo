@@ -1,7 +1,7 @@
-import duckdb, { TimeTZ, TimeTZParts } from '@duckdb/node-bindings';
+import duckdb, { TimeTZ, TimeTZParts } from '@databrainhq/node-bindings';
 import {
   getDuckDBTimeStringFromMicrosecondsInDay,
-  getOffsetStringFromSeconds
+  getOffsetStringFromSeconds,
 } from '../conversion/dateTimeStringConversion';
 
 export type { TimeTZParts };
@@ -34,7 +34,7 @@ export class DuckDBTimeTZValue implements TimeTZ {
 
   public toString(): string {
     return `${getDuckDBTimeStringFromMicrosecondsInDay(
-      this.micros
+      this.micros,
     )}${getOffsetStringFromSeconds(this.offset)}`;
   }
 
@@ -52,7 +52,7 @@ export class DuckDBTimeTZValue implements TimeTZ {
   public static fromBits(bits: bigint): DuckDBTimeTZValue {
     const micros = BigInt.asUintN(
       DuckDBTimeTZValue.TimeBits,
-      bits >> BigInt(DuckDBTimeTZValue.OffsetBits)
+      bits >> BigInt(DuckDBTimeTZValue.OffsetBits),
     );
     const offset =
       DuckDBTimeTZValue.MaxOffset -
@@ -62,14 +62,14 @@ export class DuckDBTimeTZValue implements TimeTZ {
 
   public static fromMicrosAndOffset(
     micros: bigint,
-    offset: number
+    offset: number,
   ): DuckDBTimeTZValue {
     const bits =
       (BigInt.asUintN(DuckDBTimeTZValue.TimeBits, micros) <<
         BigInt(DuckDBTimeTZValue.OffsetBits)) |
       BigInt.asUintN(
         DuckDBTimeTZValue.OffsetBits,
-        BigInt(DuckDBTimeTZValue.MaxOffset - offset)
+        BigInt(DuckDBTimeTZValue.MaxOffset - offset),
       );
     return new DuckDBTimeTZValue(bits, micros, offset);
   }
@@ -77,17 +77,17 @@ export class DuckDBTimeTZValue implements TimeTZ {
   public static fromParts(parts: TimeTZParts): DuckDBTimeTZValue {
     return DuckDBTimeTZValue.fromMicrosAndOffset(
       duckdb.to_time(parts.time).micros,
-      parts.offset
+      parts.offset,
     );
   }
 
   public static readonly Max = DuckDBTimeTZValue.fromMicrosAndOffset(
     DuckDBTimeTZValue.MaxMicros,
-    DuckDBTimeTZValue.MinOffset
+    DuckDBTimeTZValue.MinOffset,
   );
   public static readonly Min = DuckDBTimeTZValue.fromMicrosAndOffset(
     DuckDBTimeTZValue.MinMicros,
-    DuckDBTimeTZValue.MaxOffset
+    DuckDBTimeTZValue.MaxOffset,
   );
 }
 

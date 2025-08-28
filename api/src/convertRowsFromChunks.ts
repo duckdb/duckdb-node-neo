@@ -3,7 +3,7 @@ import { DuckDBValueConverter } from './DuckDBValueConverter';
 
 export function convertRowsFromChunks<T>(
   chunks: readonly DuckDBDataChunk[],
-  converter: DuckDBValueConverter<T>
+  converter: DuckDBValueConverter<T>,
 ): (T | null)[][] {
   const rows: (T | null)[][] = [];
   for (const chunk of chunks) {

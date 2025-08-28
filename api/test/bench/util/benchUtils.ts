@@ -13,13 +13,15 @@ export function benchFn(sql: string) {
   return () => runSql(connection, sql);
 }
 
-export function benchOpts(options?: { additionalSetup?: (connection: DuckDBConnection) => Promise<void> }) {
+export function benchOpts(options?: {
+  additionalSetup?: (connection: DuckDBConnection) => Promise<void>;
+}) {
   const additionalSetup = options?.additionalSetup;
-  const setup = additionalSetup ? (
-    async () => {
-      await setupConnection();
-      await additionalSetup(connection);
-    }
-  ) : setupConnection;
+  const setup = additionalSetup
+    ? async () => {
+        await setupConnection();
+        await additionalSetup(connection);
+      }
+    : setupConnection;
   return { setup };
 }

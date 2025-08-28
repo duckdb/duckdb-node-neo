@@ -4,5 +4,5 @@ import { DuckDBValue } from './values';
 export type DuckDBValueConverter<T> = (
   value: DuckDBValue,
   type: DuckDBType,
-  converter: DuckDBValueConverter<T>
+  converter: DuckDBValueConverter<T>,
 ) => T | null;

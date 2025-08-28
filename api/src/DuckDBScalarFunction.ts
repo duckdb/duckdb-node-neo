@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBFunctionInfo } from './DuckDBFunctionInfo';
 import { DuckDBType } from './DuckDBType';
@@ -7,7 +7,7 @@ import { DuckDBVector } from './DuckDBVector';
 export type DuckDBScalarMainFunction = (
   functionInfo: DuckDBFunctionInfo,
   inputDataChunk: DuckDBDataChunk,
-  outputVector: DuckDBVector
+  outputVector: DuckDBVector,
 ) => void;
 
 export class DuckDBScalarFunction {
@@ -76,31 +76,31 @@ export class DuckDBScalarFunction {
         const inputDataChunk = new DuckDBDataChunk(input);
         const outputVector = DuckDBVector.create(
           output,
-          inputDataChunk.rowCount
+          inputDataChunk.rowCount,
         );
         mainFunction(functionInfo, inputDataChunk, outputVector);
-      }
+      },
     );
   }
 
   public setReturnType(returnType: DuckDBType) {
     duckdb.scalar_function_set_return_type(
       this.scalar_function,
-      returnType.toLogicalType().logical_type
+      returnType.toLogicalType().logical_type,
     );
   }
 
   public addParameter(parameterType: DuckDBType) {
     duckdb.scalar_function_add_parameter(
       this.scalar_function,
-      parameterType.toLogicalType().logical_type
+      parameterType.toLogicalType().logical_type,
     );
   }
 
   public setVarArgs(varArgsType: DuckDBType) {
     duckdb.scalar_function_set_varargs(
       this.scalar_function,
-      varArgsType.toLogicalType().logical_type
+      varArgsType.toLogicalType().logical_type,
     );
   }
 

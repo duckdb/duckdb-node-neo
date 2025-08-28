@@ -8,4 +8,3 @@ export type JS =
   | Date
   | JS[]
   | { [key: string]: JS };
-  

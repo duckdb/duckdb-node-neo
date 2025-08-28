@@ -8,7 +8,7 @@ import duckdb, {
   TimestampNanoseconds,
   TimestampSeconds,
   TimeTZ,
-} from '@duckdb/node-bindings';
+} from '@databrainhq/node-bindings';
 import { expect, suite, test } from 'vitest';
 import { expectLogicalType } from './utils/expectLogicalType';
 import {
@@ -131,7 +131,7 @@ suite('values', () => {
     const decimal_value = duckdb.create_decimal(input);
     expectLogicalType(
       duckdb.get_value_type(decimal_value),
-      DECIMAL(4, 1, duckdb.Type.SMALLINT)
+      DECIMAL(4, 1, duckdb.Type.SMALLINT),
     );
     expect(duckdb.get_decimal(decimal_value)).toStrictEqual(input);
   });
@@ -140,7 +140,7 @@ suite('values', () => {
     const decimal_value = duckdb.create_decimal(input);
     expectLogicalType(
       duckdb.get_value_type(decimal_value),
-      DECIMAL(9, 4, duckdb.Type.INTEGER)
+      DECIMAL(9, 4, duckdb.Type.INTEGER),
     );
     expect(duckdb.get_decimal(decimal_value)).toStrictEqual(input);
   });
@@ -149,7 +149,7 @@ suite('values', () => {
     const decimal_value = duckdb.create_decimal(input);
     expectLogicalType(
       duckdb.get_value_type(decimal_value),
-      DECIMAL(18, 6, duckdb.Type.BIGINT)
+      DECIMAL(18, 6, duckdb.Type.BIGINT),
     );
     expect(duckdb.get_decimal(decimal_value)).toStrictEqual(input);
   });
@@ -162,7 +162,7 @@ suite('values', () => {
     const decimal_value = duckdb.create_decimal(input);
     expectLogicalType(
       duckdb.get_value_type(decimal_value),
-      DECIMAL(38, 10, duckdb.Type.HUGEINT)
+      DECIMAL(38, 10, duckdb.Type.HUGEINT),
     );
     expect(duckdb.get_decimal(decimal_value)).toStrictEqual(input);
   });
@@ -263,7 +263,7 @@ suite('values', () => {
     const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
     const struct_type = duckdb.create_struct_type(
       [int_type, varchar_type],
-      ['a', 'b']
+      ['a', 'b'],
     );
     const int32_value = duckdb.create_int32(42);
     const varchar_value = duckdb.create_varchar('duck');
@@ -273,7 +273,7 @@ suite('values', () => {
     ]);
     expectLogicalType(
       duckdb.get_value_type(struct_value),
-      STRUCT(ENTRY('a', INTEGER), ENTRY('b', VARCHAR))
+      STRUCT(ENTRY('a', INTEGER), ENTRY('b', VARCHAR)),
     );
     const struct_child_0 = duckdb.get_struct_child(struct_value, 0);
     expectLogicalType(duckdb.get_value_type(struct_child_0), INTEGER);
@@ -292,7 +292,7 @@ suite('values', () => {
     const struct_type = duckdb.create_struct_type([any_type], ['a']);
     const int32_value = duckdb.create_int32(42);
     expect(() =>
-      duckdb.create_struct_value(struct_type, [int32_value])
+      duckdb.create_struct_value(struct_type, [int32_value]),
     ).toThrowError('Failed to create struct value');
   });
   test('list', () => {
@@ -320,7 +320,7 @@ suite('values', () => {
   test('any list', () => {
     const any_type = duckdb.create_logical_type(duckdb.Type.ANY);
     expect(() => duckdb.create_list_value(any_type, [])).toThrowError(
-      'Failed to create list value'
+      'Failed to create list value',
     );
   });
   test('array', () => {
@@ -337,7 +337,7 @@ suite('values', () => {
   test('any array', () => {
     const any_type = duckdb.create_logical_type(duckdb.Type.ANY);
     expect(() => duckdb.create_array_value(any_type, [])).toThrowError(
-      'Failed to create array value'
+      'Failed to create array value',
     );
   });
   test('map', () => {
@@ -378,7 +378,7 @@ suite('values', () => {
     const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
     const map_type = duckdb.create_map_type(any_type, varchar_type);
     expect(() => duckdb.create_map_value(map_type, [], [])).toThrowError(
-      'Failed to create map value'
+      'Failed to create map value',
     );
   });
   test('map with value type any', () => {
@@ -386,7 +386,7 @@ suite('values', () => {
     const any_type = duckdb.create_logical_type(duckdb.Type.ANY);
     const map_type = duckdb.create_map_type(int_type, any_type);
     expect(() => duckdb.create_map_value(map_type, [], [])).toThrowError(
-      'Failed to create map value'
+      'Failed to create map value',
     );
   });
   test('map with different numbers of keys and values', () => {
@@ -404,7 +404,7 @@ suite('values', () => {
       values.push(duckdb.create_varchar(valueStrings[i]));
     }
     expect(() => duckdb.create_map_value(map_type, keys, values)).toThrowError(
-      'Failed to create map value: must have same number of keys and values'
+      'Failed to create map value: must have same number of keys and values',
     );
   });
   test('union', () => {
@@ -412,18 +412,18 @@ suite('values', () => {
     const smallint_type = duckdb.create_logical_type(duckdb.Type.SMALLINT);
     const union_type = duckdb.create_union_type(
       [varchar_type, smallint_type],
-      ['name', 'age']
+      ['name', 'age'],
     );
 
     const varchar_value = duckdb.create_varchar('duck');
     const union_value_0 = duckdb.create_union_value(
       union_type,
       0,
-      varchar_value
+      varchar_value,
     );
     expectLogicalType(
       duckdb.get_value_type(union_value_0),
-      UNION(ALT('name', VARCHAR), ALT('age', SMALLINT))
+      UNION(ALT('name', VARCHAR), ALT('age', SMALLINT)),
     );
     // TODO: get underlying tag & value of union value
     // expectLogicalType(duckdb.get_value_type(union_value_0), VARCHAR);
@@ -433,11 +433,11 @@ suite('values', () => {
     const union_value_1 = duckdb.create_union_value(
       union_type,
       1,
-      smallint_value
+      smallint_value,
     );
     expectLogicalType(
       duckdb.get_value_type(union_value_1),
-      UNION(ALT('name', VARCHAR), ALT('age', SMALLINT))
+      UNION(ALT('name', VARCHAR), ALT('age', SMALLINT)),
     );
     // TODO: get underlying tag & value of union value
     // expectLogicalType(duckdb.get_value_type(union_value_1), SMALLINT);
@@ -448,7 +448,7 @@ suite('values', () => {
     const union_type = duckdb.create_union_type([], []);
     const varchar_value = duckdb.create_varchar('duck');
     expect(() =>
-      duckdb.create_union_value(union_type, 0, varchar_value)
+      duckdb.create_union_value(union_type, 0, varchar_value),
     ).toThrowError('Failed to create union value');
   });
   test('union tag index out of range', () => {
@@ -456,12 +456,12 @@ suite('values', () => {
     const smallint_type = duckdb.create_logical_type(duckdb.Type.SMALLINT);
     const union_type = duckdb.create_union_type(
       [varchar_type, smallint_type],
-      ['name', 'age']
+      ['name', 'age'],
     );
     const varchar_value = duckdb.create_varchar('duck');
     expect(() =>
       // max valid index is 1
-      duckdb.create_union_value(union_type, 2, varchar_value)
+      duckdb.create_union_value(union_type, 2, varchar_value),
     ).toThrowError('Failed to create union value');
   });
   test('union value type mismatch', () => {
@@ -469,12 +469,12 @@ suite('values', () => {
     const smallint_type = duckdb.create_logical_type(duckdb.Type.SMALLINT);
     const union_type = duckdb.create_union_type(
       [varchar_type, smallint_type],
-      ['name', 'age']
+      ['name', 'age'],
     );
     const varchar_value = duckdb.create_varchar('duck');
     expect(() =>
       // index of varchar value should be 0
-      duckdb.create_union_value(union_type, 1, varchar_value)
+      duckdb.create_union_value(union_type, 1, varchar_value),
     ).toThrowError('Failed to create union value');
   });
   test('null', () => {
@@ -489,7 +489,7 @@ suite('values', () => {
     const enum_value = duckdb.create_enum_value(enum_type, 1);
     expectLogicalType(
       duckdb.get_value_type(enum_value),
-      ENUM(enum_members, duckdb.Type.UTINYINT)
+      ENUM(enum_members, duckdb.Type.UTINYINT),
     );
     expect(duckdb.get_enum_value(enum_value)).toBe(1);
   });

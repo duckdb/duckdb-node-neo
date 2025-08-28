@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 
 export type ResultReturnType = duckdb.ResultType;
 export const ResultReturnType = duckdb.ResultType;

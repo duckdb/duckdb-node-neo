@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { DuckDBAppender } from './DuckDBAppender';
 import { DuckDBExtractedStatements } from './DuckDBExtractedStatements';
 import { DuckDBInstance } from './DuckDBInstance';
@@ -20,7 +20,7 @@ export class DuckDBConnection {
     this.preparedStatements = new DuckDBPreparedStatementWeakRefCollection();
   }
   public static async create(
-    instance?: DuckDBInstance
+    instance?: DuckDBInstance,
   ): Promise<DuckDBConnection> {
     if (instance) {
       return instance.connect();
@@ -44,7 +44,7 @@ export class DuckDBConnection {
   public async run(
     sql: string,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
-    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>,
   ): Promise<DuckDBMaterializedResult> {
     if (values) {
       const prepared = await this.runUntilLast(sql);
@@ -57,21 +57,21 @@ export class DuckDBConnection {
       }
     } else {
       return new DuckDBMaterializedResult(
-        await duckdb.query(this.connection, sql)
+        await duckdb.query(this.connection, sql),
       );
     }
   }
   public async runAndRead(
     sql: string,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
-    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>,
   ): Promise<DuckDBResultReader> {
     return new DuckDBResultReader(await this.run(sql, values, types));
   }
   public async runAndReadAll(
     sql: string,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
-    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>,
   ): Promise<DuckDBResultReader> {
     const reader = new DuckDBResultReader(await this.run(sql, values, types));
     await reader.readAll();
@@ -81,7 +81,7 @@ export class DuckDBConnection {
     sql: string,
     targetRowCount: number,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
-    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>,
   ): Promise<DuckDBResultReader> {
     const reader = new DuckDBResultReader(await this.run(sql, values, types));
     await reader.readUntil(targetRowCount);
@@ -90,7 +90,7 @@ export class DuckDBConnection {
   public async stream(
     sql: string,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
-    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>,
   ): Promise<DuckDBResult> {
     const prepared = await this.runUntilLast(sql);
     try {
@@ -106,17 +106,17 @@ export class DuckDBConnection {
   public async streamAndRead(
     sql: string,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
-    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>,
   ): Promise<DuckDBResultReader> {
     return new DuckDBResultReader(await this.stream(sql, values, types));
   }
   public async streamAndReadAll(
     sql: string,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
-    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>,
   ): Promise<DuckDBResultReader> {
     const reader = new DuckDBResultReader(
-      await this.stream(sql, values, types)
+      await this.stream(sql, values, types),
     );
     await reader.readAll();
     return reader;
@@ -125,10 +125,10 @@ export class DuckDBConnection {
     sql: string,
     targetRowCount: number,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
-    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>,
   ): Promise<DuckDBResultReader> {
     const reader = new DuckDBResultReader(
-      await this.stream(sql, values, types)
+      await this.stream(sql, values, types),
     );
     await reader.readUntil(targetRowCount);
     return reader;
@@ -136,7 +136,7 @@ export class DuckDBConnection {
   public async start(
     sql: string,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
-    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>,
   ): Promise<DuckDBPendingResult> {
     const prepared = await this.runUntilLast(sql);
     try {
@@ -151,7 +151,7 @@ export class DuckDBConnection {
   public async startStream(
     sql: string,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
-    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>,
   ): Promise<DuckDBPendingResult> {
     const prepared = await this.runUntilLast(sql);
     try {
@@ -170,26 +170,26 @@ export class DuckDBConnection {
   }
   private async createPrepared(sql: string): Promise<DuckDBPreparedStatement> {
     return new DuckDBPreparedStatement(
-      await duckdb.prepare(this.connection, sql)
+      await duckdb.prepare(this.connection, sql),
     );
   }
   public async extractStatements(
-    sql: string
+    sql: string,
   ): Promise<DuckDBExtractedStatements> {
     const { extracted_statements, statement_count } =
       await duckdb.extract_statements(this.connection, sql);
     if (statement_count === 0) {
       throw new Error(
         `Failed to extract statements: ${duckdb.extract_statements_error(
-          extracted_statements
-        )}`
+          extracted_statements,
+        )}`,
       );
     }
     return new DuckDBExtractedStatements(
       this.connection,
       extracted_statements,
       statement_count,
-      this.preparedStatements
+      this.preparedStatements,
     );
   }
   private async runUntilLast(sql: string): Promise<DuckDBPreparedStatement> {
@@ -210,21 +210,21 @@ export class DuckDBConnection {
   public async createAppender(
     table: string,
     schema?: string | null,
-    catalog?: string | null
+    catalog?: string | null,
   ): Promise<DuckDBAppender> {
     return new DuckDBAppender(
       duckdb.appender_create_ext(
         this.connection,
         catalog ?? null,
         schema ?? null,
-        table
-      )
+        table,
+      ),
     );
   }
   public registerScalarFunction(scalarFunction: DuckDBScalarFunction) {
     duckdb.register_scalar_function(
       this.connection,
-      scalarFunction.scalar_function
+      scalarFunction.scalar_function,
     );
   }
 }

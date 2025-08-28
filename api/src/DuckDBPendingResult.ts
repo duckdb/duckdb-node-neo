@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { createResult } from './createResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
@@ -25,8 +25,8 @@ export class DuckDBPendingResult {
       case duckdb.PendingState.ERROR:
         throw new Error(
           `Failure running pending result task: ${duckdb.pending_error(
-            this.pending_result
-          )}`
+            this.pending_result,
+          )}`,
         );
       case duckdb.PendingState.NO_TASKS_AVAILABLE:
         return DuckDBPendingResultState.NO_TASKS_AVAILABLE;

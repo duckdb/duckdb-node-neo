@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { createValue } from './createValue';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
@@ -61,7 +61,7 @@ export class DuckDBAppender {
   }
   public columnType(columnIndex: number): DuckDBType {
     return DuckDBLogicalType.create(
-      duckdb.appender_column_type(this.appender, columnIndex)
+      duckdb.appender_column_type(this.appender, columnIndex),
     ).asType();
   }
   public endRow() {
@@ -151,20 +151,20 @@ export class DuckDBAppender {
   }
   public appendList(
     value: DuckDBListValue | readonly DuckDBValue[],
-    type?: DuckDBListType
+    type?: DuckDBListType,
   ) {
     this.appendValue(
       value instanceof DuckDBListValue ? value : listValue(value),
-      type
+      type,
     );
   }
   public appendStruct(
     value: DuckDBStructValue | Readonly<Record<string, DuckDBValue>>,
-    type?: DuckDBStructType
+    type?: DuckDBStructType,
   ) {
     this.appendValue(
       value instanceof DuckDBStructValue ? value : structValue(value),
-      type
+      type,
     );
   }
   public appendMap(value: DuckDBMapValue, type?: DuckDBMapType) {
@@ -172,11 +172,11 @@ export class DuckDBAppender {
   }
   public appendArray(
     value: DuckDBArrayValue | readonly DuckDBValue[],
-    type?: DuckDBArrayType
+    type?: DuckDBArrayType,
   ) {
     this.appendValue(
       value instanceof DuckDBArrayValue ? value : arrayValue(value),
-      type
+      type,
     );
   }
   public appendUnion(value: DuckDBUnionValue, type?: DuckDBUnionType) {
@@ -197,7 +197,7 @@ export class DuckDBAppender {
   public appendValue(value: DuckDBValue, type?: DuckDBType) {
     duckdb.append_value(
       this.appender,
-      createValue(type ? type : typeForValue(value), value)
+      createValue(type ? type : typeForValue(value), value),
     );
   }
   public appendDataChunk(dataChunk: DuckDBDataChunk) {

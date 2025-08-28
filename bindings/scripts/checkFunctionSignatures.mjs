@@ -4,12 +4,19 @@ import path from 'path';
 function getFunctionSignaturesFromHeader(headerFilePath) {
   const sigs = [];
   const headerContents = fs.readFileSync(headerFilePath, { encoding: 'utf-8' });
-  const sigRegex = /^DUCKDB_C_API (?<sig>([^;]|[\r\n])*);$|^#ifndef (?<startif>DUCKDB_API_NO_DEPRECATED|DUCKDB_NO_EXTENSION_FUNCTIONS)$|^#endif$/gm;
+  const sigRegex =
+    /^DUCKDB_C_API (?<sig>([^;]|[\r\n])*);$|^#ifndef (?<startif>DUCKDB_API_NO_DEPRECATED|DUCKDB_NO_EXTENSION_FUNCTIONS)$|^#endif$/gm;
   var ifndef = undefined;
   var match;
-  while (match = sigRegex.exec(headerContents)) {
+  while ((match = sigRegex.exec(headerContents))) {
     if (match.groups.sig) {
-      sigs.push({ sig: match.groups.sig.replace(/\r\n/gm, ' ').replace(/\n/gm, ' ').replace(/  +/gm, ' '), ...(ifndef ? { ifndef } : {}) });
+      sigs.push({
+        sig: match.groups.sig
+          .replace(/\r\n/gm, ' ')
+          .replace(/\n/gm, ' ')
+          .replace(/  +/gm, ' '),
+        ...(ifndef ? { ifndef } : {}),
+      });
     } else if (match.groups.startif) {
       ifndef = match.groups.startif;
     } else {
@@ -22,10 +29,11 @@ function getFunctionSignaturesFromHeader(headerFilePath) {
 function getFunctionSignaturesFromComments(filePath) {
   const sigs = [];
   const fileContents = fs.readFileSync(filePath, { encoding: 'utf-8' });
-  const sigRegex = /^\s*\/\/ DUCKDB_C_API (?<sig>([^;])*);$|^\s*\/\/ #ifndef (?<startif>DUCKDB_API_NO_DEPRECATED|DUCKDB_NO_EXTENSION_FUNCTIONS)$|^\s*\/\/ #endif$/gm;
+  const sigRegex =
+    /^\s*\/\/ DUCKDB_C_API (?<sig>([^;])*);$|^\s*\/\/ #ifndef (?<startif>DUCKDB_API_NO_DEPRECATED|DUCKDB_NO_EXTENSION_FUNCTIONS)$|^\s*\/\/ #endif$/gm;
   var ifndef = undefined;
   var match;
-  while (match = sigRegex.exec(fileContents)) {
+  while ((match = sigRegex.exec(fileContents))) {
     if (match.groups.sig) {
       sigs.push({ sig: match.groups.sig, ...(ifndef ? { ifndef } : {}) });
     } else if (match.groups.startif) {
@@ -47,7 +55,12 @@ function checkFunctionSignatures() {
     }
 
     const headerFilePath = path.join('libduckdb', 'duckdb.h');
-    const typeDefsFilePath = path.join('pkgs', '@duckdb', 'node-bindings', 'duckdb.d.ts');
+    const typeDefsFilePath = path.join(
+      'pkgs',
+      '@databrainhq',
+      'node-bindings',
+      'duckdb.d.ts',
+    );
     const bindingsFilePath = path.join('src', 'duckdb_node_bindings.cpp');
 
     const headerSigs = getFunctionSignaturesFromHeader(headerFilePath);

@@ -26,13 +26,13 @@ for (const batchSize of [1, 1000]) {
       `${batchSize} insert bind`,
       async () => {
         const query = await connection.prepare(
-          'INSERT INTO test (timestamp, value) VALUES ($1, $2);'
+          'INSERT INTO test (timestamp, value) VALUES ($1, $2);',
         );
 
         for (let index = 0; index < batchSize; index++) {
           query.bindTimestamp(
             1,
-            new DuckDBTimestampValue(BigInt(Date.now()) * 1000n)
+            new DuckDBTimestampValue(BigInt(Date.now()) * 1000n),
           );
           query.bindFloat(2, Math.random() * 1_000_000);
 
@@ -41,7 +41,7 @@ for (const batchSize of [1, 1000]) {
       },
       {
         setup,
-      }
+      },
     );
     bench(
       `${batchSize} row append`,
@@ -50,7 +50,7 @@ for (const batchSize of [1, 1000]) {
 
         for (let index = 0; index < batchSize; index++) {
           appender.appendTimestamp(
-            new DuckDBTimestampValue(BigInt(Date.now()) * 1000n)
+            new DuckDBTimestampValue(BigInt(Date.now()) * 1000n),
           );
           appender.appendFloat(Math.random() * 1_000_000);
           appender.endRow();
@@ -59,7 +59,7 @@ for (const batchSize of [1, 1000]) {
       },
       {
         setup,
-      }
+      },
     );
   });
 }

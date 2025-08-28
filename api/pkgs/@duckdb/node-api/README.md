@@ -4,20 +4,21 @@ An API for using [DuckDB](https://duckdb.org/) in [Node](https://nodejs.org/).
 
 This is a high-level API meant for applications.
 It depends on low-level bindings that adhere closely to [DuckDB's C API](https://duckdb.org/docs/api/c/overview),
-available separately as [@duckdb/node-bindings](https://www.npmjs.com/package/@duckdb/node-bindings).
+available separately as [@databrainhq/node-bindings](https://www.npmjs.com/package/@databrainhq/node-bindings).
 
 ## Features
 
 ### Main Differences from [duckdb-node](https://www.npmjs.com/package/duckdb)
-* Native support for Promises; no need for separate [duckdb-async](https://www.npmjs.com/package/duckdb-async) wrapper.
-* DuckDB-specific API; not based on the [SQLite Node API](https://www.npmjs.com/package/sqlite3).
-* Lossless & efficent support for values of all [DuckDB data types](https://duckdb.org/docs/sql/data_types/overview).
-* Wraps [released DuckDB binaries](https://github.com/duckdb/duckdb/releases) instead of rebuilding DuckDB.
-* Built on [DuckDB's C API](https://duckdb.org/docs/api/c/overview); exposes more functionality.
+
+- Native support for Promises; no need for separate [duckdb-async](https://www.npmjs.com/package/duckdb-async) wrapper.
+- DuckDB-specific API; not based on the [SQLite Node API](https://www.npmjs.com/package/sqlite3).
+- Lossless & efficent support for values of all [DuckDB data types](https://duckdb.org/docs/sql/data_types/overview).
+- Wraps [released DuckDB binaries](https://github.com/databrainhq/duckdb/releases) instead of rebuilding DuckDB.
+- Built on [DuckDB's C API](https://duckdb.org/docs/api/c/overview); exposes more functionality.
 
 ### Roadmap
 
-Some features are not yet complete. See the [issues list on GitHub](https://github.com/duckdb/duckdb-node-neo/issues)
+Some features are not yet complete. See the [issues list on GitHub](https://github.com/databrainhq/duckdb-node-neo/issues)
 for the most up-to-date roadmap.
 
 ### Supported Platforms
@@ -33,7 +34,7 @@ for the most up-to-date roadmap.
 ### Get Basic Information
 
 ```ts
-import duckdb from '@duckdb/node-api';
+import duckdb from '@databrainhq/node-api';
 
 console.log(duckdb.version());
 
@@ -43,7 +44,7 @@ console.log(duckdb.configurationOptionDescriptions());
 ### Connect
 
 ```ts
-import { DuckDBConnection } from '@duckdb/node-api';
+import { DuckDBConnection } from '@databrainhq/node-api';
 
 const connection = await DuckDBConnection.create();
 ```
@@ -54,28 +55,32 @@ For advanced usage, you can create instances explicitly.
 ### Create Instance
 
 ```ts
-import { DuckDBInstance } from '@duckdb/node-api';
+import { DuckDBInstance } from '@databrainhq/node-api';
 ```
 
 Create with an in-memory database:
+
 ```ts
 const instance = await DuckDBInstance.create(':memory:');
 ```
 
 Equivalent to the above:
+
 ```ts
 const instance = await DuckDBInstance.create();
 ```
 
 Read from and write to a database file, which is created if needed:
+
 ```ts
 const instance = await DuckDBInstance.create('my_duckdb.db');
 ```
 
 Set [configuration options](https://duckdb.org/docs/stable/configuration/overview.html#configuration-reference):
+
 ```ts
 const instance = await DuckDBInstance.create('my_duckdb.db', {
-  threads: '4'
+  threads: '4',
 });
 ```
 
@@ -85,14 +90,16 @@ Multiple instances in the same process should not
 attach the same database.
 
 To prevent this, an instance cache can be used:
+
 ```ts
 const instance = await DuckDBInstance.fromCache('my_duckdb.db');
 ```
 
 This uses the default instance cache. For advanced usage, you can create
 instance caches explicitly:
+
 ```ts
-import { DuckDBInstanceCache } from '@duckdb/node-api';
+import { DuckDBInstanceCache } from '@databrainhq/node-api';
 
 const cache = new DuckDBInstanceCache();
 const instance = await cache.getOrCreateInstance('my_duckdb.db');
@@ -140,39 +147,46 @@ or:
 
 ```ts
 const prepared = await connection.prepare('select $a, $b, $c');
-prepared.bind({
-  'a': 'duck',
-  'b': 42,
-  'c': listValue([10, 11, 12]),
-}, {
-  'a': VARCHAR,
-  'b': INTEGER,
-  'c': LIST(INTEGER),
-});
+prepared.bind(
+  {
+    a: 'duck',
+    b: 42,
+    c: listValue([10, 11, 12]),
+  },
+  {
+    a: VARCHAR,
+    b: INTEGER,
+    c: LIST(INTEGER),
+  },
+);
 const result = await prepared.run();
 ```
 
 or even:
 
 ```ts
-const result = await connection.run('select $a, $b, $c', {
-  'a': 'duck',
-  'b': 42,
-  'c': listValue([10, 11, 12]),
-}, {
-  'a': VARCHAR,
-  'b': INTEGER,
-  'c': LIST(INTEGER),
-});
+const result = await connection.run(
+  'select $a, $b, $c',
+  {
+    a: 'duck',
+    b: 42,
+    c: listValue([10, 11, 12]),
+  },
+  {
+    a: VARCHAR,
+    b: INTEGER,
+    c: LIST(INTEGER),
+  },
+);
 ```
 
 Unspecified types will be inferred:
 
 ```ts
 const result = await connection.run('select $a, $b, $c', {
-  'a': 'duck',
-  'b': 42,
-  'c': listValue([10, 11, 12]),
+  a: 'duck',
+  b: 42,
+  c: listValue([10, 11, 12]),
 });
 ```
 
@@ -185,26 +199,26 @@ Also, any type can have `null` values.
 Values of some data types need to be constructed using special functions.
 These are:
 
-| Type | Function |
-| ---- | -------- |
-| `ARRAY` | `arrayValue` |
-| `BIT` | `bitValue` |
-| `BLOB` | `blobValue` |
-| `DATE` | `dateValue` |
-| `DECIMAL` | `decimalValue` |
-| `INTERVAL` | `intervalValue` |
-| `LIST` | `listValue` |
-| `MAP` | `mapValue` |
-| `STRUCT` | `structValue` |
-| `TIME` | `timeValue` |
-| `TIMETZ` | `timeTZValue` |
-| `TIMESTAMP` | `timestampValue` |
-| `TIMESTAMPTZ` | `timestampTZValue` |
-| `TIMESTAMP_S` | `timestampSecondsValue` |
-| `TIMESTAMP_MS` | `timestampMillisValue` |
-| `TIMESTAMP_NS` | `timestampNanosValue` |
-| `UNION` | `unionValue` |
-| `UUID` | `uuidValue` |
+| Type           | Function                |
+| -------------- | ----------------------- |
+| `ARRAY`        | `arrayValue`            |
+| `BIT`          | `bitValue`              |
+| `BLOB`         | `blobValue`             |
+| `DATE`         | `dateValue`             |
+| `DECIMAL`      | `decimalValue`          |
+| `INTERVAL`     | `intervalValue`         |
+| `LIST`         | `listValue`             |
+| `MAP`          | `mapValue`              |
+| `STRUCT`       | `structValue`           |
+| `TIME`         | `timeValue`             |
+| `TIMETZ`       | `timeTZValue`           |
+| `TIMESTAMP`    | `timestampValue`        |
+| `TIMESTAMPTZ`  | `timestampTZValue`      |
+| `TIMESTAMP_S`  | `timestampSecondsValue` |
+| `TIMESTAMP_MS` | `timestampMillisValue`  |
+| `TIMESTAMP_NS` | `timestampNanosValue`   |
+| `UNION`        | `unionValue`            |
+| `UUID`         | `uuidValue`             |
 
 ### Stream Results
 
@@ -217,6 +231,7 @@ const result = await connection.stream('from range(10_000)');
 ### Inspect Result Metadata
 
 Get column names and types:
+
 ```ts
 const columnNames = result.columnNames();
 const columnTypes = result.columnTypes();
@@ -225,6 +240,7 @@ const columnTypes = result.columnTypes();
 ### Read Result Data
 
 Run and read all data:
+
 ```ts
 const reader = await connection.runAndReadAll('from test_all_types()');
 const rows = reader.getRows();
@@ -232,16 +248,15 @@ const rows = reader.getRows();
 ```
 
 Stream and read up to (at least) some number of rows:
+
 ```ts
-const reader = await connection.streamAndReadUntil(
-  'from range(5000)',
-  1000
-);
+const reader = await connection.streamAndReadUntil('from range(5000)', 1000);
 const rows = reader.getRows();
 // rows.length === 2048. (Rows are read in chunks of 2048.)
 ```
 
 Read rows incrementally:
+
 ```ts
 const reader = await connection.streamAndRead('from range(5000)');
 reader.readUntil(2000);
@@ -261,7 +276,7 @@ Result data can be retrieved in a variety of forms:
 
 ```ts
 const reader = await connection.runAndReadAll(
-  'from range(3) select range::int as i, 10 + i as n'
+  'from range(3) select range::int as i, 10 + i as n',
 );
 
 const rows = reader.getRows();
@@ -287,15 +302,15 @@ can be losslessly serialized to JSON, use the `JS` or `Json` forms of the
 above result data methods.
 
 Custom converters can be supplied as well. See the implementations of
-[JSDuckDBValueConverter](https://github.com/duckdb/duckdb-node-neo/blob/main/api/src/JSDuckDBValueConverter.ts)
-and [JsonDuckDBValueConverters](https://github.com/duckdb/duckdb-node-neo/blob/main/api/src/JsonDuckDBValueConverter.ts)
+[JSDuckDBValueConverter](https://github.com/databrainhq/duckdb-node-neo/blob/main/api/src/JSDuckDBValueConverter.ts)
+and [JsonDuckDBValueConverters](https://github.com/databrainhq/duckdb-node-neo/blob/main/api/src/JsonDuckDBValueConverter.ts)
 for how to do this.
 
 Examples (using the `Json` forms):
 
 ```ts
 const reader = await connection.runAndReadAll(
-  'from test_all_types() select bigint, date, interval limit 2'
+  'from test_all_types() select bigint, date, interval limit 2',
 );
 
 const rows = reader.getRowsJson();
@@ -351,7 +366,7 @@ These methods handle nested types as well:
 
 ```ts
 const reader = await connection.runAndReadAll(
-  'from test_all_types() select int_array, struct, map, "union" limit 2'
+  'from test_all_types() select int_array, struct, map, "union" limit 2',
 );
 
 const rows = reader.getRowsJson();
@@ -440,6 +455,7 @@ const columnsObject = reader.getColumnsObjectJson();
 ```
 
 Column names and types can also be serialized to JSON:
+
 ```ts
 const columnNamesAndTypes = reader.columnNamesAndTypesJson();
 // {
@@ -563,11 +579,13 @@ const columnNameAndTypeObjects = reader.columnNameAndTypeObjectsJson();
 ### Fetch Chunks
 
 Fetch all chunks:
+
 ```ts
 const chunks = await result.fetchAllChunks();
 ```
 
 Fetch one chunk at a time:
+
 ```ts
 const chunks = [];
 while (true) {
@@ -581,6 +599,7 @@ while (true) {
 ```
 
 For materialized (non-streaming) results, chunks can be read by index:
+
 ```ts
 const rowCount = result.rowCount;
 const chunkCount = result.chunkCount;
@@ -591,6 +610,7 @@ for (let i = 0; i < chunkCount; i++) {
 ```
 
 Get chunk data:
+
 ```ts
 const rows = chunk.getRows();
 
@@ -598,11 +618,11 @@ const rowObjects = chunk.getRowObjects(result.deduplicatedColumnNames());
 
 const columns = chunk.getColumns();
 
-const columnsObject =
-  chunk.getColumnsObject(result.deduplicatedColumnNames());
+const columnsObject = chunk.getColumnsObject(result.deduplicatedColumnNames());
 ```
 
 Get chunk data (one value at a time)
+
 ```ts
 const columns = [];
 const columnCount = chunk.columnCount;
@@ -621,7 +641,7 @@ for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
 ### Inspect Data Types
 
 ```ts
-import { DuckDBTypeId } from '@duckdb/node-api';
+import { DuckDBTypeId } from '@databrainhq/node-api';
 
 if (columnType.typeId === DuckDBTypeId.ARRAY) {
   const arrayValueType = columnType.valueType;
@@ -672,7 +692,7 @@ const typeString = columnType.toString();
 ### Inspect Data Values
 
 ```ts
-import { DuckDBTypeId } from '@duckdb/node-api';
+import { DuckDBTypeId } from '@databrainhq/node-api';
 
 if (columnType.typeId === DuckDBTypeId.ARRAY) {
   const arrayItems = columnValue.items; // array of values
@@ -817,17 +837,16 @@ The following sets this offset to match the `TimeZone` setting of DuckDB:
 
 ```ts
 const reader = await connection.runAndReadAll(
-  `select (timezone(current_timestamp) / 60)::int`
+  `select (timezone(current_timestamp) / 60)::int`,
 );
-DuckDBTimestampTZValue.timezoneOffsetInMinutes =
-  reader.getColumns()[0][0];
+DuckDBTimestampTZValue.timezoneOffsetInMinutes = reader.getColumns()[0][0];
 ```
 
 ### Append To Table
 
 ```ts
 await connection.run(
-  `create or replace table target_table(i integer, v varchar)`
+  `create or replace table target_table(i integer, v varchar)`,
 );
 
 const appender = await connection.createAppender('target_table');
@@ -853,7 +872,7 @@ appender.closeSync(); // also flushes
 
 ```ts
 await connection.run(
-  `create or replace table target_table(i integer, v varchar)`
+  `create or replace table target_table(i integer, v varchar)`,
 );
 
 const appender = await connection.createAppender('target_table');
@@ -886,16 +905,13 @@ connection.registerScalarFunction(
       const v0 = input.getColumnVector(0);
       const v1 = input.getColumnVector(1);
       for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
-        output.setItem(
-          rowIndex,
-          v0.getItem(rowIndex) + v1.getItem(rowIndex)
-        );
+        output.setItem(rowIndex, v0.getItem(rowIndex) + v1.getItem(rowIndex));
       }
       output.flush();
     },
     returnType: INTEGER,
     parameterTypes: [INTEGER, INTEGER],
-  })
+  }),
 );
 const reader = await connection.runAndReadAll('select my_add(2, 3)');
 const rows = reader.getRows();
@@ -926,7 +942,7 @@ for (let stmtIndex = 0; stmtIndex < statementCount; stmtIndex++) {
 ### Control Evaluation of Tasks
 
 ```ts
-import { DuckDBPendingResultState } from '@duckdb/node-api';
+import { DuckDBPendingResultState } from '@databrainhq/node-api';
 
 async function sleep(ms) {
   return new Promise((resolve) => {
@@ -972,10 +988,13 @@ const reader = await connection.runAndReadAll(sql, values, types);
 // the given number of rows. (Rows are read in chunks, so more than
 // the target may be read.)
 const reader = await connection.runAndReadUntil(sql, targetRowCount);
-const reader =
-  await connection.runAndReadAll(sql, targetRowCount, values);
-const reader =
-  await connection.runAndReadAll(sql, targetRowCount, values, types);
+const reader = await connection.runAndReadAll(sql, targetRowCount, values);
+const reader = await connection.runAndReadAll(
+  sql,
+  targetRowCount,
+  values,
+  types,
+);
 
 // Create a streaming result and don't yet retrieve any rows.
 const result = await connection.stream(sql);
@@ -996,10 +1015,13 @@ const reader = await connection.streamAndReadAll(sql, values, types);
 // Create a streaming result, wrap in a reader, and read at least
 // the given number of rows.
 const reader = await connection.streamAndReadUntil(sql, targetRowCount);
-const reader =
-  await connection.streamAndReadUntil(sql, targetRowCount, values);
-const reader =
-  await connection.streamAndReadUntil(sql, targetRowCount, values, types);
+const reader = await connection.streamAndReadUntil(sql, targetRowCount, values);
+const reader = await connection.streamAndReadUntil(
+  sql,
+  targetRowCount,
+  values,
+  types,
+);
 
 // Prepared Statements
 
@@ -1099,20 +1121,24 @@ const rowValues = chunk.getRowValues(rowIndex);
 const rows = chunk.getRows();
 
 // Or, values can be visited:
-chunk.visitColumnValues(columnIndex,
-  (value, rowIndex, columnIndex, type) => { /* ... */ }
-);
-chunk.visitColumns((column, columnIndex, type) => { /* ... */ });
-chunk.visitColumnMajor(
-  (value, rowIndex, columnIndex, type) => { /* ... */ }
-);
-chunk.visitRowValues(rowIndex,
-  (value, rowIndex, columnIndex, type) => { /* ... */ }
-);
-chunk.visitRows((row, rowIndex) => { /* ... */ });
-chunk.visitRowMajor(
-  (value, rowIndex, columnIndex, type) => { /* ... */ }
-);
+chunk.visitColumnValues(columnIndex, (value, rowIndex, columnIndex, type) => {
+  /* ... */
+});
+chunk.visitColumns((column, columnIndex, type) => {
+  /* ... */
+});
+chunk.visitColumnMajor((value, rowIndex, columnIndex, type) => {
+  /* ... */
+});
+chunk.visitRowValues(rowIndex, (value, rowIndex, columnIndex, type) => {
+  /* ... */
+});
+chunk.visitRows((row, rowIndex) => {
+  /* ... */
+});
+chunk.visitRowMajor((value, rowIndex, columnIndex, type) => {
+  /* ... */
+});
 
 // Or converted:
 // The `converter` argument implements `DuckDBValueConverter`,

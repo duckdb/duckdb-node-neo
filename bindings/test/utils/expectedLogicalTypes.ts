@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import {
   ExpectedArrayLogicalType,
   ExpectedDecimalLogicalType,
@@ -114,7 +114,7 @@ export const SQLNULL: ExpectedSimpleLogicalType = {
 
 export function ARRAY(
   valueType: ExpectedLogicalType,
-  size: number
+  size: number,
 ): ExpectedArrayLogicalType {
   return {
     typeId: duckdb.Type.ARRAY,
@@ -126,7 +126,7 @@ export function ARRAY(
 export function DECIMAL(
   width: number,
   scale: number,
-  internalType: duckdb.Type
+  internalType: duckdb.Type,
 ): ExpectedDecimalLogicalType {
   return {
     typeId: duckdb.Type.DECIMAL,
@@ -138,7 +138,7 @@ export function DECIMAL(
 
 export function ENUM(
   values: string[],
-  internalType: duckdb.Type
+  internalType: duckdb.Type,
 ): ExpectedEnumLogicalType {
   return {
     typeId: duckdb.Type.ENUM,
@@ -156,7 +156,7 @@ export function LIST(valueType: ExpectedLogicalType): ExpectedListLogicalType {
 
 export function MAP(
   keyType: ExpectedLogicalType,
-  valueType: ExpectedLogicalType
+  valueType: ExpectedLogicalType,
 ): ExpectedMapLogicalType {
   return {
     typeId: duckdb.Type.MAP,
@@ -167,7 +167,7 @@ export function MAP(
 
 export function ENTRY(
   name: string,
-  type: ExpectedLogicalType
+  type: ExpectedLogicalType,
 ): ExpectedStructEntry {
   return {
     name,
@@ -186,7 +186,7 @@ export function STRUCT(
 
 export function ALT(
   tag: string,
-  type: ExpectedLogicalType
+  type: ExpectedLogicalType,
 ): ExpectedUnionAlternative {
   return {
     tag,

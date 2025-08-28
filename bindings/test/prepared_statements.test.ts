@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { expect, suite, test } from 'vitest';
 import {
   ALT,
@@ -39,11 +39,11 @@ suite('prepared statements', () => {
     await withConnection(async (connection) => {
       const prepared = await duckdb.prepare(
         connection,
-        'select 17 as seventeen'
+        'select 17 as seventeen',
       );
       expect(duckdb.nparams(prepared)).toBe(0);
       expect(duckdb.prepared_statement_type(prepared)).toBe(
-        duckdb.StatementType.SELECT
+        duckdb.StatementType.SELECT,
       );
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
@@ -58,10 +58,10 @@ suite('prepared statements', () => {
     await withConnection(async (connection) => {
       const prepared = await duckdb.prepare(
         connection,
-        'select ? as a, ? as b'
+        'select ? as a, ? as b',
       );
       expect(duckdb.prepared_statement_type(prepared)).toBe(
-        duckdb.StatementType.SELECT
+        duckdb.StatementType.SELECT,
       );
       expect(duckdb.nparams(prepared)).toBe(2);
 
@@ -96,10 +96,10 @@ suite('prepared statements', () => {
     await withConnection(async (connection) => {
       const prepared = await duckdb.prepare(
         connection,
-        'select $2 as two, $1 as one'
+        'select $2 as two, $1 as one',
       );
       expect(duckdb.prepared_statement_type(prepared)).toBe(
-        duckdb.StatementType.SELECT
+        duckdb.StatementType.SELECT,
       );
       expect(duckdb.nparams(prepared)).toBe(2);
 
@@ -134,10 +134,10 @@ suite('prepared statements', () => {
     await withConnection(async (connection) => {
       const prepared = await duckdb.prepare(
         connection,
-        'select $x as a, $y as b'
+        'select $x as a, $y as b',
       );
       expect(duckdb.prepared_statement_type(prepared)).toBe(
-        duckdb.StatementType.SELECT
+        duckdb.StatementType.SELECT,
       );
       expect(duckdb.nparams(prepared)).toBe(2);
 
@@ -172,7 +172,7 @@ suite('prepared statements', () => {
     await withConnection(async (connection) => {
       const prepared = await duckdb.prepare(
         connection,
-        'select ? as a, ? as b'
+        'select ? as a, ? as b',
       );
       duckdb.bind_int32(prepared, 1, 11);
       expect(duckdb.param_type(prepared, 1)).toBe(duckdb.Type.INTEGER);
@@ -231,7 +231,7 @@ suite('prepared statements', () => {
         ? as interval, \
         ? as varchar, \
         ? as blob, \
-        ? as null'
+        ? as null',
       );
 
       duckdb.bind_boolean(prepared, 1, true);
@@ -252,14 +252,14 @@ suite('prepared statements', () => {
       duckdb.bind_hugeint(
         prepared,
         6,
-        170141183460469231731687303715884105727n
+        170141183460469231731687303715884105727n,
       );
       expect(duckdb.param_type(prepared, 6)).toBe(duckdb.Type.HUGEINT);
 
       duckdb.bind_uhugeint(
         prepared,
         7,
-        340282366920938463463374607431768211455n
+        340282366920938463463374607431768211455n,
       );
       expect(duckdb.param_type(prepared, 7)).toBe(duckdb.Type.UHUGEINT);
 
@@ -309,7 +309,7 @@ suite('prepared statements', () => {
       duckdb.bind_blob(
         prepared,
         21,
-        Buffer.from('thisisalongblob\x00withnullbytes')
+        Buffer.from('thisisalongblob\x00withnullbytes'),
       );
       expect(duckdb.param_type(prepared, 21)).toBe(duckdb.Type.BLOB);
 
@@ -369,13 +369,13 @@ suite('prepared statements', () => {
               data(
                 16,
                 [true],
-                [{ months: 999, days: 999, micros: 999999999n }]
+                [{ months: 999, days: 999, micros: 999999999n }],
               ),
               data(16, [true], ['🦆🦆🦆\x00🦆🦆🦆']),
               data(
                 16,
                 [true],
-                [Buffer.from('thisisalongblob\x00withnullbytes')]
+                [Buffer.from('thisisalongblob\x00withnullbytes')],
               ),
               data(4, [false], [null]),
             ],
@@ -393,18 +393,18 @@ suite('prepared statements', () => {
         ? as list, \
         ? as array, \
         ? as map, \
-        ? as union'
+        ? as union',
       );
       const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
       const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
       const struct_type = duckdb.create_struct_type(
         [int_type, varchar_type],
-        ['a', 'b']
+        ['a', 'b'],
       );
       const map_type = duckdb.create_map_type(int_type, varchar_type);
       const union_type = duckdb.create_union_type(
         [int_type, varchar_type],
-        ['num', 'str']
+        ['num', 'str'],
       );
 
       const int_value = duckdb.create_int64(42n);
@@ -428,7 +428,7 @@ suite('prepared statements', () => {
       const map_value = duckdb.create_map_value(
         map_type,
         [int_value],
-        [varchar_value]
+        [varchar_value],
       );
       duckdb.bind_value(prepared, 4, map_value);
       expect(duckdb.param_type(prepared, 4)).toBe(duckdb.Type.MAP);
@@ -436,7 +436,7 @@ suite('prepared statements', () => {
       const union_value = duckdb.create_union_value(
         union_type,
         1,
-        varchar_value
+        varchar_value,
       );
       duckdb.bind_value(prepared, 5, union_value);
       expect(duckdb.param_type(prepared, 5)).toBe(duckdb.Type.UNION);
@@ -465,7 +465,7 @@ suite('prepared statements', () => {
               struct(
                 1,
                 [true],
-                [data(4, [true], [42]), data(16, [true], ['🦆🦆🦆🦆🦆🦆'])]
+                [data(4, [true], [42]), data(16, [true], ['🦆🦆🦆🦆🦆🦆'])],
               ),
               list([true], [[0n, 1n]], 1, data(4, [true], [42])),
               array(1, [true], data(4, [true], [42])),
@@ -474,7 +474,7 @@ suite('prepared statements', () => {
                 [[0n, 1n]],
                 1,
                 data(4, [true], [42]),
-                data(16, [true], ['🦆🦆🦆🦆🦆🦆'])
+                data(16, [true], ['🦆🦆🦆🦆🦆🦆']),
               ),
               union([
                 data(1, [true], [1]), // tags
@@ -491,7 +491,7 @@ suite('prepared statements', () => {
     await withConnection(async (connection) => {
       const prepared = await duckdb.prepare(
         connection,
-        'select n::integer as int from range(5000) t(n)'
+        'select n::integer as int from range(5000) t(n)',
       );
       const result = await duckdb.execute_prepared_streaming(prepared);
       await expectResult(result, {
@@ -504,7 +504,7 @@ suite('prepared statements', () => {
               data(
                 4,
                 null,
-                Array.from({ length: 2048 }).map((_, i) => i)
+                Array.from({ length: 2048 }).map((_, i) => i),
               ),
             ],
           },
@@ -514,7 +514,7 @@ suite('prepared statements', () => {
               data(
                 4,
                 null,
-                Array.from({ length: 2048 }).map((_, i) => 2048 + i)
+                Array.from({ length: 2048 }).map((_, i) => 2048 + i),
               ),
             ],
           },
@@ -524,7 +524,7 @@ suite('prepared statements', () => {
               data(
                 4,
                 null,
-                Array.from({ length: 904 }).map((_, i) => 4096 + i)
+                Array.from({ length: 904 }).map((_, i) => 4096 + i),
               ),
             ],
           },
@@ -540,7 +540,7 @@ suite('prepared statements', () => {
         ? as struct, \
         ? as list, \
         ? as array, \
-        ? as map'
+        ? as map',
       );
       const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
       const struct_type = duckdb.create_struct_type([], []);

@@ -83,7 +83,7 @@ export function typeForValue(value: DuckDBValue): DuckDBType {
         } else if (value instanceof DuckDBMapValue) {
           return MAP(
             typeForValue(value.entries[0].key),
-            typeForValue(value.entries[0].value)
+            typeForValue(value.entries[0].value),
           );
         } else if (value instanceof DuckDBStructValue) {
           const entryTypes: Record<string, DuckDBType> = {};

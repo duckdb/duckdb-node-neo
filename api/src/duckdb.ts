@@ -2,8 +2,8 @@ export {
   double_to_hugeint,
   double_to_uhugeint,
   hugeint_to_double,
-  uhugeint_to_double
-} from '@duckdb/node-bindings';
+  uhugeint_to_double,
+} from '@databrainhq/node-bindings';
 export * from './configurationOptionDescriptions';
 export * from './createDuckDBValueConverter';
 export * from './DuckDBAppender';

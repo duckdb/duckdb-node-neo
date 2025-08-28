@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import os from 'os';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import {
@@ -124,13 +124,13 @@ function getStringBytes(dataView: DataView, offset: number): Uint8Array {
     return new Uint8Array(
       dataView.buffer,
       dataView.byteOffset + offset + 4,
-      lengthInBytes
+      lengthInBytes,
     );
   } else {
     return duckdb.get_data_from_pointer(
       dataView.buffer as ArrayBuffer,
       dataView.byteOffset + offset + 8,
-      lengthInBytes
+      lengthInBytes,
     );
   }
 }
@@ -155,7 +155,7 @@ function getVarIntFromBytes(bytes: Uint8Array): bigint {
   const dv = new DataView( // bytes is big endian
     bytes.buffer,
     bytes.byteOffset + 3,
-    bytes.byteLength - 3
+    bytes.byteLength - 3,
   );
   const lastUint64Offset = dv.byteLength - 8;
   let offset = 0;
@@ -296,7 +296,7 @@ function setBoolean8(dataView: DataView, offset: number, value: boolean) {
 function makeSetBoolean(): (
   dataView: DataView,
   offset: number,
-  value: boolean
+  value: boolean,
 ) => void {
   switch (duckdb.sizeof_bool) {
     case 1:
@@ -317,7 +317,7 @@ const setBoolean = makeSetBoolean();
 function getDecimal16(
   dataView: DataView,
   offset: number,
-  type: DuckDBDecimalType
+  type: DuckDBDecimalType,
 ): DuckDBDecimalValue {
   const value = getInt16(dataView, offset);
   return new DuckDBDecimalValue(BigInt(value), type.width, type.scale);
@@ -326,7 +326,7 @@ function getDecimal16(
 function getDecimal32(
   dataView: DataView,
   offset: number,
-  type: DuckDBDecimalType
+  type: DuckDBDecimalType,
 ): DuckDBDecimalValue {
   const value = getInt32(dataView, offset);
   return new DuckDBDecimalValue(BigInt(value), type.width, type.scale);
@@ -335,7 +335,7 @@ function getDecimal32(
 function getDecimal64(
   dataView: DataView,
   offset: number,
-  type: DuckDBDecimalType
+  type: DuckDBDecimalType,
 ): DuckDBDecimalValue {
   const value = getInt64(dataView, offset);
   return new DuckDBDecimalValue(value, type.width, type.scale);
@@ -344,7 +344,7 @@ function getDecimal64(
 function getDecimal128(
   dataView: DataView,
   offset: number,
-  type: DuckDBDecimalType
+  type: DuckDBDecimalType,
 ): DuckDBDecimalValue {
   const value = getInt128(dataView, offset);
   return new DuckDBDecimalValue(value, type.width, type.scale);
@@ -381,7 +381,7 @@ class DuckDBValidity {
   private constructor(
     data: BigUint64Array | null,
     offset: number,
-    itemCount: number
+    itemCount: number,
   ) {
     this.data = data;
     this.offset = offset;
@@ -389,7 +389,7 @@ class DuckDBValidity {
   }
   public static fromVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBValidity {
     const uint64Count = Math.ceil(itemCount / 64);
     const bytes = duckdb.vector_get_validity(vector, uint64Count * 8);
@@ -399,7 +399,7 @@ class DuckDBValidity {
     const bigints = new BigUint64Array(
       bytes.buffer,
       bytes.byteOffset,
-      uint64Count
+      uint64Count,
     );
     return new DuckDBValidity(bigints, 0, itemCount);
   }
@@ -448,7 +448,7 @@ class DuckDBValidity {
         0,
         this.data.buffer as ArrayBuffer,
         this.data.byteOffset,
-        this.data.byteLength
+        this.data.byteLength,
       );
     }
   }
@@ -464,12 +464,12 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
   public static create(
     vector: duckdb.Vector,
     itemCount: number,
-    knownType?: DuckDBType
+    knownType?: DuckDBType,
   ): DuckDBVector {
     const vectorType = knownType
       ? knownType
       : DuckDBLogicalType.create(
-          duckdb.vector_get_column_type(vector)
+          duckdb.vector_get_column_type(vector),
         ).asType();
     switch (vectorType.typeId) {
       case DuckDBTypeId.BOOLEAN:
@@ -519,44 +519,44 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
             return DuckDBDecimal16Vector.fromRawVector(
               vectorType,
               vector,
-              itemCount
+              itemCount,
             );
           } else if (width <= 9) {
             return DuckDBDecimal32Vector.fromRawVector(
               vectorType,
               vector,
-              itemCount
+              itemCount,
             );
           } else if (width <= 18) {
             return DuckDBDecimal64Vector.fromRawVector(
               vectorType,
               vector,
-              itemCount
+              itemCount,
             );
           } else if (width <= 38) {
             return DuckDBDecimal128Vector.fromRawVector(
               vectorType,
               vector,
-              itemCount
+              itemCount,
             );
           } else {
             throw new Error(`DECIMAL width too large: ${width}`);
           }
         }
         throw new Error(
-          'DuckDBType has DECIMAL type id but is not an instance of DuckDBDecimalType'
+          'DuckDBType has DECIMAL type id but is not an instance of DuckDBDecimalType',
         );
       case DuckDBTypeId.TIMESTAMP_S:
         return DuckDBTimestampSecondsVector.fromRawVector(vector, itemCount);
       case DuckDBTypeId.TIMESTAMP_MS:
         return DuckDBTimestampMillisecondsVector.fromRawVector(
           vector,
-          itemCount
+          itemCount,
         );
       case DuckDBTypeId.TIMESTAMP_NS:
         return DuckDBTimestampNanosecondsVector.fromRawVector(
           vector,
-          itemCount
+          itemCount,
         );
       case DuckDBTypeId.ENUM:
         if (vectorType instanceof DuckDBEnumType) {
@@ -566,60 +566,60 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
               return DuckDBEnum8Vector.fromRawVector(
                 vectorType,
                 vector,
-                itemCount
+                itemCount,
               );
             case DuckDBTypeId.USMALLINT:
               return DuckDBEnum16Vector.fromRawVector(
                 vectorType,
                 vector,
-                itemCount
+                itemCount,
               );
             case DuckDBTypeId.UINTEGER:
               return DuckDBEnum32Vector.fromRawVector(
                 vectorType,
                 vector,
-                itemCount
+                itemCount,
               );
             default:
               throw new Error(
-                `unsupported ENUM internal type: ${internalTypeId}`
+                `unsupported ENUM internal type: ${internalTypeId}`,
               );
           }
         }
         throw new Error(
-          'DuckDBType has ENUM type id but is not an instance of DuckDBEnumType'
+          'DuckDBType has ENUM type id but is not an instance of DuckDBEnumType',
         );
       case DuckDBTypeId.LIST:
         if (vectorType instanceof DuckDBListType) {
           return DuckDBListVector.fromRawVector(vectorType, vector, itemCount);
         }
         throw new Error(
-          'DuckDBType has LIST type id but is not an instance of DuckDBListType'
+          'DuckDBType has LIST type id but is not an instance of DuckDBListType',
         );
       case DuckDBTypeId.STRUCT:
         if (vectorType instanceof DuckDBStructType) {
           return DuckDBStructVector.fromRawVector(
             vectorType,
             vector,
-            itemCount
+            itemCount,
           );
         }
         throw new Error(
-          'DuckDBType has STRUCT type id but is not an instance of DuckDBStructType'
+          'DuckDBType has STRUCT type id but is not an instance of DuckDBStructType',
         );
       case DuckDBTypeId.MAP:
         if (vectorType instanceof DuckDBMapType) {
           return DuckDBMapVector.fromRawVector(vectorType, vector, itemCount);
         }
         throw new Error(
-          'DuckDBType has MAP type id but is not an instance of DuckDBMapType'
+          'DuckDBType has MAP type id but is not an instance of DuckDBMapType',
         );
       case DuckDBTypeId.ARRAY:
         if (vectorType instanceof DuckDBArrayType) {
           return DuckDBArrayVector.fromRawVector(vectorType, vector, itemCount);
         }
         throw new Error(
-          'DuckDBType has ARRAY type id but is not an instance of DuckDBArrayType'
+          'DuckDBType has ARRAY type id but is not an instance of DuckDBArrayType',
         );
       case DuckDBTypeId.UUID:
         return DuckDBUUIDVector.fromRawVector(vector, itemCount);
@@ -628,7 +628,7 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
           return DuckDBUnionVector.fromRawVector(vectorType, vector, itemCount);
         }
         throw new Error(
-          'DuckDBType has UNION type id but is not an instance of DuckDBUnionType'
+          'DuckDBType has UNION type id but is not an instance of DuckDBUnionType',
         );
       case DuckDBTypeId.BIT:
         return DuckDBBitVector.fromRawVector(vector, itemCount);
@@ -644,7 +644,7 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
         throw new Error(`Invalid vector type: SQLNULL`);
       default:
         throw new Error(
-          `Invalid type id: ${(vectorType as DuckDBType).typeId}`
+          `Invalid type id: ${(vectorType as DuckDBType).typeId}`,
         );
     }
   }
@@ -672,7 +672,7 @@ export class DuckDBBooleanVector extends DuckDBVector<boolean> {
     dataView: DataView,
     validity: DuckDBValidity,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.dataView = dataView;
@@ -682,13 +682,13 @@ export class DuckDBBooleanVector extends DuckDBVector<boolean> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBBooleanVector {
     const data = vectorData(vector, itemCount * duckdb.sizeof_bool);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBBooleanVector(dataView, validity, vector, itemCount);
@@ -718,7 +718,7 @@ export class DuckDBBooleanVector extends DuckDBVector<boolean> {
       0,
       this.dataView.buffer as ArrayBuffer,
       this.dataView.byteOffset,
-      this.dataView.byteLength
+      this.dataView.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -727,11 +727,11 @@ export class DuckDBBooleanVector extends DuckDBVector<boolean> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * duckdb.sizeof_bool,
-        length * duckdb.sizeof_bool
+        length * duckdb.sizeof_bool,
       ),
       this.validity.slice(offset, length),
       this.vector,
-      length
+      length,
     );
   }
 }
@@ -743,7 +743,7 @@ export class DuckDBTinyIntVector extends DuckDBVector<number> {
   constructor(
     items: Int8Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -752,7 +752,7 @@ export class DuckDBTinyIntVector extends DuckDBVector<number> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBTinyIntVector {
     const data = vectorData(vector, itemCount * Int8Array.BYTES_PER_ELEMENT);
     const items = new Int8Array(data.buffer, data.byteOffset, itemCount);
@@ -782,7 +782,7 @@ export class DuckDBTinyIntVector extends DuckDBVector<number> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -790,7 +790,7 @@ export class DuckDBTinyIntVector extends DuckDBVector<number> {
     return new DuckDBTinyIntVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -802,7 +802,7 @@ export class DuckDBSmallIntVector extends DuckDBVector<number> {
   constructor(
     items: Int16Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -811,7 +811,7 @@ export class DuckDBSmallIntVector extends DuckDBVector<number> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBSmallIntVector {
     const data = vectorData(vector, itemCount * Int16Array.BYTES_PER_ELEMENT);
     const items = new Int16Array(data.buffer, data.byteOffset, itemCount);
@@ -841,7 +841,7 @@ export class DuckDBSmallIntVector extends DuckDBVector<number> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -849,7 +849,7 @@ export class DuckDBSmallIntVector extends DuckDBVector<number> {
     return new DuckDBSmallIntVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -861,7 +861,7 @@ export class DuckDBIntegerVector extends DuckDBVector<number> {
   constructor(
     items: Int32Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -870,7 +870,7 @@ export class DuckDBIntegerVector extends DuckDBVector<number> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBIntegerVector {
     const data = vectorData(vector, itemCount * Int32Array.BYTES_PER_ELEMENT);
     const items = new Int32Array(data.buffer, data.byteOffset, itemCount);
@@ -900,7 +900,7 @@ export class DuckDBIntegerVector extends DuckDBVector<number> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -908,7 +908,7 @@ export class DuckDBIntegerVector extends DuckDBVector<number> {
     return new DuckDBIntegerVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -920,7 +920,7 @@ export class DuckDBBigIntVector extends DuckDBVector<bigint> {
   constructor(
     items: BigInt64Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -929,11 +929,11 @@ export class DuckDBBigIntVector extends DuckDBVector<bigint> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBBigIntVector {
     const data = vectorData(
       vector,
-      itemCount * BigInt64Array.BYTES_PER_ELEMENT
+      itemCount * BigInt64Array.BYTES_PER_ELEMENT,
     );
     const items = new BigInt64Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
@@ -962,7 +962,7 @@ export class DuckDBBigIntVector extends DuckDBVector<bigint> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -970,7 +970,7 @@ export class DuckDBBigIntVector extends DuckDBVector<bigint> {
     return new DuckDBBigIntVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -982,7 +982,7 @@ export class DuckDBUTinyIntVector extends DuckDBVector<number> {
   constructor(
     items: Uint8Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -991,7 +991,7 @@ export class DuckDBUTinyIntVector extends DuckDBVector<number> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBUTinyIntVector {
     const data = vectorData(vector, itemCount * Uint8Array.BYTES_PER_ELEMENT);
     const items = new Uint8Array(data.buffer, data.byteOffset, itemCount);
@@ -1021,7 +1021,7 @@ export class DuckDBUTinyIntVector extends DuckDBVector<number> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1029,7 +1029,7 @@ export class DuckDBUTinyIntVector extends DuckDBVector<number> {
     return new DuckDBUTinyIntVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -1041,7 +1041,7 @@ export class DuckDBUSmallIntVector extends DuckDBVector<number> {
   constructor(
     items: Uint16Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -1050,7 +1050,7 @@ export class DuckDBUSmallIntVector extends DuckDBVector<number> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBUSmallIntVector {
     const data = vectorData(vector, itemCount * Uint16Array.BYTES_PER_ELEMENT);
     const items = new Uint16Array(data.buffer, data.byteOffset, itemCount);
@@ -1080,7 +1080,7 @@ export class DuckDBUSmallIntVector extends DuckDBVector<number> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1088,7 +1088,7 @@ export class DuckDBUSmallIntVector extends DuckDBVector<number> {
     return new DuckDBUSmallIntVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -1100,7 +1100,7 @@ export class DuckDBUIntegerVector extends DuckDBVector<number> {
   constructor(
     items: Uint32Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -1109,7 +1109,7 @@ export class DuckDBUIntegerVector extends DuckDBVector<number> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBUIntegerVector {
     const data = vectorData(vector, itemCount * Uint32Array.BYTES_PER_ELEMENT);
     const items = new Uint32Array(data.buffer, data.byteOffset, itemCount);
@@ -1139,7 +1139,7 @@ export class DuckDBUIntegerVector extends DuckDBVector<number> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1147,7 +1147,7 @@ export class DuckDBUIntegerVector extends DuckDBVector<number> {
     return new DuckDBUIntegerVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -1159,7 +1159,7 @@ export class DuckDBUBigIntVector extends DuckDBVector<bigint> {
   constructor(
     items: BigUint64Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -1168,11 +1168,11 @@ export class DuckDBUBigIntVector extends DuckDBVector<bigint> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBUBigIntVector {
     const data = vectorData(
       vector,
-      itemCount * BigUint64Array.BYTES_PER_ELEMENT
+      itemCount * BigUint64Array.BYTES_PER_ELEMENT,
     );
     const items = new BigUint64Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
@@ -1201,7 +1201,7 @@ export class DuckDBUBigIntVector extends DuckDBVector<bigint> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1209,7 +1209,7 @@ export class DuckDBUBigIntVector extends DuckDBVector<bigint> {
     return new DuckDBUBigIntVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -1221,7 +1221,7 @@ export class DuckDBFloatVector extends DuckDBVector<number> {
   constructor(
     items: Float32Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -1230,7 +1230,7 @@ export class DuckDBFloatVector extends DuckDBVector<number> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBFloatVector {
     const data = vectorData(vector, itemCount * Float32Array.BYTES_PER_ELEMENT);
     const items = new Float32Array(data.buffer, data.byteOffset, itemCount);
@@ -1260,7 +1260,7 @@ export class DuckDBFloatVector extends DuckDBVector<number> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1268,7 +1268,7 @@ export class DuckDBFloatVector extends DuckDBVector<number> {
     return new DuckDBFloatVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -1280,7 +1280,7 @@ export class DuckDBDoubleVector extends DuckDBVector<number> {
   constructor(
     items: Float64Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -1289,7 +1289,7 @@ export class DuckDBDoubleVector extends DuckDBVector<number> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBDoubleVector {
     const data = vectorData(vector, itemCount * Float64Array.BYTES_PER_ELEMENT);
     const items = new Float64Array(data.buffer, data.byteOffset, itemCount);
@@ -1319,7 +1319,7 @@ export class DuckDBDoubleVector extends DuckDBVector<number> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1327,7 +1327,7 @@ export class DuckDBDoubleVector extends DuckDBVector<number> {
     return new DuckDBDoubleVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -1339,7 +1339,7 @@ export class DuckDBTimestampVector extends DuckDBVector<DuckDBTimestampValue> {
   constructor(
     items: BigInt64Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -1348,11 +1348,11 @@ export class DuckDBTimestampVector extends DuckDBVector<DuckDBTimestampValue> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBTimestampVector {
     const data = vectorData(
       vector,
-      itemCount * BigInt64Array.BYTES_PER_ELEMENT
+      itemCount * BigInt64Array.BYTES_PER_ELEMENT,
     );
     const items = new BigInt64Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
@@ -1371,7 +1371,7 @@ export class DuckDBTimestampVector extends DuckDBVector<DuckDBTimestampValue> {
   }
   public override setItem(
     itemIndex: number,
-    value: DuckDBTimestampValue | null
+    value: DuckDBTimestampValue | null,
   ) {
     if (value != null) {
       this.items[itemIndex] = value.micros;
@@ -1386,7 +1386,7 @@ export class DuckDBTimestampVector extends DuckDBVector<DuckDBTimestampValue> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1394,7 +1394,7 @@ export class DuckDBTimestampVector extends DuckDBVector<DuckDBTimestampValue> {
     return new DuckDBTimestampVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -1406,7 +1406,7 @@ export class DuckDBDateVector extends DuckDBVector<DuckDBDateValue> {
   constructor(
     items: Int32Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -1415,7 +1415,7 @@ export class DuckDBDateVector extends DuckDBVector<DuckDBDateValue> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBDateVector {
     const data = vectorData(vector, itemCount * Int32Array.BYTES_PER_ELEMENT);
     const items = new Int32Array(data.buffer, data.byteOffset, itemCount);
@@ -1447,7 +1447,7 @@ export class DuckDBDateVector extends DuckDBVector<DuckDBDateValue> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1455,7 +1455,7 @@ export class DuckDBDateVector extends DuckDBVector<DuckDBDateValue> {
     return new DuckDBDateVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -1467,7 +1467,7 @@ export class DuckDBTimeVector extends DuckDBVector<DuckDBTimeValue> {
   constructor(
     items: BigInt64Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -1476,11 +1476,11 @@ export class DuckDBTimeVector extends DuckDBVector<DuckDBTimeValue> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBTimeVector {
     const data = vectorData(
       vector,
-      itemCount * BigInt64Array.BYTES_PER_ELEMENT
+      itemCount * BigInt64Array.BYTES_PER_ELEMENT,
     );
     const items = new BigInt64Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
@@ -1511,7 +1511,7 @@ export class DuckDBTimeVector extends DuckDBVector<DuckDBTimeValue> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1519,7 +1519,7 @@ export class DuckDBTimeVector extends DuckDBVector<DuckDBTimeValue> {
     return new DuckDBTimeVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -1533,7 +1533,7 @@ export class DuckDBIntervalVector extends DuckDBVector<DuckDBIntervalValue> {
     dataView: DataView,
     validity: DuckDBValidity,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.dataView = dataView;
@@ -1543,13 +1543,13 @@ export class DuckDBIntervalVector extends DuckDBVector<DuckDBIntervalValue> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBIntervalVector {
     const data = vectorData(vector, itemCount * 16);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBIntervalVector(dataView, validity, vector, itemCount);
@@ -1572,7 +1572,7 @@ export class DuckDBIntervalVector extends DuckDBVector<DuckDBIntervalValue> {
   }
   public override setItem(
     itemIndex: number,
-    value: DuckDBIntervalValue | null
+    value: DuckDBIntervalValue | null,
   ) {
     if (value != null) {
       const itemStart = itemIndex * 16;
@@ -1590,7 +1590,7 @@ export class DuckDBIntervalVector extends DuckDBVector<DuckDBIntervalValue> {
       0,
       this.dataView.buffer as ArrayBuffer,
       this.dataView.byteOffset,
-      this.dataView.byteLength
+      this.dataView.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1599,11 +1599,11 @@ export class DuckDBIntervalVector extends DuckDBVector<DuckDBIntervalValue> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 16,
-        length * 16
+        length * 16,
       ),
       this.validity.slice(offset, length),
       this.vector,
-      length
+      length,
     );
   }
 }
@@ -1617,7 +1617,7 @@ export class DuckDBHugeIntVector extends DuckDBVector<bigint> {
     dataView: DataView,
     validity: DuckDBValidity,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.dataView = dataView;
@@ -1627,13 +1627,13 @@ export class DuckDBHugeIntVector extends DuckDBVector<bigint> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBHugeIntVector {
     const data = vectorData(vector, itemCount * 16);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBHugeIntVector(dataView, validity, vector, itemCount);
@@ -1668,7 +1668,7 @@ export class DuckDBHugeIntVector extends DuckDBVector<bigint> {
       0,
       this.dataView.buffer as ArrayBuffer,
       this.dataView.byteOffset,
-      this.dataView.byteLength
+      this.dataView.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1677,11 +1677,11 @@ export class DuckDBHugeIntVector extends DuckDBVector<bigint> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 16,
-        length * 16
+        length * 16,
       ),
       this.validity.slice(offset, length),
       this.vector,
-      length
+      length,
     );
   }
 }
@@ -1695,7 +1695,7 @@ export class DuckDBUHugeIntVector extends DuckDBVector<bigint> {
     dataView: DataView,
     validity: DuckDBValidity,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.dataView = dataView;
@@ -1705,13 +1705,13 @@ export class DuckDBUHugeIntVector extends DuckDBVector<bigint> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBUHugeIntVector {
     const data = vectorData(vector, itemCount * 16);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBUHugeIntVector(dataView, validity, vector, itemCount);
@@ -1746,7 +1746,7 @@ export class DuckDBUHugeIntVector extends DuckDBVector<bigint> {
       0,
       this.dataView.buffer as ArrayBuffer,
       this.dataView.byteOffset,
-      this.dataView.byteLength
+      this.dataView.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -1755,11 +1755,11 @@ export class DuckDBUHugeIntVector extends DuckDBVector<bigint> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 16,
-        length * 16
+        length * 16,
       ),
       this.validity.slice(offset, length),
       this.vector,
-      length
+      length,
     );
   }
 }
@@ -1777,7 +1777,7 @@ export class DuckDBVarCharVector extends DuckDBVector<string> {
     validity: DuckDBValidity,
     vector: duckdb.Vector,
     itemOffset: number,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.dataView = dataView;
@@ -1790,13 +1790,13 @@ export class DuckDBVarCharVector extends DuckDBVector<string> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBVarCharVector {
     const data = vectorData(vector, itemCount * 16);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBVarCharVector(dataView, validity, vector, 0, itemCount);
@@ -1831,7 +1831,7 @@ export class DuckDBVarCharVector extends DuckDBVector<string> {
           duckdb.vector_assign_string_element(
             this.vector,
             this.itemOffset + itemIndex,
-            cachedItem
+            cachedItem,
           );
         }
         this.itemCacheDirty[itemIndex] = false;
@@ -1844,12 +1844,12 @@ export class DuckDBVarCharVector extends DuckDBVector<string> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 16,
-        length * 16
+        length * 16,
       ),
       this.validity.slice(offset, length),
       this.vector,
       offset,
-      length
+      length,
     );
   }
 }
@@ -1867,7 +1867,7 @@ export class DuckDBBlobVector extends DuckDBVector<DuckDBBlobValue> {
     validity: DuckDBValidity,
     vector: duckdb.Vector,
     itemOffset: number,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.dataView = dataView;
@@ -1880,13 +1880,13 @@ export class DuckDBBlobVector extends DuckDBVector<DuckDBBlobValue> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBBlobVector {
     const data = vectorData(vector, itemCount * 16);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBBlobVector(dataView, validity, vector, 0, itemCount);
@@ -1915,7 +1915,7 @@ export class DuckDBBlobVector extends DuckDBVector<DuckDBBlobValue> {
           duckdb.vector_assign_string_element_len(
             this.vector,
             this.itemOffset + itemIndex,
-            cachedItem.bytes
+            cachedItem.bytes,
           );
         }
         this.itemCacheDirty[itemIndex] = false;
@@ -1928,12 +1928,12 @@ export class DuckDBBlobVector extends DuckDBVector<DuckDBBlobValue> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 16,
-        length * 16
+        length * 16,
       ),
       this.validity.slice(offset, length),
       this.vector,
       offset,
-      length
+      length,
     );
   }
 }
@@ -1949,7 +1949,7 @@ export class DuckDBDecimal16Vector extends DuckDBVector<DuckDBDecimalValue> {
     dataView: DataView,
     validity: DuckDBValidity,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.decimalType = decimalType;
@@ -1961,13 +1961,13 @@ export class DuckDBDecimal16Vector extends DuckDBVector<DuckDBDecimalValue> {
   static fromRawVector(
     decimalType: DuckDBDecimalType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBDecimal16Vector {
     const data = vectorData(vector, itemCount * 2);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBDecimal16Vector(
@@ -1975,7 +1975,7 @@ export class DuckDBDecimal16Vector extends DuckDBVector<DuckDBDecimalValue> {
       dataView,
       validity,
       vector,
-      itemCount
+      itemCount,
     );
   }
   public override get type(): DuckDBDecimalType {
@@ -2008,7 +2008,7 @@ export class DuckDBDecimal16Vector extends DuckDBVector<DuckDBDecimalValue> {
       0,
       this.dataView.buffer as ArrayBuffer,
       this.dataView.byteOffset,
-      this.dataView.byteLength
+      this.dataView.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -2018,11 +2018,11 @@ export class DuckDBDecimal16Vector extends DuckDBVector<DuckDBDecimalValue> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 2,
-        length * 2
+        length * 2,
       ),
       this.validity.slice(offset, length),
       this.vector,
-      length
+      length,
     );
   }
 }
@@ -2038,7 +2038,7 @@ export class DuckDBDecimal32Vector extends DuckDBVector<DuckDBDecimalValue> {
     dataView: DataView,
     validity: DuckDBValidity,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.decimalType = decimalType;
@@ -2050,13 +2050,13 @@ export class DuckDBDecimal32Vector extends DuckDBVector<DuckDBDecimalValue> {
   static fromRawVector(
     decimalType: DuckDBDecimalType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBDecimal32Vector {
     const data = vectorData(vector, itemCount * 4);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBDecimal32Vector(
@@ -2064,7 +2064,7 @@ export class DuckDBDecimal32Vector extends DuckDBVector<DuckDBDecimalValue> {
       dataView,
       validity,
       vector,
-      itemCount
+      itemCount,
     );
   }
   public override get type(): DuckDBDecimalType {
@@ -2097,7 +2097,7 @@ export class DuckDBDecimal32Vector extends DuckDBVector<DuckDBDecimalValue> {
       0,
       this.dataView.buffer as ArrayBuffer,
       this.dataView.byteOffset,
-      this.dataView.byteLength
+      this.dataView.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -2107,11 +2107,11 @@ export class DuckDBDecimal32Vector extends DuckDBVector<DuckDBDecimalValue> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 4,
-        length * 4
+        length * 4,
       ),
       this.validity.slice(offset, length),
       this.vector,
-      length
+      length,
     );
   }
 }
@@ -2127,7 +2127,7 @@ export class DuckDBDecimal64Vector extends DuckDBVector<DuckDBDecimalValue> {
     dataView: DataView,
     validity: DuckDBValidity,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.decimalType = decimalType;
@@ -2139,13 +2139,13 @@ export class DuckDBDecimal64Vector extends DuckDBVector<DuckDBDecimalValue> {
   static fromRawVector(
     decimalType: DuckDBDecimalType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBDecimal64Vector {
     const data = vectorData(vector, itemCount * 8);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBDecimal64Vector(
@@ -2153,7 +2153,7 @@ export class DuckDBDecimal64Vector extends DuckDBVector<DuckDBDecimalValue> {
       dataView,
       validity,
       vector,
-      itemCount
+      itemCount,
     );
   }
   public override get type(): DuckDBDecimalType {
@@ -2186,7 +2186,7 @@ export class DuckDBDecimal64Vector extends DuckDBVector<DuckDBDecimalValue> {
       0,
       this.dataView.buffer as ArrayBuffer,
       this.dataView.byteOffset,
-      this.dataView.byteLength
+      this.dataView.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -2196,11 +2196,11 @@ export class DuckDBDecimal64Vector extends DuckDBVector<DuckDBDecimalValue> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 8,
-        length * 8
+        length * 8,
       ),
       this.validity.slice(offset, length),
       this.vector,
-      length
+      length,
     );
   }
 }
@@ -2216,7 +2216,7 @@ export class DuckDBDecimal128Vector extends DuckDBVector<DuckDBDecimalValue> {
     dataView: DataView,
     validity: DuckDBValidity,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.decimalType = decimalType;
@@ -2228,13 +2228,13 @@ export class DuckDBDecimal128Vector extends DuckDBVector<DuckDBDecimalValue> {
   static fromRawVector(
     decimalType: DuckDBDecimalType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBDecimal128Vector {
     const data = vectorData(vector, itemCount * 16);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBDecimal128Vector(
@@ -2242,7 +2242,7 @@ export class DuckDBDecimal128Vector extends DuckDBVector<DuckDBDecimalValue> {
       dataView,
       validity,
       vector,
-      itemCount
+      itemCount,
     );
   }
   public override get type(): DuckDBDecimalType {
@@ -2275,24 +2275,24 @@ export class DuckDBDecimal128Vector extends DuckDBVector<DuckDBDecimalValue> {
       0,
       this.dataView.buffer as ArrayBuffer,
       this.dataView.byteOffset,
-      this.dataView.byteLength
+      this.dataView.byteLength,
     );
     this.validity.flush(this.vector);
   }
   public override slice(
     offset: number,
-    length: number
+    length: number,
   ): DuckDBDecimal128Vector {
     return new DuckDBDecimal128Vector(
       this.decimalType,
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 16,
-        length * 16
+        length * 16,
       ),
       this.validity.slice(offset, length),
       this.vector,
-      length
+      length,
     );
   }
 }
@@ -2304,7 +2304,7 @@ export class DuckDBTimestampSecondsVector extends DuckDBVector<DuckDBTimestampSe
   constructor(
     items: BigInt64Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -2313,11 +2313,11 @@ export class DuckDBTimestampSecondsVector extends DuckDBVector<DuckDBTimestampSe
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBTimestampSecondsVector {
     const data = vectorData(
       vector,
-      itemCount * BigInt64Array.BYTES_PER_ELEMENT
+      itemCount * BigInt64Array.BYTES_PER_ELEMENT,
     );
     const items = new BigInt64Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
@@ -2330,7 +2330,7 @@ export class DuckDBTimestampSecondsVector extends DuckDBVector<DuckDBTimestampSe
     return this.items.length;
   }
   public override getItem(
-    itemIndex: number
+    itemIndex: number,
   ): DuckDBTimestampSecondsValue | null {
     return this.validity.itemValid(itemIndex)
       ? new DuckDBTimestampSecondsValue(this.items[itemIndex])
@@ -2338,7 +2338,7 @@ export class DuckDBTimestampSecondsVector extends DuckDBVector<DuckDBTimestampSe
   }
   public override setItem(
     itemIndex: number,
-    value: DuckDBTimestampSecondsValue | null
+    value: DuckDBTimestampSecondsValue | null,
   ) {
     if (value != null) {
       this.items[itemIndex] = value.seconds;
@@ -2353,18 +2353,18 @@ export class DuckDBTimestampSecondsVector extends DuckDBVector<DuckDBTimestampSe
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
   public override slice(
     offset: number,
-    length: number
+    length: number,
   ): DuckDBTimestampSecondsVector {
     return new DuckDBTimestampSecondsVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -2376,7 +2376,7 @@ export class DuckDBTimestampMillisecondsVector extends DuckDBVector<DuckDBTimest
   constructor(
     items: BigInt64Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -2385,11 +2385,11 @@ export class DuckDBTimestampMillisecondsVector extends DuckDBVector<DuckDBTimest
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBTimestampMillisecondsVector {
     const data = vectorData(
       vector,
-      itemCount * BigInt64Array.BYTES_PER_ELEMENT
+      itemCount * BigInt64Array.BYTES_PER_ELEMENT,
     );
     const items = new BigInt64Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
@@ -2402,7 +2402,7 @@ export class DuckDBTimestampMillisecondsVector extends DuckDBVector<DuckDBTimest
     return this.items.length;
   }
   public override getItem(
-    itemIndex: number
+    itemIndex: number,
   ): DuckDBTimestampMillisecondsValue | null {
     return this.validity.itemValid(itemIndex)
       ? new DuckDBTimestampMillisecondsValue(this.items[itemIndex])
@@ -2410,7 +2410,7 @@ export class DuckDBTimestampMillisecondsVector extends DuckDBVector<DuckDBTimest
   }
   public override setItem(
     itemIndex: number,
-    value: DuckDBTimestampMillisecondsValue | null
+    value: DuckDBTimestampMillisecondsValue | null,
   ) {
     if (value != null) {
       this.items[itemIndex] = value.millis;
@@ -2425,18 +2425,18 @@ export class DuckDBTimestampMillisecondsVector extends DuckDBVector<DuckDBTimest
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
   public override slice(
     offset: number,
-    length: number
+    length: number,
   ): DuckDBTimestampMillisecondsVector {
     return new DuckDBTimestampMillisecondsVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -2448,7 +2448,7 @@ export class DuckDBTimestampNanosecondsVector extends DuckDBVector<DuckDBTimesta
   constructor(
     items: BigInt64Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -2457,11 +2457,11 @@ export class DuckDBTimestampNanosecondsVector extends DuckDBVector<DuckDBTimesta
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBTimestampNanosecondsVector {
     const data = vectorData(
       vector,
-      itemCount * BigInt64Array.BYTES_PER_ELEMENT
+      itemCount * BigInt64Array.BYTES_PER_ELEMENT,
     );
     const items = new BigInt64Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
@@ -2474,7 +2474,7 @@ export class DuckDBTimestampNanosecondsVector extends DuckDBVector<DuckDBTimesta
     return this.items.length;
   }
   public override getItem(
-    itemIndex: number
+    itemIndex: number,
   ): DuckDBTimestampNanosecondsValue | null {
     return this.validity.itemValid(itemIndex)
       ? new DuckDBTimestampNanosecondsValue(this.items[itemIndex])
@@ -2482,7 +2482,7 @@ export class DuckDBTimestampNanosecondsVector extends DuckDBVector<DuckDBTimesta
   }
   public override setItem(
     itemIndex: number,
-    value: DuckDBTimestampNanosecondsValue | null
+    value: DuckDBTimestampNanosecondsValue | null,
   ) {
     if (value != null) {
       this.items[itemIndex] = value.nanos;
@@ -2497,18 +2497,18 @@ export class DuckDBTimestampNanosecondsVector extends DuckDBVector<DuckDBTimesta
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
   public override slice(
     offset: number,
-    length: number
+    length: number,
   ): DuckDBTimestampNanosecondsVector {
     return new DuckDBTimestampNanosecondsVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -2522,7 +2522,7 @@ export class DuckDBEnum8Vector extends DuckDBVector<string> {
     enumType: DuckDBEnumType,
     items: Uint8Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.enumType = enumType;
@@ -2533,7 +2533,7 @@ export class DuckDBEnum8Vector extends DuckDBVector<string> {
   static fromRawVector(
     enumType: DuckDBEnumType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBEnum8Vector {
     const data = vectorData(vector, itemCount);
     const items = new Uint8Array(data.buffer, data.byteOffset, itemCount);
@@ -2565,7 +2565,7 @@ export class DuckDBEnum8Vector extends DuckDBVector<string> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -2574,7 +2574,7 @@ export class DuckDBEnum8Vector extends DuckDBVector<string> {
       this.enumType,
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -2588,7 +2588,7 @@ export class DuckDBEnum16Vector extends DuckDBVector<string> {
     enumType: DuckDBEnumType,
     items: Uint16Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.enumType = enumType;
@@ -2599,7 +2599,7 @@ export class DuckDBEnum16Vector extends DuckDBVector<string> {
   static fromRawVector(
     enumType: DuckDBEnumType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBEnum16Vector {
     const data = vectorData(vector, itemCount * 2);
     const items = new Uint16Array(data.buffer, data.byteOffset, itemCount);
@@ -2631,7 +2631,7 @@ export class DuckDBEnum16Vector extends DuckDBVector<string> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -2640,7 +2640,7 @@ export class DuckDBEnum16Vector extends DuckDBVector<string> {
       this.enumType,
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -2654,7 +2654,7 @@ export class DuckDBEnum32Vector extends DuckDBVector<string> {
     enumType: DuckDBEnumType,
     items: Uint32Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.enumType = enumType;
@@ -2665,7 +2665,7 @@ export class DuckDBEnum32Vector extends DuckDBVector<string> {
   static fromRawVector(
     enumType: DuckDBEnumType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBEnum32Vector {
     const data = vectorData(vector, itemCount * 4);
     const items = new Uint32Array(data.buffer, data.byteOffset, itemCount);
@@ -2697,7 +2697,7 @@ export class DuckDBEnum32Vector extends DuckDBVector<string> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -2706,7 +2706,7 @@ export class DuckDBEnum32Vector extends DuckDBVector<string> {
       this.enumType,
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -2729,7 +2729,7 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
     vector: duckdb.Vector,
     childData: DuckDBVector,
     itemOffset: number,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.parentList = parentList;
@@ -2738,23 +2738,22 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
     this.validity = validity;
     this.vector = vector;
     this.childData = childData;
-    this.itemOffset = itemOffset,
-    this._itemCount = itemCount;
+    ((this.itemOffset = itemOffset), (this._itemCount = itemCount));
     this.itemCache = [];
   }
   static fromRawVector(
     listType: DuckDBListType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBListVector {
     const data = vectorData(
       vector,
-      itemCount * BigUint64Array.BYTES_PER_ELEMENT * 2
+      itemCount * BigUint64Array.BYTES_PER_ELEMENT * 2,
     );
     const entryData = new BigUint64Array(
       data.buffer,
       data.byteOffset,
-      itemCount * 2
+      itemCount * 2,
     );
 
     const validity = DuckDBValidity.fromVector(vector, itemCount);
@@ -2764,7 +2763,7 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
     const childData = DuckDBVector.create(
       child_vector,
       child_vector_size,
-      listType.valueType
+      listType.valueType,
     );
 
     return new DuckDBListVector(
@@ -2775,7 +2774,7 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
       vector,
       childData,
       0,
-      itemCount
+      itemCount,
     );
   }
   public override get type(): DuckDBListType {
@@ -2846,7 +2845,7 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
       this.childData = DuckDBVector.create(
         child_vector,
         child_vector_size,
-        this.listType.valueType
+        this.listType.valueType,
       );
 
       // set all childData items
@@ -2861,7 +2860,7 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
           ) {
             this.childData.setItem(
               childItemAbsoluteIndex++,
-              list.items[childItemRelativeIndex]
+              list.items[childItemRelativeIndex],
             );
           }
         }
@@ -2876,7 +2875,7 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
         0,
         this.entryData.buffer as ArrayBuffer,
         this.entryData.byteOffset,
-        this.entryData.byteLength
+        this.entryData.byteLength,
       );
 
       // flush validity
@@ -2890,13 +2889,13 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
       this.listType,
       this.entryData.slice(
         entryDataStartIndex,
-        entryDataStartIndex + length * 2
+        entryDataStartIndex + length * 2,
       ),
       this.validity.slice(offset, length),
       this.vector,
       this.childData,
       offset,
-      length
+      length,
     );
   }
 }
@@ -2912,7 +2911,7 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
     itemCount: number,
     entryVectors: readonly DuckDBVector[],
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.structType = structType;
@@ -2924,14 +2923,14 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
   static fromRawVector(
     structType: DuckDBStructType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBStructVector {
     const entryCount = structType.entryCount;
     const entryVectors: DuckDBVector[] = [];
     for (let i = 0; i < entryCount; i++) {
       const child_vector = duckdb.struct_vector_get_child(vector, i);
       entryVectors.push(
-        DuckDBVector.create(child_vector, itemCount, structType.entryTypes[i])
+        DuckDBVector.create(child_vector, itemCount, structType.entryTypes[i]),
       );
     }
     const validity = DuckDBValidity.fromVector(vector, itemCount);
@@ -2940,7 +2939,7 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
       itemCount,
       entryVectors,
       validity,
-      vector
+      vector,
     );
   }
   public override get type(): DuckDBStructType {
@@ -2963,7 +2962,7 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
   }
   public getItemValue(
     itemIndex: number,
-    entryIndex: number
+    entryIndex: number,
   ): DuckDBValue | null {
     if (!this.validity.itemValid(itemIndex)) {
       return null;
@@ -2976,7 +2975,7 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
       for (let i = 0; i < entryCount; i++) {
         this.entryVectors[i].setItem(
           itemIndex,
-          value.entries[this.structType.entryNames[i]]
+          value.entries[this.structType.entryNames[i]],
         );
       }
       this.validity.setItemValid(itemIndex, true);
@@ -2991,7 +2990,7 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
   public setItemValue(
     itemIndex: number,
     entryIndex: number,
-    value: DuckDBValue
+    value: DuckDBValue,
   ) {
     return this.entryVectors[entryIndex].setItem(itemIndex, value);
   }
@@ -3007,7 +3006,7 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
       length,
       this.entryVectors.map((entryVector) => entryVector.slice(offset, length)),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -3024,17 +3023,17 @@ export class DuckDBMapVector extends DuckDBVector<DuckDBMapValue> {
   static fromRawVector(
     mapType: DuckDBMapType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBMapVector {
     const listVectorType = new DuckDBListType(
       new DuckDBStructType(
         ['key', 'value'],
-        [mapType.keyType, mapType.valueType]
-      )
+        [mapType.keyType, mapType.valueType],
+      ),
     );
     return new DuckDBMapVector(
       mapType,
-      DuckDBListVector.fromRawVector(listVectorType, vector, itemCount)
+      DuckDBListVector.fromRawVector(listVectorType, vector, itemCount),
     );
   }
   public override get type(): DuckDBMapType {
@@ -3066,9 +3065,9 @@ export class DuckDBMapVector extends DuckDBVector<DuckDBMapValue> {
         itemIndex,
         listValue(
           value.entries.map((entry) =>
-            structValue({ 'key': entry.key, 'value': entry.value })
-          )
-        )
+            structValue({ key: entry.key, value: entry.value }),
+          ),
+        ),
       );
     } else {
       this.listVector.setItem(itemIndex, null);
@@ -3080,7 +3079,7 @@ export class DuckDBMapVector extends DuckDBVector<DuckDBMapValue> {
   public override slice(offset: number, length: number): DuckDBMapVector {
     return new DuckDBMapVector(
       this.mapType,
-      this.listVector.slice(offset, length)
+      this.listVector.slice(offset, length),
     );
   }
 }
@@ -3096,7 +3095,7 @@ export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
     validity: DuckDBValidity,
     vector: duckdb.Vector,
     childData: DuckDBVector,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.arrayType = arrayType;
@@ -3108,7 +3107,7 @@ export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
   static fromRawVector(
     arrayType: DuckDBArrayType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBArrayVector {
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     const child_vector = duckdb.array_vector_get_child(vector);
@@ -3117,14 +3116,14 @@ export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
     const childData = DuckDBVector.create(
       child_vector,
       itemCount * childItemsPerArray,
-      arrayType.valueType
+      arrayType.valueType,
     );
     return new DuckDBArrayVector(
       arrayType,
       validity,
       vector,
       childData,
-      itemCount
+      itemCount,
     );
   }
   private static itemSize(arrayType: DuckDBArrayType): number {
@@ -3147,7 +3146,7 @@ export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
     return new DuckDBArrayValue(
       this.childData
         .slice(itemIndex * this.arrayType.length, this.arrayType.length)
-        .toArray()
+        .toArray(),
     );
   }
   public override setItem(itemIndex: number, value: DuckDBArrayValue | null) {
@@ -3176,9 +3175,9 @@ export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
       this.vector,
       this.childData.slice(
         offset * this.arrayType.length,
-        length * this.arrayType.length
+        length * this.arrayType.length,
       ),
-      length
+      length,
     );
   }
 }
@@ -3192,7 +3191,7 @@ export class DuckDBUUIDVector extends DuckDBVector<DuckDBUUIDValue> {
     dataView: DataView,
     validity: DuckDBValidity,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.dataView = dataView;
@@ -3202,13 +3201,13 @@ export class DuckDBUUIDVector extends DuckDBVector<DuckDBUUIDValue> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBUUIDVector {
     const data = vectorData(vector, itemCount * 16);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBUUIDVector(dataView, validity, vector, itemCount);
@@ -3221,7 +3220,9 @@ export class DuckDBUUIDVector extends DuckDBVector<DuckDBUUIDValue> {
   }
   public override getItem(itemIndex: number): DuckDBUUIDValue | null {
     return this.validity.itemValid(itemIndex)
-      ? DuckDBUUIDValue.fromStoredHugeInt(getInt128(this.dataView, itemIndex * 16))
+      ? DuckDBUUIDValue.fromStoredHugeInt(
+          getInt128(this.dataView, itemIndex * 16),
+        )
       : null;
   }
   public override setItem(itemIndex: number, value: DuckDBUUIDValue | null) {
@@ -3238,7 +3239,7 @@ export class DuckDBUUIDVector extends DuckDBVector<DuckDBUUIDValue> {
       0,
       this.dataView.buffer as ArrayBuffer,
       this.dataView.byteOffset,
-      this.dataView.byteLength
+      this.dataView.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -3247,11 +3248,11 @@ export class DuckDBUUIDVector extends DuckDBVector<DuckDBUUIDValue> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 16,
-        length * 16
+        length * 16,
       ),
       this.validity.slice(offset, length),
       this.vector,
-      length
+      length,
     );
   }
 }
@@ -3268,7 +3269,7 @@ export class DuckDBUnionVector extends DuckDBVector<DuckDBUnionValue> {
   static fromRawVector(
     unionType: DuckDBUnionType,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBUnionVector {
     const entryNames: string[] = ['tag'];
     const entryTypes: DuckDBType[] = [DuckDBUTinyIntType.instance];
@@ -3280,7 +3281,7 @@ export class DuckDBUnionVector extends DuckDBVector<DuckDBUnionValue> {
     const structVectorType = new DuckDBStructType(entryNames, entryTypes);
     return new DuckDBUnionVector(
       unionType,
-      DuckDBStructVector.fromRawVector(structVectorType, vector, itemCount)
+      DuckDBStructVector.fromRawVector(structVectorType, vector, itemCount),
     );
   }
   public override get type(): DuckDBUnionType {
@@ -3323,7 +3324,7 @@ export class DuckDBUnionVector extends DuckDBVector<DuckDBUnionValue> {
   public override slice(offset: number, length: number): DuckDBUnionVector {
     return new DuckDBUnionVector(
       this.unionType,
-      this.structVector.slice(offset, length)
+      this.structVector.slice(offset, length),
     );
   }
 }
@@ -3341,7 +3342,7 @@ export class DuckDBBitVector extends DuckDBVector<DuckDBBitValue> {
     validity: DuckDBValidity,
     vector: duckdb.Vector,
     itemOffset: number,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.dataView = dataView;
@@ -3354,13 +3355,13 @@ export class DuckDBBitVector extends DuckDBVector<DuckDBBitValue> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBBitVector {
     const data = vectorData(vector, itemCount * 16);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBBitVector(dataView, validity, vector, 0, itemCount);
@@ -3391,7 +3392,7 @@ export class DuckDBBitVector extends DuckDBVector<DuckDBBitValue> {
           duckdb.vector_assign_string_element_len(
             this.vector,
             this.itemOffset + itemIndex,
-            cachedItem.data
+            cachedItem.data,
           );
         }
         this.itemCacheDirty[itemIndex] = false;
@@ -3404,12 +3405,12 @@ export class DuckDBBitVector extends DuckDBVector<DuckDBBitValue> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 16,
-        length * 16
+        length * 16,
       ),
       this.validity.slice(offset, length),
       this.vector,
       offset,
-      length
+      length,
     );
   }
 }
@@ -3421,7 +3422,7 @@ export class DuckDBTimeTZVector extends DuckDBVector<DuckDBTimeTZValue> {
   constructor(
     items: BigUint64Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -3430,11 +3431,11 @@ export class DuckDBTimeTZVector extends DuckDBVector<DuckDBTimeTZValue> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBTimeTZVector {
     const data = vectorData(
       vector,
-      itemCount * BigUint64Array.BYTES_PER_ELEMENT
+      itemCount * BigUint64Array.BYTES_PER_ELEMENT,
     );
     const items = new BigUint64Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
@@ -3465,7 +3466,7 @@ export class DuckDBTimeTZVector extends DuckDBVector<DuckDBTimeTZValue> {
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
@@ -3473,7 +3474,7 @@ export class DuckDBTimeTZVector extends DuckDBVector<DuckDBTimeTZValue> {
     return new DuckDBTimeTZVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -3485,7 +3486,7 @@ export class DuckDBTimestampTZVector extends DuckDBVector<DuckDBTimestampTZValue
   constructor(
     items: BigInt64Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
   ) {
     super();
     this.items = items;
@@ -3494,11 +3495,11 @@ export class DuckDBTimestampTZVector extends DuckDBVector<DuckDBTimestampTZValue
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBTimestampTZVector {
     const data = vectorData(
       vector,
-      itemCount * BigInt64Array.BYTES_PER_ELEMENT
+      itemCount * BigInt64Array.BYTES_PER_ELEMENT,
     );
     const items = new BigInt64Array(data.buffer, data.byteOffset, itemCount);
     const validity = DuckDBValidity.fromVector(vector, itemCount);
@@ -3517,7 +3518,7 @@ export class DuckDBTimestampTZVector extends DuckDBVector<DuckDBTimestampTZValue
   }
   public override setItem(
     itemIndex: number,
-    value: DuckDBTimestampTZValue | null
+    value: DuckDBTimestampTZValue | null,
   ) {
     if (value != null) {
       this.items[itemIndex] = value.micros;
@@ -3532,18 +3533,18 @@ export class DuckDBTimestampTZVector extends DuckDBVector<DuckDBTimestampTZValue
       0,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
-      this.items.byteLength
+      this.items.byteLength,
     );
     this.validity.flush(this.vector);
   }
   public override slice(
     offset: number,
-    length: number
+    length: number,
   ): DuckDBTimestampTZVector {
     return new DuckDBTimestampTZVector(
       this.items.slice(offset, offset + length),
       this.validity.slice(offset, length),
-      this.vector
+      this.vector,
     );
   }
 }
@@ -3561,7 +3562,7 @@ export class DuckDBVarIntVector extends DuckDBVector<bigint> {
     validity: DuckDBValidity,
     vector: duckdb.Vector,
     itemOffset: number,
-    itemCount: number
+    itemCount: number,
   ) {
     super();
     this.dataView = dataView;
@@ -3574,13 +3575,13 @@ export class DuckDBVarIntVector extends DuckDBVector<bigint> {
   }
   static fromRawVector(
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
   ): DuckDBVarIntVector {
     const data = vectorData(vector, itemCount * 16);
     const dataView = new DataView(
       data.buffer,
       data.byteOffset,
-      data.byteLength
+      data.byteLength,
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
     return new DuckDBVarIntVector(dataView, validity, vector, 0, itemCount);
@@ -3611,7 +3612,7 @@ export class DuckDBVarIntVector extends DuckDBVector<bigint> {
           duckdb.vector_assign_string_element_len(
             this.vector,
             this.itemOffset + itemIndex,
-            getBytesFromVarInt(cachedItem)
+            getBytesFromVarInt(cachedItem),
           );
         }
         this.itemCacheDirty[itemIndex] = false;
@@ -3624,12 +3625,12 @@ export class DuckDBVarIntVector extends DuckDBVector<bigint> {
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 16,
-        length * 16
+        length * 16,
       ),
       this.validity.slice(offset, length),
       this.vector,
       offset,
-      length
+      length,
     );
   }
 }

@@ -1,4 +1,4 @@
-import duckdb, { Value } from '@duckdb/node-bindings';
+import duckdb, { Value } from '@databrainhq/node-bindings';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import {
@@ -148,7 +148,7 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       if (typeof input === 'string') {
         return duckdb.create_enum_value(
           type.toLogicalType().logical_type,
-          type.indexForValue(input)
+          type.indexForValue(input),
         );
       }
       throw new Error(`input is not a string`);
@@ -156,12 +156,12 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       if (input instanceof DuckDBListValue) {
         if (type.valueType.typeId === DuckDBTypeId.ANY) {
           throw new Error(
-            'Cannot create lists with item type of ANY. Specify a specific type.'
+            'Cannot create lists with item type of ANY. Specify a specific type.',
           );
         }
         return duckdb.create_list_value(
           type.valueType.toLogicalType().logical_type,
-          input.items.map((item) => createValue(type.valueType, item))
+          input.items.map((item) => createValue(type.valueType, item)),
         );
       }
       throw new Error(`input is not a DuckDBListValue`);
@@ -169,18 +169,18 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       if (input instanceof DuckDBStructValue) {
         if (
           type.entryTypes.find(
-            (entryType) => entryType.typeId === DuckDBTypeId.ANY
+            (entryType) => entryType.typeId === DuckDBTypeId.ANY,
           )
         ) {
           throw new Error(
-            'Cannot create structs with an entry type of ANY. Specify a specific type.'
+            'Cannot create structs with an entry type of ANY. Specify a specific type.',
           );
         }
         return duckdb.create_struct_value(
           type.toLogicalType().logical_type,
           Object.values(input.entries).map((value, i) =>
-            createValue(type.entryTypes[i], value)
-          )
+            createValue(type.entryTypes[i], value),
+          ),
         );
       }
       throw new Error(`input is not a DuckDBStructValue`);
@@ -188,18 +188,20 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       if (input instanceof DuckDBMapValue) {
         if (type.keyType.typeId === DuckDBTypeId.ANY) {
           throw new Error(
-            'Cannot create maps with key type of ANY. Specify a specific type.'
+            'Cannot create maps with key type of ANY. Specify a specific type.',
           );
         }
         if (type.valueType.typeId === DuckDBTypeId.ANY) {
           throw new Error(
-            'Cannot create maps with value type of ANY. Specify a specific type.'
+            'Cannot create maps with value type of ANY. Specify a specific type.',
           );
         }
         return duckdb.create_map_value(
           type.toLogicalType().logical_type,
           input.entries.map((entry) => createValue(type.keyType, entry.key)),
-          input.entries.map((entry) => createValue(type.valueType, entry.value))
+          input.entries.map((entry) =>
+            createValue(type.valueType, entry.value),
+          ),
         );
       }
       throw new Error(`input is not a DuckDBMapValue`);
@@ -207,12 +209,12 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       if (input instanceof DuckDBArrayValue) {
         if (type.valueType.typeId === DuckDBTypeId.ANY) {
           throw new Error(
-            'Cannot create arrays with item type of ANY. Specify a specific type.'
+            'Cannot create arrays with item type of ANY. Specify a specific type.',
           );
         }
         return duckdb.create_array_value(
           type.valueType.toLogicalType().logical_type,
-          input.items.map((item) => createValue(type.valueType, item))
+          input.items.map((item) => createValue(type.valueType, item)),
         );
       }
       throw new Error(`input is not a DuckDBArrayValue`);
@@ -231,7 +233,7 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
         return duckdb.create_union_value(
           type.toLogicalType().logical_type,
           tagIndex,
-          createValue(memberType, input.value)
+          createValue(memberType, input.value),
         );
       }
       throw new Error(`input is not a DuckDBUnionValue`);
@@ -252,7 +254,7 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       throw new Error(`input is not a DuckDBTimestampTZValue`);
     case DuckDBTypeId.ANY:
       throw new Error(
-        `Cannot create values of type ANY. Specify a specific type.`
+        `Cannot create values of type ANY. Specify a specific type.`,
       );
     case DuckDBTypeId.VARINT:
       if (typeof input === 'bigint') {

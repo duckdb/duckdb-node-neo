@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { Json } from './Json';
@@ -27,7 +27,7 @@ export abstract class BaseDuckDBType<T extends DuckDBTypeId> {
   }
   public toLogicalType(): DuckDBLogicalType {
     const logicalType = DuckDBLogicalType.create(
-      duckdb.create_logical_type(this.typeId as number as duckdb.Type)
+      duckdb.create_logical_type(this.typeId as number as duckdb.Type),
     );
     if (this.alias) {
       logicalType.alias = this.alias;
@@ -421,7 +421,7 @@ export class DuckDBDecimalType extends BaseDuckDBType<DuckDBTypeId.DECIMAL> {
 export function DECIMAL(
   width?: number,
   scale?: number,
-  alias?: string
+  alias?: string,
 ): DuckDBDecimalType {
   if (width === undefined) {
     return DuckDBDecimalType.default;
@@ -523,7 +523,7 @@ export class DuckDBEnumType extends BaseDuckDBType<DuckDBTypeId.ENUM> {
   public constructor(
     values: readonly string[],
     internalTypeId: DuckDBTypeId,
-    alias?: string
+    alias?: string,
   ) {
     super(DuckDBTypeId.ENUM, alias);
     this.values = values;
@@ -558,25 +558,25 @@ export class DuckDBEnumType extends BaseDuckDBType<DuckDBTypeId.ENUM> {
 }
 export function ENUM8(
   values: readonly string[],
-  alias?: string
+  alias?: string,
 ): DuckDBEnumType {
   return new DuckDBEnumType(values, DuckDBTypeId.UTINYINT, alias);
 }
 export function ENUM16(
   values: readonly string[],
-  alias?: string
+  alias?: string,
 ): DuckDBEnumType {
   return new DuckDBEnumType(values, DuckDBTypeId.USMALLINT, alias);
 }
 export function ENUM32(
   values: readonly string[],
-  alias?: string
+  alias?: string,
 ): DuckDBEnumType {
   return new DuckDBEnumType(values, DuckDBTypeId.UINTEGER, alias);
 }
 export function ENUM(
   values: readonly string[],
-  alias?: string
+  alias?: string,
 ): DuckDBEnumType {
   if (values.length < 256) {
     return ENUM8(values, alias);
@@ -586,7 +586,7 @@ export function ENUM(
     return ENUM32(values, alias);
   } else {
     throw new Error(
-      `ENUM types cannot have more than 4294967295 values; received ${values.length}`
+      `ENUM types cannot have more than 4294967295 values; received ${values.length}`,
     );
   }
 }
@@ -602,7 +602,7 @@ export class DuckDBListType extends BaseDuckDBType<DuckDBTypeId.LIST> {
   }
   public override toLogicalType(): DuckDBLogicalType {
     const logicalType = DuckDBLogicalType.createList(
-      this.valueType.toLogicalType()
+      this.valueType.toLogicalType(),
     );
     if (this.alias) {
       logicalType.alias = this.alias;
@@ -628,7 +628,7 @@ export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
   public constructor(
     entryNames: readonly string[],
     entryTypes: readonly DuckDBType[],
-    alias?: string
+    alias?: string,
   ) {
     super(DuckDBTypeId.STRUCT, alias);
     if (entryNames.length !== entryTypes.length) {
@@ -656,7 +656,7 @@ export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
     const parts: string[] = [];
     for (let i = 0; i < this.entryNames.length; i++) {
       parts.push(
-        `${quotedIdentifier(this.entryNames[i])} ${this.entryTypes[i]}`
+        `${quotedIdentifier(this.entryNames[i])} ${this.entryTypes[i]}`,
       );
     }
     return `STRUCT(${parts.join(', ')})`;
@@ -664,7 +664,7 @@ export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
   public override toLogicalType(): DuckDBLogicalType {
     const logicalType = DuckDBLogicalType.createStruct(
       this.entryNames,
-      this.entryTypes.map((t) => t.toLogicalType())
+      this.entryTypes.map((t) => t.toLogicalType()),
     );
     if (this.alias) {
       logicalType.alias = this.alias;
@@ -675,14 +675,14 @@ export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
     return {
       typeId: this.typeId,
       entryNames: [...this.entryNames],
-      entryTypes: this.entryTypes.map(t => t.toJson()),
+      entryTypes: this.entryTypes.map((t) => t.toJson()),
       ...(this.alias ? { alias: this.alias } : {}),
     };
   }
 }
 export function STRUCT(
   entries: Record<string, DuckDBType>,
-  alias?: string
+  alias?: string,
 ): DuckDBStructType {
   const entryNames = Object.keys(entries);
   const entryTypes = Object.values(entries);
@@ -695,7 +695,7 @@ export class DuckDBMapType extends BaseDuckDBType<DuckDBTypeId.MAP> {
   public constructor(
     keyType: DuckDBType,
     valueType: DuckDBType,
-    alias?: string
+    alias?: string,
   ) {
     super(DuckDBTypeId.MAP, alias);
     this.keyType = keyType;
@@ -707,7 +707,7 @@ export class DuckDBMapType extends BaseDuckDBType<DuckDBTypeId.MAP> {
   public override toLogicalType(): DuckDBLogicalType {
     const logicalType = DuckDBLogicalType.createMap(
       this.keyType.toLogicalType(),
-      this.valueType.toLogicalType()
+      this.valueType.toLogicalType(),
     );
     if (this.alias) {
       logicalType.alias = this.alias;
@@ -726,7 +726,7 @@ export class DuckDBMapType extends BaseDuckDBType<DuckDBTypeId.MAP> {
 export function MAP(
   keyType: DuckDBType,
   valueType: DuckDBType,
-  alias?: string
+  alias?: string,
 ): DuckDBMapType {
   return new DuckDBMapType(keyType, valueType, alias);
 }
@@ -745,7 +745,7 @@ export class DuckDBArrayType extends BaseDuckDBType<DuckDBTypeId.ARRAY> {
   public override toLogicalType(): DuckDBLogicalType {
     const logicalType = DuckDBLogicalType.createArray(
       this.valueType.toLogicalType(),
-      this.length
+      this.length,
     );
     if (this.alias) {
       logicalType.alias = this.alias;
@@ -764,7 +764,7 @@ export class DuckDBArrayType extends BaseDuckDBType<DuckDBTypeId.ARRAY> {
 export function ARRAY(
   valueType: DuckDBType,
   length: number,
-  alias?: string
+  alias?: string,
 ): DuckDBArrayType {
   return new DuckDBArrayType(valueType, length, alias);
 }
@@ -793,7 +793,7 @@ export class DuckDBUnionType extends BaseDuckDBType<DuckDBTypeId.UNION> {
   public constructor(
     memberTags: readonly string[],
     memberTypes: readonly DuckDBType[],
-    alias?: string
+    alias?: string,
   ) {
     super(DuckDBTypeId.UNION, alias);
     if (memberTags.length !== memberTypes.length) {
@@ -821,7 +821,7 @@ export class DuckDBUnionType extends BaseDuckDBType<DuckDBTypeId.UNION> {
     const parts: string[] = [];
     for (let i = 0; i < this.memberTags.length; i++) {
       parts.push(
-        `${quotedIdentifier(this.memberTags[i])} ${this.memberTypes[i]}`
+        `${quotedIdentifier(this.memberTags[i])} ${this.memberTypes[i]}`,
       );
     }
     return `UNION(${parts.join(', ')})`;
@@ -829,7 +829,7 @@ export class DuckDBUnionType extends BaseDuckDBType<DuckDBTypeId.UNION> {
   public override toLogicalType(): DuckDBLogicalType {
     const logicalType = DuckDBLogicalType.createUnion(
       this.memberTags,
-      this.memberTypes.map((t) => t.toLogicalType())
+      this.memberTypes.map((t) => t.toLogicalType()),
     );
     if (this.alias) {
       logicalType.alias = this.alias;
@@ -840,14 +840,14 @@ export class DuckDBUnionType extends BaseDuckDBType<DuckDBTypeId.UNION> {
     return {
       typeId: this.typeId,
       memberTags: [...this.memberTags],
-      memberTypes: this.memberTypes.map(t => t.toJson()),
+      memberTypes: this.memberTypes.map((t) => t.toJson()),
       ...(this.alias ? { alias: this.alias } : {}),
     };
   }
 }
 export function UNION(
   members: Record<string, DuckDBType>,
-  alias?: string
+  alias?: string,
 ): DuckDBUnionType {
   const memberTags = Object.keys(members);
   const memberTypes = Object.values(members);

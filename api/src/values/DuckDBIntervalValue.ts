@@ -1,4 +1,4 @@
-import { Interval } from '@duckdb/node-bindings';
+import { Interval } from '@databrainhq/node-bindings';
 import { getDuckDBIntervalString } from '../conversion/dateTimeStringConversion';
 
 export class DuckDBIntervalValue implements Interval {
@@ -17,6 +17,10 @@ export class DuckDBIntervalValue implements Interval {
   }
 }
 
-export function intervalValue(months: number, days: number, micros: bigint): DuckDBIntervalValue {
+export function intervalValue(
+  months: number,
+  days: number,
+  micros: bigint,
+): DuckDBIntervalValue {
   return new DuckDBIntervalValue(months, days, micros);
 }

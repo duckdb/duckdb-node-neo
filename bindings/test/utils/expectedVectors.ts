@@ -12,7 +12,7 @@ import {
 export function array(
   itemCount: number,
   validity: boolean[] | null,
-  child: ExpectedVector
+  child: ExpectedVector,
 ): ExpectedArrayVector {
   return {
     kind: 'array',
@@ -25,7 +25,7 @@ export function array(
 export function data(
   itemBytes: number,
   validity: boolean[] | null,
-  values: any[]
+  values: any[],
 ): ExpectedDataVector {
   return {
     kind: 'data',
@@ -39,7 +39,7 @@ export function list(
   validity: boolean[] | null,
   entries: (ExpectedListEntry | null)[],
   childItemCount: number,
-  child: ExpectedVector
+  child: ExpectedVector,
 ): ExpectedListVector {
   return {
     kind: 'list',
@@ -55,7 +55,7 @@ export function map(
   entries: (ExpectedListEntry | null)[],
   childItemCount: number,
   keys: ExpectedVector,
-  values: ExpectedVector
+  values: ExpectedVector,
 ): ExpectedMapVector {
   return {
     kind: 'map',
@@ -70,7 +70,7 @@ export function map(
 export function struct(
   itemCount: number,
   validity: boolean[] | null,
-  children: ExpectedVector[]
+  children: ExpectedVector[],
 ): ExpectedStructVector {
   return {
     kind: 'struct',

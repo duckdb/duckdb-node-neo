@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 
 export function createConfig(options?: Record<string, string>): duckdb.Config {
   const config = duckdb.create_config();

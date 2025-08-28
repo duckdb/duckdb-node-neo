@@ -1,4 +1,4 @@
-import duckdb from '@duckdb/node-bindings';
+import duckdb from '@databrainhq/node-bindings';
 import { DuckDBInstance } from './DuckDBInstance';
 import { createConfig } from './createConfig';
 
@@ -11,7 +11,7 @@ export class DuckDBInstanceCache {
 
   public async getOrCreateInstance(
     path?: string,
-    options?: Record<string, string>
+    options?: Record<string, string>,
   ): Promise<DuckDBInstance> {
     const config = createConfig(options);
     const db = await duckdb.get_or_create_from_cache(this.cache, path, config);
