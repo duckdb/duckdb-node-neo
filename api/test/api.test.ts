@@ -2406,7 +2406,7 @@ ORDER BY name
   });
 
   describe('SQL utility functions', () => {
-    test('quotedString', async () => {
+    test('quotedString', () => {
       // Basic string
       assert.equal(quotedString('hello'), "'hello'");
 
@@ -2425,7 +2425,7 @@ ORDER BY name
       assert.equal(quotedString('tab\there'), "'tab\there'");
     });
 
-    test('quotedIdentifier', async () => {
+    test('quotedIdentifier', () => {
       // Basic identifier
       assert.equal(quotedIdentifier('table_name'), '"table_name"');
 
