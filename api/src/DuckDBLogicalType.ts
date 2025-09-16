@@ -3,6 +3,7 @@ import {
   DuckDBAnyType,
   DuckDBArrayType,
   DuckDBBigIntType,
+  DuckDBBigNumType,
   DuckDBBitType,
   DuckDBBlobType,
   DuckDBBooleanType,
@@ -36,7 +37,6 @@ import {
   DuckDBUUIDType,
   DuckDBUnionType,
   DuckDBVarCharType,
-  DuckDBVarIntType,
 } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 
@@ -219,8 +219,8 @@ export class DuckDBLogicalType {
         return DuckDBTimestampTZType.create(alias);
       case DuckDBTypeId.ANY:
         return DuckDBAnyType.create(alias);
-      case DuckDBTypeId.VARINT:
-        return DuckDBVarIntType.create(alias);
+      case DuckDBTypeId.BIGNUM:
+        return DuckDBBigNumType.create(alias);
       case DuckDBTypeId.SQLNULL:
         return DuckDBSQLNullType.create(alias);
       default:

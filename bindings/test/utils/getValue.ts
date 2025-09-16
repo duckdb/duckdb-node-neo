@@ -189,7 +189,7 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
     case duckdb.Type.TIMESTAMP_TZ:
       return getInt64(dv, index * 8);
 
-    case duckdb.Type.VARINT:
+    case duckdb.Type.BIGNUM:
       return getBuffer(dv, index * 16);
     
     case duckdb.Type.SQLNULL:

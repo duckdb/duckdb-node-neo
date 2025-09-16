@@ -1,6 +1,7 @@
 import {
   ARRAY,
   BIGINT,
+  BIGNUM,
   BIT,
   bitValue,
   BLOB,
@@ -35,7 +36,6 @@ import {
   UTINYINT,
   UUID,
   VARCHAR,
-  VARINT,
 } from '../../src';
 import { bytesFromString } from '../../src/conversion/bytesFromString';
 
@@ -121,10 +121,10 @@ export function createTestJSData(): ColumnData[] {
       [UBIGINT.min, UBIGINT.max, null]
     ),
     col(
-      'varint',
-      VARINT,
-      [String(VARINT.min), String(VARINT.max), 'null'],
-      [VARINT.min, VARINT.max, null]
+      'bignum',
+      BIGNUM,
+      [String(BIGNUM.min), String(BIGNUM.max), 'null'],
+      [BIGNUM.min, BIGNUM.max, null]
     ),
     col(
       'date',

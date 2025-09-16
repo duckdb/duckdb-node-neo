@@ -15,6 +15,7 @@ import {
   ALT,
   ARRAY,
   BIGINT,
+  BIGNUM,
   BIT,
   BLOB,
   BOOLEAN,
@@ -47,7 +48,6 @@ import {
   UTINYINT,
   UUID,
   VARCHAR,
-  VARINT,
 } from './utils/expectedLogicalTypes';
 
 suite('values', () => {
@@ -117,14 +117,14 @@ suite('values', () => {
     expectLogicalType(duckdb.get_value_type(uhugeint_value), UHUGEINT);
     expect(duckdb.get_uhugeint(uhugeint_value)).toBe(input);
   });
-  test('varint', () => {
+  test('bignum', () => {
     const input = -(
       ((2n ** 10n + 11n) * 2n ** 64n + (2n ** 9n + 7n)) * 2n ** 64n +
       (2n ** 8n + 5n)
     );
-    const varint_value = duckdb.create_varint(input);
-    expectLogicalType(duckdb.get_value_type(varint_value), VARINT);
-    expect(duckdb.get_varint(varint_value)).toBe(input);
+    const bignum_value = duckdb.create_bignum(input);
+    expectLogicalType(duckdb.get_value_type(bignum_value), BIGNUM);
+    expect(duckdb.get_bignum(bignum_value)).toBe(input);
   });
   test('decimal_4_1', () => {
     const input: Decimal = { width: 4, scale: 1, value: 9999n };

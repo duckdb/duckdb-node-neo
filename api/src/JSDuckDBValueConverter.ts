@@ -64,7 +64,7 @@ const JSConvertersByTypeId: Record<DuckDBTypeId, DuckDBValueConverter<JS>> = {
   [DuckDBTypeId.TIME_TZ]: objectFromTimeTZValue,
   [DuckDBTypeId.TIMESTAMP_TZ]: dateFromTimestampTZValue,
   [DuckDBTypeId.ANY]: unsupportedConverter,
-  [DuckDBTypeId.VARINT]: bigintFromBigIntValue,
+  [DuckDBTypeId.BIGNUM]: bigintFromBigIntValue,
   [DuckDBTypeId.SQLNULL]: nullConverter,
 };
 

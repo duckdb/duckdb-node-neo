@@ -275,7 +275,7 @@ Napi::BigInt MakeBigIntFromUHugeInt(Napi::Env env, duckdb_uhugeint uhugeint) {
   return Napi::BigInt::New(env, sign_bit, word_count, words);
 }
 
-duckdb_varint GetVarIntFromBigInt(Napi::Env env, Napi::BigInt bigint) {
+duckdb_bignum GetBigNumFromBigInt(Napi::Env env, Napi::BigInt bigint) {
   int sign_bit;
   size_t word_count = bigint.WordCount();
   size_t byte_count = word_count * 8;
@@ -293,13 +293,13 @@ duckdb_varint GetVarIntFromBigInt(Napi::Env env, Napi::BigInt bigint) {
   return { data, size, is_negative };
 }
 
-Napi::BigInt MakeBigIntFromVarInt(Napi::Env env, duckdb_varint varint) {
-  int sign_bit = varint.is_negative ? 1 : 0;
-  size_t word_count = varint.size / 8;
-  uint8_t *data = static_cast<uint8_t*>(duckdb_malloc(varint.size));
+Napi::BigInt MakeBigIntFromBigNum(Napi::Env env, duckdb_bignum bignum) {
+  int sign_bit = bignum.is_negative ? 1 : 0;
+  size_t word_count = bignum.size / 8;
+  uint8_t *data = static_cast<uint8_t*>(duckdb_malloc(bignum.size));
   // convert big-endian to little-endian
-  for (size_t i = 0; i < varint.size; i++) {
-    data[i] = varint.data[varint.size - 1 - i];
+  for (size_t i = 0; i < bignum.size; i++) {
+    data[i] = bignum.data[bignum.size - 1 - i];
   }
   uint64_t *words = reinterpret_cast<uint64_t*>(data);
   auto bigint = Napi::BigInt::New(env, sign_bit, word_count, words);
@@ -1338,7 +1338,7 @@ Napi::Object CreateTypeEnum(Napi::Env env) {
 	DefineEnumMember(typeEnum, "TIME_TZ", 30);
 	DefineEnumMember(typeEnum, "TIMESTAMP_TZ", 31);
   DefineEnumMember(typeEnum, "ANY", 34);
-  DefineEnumMember(typeEnum, "VARINT", 35);
+  DefineEnumMember(typeEnum, "BIGNUM", 35);
   DefineEnumMember(typeEnum, "SQLNULL", 36);
   return typeEnum;
 }
@@ -1470,7 +1470,7 @@ public:
       InstanceMethod("create_int64", &DuckDBNodeAddon::create_int64),
       InstanceMethod("create_hugeint", &DuckDBNodeAddon::create_hugeint),
       InstanceMethod("create_uhugeint", &DuckDBNodeAddon::create_uhugeint),
-      InstanceMethod("create_varint", &DuckDBNodeAddon::create_varint),
+      InstanceMethod("create_bignum", &DuckDBNodeAddon::create_bignum),
       InstanceMethod("create_decimal", &DuckDBNodeAddon::create_decimal),
       InstanceMethod("create_float", &DuckDBNodeAddon::create_float),
       InstanceMethod("create_double", &DuckDBNodeAddon::create_double),
@@ -1497,7 +1497,7 @@ public:
       InstanceMethod("get_uint64", &DuckDBNodeAddon::get_uint64),
       InstanceMethod("get_hugeint", &DuckDBNodeAddon::get_hugeint),
       InstanceMethod("get_uhugeint", &DuckDBNodeAddon::get_uhugeint),
-      InstanceMethod("get_varint", &DuckDBNodeAddon::get_varint),
+      InstanceMethod("get_bignum", &DuckDBNodeAddon::get_bignum),
       InstanceMethod("get_decimal", &DuckDBNodeAddon::get_decimal),
       InstanceMethod("get_float", &DuckDBNodeAddon::get_float),
       InstanceMethod("get_double", &DuckDBNodeAddon::get_double),
@@ -2865,14 +2865,14 @@ private:
     return CreateExternalForValue(env, value);
   }
 
-  // DUCKDB_C_API duckdb_value duckdb_create_varint(duckdb_varint input);
-  // function create_varint(input: bigint): Value
-  Napi::Value create_varint(const Napi::CallbackInfo& info) {
+  // DUCKDB_C_API duckdb_value duckdb_create_bignum(duckdb_bignum input);
+  // function create_bignum(input: bigint): Value
+  Napi::Value create_bignum(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto input_bigint = info[0].As<Napi::BigInt>();
-    auto varint = GetVarIntFromBigInt(env, input_bigint);
-    auto value = duckdb_create_varint(varint);
-    duckdb_free(varint.data);
+    auto bignum = GetBigNumFromBigInt(env, input_bigint);
+    auto value = duckdb_create_bignum(bignum);
+    duckdb_free(bignum.data);
     return CreateExternalForValue(env, value);
   }
 
@@ -3116,14 +3116,14 @@ private:
     return MakeBigIntFromUHugeInt(env, uhugeint);
   }
 
-  // DUCKDB_C_API duckdb_varint duckdb_get_varint(duckdb_value val);
-  // function get_varint(value: Value): bigint
-  Napi::Value get_varint(const Napi::CallbackInfo& info) {
+  // DUCKDB_C_API duckdb_bignum duckdb_get_bignum(duckdb_value val);
+  // function get_bignum(value: Value): bigint
+  Napi::Value get_bignum(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto value = GetValueFromExternal(env, info[0]);
-    auto varint = duckdb_get_varint(value);
-    auto bigint = MakeBigIntFromVarInt(env, varint);
-    duckdb_free(varint.data);
+    auto bignum = duckdb_get_bignum(value);
+    auto bigint = MakeBigIntFromBigNum(env, bignum);
+    duckdb_free(bignum.data);
     return bigint;
   }
 

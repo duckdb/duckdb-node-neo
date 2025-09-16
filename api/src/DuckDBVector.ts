@@ -4,6 +4,7 @@ import { DuckDBLogicalType } from './DuckDBLogicalType';
 import {
   DuckDBArrayType,
   DuckDBBigIntType,
+  DuckDBBigNumType,
   DuckDBBitType,
   DuckDBBlobType,
   DuckDBBooleanType,
@@ -36,7 +37,6 @@ import {
   DuckDBUUIDType,
   DuckDBUnionType,
   DuckDBVarCharType,
-  DuckDBVarIntType,
 } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import {
@@ -147,7 +147,7 @@ function getBuffer(dataView: DataView, offset: number): Buffer {
   return Buffer.from(stringBytes);
 }
 
-function getVarIntFromBytes(bytes: Uint8Array): bigint {
+function getBigNumFromBytes(bytes: Uint8Array): bigint {
   const firstByte = bytes[0];
   const positive = (firstByte & 0x80) > 0;
   const uint64Mask = positive ? 0n : 0xffffffffffffffffn;
@@ -171,31 +171,31 @@ function getVarIntFromBytes(bytes: Uint8Array): bigint {
   return positive ? result : -result;
 }
 
-function getBytesFromVarInt(varint: bigint): Uint8Array {
+function getBytesFromBigNum(bignum: bigint): Uint8Array {
   const numberBytes: number[] = []; // little endian
-  const negative = varint < 0;
-  if (varint === 0n) {
+  const negative = bignum < 0;
+  if (bignum === 0n) {
     numberBytes.push(0);
   } else {
-    let vi = varint < 0 ? -varint : varint;
+    let vi = bignum < 0 ? -bignum : bignum;
     while (vi !== 0n) {
       numberBytes.push(Number(BigInt.asUintN(8, vi)));
       vi >>= 8n;
     }
   }
-  const varIntBytes = new Uint8Array(3 + numberBytes.length); // big endian
+  const bigNumBytes = new Uint8Array(3 + numberBytes.length); // big endian
   let header = 0x800000 | numberBytes.length;
   if (negative) {
     header = ~header;
   }
-  varIntBytes[0] = 0xff & (header >> 16);
-  varIntBytes[1] = 0xff & (header >> 8);
-  varIntBytes[2] = 0xff & header;
+  bigNumBytes[0] = 0xff & (header >> 16);
+  bigNumBytes[1] = 0xff & (header >> 8);
+  bigNumBytes[2] = 0xff & header;
   for (let i = 0; i < numberBytes.length; i++) {
     const byte = numberBytes[numberBytes.length - 1 - i];
-    varIntBytes[3 + i] = negative ? ~byte : byte;
+    bigNumBytes[3 + i] = negative ? ~byte : byte;
   }
-  return varIntBytes;
+  return bigNumBytes;
 }
 
 function getBoolean1(dataView: DataView, offset: number): boolean {
@@ -638,8 +638,8 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
         return DuckDBTimestampTZVector.fromRawVector(vector, itemCount);
       case DuckDBTypeId.ANY:
         throw new Error(`Invalid vector type: ANY`);
-      case DuckDBTypeId.VARINT:
-        return DuckDBVarIntVector.fromRawVector(vector, itemCount);
+      case DuckDBTypeId.BIGNUM:
+        return DuckDBBigNumVector.fromRawVector(vector, itemCount);
       case DuckDBTypeId.SQLNULL:
         throw new Error(`Invalid vector type: SQLNULL`);
       default:
@@ -3548,7 +3548,7 @@ export class DuckDBTimestampTZVector extends DuckDBVector<DuckDBTimestampTZValue
   }
 }
 
-export class DuckDBVarIntVector extends DuckDBVector<bigint> {
+export class DuckDBBigNumVector extends DuckDBVector<bigint> {
   private readonly dataView: DataView;
   private readonly validity: DuckDBValidity;
   private readonly vector: duckdb.Vector;
@@ -3575,7 +3575,7 @@ export class DuckDBVarIntVector extends DuckDBVector<bigint> {
   static fromRawVector(
     vector: duckdb.Vector,
     itemCount: number
-  ): DuckDBVarIntVector {
+  ): DuckDBBigNumVector {
     const data = vectorData(vector, itemCount * 16);
     const dataView = new DataView(
       data.buffer,
@@ -3583,10 +3583,10 @@ export class DuckDBVarIntVector extends DuckDBVector<bigint> {
       data.byteLength
     );
     const validity = DuckDBValidity.fromVector(vector, itemCount);
-    return new DuckDBVarIntVector(dataView, validity, vector, 0, itemCount);
+    return new DuckDBBigNumVector(dataView, validity, vector, 0, itemCount);
   }
-  public override get type(): DuckDBVarIntType {
-    return DuckDBVarIntType.instance;
+  public override get type(): DuckDBBigNumType {
+    return DuckDBBigNumType.instance;
   }
   public override get itemCount(): number {
     return this._itemCount;
@@ -3596,7 +3596,7 @@ export class DuckDBVarIntVector extends DuckDBVector<bigint> {
       return null;
     }
     const bytes = getStringBytes(this.dataView, itemIndex * 16);
-    return bytes ? getVarIntFromBytes(bytes) : null;
+    return bytes ? getBigNumFromBytes(bytes) : null;
   }
   public override setItem(itemIndex: number, value: bigint | null) {
     this.itemCache[itemIndex] = value;
@@ -3611,7 +3611,7 @@ export class DuckDBVarIntVector extends DuckDBVector<bigint> {
           duckdb.vector_assign_string_element_len(
             this.vector,
             this.itemOffset + itemIndex,
-            getBytesFromVarInt(cachedItem)
+            getBytesFromBigNum(cachedItem)
           );
         }
         this.itemCacheDirty[itemIndex] = false;
@@ -3619,8 +3619,8 @@ export class DuckDBVarIntVector extends DuckDBVector<bigint> {
     }
     this.validity.flush(this.vector);
   }
-  public override slice(offset: number, length: number): DuckDBVarIntVector {
-    return new DuckDBVarIntVector(
+  public override slice(offset: number, length: number): DuckDBBigNumVector {
+    return new DuckDBBigNumVector(
       new DataView(
         this.dataView.buffer,
         this.dataView.byteOffset + offset * 16,

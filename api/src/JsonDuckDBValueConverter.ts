@@ -56,7 +56,7 @@ const JsonConvertersByTypeId: Record<
   [DuckDBTypeId.TIME_TZ]: stringFromValue,
   [DuckDBTypeId.TIMESTAMP_TZ]: stringFromValue,
   [DuckDBTypeId.ANY]: unsupportedConverter,
-  [DuckDBTypeId.VARINT]: stringFromValue,
+  [DuckDBTypeId.BIGNUM]: stringFromValue,
   [DuckDBTypeId.SQLNULL]: nullConverter,
 };
 

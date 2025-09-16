@@ -4,6 +4,7 @@ import {
   ANY,
   ARRAY,
   BIGINT,
+  BIGNUM,
   BIT,
   BLOB,
   BOOLEAN,
@@ -13,6 +14,7 @@ import {
   DateParts,
   DuckDBArrayVector,
   DuckDBBigIntVector,
+  DuckDBBigNumVector,
   DuckDBBitVector,
   DuckDBBlobVector,
   DuckDBBooleanVector,
@@ -63,7 +65,6 @@ import {
   DuckDBUnionVector,
   DuckDBValue,
   DuckDBVarCharVector,
-  DuckDBVarIntVector,
   DuckDBVector,
   ENUM,
   FLOAT,
@@ -96,7 +97,6 @@ import {
   UTINYINT,
   UUID,
   VARCHAR,
-  VARINT,
   arrayValue,
   bitValue,
   blobValue,
@@ -377,7 +377,7 @@ describe('api', () => {
     assert.equal(TIMETZ.toString(), 'TIME WITH TIME ZONE');
     assert.equal(TIMESTAMPTZ.toString(), 'TIMESTAMP WITH TIME ZONE');
     assert.equal(ANY.toString(), 'ANY');
-    assert.equal(VARINT.toString(), 'VARINT');
+    assert.equal(BIGNUM.toString(), 'BIGNUM');
     assert.equal(SQLNULL.toString(), 'SQLNULL');
   });
   test('should support creating, connecting, running a basic query, and reading results', async () => {
@@ -436,7 +436,7 @@ describe('api', () => {
         { name: 'bit', type: BIT },
         { name: 'timetz', type: TIMETZ },
         { name: 'timestamptz', type: TIMESTAMPTZ },
-        { name: 'varint', type: VARINT },
+        { name: 'bignum', type: BIGNUM },
         { name: 'null_value', type: SQLNULL },
       ];
 
@@ -488,7 +488,7 @@ describe('api', () => {
       prepared.bindBit(i++, bitValue('0010001001011100010101011010111'));
       prepared.bindTimeTZ(i++, TIMETZ.max);
       prepared.bindTimestampTZ(i++, TIMESTAMPTZ.max);
-      prepared.bindVarInt(i++, VARINT.max);
+      prepared.bindBigNum(i++, BIGNUM.max);
       prepared.bindNull(i++);
 
       for (let i = 0; i < params.length; i++) {
@@ -588,7 +588,7 @@ describe('api', () => {
         ]);
         assertValues(chunk, i++, DuckDBTimeTZVector, [TIMETZ.max]);
         assertValues(chunk, i++, DuckDBTimestampTZVector, [TIMESTAMPTZ.max]);
-        assertValues(chunk, i++, DuckDBVarIntVector, [VARINT.max]);
+        assertValues(chunk, i++, DuckDBBigNumVector, [BIGNUM.max]);
         assertValues<number, DuckDBIntegerVector>(
           chunk,
           i++,
@@ -918,7 +918,7 @@ ORDER BY name
         assertValues(chunk, 8, DuckDBUSmallIntVector, testAllTypesColumns[8]);
         assertValues(chunk, 9, DuckDBUIntegerVector, testAllTypesColumns[9]);
         assertValues(chunk, 10, DuckDBUBigIntVector, testAllTypesColumns[10]);
-        assertValues(chunk, 11, DuckDBVarIntVector, testAllTypesColumns[11]);
+        assertValues(chunk, 11, DuckDBBigNumVector, testAllTypesColumns[11]);
         assertValues(chunk, 12, DuckDBDateVector, testAllTypesColumns[12]);
         assertValues(chunk, 13, DuckDBTimeVector, testAllTypesColumns[13]);
         assertValues(chunk, 14, DuckDBTimestampVector, testAllTypesColumns[14]);
@@ -1988,7 +1988,7 @@ ORDER BY name
         assertValues(resultChunk, 8, DuckDBUSmallIntVector, columns[8]);
         assertValues(resultChunk, 9, DuckDBUIntegerVector, columns[9]);
         assertValues(resultChunk, 10, DuckDBUBigIntVector, columns[10]);
-        assertValues(resultChunk, 11, DuckDBVarIntVector, columns[11]);
+        assertValues(resultChunk, 11, DuckDBBigNumVector, columns[11]);
         assertValues(resultChunk, 12, DuckDBDateVector, columns[12]);
         assertValues(resultChunk, 13, DuckDBTimeVector, columns[13]);
         assertValues(resultChunk, 14, DuckDBTimestampVector, columns[14]);
@@ -2094,7 +2094,7 @@ ORDER BY name
         assertValues(resultChunk, 8, DuckDBUSmallIntVector, columns[8]);
         assertValues(resultChunk, 9, DuckDBUIntegerVector, columns[9]);
         assertValues(resultChunk, 10, DuckDBUBigIntVector, columns[10]);
-        assertValues(resultChunk, 11, DuckDBVarIntVector, columns[11]);
+        assertValues(resultChunk, 11, DuckDBBigNumVector, columns[11]);
         assertValues(resultChunk, 12, DuckDBDateVector, columns[12]);
         assertValues(resultChunk, 13, DuckDBTimeVector, columns[13]);
         assertValues(resultChunk, 14, DuckDBTimestampVector, columns[14]);
