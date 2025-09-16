@@ -5,11 +5,11 @@ import { data } from './utils/expectedVectors';
 
 suite('config', () => {
   test('config_count', () => {
-    expect(duckdb.config_count()).toBe(184);
+    expect(duckdb.config_count()).toBe(198);
   });
   test('get_config_flag', () => {
     expect(duckdb.get_config_flag(0).name).toBe('access_mode');
-    expect(duckdb.get_config_flag(duckdb.config_count() - 1).name).toBe('unsafe_enable_version_guessing');
+    expect(duckdb.get_config_flag(duckdb.config_count() - 1).name).toBe('variant_legacy_encoding');
   });
   test('get_config_flag out of bounds', () => {
     expect(() => duckdb.get_config_flag(-1)).toThrowError(/^Config option not found$/);

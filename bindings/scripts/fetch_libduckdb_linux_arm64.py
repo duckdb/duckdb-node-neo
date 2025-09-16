@@ -5,7 +5,7 @@ zip_url = "https://github.com/duckdb/duckdb/releases/download/v1.4.0/libduckdb-l
 output_dir = os.path.join(os.path.dirname(__file__), "..", "libduckdb")
 files = [
   "duckdb.h",
-  "libduckdb.so",
+  "libduckdb.so.1.4",
 ]
 
 fetch_libduckdb(zip_url, output_dir, files)
