@@ -47,7 +47,7 @@
         ['OS=="linux" and target_arch=="x64"', {
           'link_settings': {
             'libraries': [
-              '-lduckdb.so.1.4',
+              '-l:libduckdb.so.1.4',
               '-L<(module_root_dir)/libduckdb',
               '-Wl,-rpath,\'$$ORIGIN\'',
             ],
@@ -62,7 +62,7 @@
         ['OS=="linux" and target_arch=="arm64"', {
           'link_settings': {
             'libraries': [
-              '-lduckdb.so.1.4',
+              '-l:libduckdb.so.1.4',
               '-L<(module_root_dir)/libduckdb',
               '-Wl,-rpath,\'$$ORIGIN\'',
             ],
