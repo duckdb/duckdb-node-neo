@@ -1,6 +1,7 @@
 build
 libduckdb
 pkgs/**/*.node
+pkgs/**/*.so
 pkgs/**/*.so.*
 pkgs/**/*.dylib
 pkgs/**/*.dll
