@@ -47,14 +47,14 @@
         ['OS=="linux" and target_arch=="x64"', {
           'link_settings': {
             'libraries': [
-              '-lduckdb',
+              '-l:libduckdb.so.1.4',
               '-L<(module_root_dir)/libduckdb',
               '-Wl,-rpath,\'$$ORIGIN\'',
             ],
           },
           'copies': [
             {
-              'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.so.1.4'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
             },
           ],
@@ -62,14 +62,14 @@
         ['OS=="linux" and target_arch=="arm64"', {
           'link_settings': {
             'libraries': [
-              '-lduckdb',
+              '-l:libduckdb.so.1.4',
               '-L<(module_root_dir)/libduckdb',
               '-Wl,-rpath,\'$$ORIGIN\'',
             ],
           },
           'copies': [
             {
-              'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.so.1.4'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
             },
           ],
@@ -81,14 +81,14 @@
           },
           'link_settings': {
             'libraries': [
-              '-lduckdb',
+              '-lduckdb.1.4',
               '-L<(module_root_dir)/libduckdb',
               '-Wl,-rpath,@loader_path',
             ],
           },
           'copies': [
             {
-              'files': ['<(module_root_dir)/libduckdb/libduckdb.dylib'],
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.1.4.dylib'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-darwin-arm64',
             },
           ],
@@ -100,14 +100,14 @@
           },
           'link_settings': {
             'libraries': [
-              '-lduckdb',
+              '-lduckdb.1.4',
               '-L<(module_root_dir)/libduckdb',
               '-Wl,-rpath,@loader_path',
             ],
           },
           'copies': [
             {
-              'files': ['<(module_root_dir)/libduckdb/libduckdb.dylib'],
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.1.4.dylib'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-darwin-x64',
             },
           ],

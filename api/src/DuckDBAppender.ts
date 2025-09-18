@@ -3,6 +3,7 @@ import { createValue } from './createValue';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import {
+  BIGNUM,
   BIT,
   DECIMAL,
   DuckDBArrayType,
@@ -18,7 +19,6 @@ import {
   TIMESTAMPTZ,
   TIMETZ,
   UUID,
-  VARINT,
 } from './DuckDBType';
 import { typeForValue } from './typeForValue';
 import {
@@ -188,8 +188,8 @@ export class DuckDBAppender {
   public appendBit(value: DuckDBBitValue) {
     this.appendValue(value, BIT);
   }
-  public appendVarInt(value: bigint) {
-    this.appendValue(value, VARINT);
+  public appendBigNum(value: bigint) {
+    this.appendValue(value, BIGNUM);
   }
   public appendNull() {
     duckdb.append_null(this.appender);

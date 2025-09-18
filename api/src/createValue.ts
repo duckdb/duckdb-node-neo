@@ -254,9 +254,9 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       throw new Error(
         `Cannot create values of type ANY. Specify a specific type.`
       );
-    case DuckDBTypeId.VARINT:
+    case DuckDBTypeId.BIGNUM:
       if (typeof input === 'bigint') {
-        return duckdb.create_varint(input);
+        return duckdb.create_bignum(input);
       }
       throw new Error(`input is not a bigint`);
     case DuckDBTypeId.SQLNULL:

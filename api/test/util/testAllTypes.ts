@@ -2,6 +2,7 @@ import {
   ARRAY,
   arrayValue,
   BIGINT,
+  BIGNUM,
   BIT,
   bitValue,
   BLOB,
@@ -49,7 +50,6 @@ import {
   UTINYINT,
   UUID,
   VARCHAR,
-  VARINT,
 } from '../../src';
 
 const BI_10_8 = 100000000n;
@@ -166,11 +166,11 @@ export function createTestAllTypesData(): ColumnNameTypeAndValues[] {
       [String(UBIGINT.min), String(UBIGINT.max), null]
     ),
     col(
-      'varint',
-      VARINT,
+      'bignum',
+      BIGNUM,
       { typeId: 35 },
-      [VARINT.min, VARINT.max, null],
-      [String(VARINT.min), String(VARINT.max), null]
+      [BIGNUM.min, BIGNUM.max, null],
+      [String(BIGNUM.min), String(BIGNUM.max), null]
     ),
     col(
       'date',

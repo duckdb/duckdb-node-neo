@@ -4,6 +4,7 @@ import {
   ALT,
   ARRAY,
   BIGINT,
+  BIGNUM,
   BIT,
   BLOB,
   BOOLEAN,
@@ -36,7 +37,6 @@ import {
   UTINYINT,
   UUID,
   VARCHAR,
-  VARINT,
 } from './utils/expectedLogicalTypes';
 import { array, data, list, map, struct, union } from './utils/expectedVectors';
 import { expectResult } from './utils/expectResult';
@@ -84,7 +84,7 @@ suite('query', () => {
           { name: 'usmallint', logicalType: USMALLINT },
           { name: 'uint', logicalType: UINTEGER },
           { name: 'ubigint', logicalType: UBIGINT },
-          { name: 'varint', logicalType: VARINT },
+          { name: 'bignum', logicalType: BIGNUM },
           { name: 'date', logicalType: DATE },
           { name: 'time', logicalType: TIME },
           { name: 'timestamp', logicalType: TIMESTAMP },
@@ -168,7 +168,7 @@ suite('query', () => {
                   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 ])),
                 null]
-              ), // 11: varint
+              ), // 11: bignum
               data(4, validity, [-2147483646, 2147483646, null]), // 12: date
               data(8, validity, [0n, 86400000000n, null]), // 13: time
               data(8, validity, [-9223372022400000000n, 9223372036854775806n, null]), // 14: timestamp

@@ -107,7 +107,7 @@ suite('enums', () => {
     expect(duckdb.Type.TIME_TZ).toBe(30);
     expect(duckdb.Type.TIMESTAMP_TZ).toBe(31);
     expect(duckdb.Type.ANY).toBe(34);
-    expect(duckdb.Type.VARINT).toBe(35);
+    expect(duckdb.Type.BIGNUM).toBe(35);
     expect(duckdb.Type.SQLNULL).toBe(36);
 
     expect(duckdb.Type[duckdb.Type.BOOLEAN]).toBe('BOOLEAN')
@@ -144,7 +144,7 @@ suite('enums', () => {
     expect(duckdb.Type[duckdb.Type.TIME_TZ]).toBe('TIME_TZ');
     expect(duckdb.Type[duckdb.Type.TIMESTAMP_TZ]).toBe('TIMESTAMP_TZ');
     expect(duckdb.Type[duckdb.Type.ANY]).toBe('ANY');
-    expect(duckdb.Type[duckdb.Type.VARINT]).toBe('VARINT');
+    expect(duckdb.Type[duckdb.Type.BIGNUM]).toBe('BIGNUM');
     expect(duckdb.Type[duckdb.Type.SQLNULL]).toBe('SQLNULL');
   });
 });

@@ -105,8 +105,8 @@ export const TIMESTAMP_TZ: ExpectedSimpleLogicalType = {
 export const ANY: ExpectedSimpleLogicalType = {
   typeId: duckdb.Type.ANY,
 };
-export const VARINT: ExpectedSimpleLogicalType = {
-  typeId: duckdb.Type.VARINT,
+export const BIGNUM: ExpectedSimpleLogicalType = {
+  typeId: duckdb.Type.BIGNUM,
 };
 export const SQLNULL: ExpectedSimpleLogicalType = {
   typeId: duckdb.Type.SQLNULL,

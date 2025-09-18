@@ -16,7 +16,7 @@ suite('extracted statements', () => {
     await withConnection(async (connection) => {
       const { extracted_statements, statement_count } = await duckdb.extract_statements(connection, 'x');
       expect(statement_count).toBe(0);
-      expect(duckdb.extract_statements_error(extracted_statements)).toBe('Parser Error: syntax error at or near "x"');
+      expect(duckdb.extract_statements_error(extracted_statements)).toMatch(/^Parser Error: syntax error at or near "x"/);
     });
   });
   test('one statement', async () => {
