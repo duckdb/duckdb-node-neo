@@ -11,6 +11,7 @@ import { DuckDBResultReader } from './DuckDBResultReader';
 import { DuckDBScalarFunction } from './DuckDBScalarFunction';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBValue } from './values';
+import { DuckDBRowReader } from "./DuckDBRowReader";
 
 export class DuckDBConnection {
   private readonly connection: duckdb.Connection;
@@ -86,6 +87,13 @@ export class DuckDBConnection {
     const reader = new DuckDBResultReader(await this.run(sql, values, types));
     await reader.readUntil(targetRowCount);
     return reader;
+  }
+  public async rowReaderStream(
+    sql: string,
+    values?: DuckDBValue[] | Record<string, DuckDBValue>,
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+  ): Promise<DuckDBRowReader> {
+    return new DuckDBRowReader(await this.run(sql, values, types));
   }
   public async stream(
     sql: string,
