@@ -239,4 +239,56 @@ export class DuckDBResult {
   public async getRowObjectsJson(): Promise<Record<string, Json>[]> {
     return this.convertRowObjects(JsonDuckDBValueConverter);
   }
+
+  public async *[Symbol.asyncIterator](): AsyncIterableIterator<DuckDBDataChunk> {
+    while (true) {
+      const chunk = await this.fetchChunk();
+      if (chunk && chunk.rowCount > 0) {
+        yield chunk;
+      } else {
+        break;
+      }
+    }
+  }
+
+  public async *yieldRows(): AsyncIterableIterator<DuckDBValue[][]> {
+    const iterator = this[Symbol.asyncIterator]();
+    for await (const chunk of iterator) {
+      yield getRowsFromChunks([chunk]);
+    }
+  }
+
+  public async *yieldRowObjects(): AsyncIterableIterator<
+    Record<string, DuckDBValue>[]
+  > {
+    const iterator = this[Symbol.asyncIterator]();
+    const deduplicatedColumnNames = this.deduplicatedColumnNames();
+
+    for await (const chunk of iterator) {
+      yield getRowObjectsFromChunks([chunk], deduplicatedColumnNames);
+    }
+  }
+
+  public async *yieldConvertedRows<T>(
+    converter: DuckDBValueConverter<T>,
+  ): AsyncIterableIterator<Record<string, T | null>[]> {
+    const iterator = this[Symbol.asyncIterator]();
+    const deduplicatedColumnNames = this.deduplicatedColumnNames();
+
+    for await (const chunk of iterator) {
+      yield convertRowObjectsFromChunks(
+        [chunk],
+        deduplicatedColumnNames,
+        converter,
+      );
+    }
+  }
+
+  public async *yieldRowsJs(): AsyncIterableIterator<Record<string, JS>[]> {
+    return this.convertRowObjects(JSDuckDBValueConverter);
+  }
+
+  public async *yieldRowsJson(): AsyncIterableIterator<Record<string, Json>[]> {
+    return this.convertRowObjects(JsonDuckDBValueConverter);
+  }
 }
