@@ -239,4 +239,71 @@ export class DuckDBResult {
   public async getRowObjectsJson(): Promise<Record<string, Json>[]> {
     return this.convertRowObjects(JsonDuckDBValueConverter);
   }
+
+  public async *[Symbol.asyncIterator](): AsyncIterableIterator<DuckDBDataChunk> {
+    while (true) {
+      const chunk = await this.fetchChunk();
+      if (chunk && chunk.rowCount > 0) {
+        yield chunk;
+      } else {
+        break;
+      }
+    }
+  }
+
+  public async *yieldRows(): AsyncIterableIterator<DuckDBValue[][]> {
+    for await (const chunk of this) {
+      yield getRowsFromChunks([chunk]);
+    }
+  }
+
+  public async *yieldRowObjects(): AsyncIterableIterator<
+    Record<string, DuckDBValue>[]
+  > {
+    const deduplicatedColumnNames = this.deduplicatedColumnNames();
+    for await (const chunk of this) {
+      yield getRowObjectsFromChunks([chunk], deduplicatedColumnNames);
+    }
+  }
+
+  public async *yieldConvertedRows<T>(
+    converter: DuckDBValueConverter<T>
+  ): AsyncIterableIterator<(T | null)[][]> {
+    for await (const chunk of this) {
+      yield convertRowsFromChunks([chunk], converter);
+    }
+  }
+
+  public async *yieldConvertedRowObjects<T>(
+    converter: DuckDBValueConverter<T>
+  ): AsyncIterableIterator<Record<string, T | null>[]> {
+    const deduplicatedColumnNames = this.deduplicatedColumnNames();
+    for await (const chunk of this) {
+      yield convertRowObjectsFromChunks(
+        [chunk],
+        deduplicatedColumnNames,
+        converter,
+      );
+    }
+  }
+
+  public yieldRowsJs(): AsyncIterableIterator<JS[][]> {
+    return this.yieldConvertedRows(JSDuckDBValueConverter);
+  }
+
+  public yieldRowsJson(): AsyncIterableIterator<Json[][]> {
+    return this.yieldConvertedRows(JsonDuckDBValueConverter);
+  }
+
+  public yieldRowObjectJs(): AsyncIterableIterator<
+    Record<string, JS>[]
+  > {
+    return this.yieldConvertedRowObjects(JSDuckDBValueConverter);
+  }
+
+  public yieldRowObjectJson(): AsyncIterableIterator<
+    Record<string, Json>[]
+  > {
+    return this.yieldConvertedRowObjects(JsonDuckDBValueConverter);
+  }
 }
