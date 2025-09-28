@@ -2445,4 +2445,71 @@ ORDER BY name
       assert.equal(quotedIdentifier('table name'), '"table name"');
     });
   });
+
+  test("iterate over DuckDBResult stream in chunks", async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.stream(
+        "select i::int, i::int + 10, (i + 100)::varchar from range(3) t(i)",
+      );
+
+      for await (const chunk of result) {
+        assert.strictEqual(chunk.rowCount, 3);
+        let i = 0;
+        assertValues<number, DuckDBIntegerVector>(
+          chunk,
+          i++,
+          DuckDBIntegerVector,
+          [0, 1, 2],
+        );
+        assertValues<number, DuckDBIntegerVector>(
+          chunk,
+          i++,
+          DuckDBIntegerVector,
+          [10, 11, 12],
+        );
+        assertValues<string, DuckDBVarCharVector>(
+          chunk,
+          i++,
+          DuckDBVarCharVector,
+          ["100", "101", "102"],
+        );
+      }
+    });
+  });
+
+  test("iterate result stream rows js", async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.stream(createTestJSQuery());
+      for await (const row of result.yieldRowsJs()) {
+        assert.deepEqual(row, createTestJSRowsJS());
+      }
+    });
+  });
+
+  test("iterate result stream object js", async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.stream(createTestJSQuery());
+      for await (const row of result.yieldRowObjectJs()) {
+        assert.deepEqual(row, createTestJSRowObjectsJS());
+      }
+    });
+  });
+
+  test("iterate result stream rows json", async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.stream(`from test_all_types()`);
+      for await (const row of result.yieldRowsJson()) {
+        assert.deepEqual(row, createTestAllTypesRowsJson());
+      }
+    });
+  });
+
+  test("iterate result stream object json", async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.stream(`from test_all_types()`);
+      for await (const row of result.yieldRowObjectJson()) {
+        assert.deepEqual(row, createTestAllTypesRowObjectsJson());
+      }
+    });
+  });
 });
