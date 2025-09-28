@@ -287,11 +287,23 @@ export class DuckDBResult {
     }
   }
 
-  public async *yieldRowsJs(): AsyncIterableIterator<Record<string, JS>[]> {
-    return this.convertRowObjects(JSDuckDBValueConverter);
+  public yieldRowsJs(): AsyncIterableIterator<JS[][]> {
+    return this.yieldConvertedRows(JSDuckDBValueConverter);
   }
 
-  public async *yieldRowsJson(): AsyncIterableIterator<Record<string, Json>[]> {
-    return this.convertRowObjects(JsonDuckDBValueConverter);
+  public yieldRowsJson(): AsyncIterableIterator<Json[][]> {
+    return this.yieldConvertedRows(JsonDuckDBValueConverter);
+  }
+
+  public yieldRowObjectJs(): AsyncIterableIterator<
+    Record<string, JS>[]
+  > {
+    return this.yieldConvertedRowObjects(JSDuckDBValueConverter);
+  }
+
+  public yieldRowObjectJson(): AsyncIterableIterator<
+    Record<string, Json>[]
+  > {
+    return this.yieldConvertedRowObjects(JsonDuckDBValueConverter);
   }
 }
