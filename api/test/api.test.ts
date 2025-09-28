@@ -2495,6 +2495,46 @@ ORDER BY name
     });
   });
 
+  test("iterate stream of rows", async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.stream(
+        "select i::int, i::int + 10, (i + 100)::varchar from range(3) t(i)",
+      );
+
+      const expectedRows: DuckDBValue[][] = [
+        [0, 10, '100'],
+        [1, 11, '101'],
+        [2, 12, '102']
+      ];
+
+      for await (const rows of result.yieldRows()) {
+        for (let i = 0; i < rows.length; i++) {
+          assert.deepEqual(rows[i], expectedRows[i]);
+        }
+      }
+    });
+  });
+
+  test("iterate stream of row objects", async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.stream(
+        "select i::int as a, i::int + 10 as b, (i + 100)::varchar as c from range(3) t(i)",
+      );
+
+      const expectedRows: Record<string, DuckDBValue>[] = [
+        { a: 0, b: 10, c: '100'},
+        { a: 1, b: 11, c: '101'},
+        { a: 2, b: 12, c: '102'}
+      ];
+
+      for await (const rows of result.yieldRowObjects()) {
+        for (let i = 0; i < rows.length; i++) {
+          assert.deepEqual(rows[i], expectedRows[i]);
+        }
+      }
+    });
+  });
+
   test("iterate result stream rows js", async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(createTestJSQuery());
