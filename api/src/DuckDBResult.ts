@@ -282,7 +282,7 @@ export class DuckDBResult {
       yield convertRowObjectsFromChunks(
         [chunk],
         deduplicatedColumnNames,
-        converter,
+        converter
       );
     }
   }
@@ -295,15 +295,11 @@ export class DuckDBResult {
     return this.yieldConvertedRows(JsonDuckDBValueConverter);
   }
 
-  public yieldRowObjectJs(): AsyncIterableIterator<
-    Record<string, JS>[]
-  > {
+  public yieldRowObjectJs(): AsyncIterableIterator<Record<string, JS>[]> {
     return this.yieldConvertedRowObjects(JSDuckDBValueConverter);
   }
 
-  public yieldRowObjectJson(): AsyncIterableIterator<
-    Record<string, Json>[]
-  > {
+  public yieldRowObjectJson(): AsyncIterableIterator<Record<string, Json>[]> {
     return this.yieldConvertedRowObjects(JsonDuckDBValueConverter);
   }
 }

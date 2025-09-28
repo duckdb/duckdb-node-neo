@@ -2415,7 +2415,10 @@ ORDER BY name
       assert.equal(quotedString("'quoted'"), "'''quoted'''");
 
       // String with multiple single quotes
-      assert.equal(quotedString("it's 'really' good"), "'it''s ''really'' good'");
+      assert.equal(
+        quotedString("it's 'really' good"),
+        "'it''s ''really'' good'"
+      );
 
       // Empty string
       assert.equal(quotedString(''), "''");
@@ -2434,7 +2437,10 @@ ORDER BY name
       assert.equal(quotedIdentifier('"column"'), '"""column"""');
 
       // Identifier with multiple double quotes
-      assert.equal(quotedIdentifier('my"special"table'), '"my""special""table"');
+      assert.equal(
+        quotedIdentifier('my"special"table'),
+        '"my""special""table"'
+      );
 
       // Empty identifier
       assert.equal(quotedIdentifier(''), '""');
@@ -2446,10 +2452,10 @@ ORDER BY name
     });
   });
 
-  test("iterate over DuckDBResult stream in chunks", async () => {
+  test('iterate over DuckDBResult stream in chunks', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        "select i::int, i::int + 10, (i + 100)::varchar from range(3) t(i)",
+        'select i::int, i::int + 10, (i + 100)::varchar from range(3) t(i)'
       );
 
       for await (const chunk of result) {
@@ -2459,25 +2465,25 @@ ORDER BY name
           chunk,
           i++,
           DuckDBIntegerVector,
-          [0, 1, 2],
+          [0, 1, 2]
         );
         assertValues<number, DuckDBIntegerVector>(
           chunk,
           i++,
           DuckDBIntegerVector,
-          [10, 11, 12],
+          [10, 11, 12]
         );
         assertValues<string, DuckDBVarCharVector>(
           chunk,
           i++,
           DuckDBVarCharVector,
-          ["100", "101", "102"],
+          ['100', '101', '102']
         );
       }
     });
   });
 
-  test("iterate over many DuckDBResult chunks", async () => {
+  test('iterate over many DuckDBResult chunks', async () => {
     await withConnection(async (connection) => {
       const chunkSize = 2048;
       const totalExpectedCount = chunkSize * 3;
@@ -2495,16 +2501,16 @@ ORDER BY name
     });
   });
 
-  test("iterate stream of rows", async () => {
+  test('iterate stream of rows', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        "select i::int, i::int + 10, (i + 100)::varchar from range(3) t(i)",
+        'select i::int, i::int + 10, (i + 100)::varchar from range(3) t(i)'
       );
 
       const expectedRows: DuckDBValue[][] = [
         [0, 10, '100'],
         [1, 11, '101'],
-        [2, 12, '102']
+        [2, 12, '102'],
       ];
 
       for await (const rows of result.yieldRows()) {
@@ -2515,16 +2521,16 @@ ORDER BY name
     });
   });
 
-  test("iterate stream of row objects", async () => {
+  test('iterate stream of row objects', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        "select i::int as a, i::int + 10 as b, (i + 100)::varchar as c from range(3) t(i)",
+        'select i::int as a, i::int + 10 as b, (i + 100)::varchar as c from range(3) t(i)'
       );
 
       const expectedRows: Record<string, DuckDBValue>[] = [
-        { a: 0, b: 10, c: '100'},
-        { a: 1, b: 11, c: '101'},
-        { a: 2, b: 12, c: '102'}
+        { a: 0, b: 10, c: '100' },
+        { a: 1, b: 11, c: '101' },
+        { a: 2, b: 12, c: '102' },
       ];
 
       for await (const rows of result.yieldRowObjects()) {
@@ -2535,7 +2541,7 @@ ORDER BY name
     });
   });
 
-  test("iterate result stream rows js", async () => {
+  test('iterate result stream rows js', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(createTestJSQuery());
       for await (const row of result.yieldRowsJs()) {
@@ -2544,7 +2550,7 @@ ORDER BY name
     });
   });
 
-  test("iterate result stream object js", async () => {
+  test('iterate result stream object js', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(createTestJSQuery());
       for await (const row of result.yieldRowObjectJs()) {
@@ -2553,7 +2559,7 @@ ORDER BY name
     });
   });
 
-  test("iterate result stream rows json", async () => {
+  test('iterate result stream rows json', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(`from test_all_types()`);
       for await (const row of result.yieldRowsJson()) {
@@ -2562,7 +2568,7 @@ ORDER BY name
     });
   });
 
-  test("iterate result stream object json", async () => {
+  test('iterate result stream object json', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(`from test_all_types()`);
       for await (const row of result.yieldRowObjectJson()) {
