@@ -270,12 +270,18 @@ export class DuckDBResult {
   }
 
   public async *yieldConvertedRows<T>(
-    converter: DuckDBValueConverter<T>,
-  ): AsyncIterableIterator<Record<string, T | null>[]> {
-    const iterator = this[Symbol.asyncIterator]();
-    const deduplicatedColumnNames = this.deduplicatedColumnNames();
+    converter: DuckDBValueConverter<T>
+  ): AsyncIterableIterator<(T | null)[][]> {
+    for await (const chunk of this) {
+      yield convertRowsFromChunks([chunk], converter);
+    }
+  }
 
-    for await (const chunk of iterator) {
+  public async *yieldConvertedRowObjects<T>(
+    converter: DuckDBValueConverter<T>
+  ): AsyncIterableIterator<Record<string, T | null>[]> {
+    const deduplicatedColumnNames = this.deduplicatedColumnNames();
+    for await (const chunk of this) {
       yield convertRowObjectsFromChunks(
         [chunk],
         deduplicatedColumnNames,
