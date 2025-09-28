@@ -252,8 +252,7 @@ export class DuckDBResult {
   }
 
   public async *yieldRows(): AsyncIterableIterator<DuckDBValue[][]> {
-    const iterator = this[Symbol.asyncIterator]();
-    for await (const chunk of iterator) {
+    for await (const chunk of this) {
       yield getRowsFromChunks([chunk]);
     }
   }
@@ -261,10 +260,8 @@ export class DuckDBResult {
   public async *yieldRowObjects(): AsyncIterableIterator<
     Record<string, DuckDBValue>[]
   > {
-    const iterator = this[Symbol.asyncIterator]();
     const deduplicatedColumnNames = this.deduplicatedColumnNames();
-
-    for await (const chunk of iterator) {
+    for await (const chunk of this) {
       yield getRowObjectsFromChunks([chunk], deduplicatedColumnNames);
     }
   }
