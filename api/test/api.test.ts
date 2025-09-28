@@ -2477,6 +2477,24 @@ ORDER BY name
     });
   });
 
+  test("iterate over many DuckDBResult chunks", async () => {
+    await withConnection(async (connection) => {
+      const chunkSize = 2048;
+      const totalExpectedCount = chunkSize * 3;
+      const result = await connection.stream(
+        `select i::int from range(${totalExpectedCount}) t(i)`
+      );
+
+      let total = 0;
+      for await (const chunk of result) {
+        assert.equal(chunk.rowCount, chunkSize);
+        total += chunk.rowCount;
+      }
+
+      assert.equal(total, totalExpectedCount);
+    });
+  });
+
   test("iterate result stream rows js", async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(createTestJSQuery());
