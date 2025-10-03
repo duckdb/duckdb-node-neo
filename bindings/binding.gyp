@@ -47,14 +47,14 @@
         ['OS=="linux" and target_arch=="x64"', {
           'link_settings': {
             'libraries': [
-              '-l:libduckdb.so.1.4',
+              '-lduckdb',
               '-L<(module_root_dir)/libduckdb',
               '-Wl,-rpath,\'$$ORIGIN\'',
             ],
           },
           'copies': [
             {
-              'files': ['<(module_root_dir)/libduckdb/libduckdb.so.1.4'],
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
             },
           ],
@@ -62,14 +62,14 @@
         ['OS=="linux" and target_arch=="arm64"', {
           'link_settings': {
             'libraries': [
-              '-l:libduckdb.so.1.4',
+              '-lduckdb',
               '-L<(module_root_dir)/libduckdb',
               '-Wl,-rpath,\'$$ORIGIN\'',
             ],
           },
           'copies': [
             {
-              'files': ['<(module_root_dir)/libduckdb/libduckdb.so.1.4'],
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
             },
           ],
@@ -81,7 +81,7 @@
           },
           'link_settings': {
             'libraries': [
-              '-lduckdb.1.4',
+              '-lduckdb',
               '-L<(module_root_dir)/libduckdb',
               '-Wl,-rpath,@loader_path',
             ],
@@ -100,7 +100,7 @@
           },
           'link_settings': {
             'libraries': [
-              '-lduckdb.1.4',
+              '-lduckdb',
               '-L<(module_root_dir)/libduckdb',
               '-Wl,-rpath,@loader_path',
             ],
