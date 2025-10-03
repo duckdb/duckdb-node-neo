@@ -88,7 +88,7 @@
           },
           'copies': [
             {
-              'files': ['<(module_root_dir)/libduckdb/libduckdb.1.4.dylib'],
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.dylib'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-darwin-arm64',
             },
           ],
@@ -107,7 +107,7 @@
           },
           'copies': [
             {
-              'files': ['<(module_root_dir)/libduckdb/libduckdb.1.4.dylib'],
+              'files': ['<(module_root_dir)/libduckdb/libduckdb.dylib'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-darwin-x64',
             },
           ],
