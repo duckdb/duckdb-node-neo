@@ -1,6 +1,6 @@
 {
   "name": "@duckdb/node-bindings-linux-x64",
-  "version": "1.4.0-r.2",
+  "version": "1.4.1-r.1",
   "license": "MIT",
   "os": [
     "linux"
