@@ -78,7 +78,7 @@ jobs:
 
   linux_x64:
     name: Linux x64
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_x64 }}
     steps:
       - uses: actions/checkout@v4
@@ -133,7 +133,7 @@ jobs:
 
   linux_arm64:
     name: Linux arm64
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64 }}
     env:
       TARGET_ARCH: arm64
