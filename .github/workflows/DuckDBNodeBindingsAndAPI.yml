@@ -84,6 +84,9 @@ jobs:
       - name: find stdc++ lib location
         run: /sbin/ldconfig -p | grep stdc++
 
+      - name: check LIBCXX strings in libstdc++
+        run: strings /lib32/libstdc++.so.6 | grep LIBCXX
+
       - uses: actions/checkout@v4
       
       - uses: pnpm/action-setup@v3
