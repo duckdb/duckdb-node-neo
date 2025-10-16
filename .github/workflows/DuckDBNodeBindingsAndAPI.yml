@@ -81,6 +81,9 @@ jobs:
     runs-on: ubuntu-22.04
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_x64 }}
     steps:
+      - name: find stdc++ lib location
+        run: /sbin/ldconfig -p | grep stdc++
+
       - uses: actions/checkout@v4
       
       - uses: pnpm/action-setup@v3
