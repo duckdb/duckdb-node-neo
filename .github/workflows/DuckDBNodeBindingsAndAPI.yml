@@ -97,6 +97,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - uses: pnpm/action-setup@v3
         with:
           version: 9
@@ -161,6 +164,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - uses: pnpm/action-setup@v3
         with:
           version: 9
@@ -194,6 +200,9 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos_arm64 }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - uses: pnpm/action-setup@v3
         with:
@@ -237,6 +246,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - uses: pnpm/action-setup@v3
         with:
           version: 9
@@ -278,6 +290,9 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_x64 }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - uses: pnpm/action-setup@v3
         with:
