@@ -95,10 +95,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
-
-      - name: Update npm
-        run: npm install -g npm@latest
+          node-version: 24
 
       - uses: pnpm/action-setup@v3
         with:
@@ -162,10 +159,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
-
-      - name: Update npm
-        run: npm install -g npm@latest
+          node-version: 24
 
       - uses: pnpm/action-setup@v3
         with:
@@ -201,8 +195,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update npm
-        run: npm install -g npm@latest
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
 
       - uses: pnpm/action-setup@v3
         with:
@@ -246,8 +241,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update npm
-        run: npm install -g npm@latest
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
 
       - uses: pnpm/action-setup@v3
         with:
@@ -291,8 +287,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update npm
-        run: npm install -g npm@latest
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
 
       - uses: pnpm/action-setup@v3
         with:
