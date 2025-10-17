@@ -79,6 +79,8 @@ jobs:
   linux_x64:
     name: Linux x64
     runs-on: ubuntu-22.04
+    container:
+      image: quay.io/pypa/manylinux_2_28_x86_64
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_x64 }}
     steps:
       - name: find stdc++ lib location
