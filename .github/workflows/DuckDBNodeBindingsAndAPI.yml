@@ -148,16 +148,9 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64 }}
     container:
       image: quay.io/pypa/manylinux_2_28_aarch64
-    # env:
-    #   TARGET_ARCH: arm64
-    #   CC: aarch64-linux-gnu-gcc
-    #   CXX: aarch64-linux-gnu-g++
     steps:
-      # - name: Install aarch64 compilers
-      #   run: sudo apt-get update && sudo apt install binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-      - name: find stdc++ lib location
-        run: /sbin/ldconfig -p | grep stdc++
+      # - name: find stdc++ lib location
+      #   run: /sbin/ldconfig -p | grep stdc++
 
       - name: check LIBCXX strings in libstdc++
         run: strings /lib64/libstdc++.so.6 | grep LIBCXX
@@ -196,7 +189,7 @@ jobs:
 
   macos_arm64:
     name: Mac OS X arm64
-    runs-on: macos-latest
+    runs-on: macos-15
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos_arm64 }}
     steps:
       - uses: actions/checkout@v4
@@ -237,7 +230,7 @@ jobs:
 
   macos_x64:
     name: Mac OS X x64
-    runs-on: macos-13
+    runs-on: macos-15-intel
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos_x64 }}
     steps:
       - uses: actions/checkout@v4
@@ -278,7 +271,7 @@ jobs:
 
   windows_x64:
     name: Windows x64
-    runs-on: windows-latest
+    runs-on: windows-2025
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_x64 }}
     steps:
       - uses: actions/checkout@v4
