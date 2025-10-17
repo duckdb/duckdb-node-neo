@@ -80,6 +80,9 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: quay.io/pypa/manylinux_2_28_x86_64
+    permissions:
+      contents: read
+      id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_x64 }}
     steps:
       # - name: find stdc++ lib location
@@ -125,29 +128,26 @@ jobs:
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-linux-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
-        env:
-          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
       - name: Publish - Bindings
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
-        env:
-          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
       - name: Publish - API
         if: ${{ inputs.publish }}
         working-directory: api/pkgs/@duckdb/node-api
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
-        env:
-          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
   linux_arm64:
     name: Linux arm64
     runs-on: ubuntu-24.04-arm
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64 }}
     container:
       image: quay.io/pypa/manylinux_2_28_aarch64
+    permissions:
+      contents: read
+      id-token: write # for OIDC, for trusted publishing
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64 }}
     steps:
       # - name: find stdc++ lib location
       #   run: /sbin/ldconfig -p | grep stdc++
@@ -184,12 +184,13 @@ jobs:
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-linux-arm64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
-        env:
-          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
   macos_arm64:
     name: Mac OS X arm64
     runs-on: macos-15
+    permissions:
+      contents: read
+      id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos_arm64 }}
     steps:
       - uses: actions/checkout@v4
@@ -225,12 +226,13 @@ jobs:
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-darwin-arm64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
-        env:
-          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
   macos_x64:
     name: Mac OS X x64
     runs-on: macos-15-intel
+    permissions:
+      contents: read
+      id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos_x64 }}
     steps:
       - uses: actions/checkout@v4
@@ -266,12 +268,13 @@ jobs:
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-darwin-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
-        env:
-          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
 
   windows_x64:
     name: Windows x64
     runs-on: windows-2025
+    permissions:
+      contents: read
+      id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_x64 }}
     steps:
       - uses: actions/checkout@v4
@@ -307,5 +310,3 @@ jobs:
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-win32-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
-        env:
-          NPM_AUTH_TOKEN: ${{ secrets.DUCKDB_NPM_TOKEN }}
