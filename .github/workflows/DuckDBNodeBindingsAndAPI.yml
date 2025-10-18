@@ -317,11 +317,11 @@ jobs:
 
       - name: Download Node headers
         shell: bash
-        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o "$HOME/node-headers.tar.gz"
+        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o "$HOME/node-v24.10.0-headers.tar.gz"
 
       - name: Extract Node headers
         shell: bash
-        run: tar -xzf "$HOME/node-headers.tar.gz" -C $HOME
+        run: tar -xzf "$HOME/node-v24.10.0-headers.tar.gz" -C $HOME
 
       - name: List HOME
         shell: bash
@@ -329,7 +329,7 @@ jobs:
 
       - name: Record Node directory
         shell: bash
-        run: echo "NODE_DIR=$HOME/node-headers" >> "$GITHUB_ENV"
+        run: echo "NODE_DIR=$HOME/node-v24.10.0" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v3
         with:
