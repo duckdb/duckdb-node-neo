@@ -97,8 +97,11 @@ jobs:
         with:
           node-version: 24
 
-      - name: Display path to Node
-        run: which node
+      - name: Get Node directory
+        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
+
+      - name: Display Node directory
+        run: echo "$NODE_DIR"
 
       - uses: pnpm/action-setup@v3
         with:
@@ -164,8 +167,11 @@ jobs:
         with:
           node-version: 24
 
-      - name: Display path to Node
-        run: which node
+      - name: Get Node directory
+        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
+
+      - name: Display Node directory
+        run: echo "$NODE_DIR"
 
       - uses: pnpm/action-setup@v3
         with:
@@ -205,8 +211,11 @@ jobs:
         with:
           node-version: 24
 
-      - name: Display path to Node
-        run: which node
+      - name: Get Node directory
+        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
+
+      - name: Display Node directory
+        run: echo "$NODE_DIR"
 
       - uses: pnpm/action-setup@v3
         with:
@@ -254,8 +263,11 @@ jobs:
         with:
           node-version: 24
 
-      - name: Display path to Node
-        run: which node
+      - name: Get Node directory
+        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
+
+      - name: Display Node directory
+        run: echo "$NODE_DIR"
 
       - uses: pnpm/action-setup@v3
         with:
@@ -303,8 +315,13 @@ jobs:
         with:
           node-version: 24
 
-      - name: Display path to Node
-        run: where node
+      - name: Get Node directory
+        shell: bash
+        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
+
+      - name: Display Node directory
+        shell: bash
+        run: echo "$NODE_DIR"
 
       - uses: pnpm/action-setup@v3
         with:
