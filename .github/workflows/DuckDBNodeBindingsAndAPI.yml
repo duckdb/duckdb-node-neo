@@ -323,13 +323,17 @@ jobs:
         shell: bash
         run: tar -xzf "$HOME/node-v24.10.0-headers.tar.gz" -C $HOME
 
-      - name: List HOME
-        shell: bash
-        run: echo "$(ls -l $HOME)"
-
       - name: Record Node directory
         shell: bash
         run: echo "NODE_DIR=$HOME/node-v24.10.0" >> "$GITHUB_ENV"
+
+      - name: Display Node directory
+        shell: bash
+        run: echo "$NODE_DIR"
+
+      - name: List Node directory
+        shell: bash
+        run: echo "$(ls -R $NODE_DIR)"
 
       - uses: pnpm/action-setup@v3
         with:
