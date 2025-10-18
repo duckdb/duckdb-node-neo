@@ -127,17 +127,17 @@ jobs:
       - name: Publish - Bindings - Linux x64
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-linux-x64
-        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest
 
       - name: Publish - Bindings
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings
-        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest
 
       - name: Publish - API
         if: ${{ inputs.publish }}
         working-directory: api/pkgs/@duckdb/node-api
-        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest
 
   linux_arm64:
     name: Linux arm64
@@ -183,7 +183,7 @@ jobs:
       - name: Publish - Bindings - Linux arm64
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-linux-arm64
-        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest
 
   macos_arm64:
     name: Mac OS X arm64
@@ -229,7 +229,7 @@ jobs:
       - name: Publish - Bindings - Darwin arm64
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-darwin-arm64
-        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest
 
   macos_x64:
     name: Mac OS X x64
@@ -275,7 +275,7 @@ jobs:
       - name: Publish - Bindings - Darwin x64
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-darwin-x64
-        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest
 
   windows_x64:
     name: Windows x64
@@ -321,4 +321,4 @@ jobs:
       - name: Publish - Bindings - Win32 x64
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-win32-x64
-        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest
