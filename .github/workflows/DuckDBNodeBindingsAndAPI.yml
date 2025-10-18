@@ -88,8 +88,8 @@ jobs:
       # - name: find stdc++ lib location
       #   run: /sbin/ldconfig -p | grep stdc++
 
-      - name: check LIBCXX strings in libstdc++
-        run: strings /lib64/libstdc++.so.6 | grep LIBCXX
+      # - name: check LIBCXX strings in libstdc++
+      #   run: strings /lib64/libstdc++.so.6 | grep LIBCXX
 
       - uses: actions/checkout@v4
 
@@ -99,9 +99,6 @@ jobs:
 
       - name: Record Node directory
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
-
-      - name: Display Node directory
-        run: echo "$NODE_DIR"
 
       - uses: pnpm/action-setup@v3
         with:
@@ -158,8 +155,8 @@ jobs:
       # - name: find stdc++ lib location
       #   run: /sbin/ldconfig -p | grep stdc++
 
-      - name: check LIBCXX strings in libstdc++
-        run: strings /lib64/libstdc++.so.6 | grep LIBCXX
+      # - name: check LIBCXX strings in libstdc++
+      #   run: strings /lib64/libstdc++.so.6 | grep LIBCXX
 
       - uses: actions/checkout@v4
 
@@ -169,9 +166,6 @@ jobs:
 
       - name: Record Node directory
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
-
-      - name: Display Node directory
-        run: echo "$NODE_DIR"
 
       - uses: pnpm/action-setup@v3
         with:
@@ -213,9 +207,6 @@ jobs:
 
       - name: Record Node directory
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
-
-      - name: Display Node directory
-        run: echo "$NODE_DIR"
 
       - uses: pnpm/action-setup@v3
         with:
@@ -265,9 +256,6 @@ jobs:
 
       - name: Record Node directory
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
-
-      - name: Display Node directory
-        run: echo "$NODE_DIR"
 
       - uses: pnpm/action-setup@v3
         with:
@@ -319,16 +307,8 @@ jobs:
         shell: bash
         run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o "D:/a/node-v24.10.0-headers.tar.gz"
 
-      # - name: List D:/a directory
-      #   shell: bash
-      #   run: echo "$(ls -R D:/a)"
-
       - name: Extract Node headers
         run: tar -xzf D:\a\node-v24.10.0-headers.tar.gz -C D:\a
-
-      # - name: List D:/a directory
-      #   shell: bash
-      #   run: echo "$(ls -R D:/a)"
 
       - name: Record Node directory
         shell: bash
@@ -337,14 +317,6 @@ jobs:
       - name: Download Node lib
         shell: bash
         run: curl -sSL "https://nodejs.org/download/release/v24.10.0/win-x64/node.lib" --create-dirs -o "$NODE_DIR/Release/node.lib"
-
-      # - name: Display Node directory
-      #   shell: bash
-      #   run: echo "$NODE_DIR"
-
-      - name: List Node directory
-        shell: bash
-        run: echo "$(ls -R $NODE_DIR)"
 
       - uses: pnpm/action-setup@v3
         with:
