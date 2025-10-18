@@ -88,14 +88,17 @@ jobs:
       # - name: find stdc++ lib location
       #   run: /sbin/ldconfig -p | grep stdc++
 
-      - name: check LIBCXX strings in libstdc++
-        run: strings /lib64/libstdc++.so.6 | grep LIBCXX
+      # - name: check LIBCXX strings in libstdc++
+      #   run: strings /lib64/libstdc++.so.6 | grep LIBCXX
 
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+
+      - name: Record Node directory
+        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v3
         with:
@@ -152,14 +155,17 @@ jobs:
       # - name: find stdc++ lib location
       #   run: /sbin/ldconfig -p | grep stdc++
 
-      - name: check LIBCXX strings in libstdc++
-        run: strings /lib64/libstdc++.so.6 | grep LIBCXX
+      # - name: check LIBCXX strings in libstdc++
+      #   run: strings /lib64/libstdc++.so.6 | grep LIBCXX
 
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+
+      - name: Record Node directory
+        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v3
         with:
@@ -198,6 +204,9 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+
+      - name: Record Node directory
+        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v3
         with:
@@ -245,6 +254,9 @@ jobs:
         with:
           node-version: 24
 
+      - name: Record Node directory
+        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
+
       - uses: pnpm/action-setup@v3
         with:
           version: 9
@@ -290,6 +302,31 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+
+      - name: Record Node directory
+        shell: bash
+        run: echo "NODE_DIR=D:\\a\\node-v24.10.0" >> "$GITHUB_ENV"
+
+      - name: Cache Node directory
+        id: cache-node-dir
+        uses: actions/cache@v4
+        with:
+          path: D:\\a\\node-v24.10.0
+          key: node-dir-v24.10.0-win-x64
+
+      - name: Download Node headers
+        if: steps.cache-node-dir.outputs.cache-hit != 'true'
+        shell: bash
+        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o "D:/a/node-v24.10.0-headers.tar.gz"
+
+      - name: Extract Node headers
+        if: steps.cache-node-dir.outputs.cache-hit != 'true'
+        run: tar -xzf D:\a\node-v24.10.0-headers.tar.gz -C D:\a
+
+      - name: Download Node lib
+        if: steps.cache-node-dir.outputs.cache-hit != 'true'
+        shell: bash
+        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/win-x64/node.lib" --create-dirs -o "$NODE_DIR/Release/node.lib"
 
       - uses: pnpm/action-setup@v3
         with:

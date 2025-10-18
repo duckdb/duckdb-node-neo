@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "build": "npm run build:package && npm run build:test",
-    "build:package": "cross-replace node-gyp configure --verbose --arch=$TARGET_ARCH && node-gyp build --verbose --arch=$TARGET_ARCH",
+    "build:package": "cross-replace node-gyp configure --verbose --nodedir=$NODE_DIR && node-gyp build --verbose --nodedir=$NODE_DIR",
     "build:test": "tsc -b test",
     "clean": "npm run clean:gyp && npm run clean:libduckdb && npm run clean:package",
     "clean:gyp": "node-gyp clean",
