@@ -303,6 +303,10 @@ jobs:
         with:
           node-version: 24
 
+      - name: Record Node directory
+        shell: bash
+        run: echo "NODE_DIR=D:\\a\\node-v24.10.0" >> "$GITHUB_ENV"
+
       - name: Cache Node directory
         id: cache-node-dir
         uses: actions/cache@v4
@@ -323,10 +327,6 @@ jobs:
         if: steps.cache-node-dir.outputs.cache-hit != 'true'
         shell: bash
         run: curl -sSL "https://nodejs.org/download/release/v24.10.0/win-x64/node.lib" --create-dirs -o "$NODE_DIR/Release/node.lib"
-
-      - name: Record Node directory
-        shell: bash
-        run: echo "NODE_DIR=D:\\a\\node-v24.10.0" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v3
         with:
