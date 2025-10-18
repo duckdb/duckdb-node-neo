@@ -303,20 +303,30 @@ jobs:
         with:
           node-version: 24
 
+      - name: Cache Node directory
+        id: cache-node-dir
+        uses: actions/cache@v4
+        with:
+          path: D:\\a\\node-v24.10.0
+          key: node-dir-v24.10.0-win-x64
+
       - name: Download Node headers
+        if: steps.cache-node-dir.outputs.cache-hit != 'true'
         shell: bash
         run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o "D:/a/node-v24.10.0-headers.tar.gz"
 
       - name: Extract Node headers
+        if: steps.cache-node-dir.outputs.cache-hit != 'true'
         run: tar -xzf D:\a\node-v24.10.0-headers.tar.gz -C D:\a
+
+      - name: Download Node lib
+        if: steps.cache-node-dir.outputs.cache-hit != 'true'
+        shell: bash
+        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/win-x64/node.lib" --create-dirs -o "$NODE_DIR/Release/node.lib"
 
       - name: Record Node directory
         shell: bash
         run: echo "NODE_DIR=D:\\a\\node-v24.10.0" >> "$GITHUB_ENV"
-
-      - name: Download Node lib
-        shell: bash
-        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/win-x64/node.lib" --create-dirs -o "$NODE_DIR/Release/node.lib"
 
       - uses: pnpm/action-setup@v3
         with:
