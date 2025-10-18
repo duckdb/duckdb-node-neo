@@ -317,15 +317,15 @@ jobs:
 
       - name: Download Node headers
         shell: bash
-        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o "D:/node-v24.10.0-headers.tar.gz"
+        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o "D:/a/node-v24.10.0-headers.tar.gz"
 
       - name: Extract Node headers
         shell: bash
-        run: tar -xzf "D:/node-v24.10.0-headers.tar.gz" -C "D:/"
+        run: tar -xzf "D:/a/node-v24.10.0-headers.tar.gz" -C "D:/a/"
 
       - name: Record Node directory
         shell: bash
-        run: echo "NODE_DIR=D:/node-v24.10.0" >> "$GITHUB_ENV"
+        run: echo "NODE_DIR=D:/a/node-v24.10.0" >> "$GITHUB_ENV"
 
       - name: Display Node directory
         shell: bash
