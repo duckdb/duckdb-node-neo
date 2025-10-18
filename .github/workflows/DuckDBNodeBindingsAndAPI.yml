@@ -321,7 +321,11 @@ jobs:
 
       - name: Extract Node headers
         shell: bash
-        run: tar -xzf "$HOME/node-headers.tar.gz"
+        run: tar -xzf "$HOME/node-headers.tar.gz" -C $HOME
+
+      - name: List HOME
+        shell: bash
+        run: echo "$(ls -l $HOME)"
 
       - name: Record Node directory
         shell: bash
