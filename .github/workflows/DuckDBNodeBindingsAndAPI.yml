@@ -317,10 +317,18 @@ jobs:
 
       - name: Download Node headers
         shell: bash
-        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o D:\a\node-v24.10.0-headers.tar.gz
+        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o "D:/a/node-v24.10.0-headers.tar.gz"
+
+      - name: List D:/a directory
+        shell: bash
+        run: echo "$(ls -R D:/a)"
 
       - name: Extract Node headers
         run: tar -xzvf D:\a\node-v24.10.0-headers.tar.gz -C D:\a
+
+      - name: List D:/a directory
+        shell: bash
+        run: echo "$(ls -R D:/a)"
 
       - name: Record Node directory
         shell: bash
