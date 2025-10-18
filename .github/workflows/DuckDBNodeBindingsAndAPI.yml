@@ -97,6 +97,9 @@ jobs:
         with:
           node-version: 24
 
+      - name: Display path to Node
+        run: which node
+
       - uses: pnpm/action-setup@v3
         with:
           version: 9
@@ -161,6 +164,9 @@ jobs:
         with:
           node-version: 24
 
+      - name: Display path to Node
+        run: which node
+
       - uses: pnpm/action-setup@v3
         with:
           version: 9
@@ -198,6 +204,9 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+
+      - name: Display path to Node
+        run: which node
 
       - uses: pnpm/action-setup@v3
         with:
@@ -245,6 +254,9 @@ jobs:
         with:
           node-version: 24
 
+      - name: Display path to Node
+        run: which node
+
       - uses: pnpm/action-setup@v3
         with:
           version: 9
@@ -290,6 +302,9 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+
+      - name: Display path to Node
+        run: where node
 
       - uses: pnpm/action-setup@v3
         with:
