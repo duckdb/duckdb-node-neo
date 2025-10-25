@@ -220,6 +220,7 @@ export class DuckDBConnection {
       const name = duckdb.get_varchar(varchar_value);
       names.push(name);
     }
+    names.sort();
     return names;
   }
   public async createAppender(

@@ -2598,7 +2598,7 @@ ORDER BY name
           'from memory.main.t1, memory.main.t2, memory.main.t1',
           true
         ),
-        ['memory.main.t2', 'memory.main.t1']
+        ['memory.main.t1', 'memory.main.t2']
       );
     });
   });
@@ -2609,7 +2609,7 @@ ORDER BY name
           'from memory.main.t1, memory.main.t2, memory.main.t1',
           false
         ),
-        ['t2', 't1']
+        ['t1', 't2']
       );
     });
   });
