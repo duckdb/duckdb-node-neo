@@ -207,6 +207,21 @@ export class DuckDBConnection {
     }
     return extractedStatements.prepare(statementCount - 1);
   }
+  public getTableNames(query: string, qualified: boolean): readonly string[] {
+    const names: string[] = [];
+    const list_value = duckdb.get_table_names(
+      this.connection,
+      query,
+      qualified
+    );
+    const count = duckdb.get_list_size(list_value);
+    for (let i = 0; i < count; i++) {
+      const varchar_value = duckdb.get_list_child(list_value, i);
+      const name = duckdb.get_varchar(varchar_value);
+      names.push(name);
+    }
+    return names;
+  }
   public async createAppender(
     table: string,
     schema?: string | null,

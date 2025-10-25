@@ -1370,6 +1370,8 @@ public:
 
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
 
+      InstanceMethod("get_table_names", &DuckDBNodeAddon::get_table_names),
+
       InstanceMethod("create_config", &DuckDBNodeAddon::create_config),
       InstanceMethod("config_count", &DuckDBNodeAddon::config_count),
       InstanceMethod("get_config_flag", &DuckDBNodeAddon::get_config_flag),
@@ -1766,7 +1768,15 @@ private:
   }
 
   // DUCKDB_C_API duckdb_value duckdb_get_table_names(duckdb_connection connection, const char *query, bool qualified);
-  // TODO table names
+  // function get_table_names(connection: Connection, query: string, qualified: boolean): Value
+  Napi::Value get_table_names(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    std::string query = info[1].As<Napi::String>();
+    auto qualified = info[2].As<Napi::Boolean>();
+    auto value = duckdb_get_table_names(connection, query.c_str(), qualified);
+    return CreateExternalForValue(env, value);
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_create_config(duckdb_config *out_config);
   // function create_config(): Config
@@ -5157,13 +5167,12 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 459 DUCKDB_C_API
-    255 function
+    256 function
      23 not exposed
      41 deprecated
-    140 TODO
+    139 TODO
         3 client context
         8 arrow
-        1 table names
         5 error data
         4 prepared statement
         2 time ns

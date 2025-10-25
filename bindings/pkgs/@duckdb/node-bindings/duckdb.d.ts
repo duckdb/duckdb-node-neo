@@ -304,6 +304,7 @@ export function disconnect_sync(connection: Connection): void;
 export function library_version(): string;
 
 // DUCKDB_C_API duckdb_value duckdb_get_table_names(duckdb_connection connection, const char *query, bool qualified);
+export function get_table_names(connection: Connection, query: string, qualified: boolean): Value;
 
 // DUCKDB_C_API duckdb_state duckdb_create_config(duckdb_config *out_config);
 export function create_config(): Config;
