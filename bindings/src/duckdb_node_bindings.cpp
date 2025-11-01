@@ -368,6 +368,22 @@ duckdb_appender GetAppenderFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_appender>(env, AppenderTypeTag, value, "Invalid appender argument");
 }
 
+static const napi_type_tag ClientContextTypeTag = {
+  0x1E1738782ED94232, 0x867B024D1858DF3A
+};
+
+void FinalizeClientContext(Napi::BasicEnv, duckdb_client_context client_context) {
+  duckdb_destroy_client_context(&client_context);
+}
+
+Napi::External<_duckdb_client_context> CreateExternalForClientContext(Napi::Env env, duckdb_client_context client_context) {
+  return CreateExternal<_duckdb_client_context>(env, ClientContextTypeTag, client_context, FinalizeClientContext);
+}
+
+duckdb_client_context GetClientContextFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_client_context>(env, ClientContextTypeTag, value, "Invalid client context argument");
+}
+
 static const napi_type_tag ConfigTypeTag = {
   0x5963FBB9648B4D2A, 0xB41ADE86056218D1
 };
@@ -1368,6 +1384,9 @@ public:
       InstanceMethod("query_progress", &DuckDBNodeAddon::query_progress),
       InstanceMethod("disconnect_sync", &DuckDBNodeAddon::disconnect_sync),
 
+      InstanceMethod("connection_get_client_context", &DuckDBNodeAddon::connection_get_client_context),
+      InstanceMethod("client_context_get_connection_id", &DuckDBNodeAddon::client_context_get_connection_id),
+
       InstanceMethod("library_version", &DuckDBNodeAddon::library_version),
 
       InstanceMethod("get_table_names", &DuckDBNodeAddon::get_table_names),
@@ -1747,16 +1766,32 @@ private:
   }
 
   // DUCKDB_C_API void duckdb_connection_get_client_context(duckdb_connection connection, duckdb_client_context *out_context);
-  // TODO client context
+  // function connection_get_client_context(connection: Connection): ClientContext
+  Napi::Value connection_get_client_context(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    duckdb_client_context client_context;
+    duckdb_connection_get_client_context(connection, &client_context);
+    if (!client_context) {
+      throw Napi::Error::New(env, "Failed to get client context");
+    }
+    return CreateExternalForClientContext(env, client_context);
+  }
 
   // DUCKDB_C_API void duckdb_connection_get_arrow_options(duckdb_connection connection, duckdb_arrow_options *out_arrow_options);
   // TODO arrow
 
   // DUCKDB_C_API idx_t duckdb_client_context_get_connection_id(duckdb_client_context context);
-  // TODO client context
+  // function client_context_get_connection_id(client_context: ClientContext): number
+  Napi::Value client_context_get_connection_id(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto client_context = GetClientContextFromExternal(env, info[0]);
+    auto id = duckdb_client_context_get_connection_id(client_context);
+    return Napi::Number::New(env, id);
+  }
 
   // DUCKDB_C_API void duckdb_destroy_client_context(duckdb_client_context *context);
-  // TODO client context
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API void duckdb_destroy_arrow_options(duckdb_arrow_options *arrow_options);
   // TODO arrow
@@ -5167,11 +5202,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 459 DUCKDB_C_API
-    256 function
-     23 not exposed
+    258 function
+     24 not exposed
      41 deprecated
-    139 TODO
-        3 client context
+    136 TODO
         8 arrow
         5 error data
         4 prepared statement
@@ -5204,6 +5238,12 @@ NODE_API_ADDON(DuckDBNodeAddon)
 ---
 462 total
 
-regex: // DUCKDB_C_API.*\n  // (function|not exposed|deprecated|TODO)
+regexes:
+// DUCKDB_C_API.*\n  // (function|not exposed|deprecated|TODO)
+// DUCKDB_C_API.*\n  // (function)
+// DUCKDB_C_API.*\n  // (not exposed)
+// DUCKDB_C_API.*\n  // (deprecated)
+// DUCKDB_C_API.*\n  // (TODO)
+// (ADDED)
 
 */

@@ -35,6 +35,11 @@ export class DuckDBConnection {
     this.preparedStatements.destroySync();
     duckdb.disconnect_sync(this.connection);
   }
+  public get id(): number {
+    return duckdb.client_context_get_connection_id(
+      duckdb.connection_get_client_context(this.connection)
+    );
+  }
   public interrupt() {
     duckdb.interrupt(this.connection);
   }

@@ -415,6 +415,11 @@ describe('api', () => {
     // ensure double-disconnect doesn't break anything
     connection.disconnectSync();
   });
+  test('connection id', async () => {
+    await withConnection(async (connection) => {
+      assert.isDefined(connection.id);
+    });
+  });
   test('should support running prepared statements', async () => {
     await withConnection(async (connection) => {
       const params: ColumnNameAndType[] = [

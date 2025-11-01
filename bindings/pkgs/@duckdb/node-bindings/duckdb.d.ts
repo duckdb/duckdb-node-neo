@@ -184,9 +184,9 @@ export interface Appender {
   __duckdb_type: 'duckdb_appender';
 }
 
-// export interface ClientContext {
-//   __duckdb_type: 'duckdb_client_context';
-// }
+export interface ClientContext {
+  __duckdb_type: 'duckdb_client_context';
+}
 
 export interface Config {
   __duckdb_type: 'duckdb_config';
@@ -291,12 +291,15 @@ export function query_progress(connection: Connection): QueryProgress;
 export function disconnect_sync(connection: Connection): void;
 
 // DUCKDB_C_API void duckdb_connection_get_client_context(duckdb_connection connection, duckdb_client_context *out_context);
+export function connection_get_client_context(connection: Connection): ClientContext;
 
 // DUCKDB_C_API void duckdb_connection_get_arrow_options(duckdb_connection connection, duckdb_arrow_options *out_arrow_options);
 
 // DUCKDB_C_API idx_t duckdb_client_context_get_connection_id(duckdb_client_context context);
+export function client_context_get_connection_id(client_context: ClientContext): number;
 
 // DUCKDB_C_API void duckdb_destroy_client_context(duckdb_client_context *context);
+// not exposed: destroyed in finalizer
 
 // DUCKDB_C_API void duckdb_destroy_arrow_options(duckdb_arrow_options *arrow_options);
 
