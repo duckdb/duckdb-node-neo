@@ -344,7 +344,7 @@ suite('appender', () => {
 
   test('error_data: basic error access', async () => {
     await withConnection(async (connection) => {
-      const createResult = await duckdb.query(
+      await duckdb.query(
         connection,
         'create table test_error_data(i integer)'
       );
@@ -374,7 +374,7 @@ suite('appender', () => {
 
   test('error_data: type conversion', async () => {
     await withConnection(async (connection) => {
-      const createResult = await duckdb.query(
+      await duckdb.query(
         connection,
         'create table test_error_type(i integer)'
       );
@@ -389,11 +389,11 @@ suite('appender', () => {
       // Get the error type enumeration (should be valid even with no error)
       const error_data = duckdb.appender_error_data(appender);
       const error_type = duckdb.error_data_error_type(error_data);
-      
+
       // Error type should be a valid number in the ErrorType enum range
       expect(typeof error_type).toBe('number');
       expect(error_type).toBeGreaterThanOrEqual(0);
-      expect(error_type).toBeLessThanOrEqual(21); // Max known error type
+      expect(error_type).toBeLessThanOrEqual(41); // Max known error type (SEQUENCE)
     });
   });
 });
