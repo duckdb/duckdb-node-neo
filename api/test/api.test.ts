@@ -415,9 +415,11 @@ describe('api', () => {
     // ensure double-disconnect doesn't break anything
     connection.disconnectSync();
   });
-  test('connection id', async () => {
+  test('client context', async () => {
     await withConnection(async (connection) => {
-      assert.isDefined(connection.id);
+      const clientContext = connection.clientContext;
+      assert.isDefined(clientContext);
+      assert.isDefined(clientContext.connectionId);
     });
   });
   test('should support running prepared statements', async () => {
