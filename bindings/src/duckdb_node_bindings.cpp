@@ -1440,6 +1440,10 @@ public:
       InstanceMethod("param_logical_type", &DuckDBNodeAddon::param_logical_type),
       InstanceMethod("clear_bindings", &DuckDBNodeAddon::clear_bindings),
       InstanceMethod("prepared_statement_type", &DuckDBNodeAddon::prepared_statement_type),
+      InstanceMethod("prepared_statement_column_count", &DuckDBNodeAddon::prepared_statement_column_count),
+      InstanceMethod("prepared_statement_column_name", &DuckDBNodeAddon::prepared_statement_column_name),
+      InstanceMethod("prepared_statement_column_logical_type", &DuckDBNodeAddon::prepared_statement_column_logical_type),
+      InstanceMethod("prepared_statement_column_type", &DuckDBNodeAddon::prepared_statement_column_type),
       InstanceMethod("bind_value", &DuckDBNodeAddon::bind_value),
       InstanceMethod("bind_parameter_index", &DuckDBNodeAddon::bind_parameter_index),
       InstanceMethod("bind_boolean", &DuckDBNodeAddon::bind_boolean),
@@ -2379,7 +2383,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto logical_type = duckdb_param_logical_type(prepared_statement, index);
     if (!logical_type) {
-      throw Napi::Error::New(env, "Failed to get logical type");
+      throw Napi::Error::New(env, "Failed to get param logical type");
     }
     return CreateExternalForLogicalType(env, logical_type);
   }
@@ -2405,16 +2409,51 @@ private:
   }
 
   // DUCKDB_C_API idx_t duckdb_prepared_statement_column_count(duckdb_prepared_statement prepared_statement);
-  // TODO prepared statement
+  // function prepared_statement_column_count(prepared_statement: PreparedStatement): number
+  Napi::Value prepared_statement_column_count(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto column_count = duckdb_prepared_statement_column_count(prepared_statement);
+    return Napi::Number::New(env, column_count);
+  }
 
   // DUCKDB_C_API const char *duckdb_prepared_statement_column_name(duckdb_prepared_statement prepared_statement, idx_t col_idx);
-  // TODO prepared statement
+  // function prepared_statement_column_name(prepared_statement: PreparedStatement, index: number): string
+  Napi::Value prepared_statement_column_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto column_name = duckdb_prepared_statement_column_name(prepared_statement, index);
+    if (!column_name) {
+      throw Napi::Error::New(env, "Failed to get prepared statement column name");
+    }
+    auto column_name_str = Napi::String::New(env, column_name);
+    duckdb_free((void *)column_name);
+    return column_name_str;
+  }
 
   // DUCKDB_C_API duckdb_logical_type duckdb_prepared_statement_column_logical_type(duckdb_prepared_statement prepared_statement, idx_t col_idx);
-  // TODO prepared statement
+  // function prepared_statement_column_logical_type(prepared_statement: PreparedStatement, index: number): LogicalType
+  Napi::Value prepared_statement_column_logical_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto logical_type = duckdb_prepared_statement_column_logical_type(prepared_statement, index);
+    if (!logical_type) {
+      throw Napi::Error::New(env, "Failed to get prepared statement column logical type");
+    }
+    return CreateExternalForLogicalType(env, logical_type);
+  }
 
   // DUCKDB_C_API duckdb_type duckdb_prepared_statement_column_type(duckdb_prepared_statement prepared_statement, idx_t col_idx);
-  // TODO prepared statement
+  // function prepared_statement_column_type(prepared_statement: PreparedStatement, index: number): Type
+  Napi::Value prepared_statement_column_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto type = duckdb_prepared_statement_column_type(prepared_statement, index);
+    return Napi::Number::New(env, type);
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_bind_value(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_value val);
   // function bind_value(prepared_statement: PreparedStatement, index: number, value: Value): void
@@ -5202,13 +5241,12 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 459 DUCKDB_C_API
-    258 function
+    262 function
      24 not exposed
      41 deprecated
-    136 TODO
+    132 TODO
         8 arrow
         5 error data
-        4 prepared statement
         2 time ns
         1 value to string
         1 register logical type

@@ -31,6 +31,7 @@ import {
   VARCHAR,
 } from './utils/expectedLogicalTypes';
 import { array, data, list, map, struct, union } from './utils/expectedVectors';
+import { expectLogicalType } from './utils/expectLogicalType';
 import { expectResult } from './utils/expectResult';
 import { withConnection } from './utils/withConnection';
 
@@ -44,6 +45,17 @@ suite('prepared statements', () => {
       expect(duckdb.nparams(prepared)).toBe(0);
       expect(duckdb.prepared_statement_type(prepared)).toBe(
         duckdb.StatementType.SELECT
+      );
+      expect(duckdb.prepared_statement_column_count(prepared)).toBe(1);
+      expect(duckdb.prepared_statement_column_name(prepared, 0)).toBe(
+        'seventeen'
+      );
+      expectLogicalType(
+        duckdb.prepared_statement_column_logical_type(prepared, 0),
+        INTEGER
+      );
+      expect(duckdb.prepared_statement_column_type(prepared, 0)).toBe(
+        duckdb.Type.INTEGER
       );
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
@@ -65,6 +77,12 @@ suite('prepared statements', () => {
       );
       expect(duckdb.nparams(prepared)).toBe(2);
 
+      // types are ambiguous
+      expect(duckdb.prepared_statement_column_count(prepared)).toBe(1);
+      expect(duckdb.prepared_statement_column_type(prepared, 0)).toBe(
+        duckdb.Type.INVALID
+      );
+
       expect(duckdb.parameter_name(prepared, 1)).toBe('1');
       expect(duckdb.bind_parameter_index(prepared, '1')).toBe(1);
       duckdb.bind_int32(prepared, 1, 11);
@@ -74,6 +92,12 @@ suite('prepared statements', () => {
       expect(duckdb.bind_parameter_index(prepared, '2')).toBe(2);
       duckdb.bind_int32(prepared, 2, 22);
       expect(duckdb.param_type(prepared, 2)).toBe(duckdb.Type.INTEGER);
+
+      // types are ambiguous; no change after binding
+      expect(duckdb.prepared_statement_column_count(prepared)).toBe(1);
+      expect(duckdb.prepared_statement_column_type(prepared, 0)).toBe(
+        duckdb.Type.INVALID
+      );
 
       const result = await duckdb.execute_prepared(prepared);
       await expectResult(result, {
@@ -598,6 +622,34 @@ suite('prepared statements', () => {
     await withConnection(async (connection) => {
       const prepared = await duckdb.prepare(connection, 'select 1');
       duckdb.destroy_prepare_sync(prepared);
+    });
+  });
+  test('column information', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await duckdb.prepare(
+        connection,
+        'select $1::INTEGER as a, $2::VARCHAR as b, $3::INTEGER[] as c'
+      );
+      expect(duckdb.nparams(prepared)).toBe(3);
+      expect(duckdb.prepared_statement_type(prepared)).toBe(
+        duckdb.StatementType.SELECT
+      );
+      expect(duckdb.prepared_statement_column_count(prepared)).toBe(3);
+      expect(duckdb.prepared_statement_column_name(prepared, 0)).toBe('a');
+      expectLogicalType(
+        duckdb.prepared_statement_column_logical_type(prepared, 0),
+        INTEGER
+      );
+      expect(duckdb.prepared_statement_column_name(prepared, 1)).toBe('b');
+      expectLogicalType(
+        duckdb.prepared_statement_column_logical_type(prepared, 1),
+        VARCHAR
+      );
+      expect(duckdb.prepared_statement_column_name(prepared, 2)).toBe('c');
+      expectLogicalType(
+        duckdb.prepared_statement_column_logical_type(prepared, 2),
+        LIST(INTEGER)
+      );
     });
   });
 });

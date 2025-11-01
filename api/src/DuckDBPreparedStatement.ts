@@ -77,6 +77,29 @@ export class DuckDBPreparedStatement {
       duckdb.param_logical_type(this.prepared_statement, parameterIndex)
     ).asType();
   }
+  public get columnCount(): number {
+    return duckdb.prepared_statement_column_count(this.prepared_statement);
+  }
+  public columnName(columnIndex: number): string {
+    return duckdb.prepared_statement_column_name(
+      this.prepared_statement,
+      columnIndex
+    );
+  }
+  public columnTypeId(columnIndex: number): DuckDBTypeId {
+    return duckdb.prepared_statement_column_type(
+      this.prepared_statement,
+      columnIndex
+    ) as number as DuckDBTypeId;
+  }
+  public columnType(columnIndex: number): DuckDBType {
+    return DuckDBLogicalType.create(
+      duckdb.prepared_statement_column_logical_type(
+        this.prepared_statement,
+        columnIndex
+      )
+    ).asType();
+  }
   public clearBindings() {
     duckdb.clear_bindings(this.prepared_statement);
   }
