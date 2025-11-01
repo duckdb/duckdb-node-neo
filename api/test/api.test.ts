@@ -2577,3 +2577,45 @@ ORDER BY name
     });
   });
 });
+
+describe('DuckDBErrorData', () => {
+  test('appender errorData property', async () => {
+    await withConnection(async (connection) => {
+      await connection.run('create table test_error_data(i integer)');
+      const appender = await connection.createAppender('test_error_data');
+
+      // Get error data - should indicate no error on successful append
+      const errorData = appender.errorData;
+      assert(errorData !== null);
+      assert(errorData.hasError === false);
+      assert(errorData.message === null);
+      assert(errorData.toString() === '');
+
+      // Append a value successfully
+      appender.appendInteger(42);
+      appender.endRow();
+      appender.flushSync();
+
+      // Error data should still indicate no error after flush
+      const errorDataAfterFlush = appender.errorData;
+      assert(errorDataAfterFlush.hasError === false);
+      assert(errorDataAfterFlush.message === null);
+    });
+  });
+
+  test('errorData errorType property', async () => {
+    await withConnection(async (connection) => {
+      await connection.run('create table test_error_type(i integer)');
+      const appender = await connection.createAppender('test_error_type');
+
+      // Get the error type - should be a valid enum value
+      const errorData = appender.errorData;
+      const errorType = errorData.errorType;
+
+      assert(typeof errorType === 'number');
+      // Error type should be within valid enum range (0-21)
+      assert(errorType >= 0);
+      assert(errorType <= 21);
+    });
+  });
+});

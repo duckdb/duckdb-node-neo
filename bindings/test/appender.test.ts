@@ -341,4 +341,59 @@ suite('appender', () => {
       });
     });
   });
+
+  test('error_data: basic error access', async () => {
+    await withConnection(async (connection) => {
+      const createResult = await duckdb.query(
+        connection,
+        'create table test_error_data(i integer)'
+      );
+
+      const appender = duckdb.appender_create_ext(
+        connection,
+        'memory',
+        'main',
+        'test_error_data'
+      );
+
+      // Get error data even when there's no error
+      const error_data = duckdb.appender_error_data(appender);
+      expect(duckdb.error_data_has_error(error_data)).toBe(false);
+      expect(duckdb.error_data_message(error_data)).toBe('');
+
+      // Successful append operations should not have errors
+      duckdb.append_int32(appender, 42);
+      duckdb.appender_end_row(appender);
+      duckdb.appender_flush_sync(appender);
+
+      // Error data should still indicate no error after successful operations
+      const error_data_after = duckdb.appender_error_data(appender);
+      expect(duckdb.error_data_has_error(error_data_after)).toBe(false);
+    });
+  });
+
+  test('error_data: type conversion', async () => {
+    await withConnection(async (connection) => {
+      const createResult = await duckdb.query(
+        connection,
+        'create table test_error_type(i integer)'
+      );
+
+      const appender = duckdb.appender_create_ext(
+        connection,
+        'memory',
+        'main',
+        'test_error_type'
+      );
+
+      // Get the error type enumeration (should be valid even with no error)
+      const error_data = duckdb.appender_error_data(appender);
+      const error_type = duckdb.error_data_error_type(error_data);
+      
+      // Error type should be a valid number in the ErrorType enum range
+      expect(typeof error_type).toBe('number');
+      expect(error_type).toBeGreaterThanOrEqual(0);
+      expect(error_type).toBeLessThanOrEqual(21); // Max known error type
+    });
+  });
 });
