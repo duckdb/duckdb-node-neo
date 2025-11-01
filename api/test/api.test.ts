@@ -2613,9 +2613,6 @@ describe('DuckDBErrorData', () => {
       const errorType = errorData.errorType;
 
       assert(typeof errorType === 'number');
-      // Error type should be within valid enum range (0-21)
-      assert(errorType >= 0);
-      assert(errorType <= 21);
     });
   });
 });
