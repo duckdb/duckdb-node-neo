@@ -818,6 +818,33 @@ describe('api', () => {
       );
     });
   });
+  test('prepared statement column info (valid)', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare(
+        'select $1::INTEGER as a, $2::VARCHAR as b, $3::INTEGER[] as c'
+      );
+      assert.equal(prepared.columnCount, 3);
+      assert.equal(prepared.columnName(0), 'a');
+      assert.equal(prepared.columnTypeId(0), DuckDBTypeId.INTEGER);
+      assert.deepEqual(prepared.columnType(0), INTEGER);
+      assert.equal(prepared.columnName(1), 'b');
+      assert.equal(prepared.columnTypeId(1), DuckDBTypeId.VARCHAR);
+      assert.deepEqual(prepared.columnType(1), VARCHAR);
+      assert.equal(prepared.columnName(2), 'c');
+      assert.equal(prepared.columnTypeId(2), DuckDBTypeId.LIST);
+      assert.deepEqual(prepared.columnType(2), LIST(INTEGER));
+    });
+  });
+  test('prepared statement column info (invalid)', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare(
+        'select $1::INTEGER as a, $2::VARCHAR as b, $3 as c'
+      );
+      // When any column types are ambiguous, DuckDB returns a column count of 1 with a type of INVALID.
+      assert.equal(prepared.columnCount, 1);
+      assert.equal(prepared.columnTypeId(0), DuckDBTypeId.INVALID);
+    });
+  });
   test('runAndReadAll with params', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll('select ? as n', [17]);

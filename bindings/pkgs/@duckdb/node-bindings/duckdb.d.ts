@@ -520,9 +520,16 @@ export function clear_bindings(prepared_statement: PreparedStatement): void;
 export function prepared_statement_type(prepared_statement: PreparedStatement): StatementType;
 
 // DUCKDB_C_API idx_t duckdb_prepared_statement_column_count(duckdb_prepared_statement prepared_statement);
+export function prepared_statement_column_count(prepared_statement: PreparedStatement): number;
+
 // DUCKDB_C_API const char *duckdb_prepared_statement_column_name(duckdb_prepared_statement prepared_statement, idx_t col_idx);
+export function prepared_statement_column_name(prepared_statement: PreparedStatement, index: number): string;
+
 // DUCKDB_C_API duckdb_logical_type duckdb_prepared_statement_column_logical_type(duckdb_prepared_statement prepared_statement, idx_t col_idx);
+export function prepared_statement_column_logical_type(prepared_statement: PreparedStatement, index: number): LogicalType;
+
 // DUCKDB_C_API duckdb_type duckdb_prepared_statement_column_type(duckdb_prepared_statement prepared_statement, idx_t col_idx);
+export function prepared_statement_column_type(prepared_statement: PreparedStatement, index: number): Type;
 
 // DUCKDB_C_API duckdb_state duckdb_bind_value(duckdb_prepared_statement prepared_statement, idx_t param_idx, duckdb_value val);
 export function bind_value(prepared_statement: PreparedStatement, index: number, value: Value): void;
