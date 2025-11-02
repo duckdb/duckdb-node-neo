@@ -58,6 +58,9 @@ const JsonConvertersByTypeId: Record<
   [DuckDBTypeId.ANY]: unsupportedConverter,
   [DuckDBTypeId.BIGNUM]: stringFromValue,
   [DuckDBTypeId.SQLNULL]: nullConverter,
+  [DuckDBTypeId.STRING_LITERAL]: unsupportedConverter,
+  [DuckDBTypeId.INTEGER_LITERAL]: unsupportedConverter,
+  [DuckDBTypeId.TIME_NS]: stringFromValue,
 };
 
 export const JsonDuckDBValueConverter = createDuckDBValueConverter(

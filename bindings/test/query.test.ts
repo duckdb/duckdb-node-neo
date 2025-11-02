@@ -262,6 +262,22 @@ suite('query', () => {
       });
     });
   });
+  // TODO: Need DuckDB fix to LogicalTypeIdFromC and LogicalTypeIdToC
+  test.skip('time_ns', async () => {
+    await withConnection(async (connection) => {
+      const result = await duckdb.query(connection, `select '12:34:56.789123456'::time_ns as time_ns`);
+      await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
+        columns: [
+          { name: 'time_ns', logicalType: { typeId: duckdb.Type.TIME_NS } },
+        ],
+        chunks: [
+          { rowCount: 1, vectors: [data(4, [true], [45296789123456n])]},
+        ],
+      });
+    });
+  });
   test('create and insert', async () => {
     await withConnection(async (connection) => {
       const createResult = await duckdb.query(connection, 'create table test_create_and_insert(i integer)');

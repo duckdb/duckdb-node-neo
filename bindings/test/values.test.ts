@@ -3,6 +3,7 @@ import duckdb, {
   Decimal,
   Interval,
   Time,
+  TimeNS,
   Timestamp,
   TimestampMilliseconds,
   TimestampNanoseconds,
@@ -47,7 +48,7 @@ import {
   USMALLINT,
   UTINYINT,
   UUID,
-  VARCHAR,
+  VARCHAR
 } from './utils/expectedLogicalTypes';
 
 suite('values', () => {
@@ -189,6 +190,13 @@ suite('values', () => {
     const time_value = duckdb.create_time(input);
     expectLogicalType(duckdb.get_value_type(time_value), TIME);
     expect(duckdb.get_time(time_value)).toStrictEqual(input);
+  });
+  test('time_ns', () => {
+    const input: TimeNS = { nanos: 86400000000000n };
+    const time_ns_value = duckdb.create_time_ns(input);
+    // TODO: Need DuckDB fix to LogicalTypeIdFromC and LogicalTypeIdToC
+    // expectLogicalType(duckdb.get_value_type(time_ns_value), TIME_NS);
+    expect(duckdb.get_time_ns(time_ns_value)).toStrictEqual(input);
   });
   test('time_tz', () => {
     const input: TimeTZ = { bits: 1449551462400115198n };

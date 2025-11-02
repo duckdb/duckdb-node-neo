@@ -112,6 +112,17 @@ export const SQLNULL: ExpectedSimpleLogicalType = {
   typeId: duckdb.Type.SQLNULL,
 };
 
+export const STRING_LITERAL: ExpectedSimpleLogicalType = {
+  typeId: duckdb.Type.STRING_LITERAL,
+};
+export const INTEGER_LITERAL: ExpectedSimpleLogicalType = {
+  typeId: duckdb.Type.INTEGER_LITERAL,
+};
+
+export const TIME_NS: ExpectedSimpleLogicalType = {
+  typeId: duckdb.Type.TIME_NS,
+};
+
 export function ARRAY(
   valueType: ExpectedLogicalType,
   size: number

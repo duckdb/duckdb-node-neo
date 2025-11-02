@@ -20,6 +20,7 @@ import {
   DuckDBMapType,
   DuckDBSmallIntType,
   DuckDBStructType,
+  DuckDBTimeNSType,
   DuckDBTimeTZType,
   DuckDBTimeType,
   DuckDBTimestampMillisecondsType,
@@ -50,6 +51,7 @@ import {
   DuckDBMapEntry,
   DuckDBMapValue,
   DuckDBStructValue,
+  DuckDBTimeNSValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
   DuckDBTimestampMillisecondsValue,
@@ -642,6 +644,12 @@ export abstract class DuckDBVector<TValue extends DuckDBValue = DuckDBValue> {
         return DuckDBBigNumVector.fromRawVector(vector, itemCount);
       case DuckDBTypeId.SQLNULL:
         throw new Error(`Invalid vector type: SQLNULL`);
+      case DuckDBTypeId.STRING_LITERAL:
+        throw new Error(`Invalid vector type: STRING_LITERAL`);
+      case DuckDBTypeId.INTEGER_LITERAL:
+        throw new Error(`Invalid vector type: INTEGER_LITERAL`);
+      case DuckDBTypeId.TIME_NS:
+        return DuckDBTimeNSVector.fromRawVector(vector, itemCount);
       default:
         throw new Error(
           `Invalid type id: ${(vectorType as DuckDBType).typeId}`
@@ -2738,7 +2746,7 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
     this.validity = validity;
     this.vector = vector;
     this.childData = childData;
-    this.itemOffset = itemOffset,
+    this.itemOffset = itemOffset;
     this._itemCount = itemCount;
     this.itemCache = [];
   }
@@ -3221,7 +3229,9 @@ export class DuckDBUUIDVector extends DuckDBVector<DuckDBUUIDValue> {
   }
   public override getItem(itemIndex: number): DuckDBUUIDValue | null {
     return this.validity.itemValid(itemIndex)
-      ? DuckDBUUIDValue.fromStoredHugeInt(getInt128(this.dataView, itemIndex * 16))
+      ? DuckDBUUIDValue.fromStoredHugeInt(
+          getInt128(this.dataView, itemIndex * 16)
+        )
       : null;
   }
   public override setItem(itemIndex: number, value: DuckDBUUIDValue | null) {
@@ -3630,6 +3640,70 @@ export class DuckDBBigNumVector extends DuckDBVector<bigint> {
       this.vector,
       offset,
       length
+    );
+  }
+}
+
+export class DuckDBTimeNSVector extends DuckDBVector<DuckDBTimeNSValue> {
+  private readonly items: BigInt64Array;
+  private readonly validity: DuckDBValidity;
+  private readonly vector: duckdb.Vector;
+  constructor(
+    items: BigInt64Array,
+    validity: DuckDBValidity,
+    vector: duckdb.Vector
+  ) {
+    super();
+    this.items = items;
+    this.validity = validity;
+    this.vector = vector;
+  }
+  static fromRawVector(
+    vector: duckdb.Vector,
+    itemCount: number
+  ): DuckDBTimeNSVector {
+    const data = vectorData(
+      vector,
+      itemCount * BigInt64Array.BYTES_PER_ELEMENT
+    );
+    const items = new BigInt64Array(data.buffer, data.byteOffset, itemCount);
+    const validity = DuckDBValidity.fromVector(vector, itemCount);
+    return new DuckDBTimeNSVector(items, validity, vector);
+  }
+  public override get type(): DuckDBTimeNSType {
+    return DuckDBTimeNSType.instance;
+  }
+  public override get itemCount(): number {
+    return this.items.length;
+  }
+  public override getItem(itemIndex: number): DuckDBTimeNSValue | null {
+    return this.validity.itemValid(itemIndex)
+      ? new DuckDBTimeNSValue(this.items[itemIndex])
+      : null;
+  }
+  public override setItem(itemIndex: number, value: DuckDBTimeNSValue | null) {
+    if (value != null) {
+      this.items[itemIndex] = value.nanos;
+      this.validity.setItemValid(itemIndex, true);
+    } else {
+      this.validity.setItemValid(itemIndex, false);
+    }
+  }
+  public override flush() {
+    duckdb.copy_data_to_vector(
+      this.vector,
+      0,
+      this.items.buffer as ArrayBuffer,
+      this.items.byteOffset,
+      this.items.byteLength
+    );
+    this.validity.flush(this.vector);
+  }
+  public override slice(offset: number, length: number): DuckDBTimeNSVector {
+    return new DuckDBTimeNSVector(
+      this.items.slice(offset, offset + length),
+      this.validity.slice(offset, length),
+      this.vector
     );
   }
 }

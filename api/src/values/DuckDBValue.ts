@@ -7,6 +7,7 @@ import { DuckDBIntervalValue } from './DuckDBIntervalValue';
 import { DuckDBListValue } from './DuckDBListValue';
 import { DuckDBMapValue } from './DuckDBMapValue';
 import { DuckDBStructValue } from './DuckDBStructValue';
+import { DuckDBTimeNSValue } from './DuckDBTimeNSValue';
 import { DuckDBTimestampMillisecondsValue } from './DuckDBTimestampMillisecondsValue';
 import { DuckDBTimestampNanosecondsValue } from './DuckDBTimestampNanosecondsValue';
 import { DuckDBTimestampSecondsValue } from './DuckDBTimestampSecondsValue';
@@ -39,6 +40,6 @@ export type DuckDBValue =
   | DuckDBTimestampValue
   | DuckDBTimeTZValue
   | DuckDBTimeValue
+  | DuckDBTimeNSValue
   | DuckDBUnionValue
-  | DuckDBUUIDValue
-  ;
+  | DuckDBUUIDValue;

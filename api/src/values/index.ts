@@ -7,6 +7,7 @@ export * from './DuckDBIntervalValue';
 export * from './DuckDBListValue';
 export * from './DuckDBMapValue';
 export * from './DuckDBStructValue';
+export * from './DuckDBTimeNSValue';
 export * from './DuckDBTimestampMillisecondsValue';
 export * from './DuckDBTimestampNanosecondsValue';
 export * from './DuckDBTimestampSecondsValue';
