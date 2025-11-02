@@ -5270,13 +5270,12 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 459 DUCKDB_C_API
-    262 function
+    264 function
      24 not exposed
      41 deprecated
-    132 TODO
+    130 TODO
         8 arrow
         5 error data
-        2 time ns
         1 value to string
         1 register logical type
         2 vector creation
