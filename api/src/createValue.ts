@@ -11,6 +11,7 @@ import {
   DuckDBListValue,
   DuckDBMapValue,
   DuckDBStructValue,
+  DuckDBTimeNSValue,
   DuckDBTimestampMillisecondsValue,
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
@@ -261,6 +262,15 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       throw new Error(`input is not a bigint`);
     case DuckDBTypeId.SQLNULL:
       return duckdb.create_null_value();
+    case DuckDBTypeId.STRING_LITERAL:
+      throw new Error(`Cannot create values of type STRING_LITERAL.`);
+    case DuckDBTypeId.INTEGER_LITERAL:
+      throw new Error(`Cannot create values of type INTEGER_LITERAL.`);
+    case DuckDBTypeId.TIME_NS:
+      if (input instanceof DuckDBTimeNSValue) {
+        return duckdb.create_time_ns(input);
+      }
+      throw new Error(`input is not a DuckDBTimeNSValue`);
     default:
       throw new Error(`unrecognized type id ${typeId}`);
   }

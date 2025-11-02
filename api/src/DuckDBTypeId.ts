@@ -37,4 +37,7 @@ export enum DuckDBTypeId {
   ANY = 34,
   BIGNUM = 35,
   SQLNULL = 36,
+  STRING_LITERAL = 37,
+  INTEGER_LITERAL = 38,
+  TIME_NS = 39,
 }

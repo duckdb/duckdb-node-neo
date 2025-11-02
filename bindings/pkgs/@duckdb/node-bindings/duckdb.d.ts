@@ -85,6 +85,9 @@ export enum Type {
   ANY = 34,
   BIGNUM = 35,
   SQLNULL = 36,
+  STRING_LITERAL = 37,
+  INTEGER_LITERAL = 38,
+  TIME_NS = 39,
 }
 
 
@@ -127,6 +130,11 @@ export interface TimeParts {
   min: number;
   sec: number;
   micros: number;
+}
+
+export interface TimeNS {
+  /** Nanoseconds since 00:00:00 */
+  nanos: bigint;
 }
 
 export interface TimeTZ {
@@ -717,6 +725,7 @@ export function create_date(input: Date_): Value;
 export function create_time(input: Time): Value;
 
 // DUCKDB_C_API duckdb_value duckdb_create_time_ns(duckdb_time_ns input);
+export function create_time_ns(input: TimeNS): Value;
 
 // DUCKDB_C_API duckdb_value duckdb_create_time_tz_value(duckdb_time_tz value);
 export function create_time_tz_value(input: TimeTZ): Value;
@@ -800,6 +809,7 @@ export function get_date(value: Value): Date_;
 export function get_time(value: Value): Time;
 
 // DUCKDB_C_API duckdb_time_ns duckdb_get_time_ns(duckdb_value val);
+export function get_time_ns(value: Value): TimeNS;
 
 // DUCKDB_C_API duckdb_time_tz duckdb_get_time_tz(duckdb_value val);
 export function get_time_tz(value: Value): TimeTZ;

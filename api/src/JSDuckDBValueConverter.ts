@@ -66,6 +66,9 @@ const JSConvertersByTypeId: Record<DuckDBTypeId, DuckDBValueConverter<JS>> = {
   [DuckDBTypeId.ANY]: unsupportedConverter,
   [DuckDBTypeId.BIGNUM]: bigintFromBigIntValue,
   [DuckDBTypeId.SQLNULL]: nullConverter,
+  [DuckDBTypeId.STRING_LITERAL]: unsupportedConverter,
+  [DuckDBTypeId.INTEGER_LITERAL]: unsupportedConverter,
+  [DuckDBTypeId.TIME_NS]: bigintFromTimeValue,
 };
 
 export const JSDuckDBValueConverter =

@@ -75,6 +75,21 @@ duckdb_time_struct GetTimePartsFromObject(Napi::Object time_parts_obj) {
   return { hour, min, sec, micros };
 }
 
+Napi::Object MakeTimeNSObject(Napi::Env env, duckdb_time_ns time_ns) {
+  auto time_ns_obj = Napi::Object::New(env);
+  time_ns_obj.Set("nanos", Napi::BigInt::New(env, time_ns.nanos));
+  return time_ns_obj;
+}
+
+duckdb_time_ns GetTimeNSFromObject(Napi::Env env, Napi::Object time_ns_obj) {
+  bool lossless;
+  auto nanos = time_ns_obj.Get("nanos").As<Napi::BigInt>().Int64Value(&lossless);
+  if (!lossless) {
+    throw Napi::Error::New(env, "nanos out of int64 range");
+  }
+  return { nanos };
+}
+
 Napi::Object MakeTimeTZObject(Napi::Env env, duckdb_time_tz time_tz) {
   auto time_tz_obj = Napi::Object::New(env);
   time_tz_obj.Set("bits", Napi::BigInt::New(env, time_tz.bits));
@@ -1501,6 +1516,7 @@ public:
       InstanceMethod("create_double", &DuckDBNodeAddon::create_double),
       InstanceMethod("create_date", &DuckDBNodeAddon::create_date),
       InstanceMethod("create_time", &DuckDBNodeAddon::create_time),
+      InstanceMethod("create_time_ns", &DuckDBNodeAddon::create_time_ns),
       InstanceMethod("create_time_tz_value", &DuckDBNodeAddon::create_time_tz_value),
       InstanceMethod("create_timestamp", &DuckDBNodeAddon::create_timestamp),
       InstanceMethod("create_timestamp_tz", &DuckDBNodeAddon::create_timestamp_tz),
@@ -1528,6 +1544,7 @@ public:
       InstanceMethod("get_double", &DuckDBNodeAddon::get_double),
       InstanceMethod("get_date", &DuckDBNodeAddon::get_date),
       InstanceMethod("get_time", &DuckDBNodeAddon::get_time),
+      InstanceMethod("get_time_ns", &DuckDBNodeAddon::get_time_ns),
       InstanceMethod("get_time_tz", &DuckDBNodeAddon::get_time_tz),
       InstanceMethod("get_timestamp", &DuckDBNodeAddon::get_timestamp),
       InstanceMethod("get_timestamp_tz", &DuckDBNodeAddon::get_timestamp_tz),
@@ -3101,7 +3118,13 @@ private:
   }
 
   // DUCKDB_C_API duckdb_value duckdb_create_time_ns(duckdb_time_ns input);
-  // TODO time ns
+  // function create_time_ns(input: TimeNS): Value
+  Napi::Value create_time_ns(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto input = GetTimeNSFromObject(env, info[0].As<Napi::Object>());
+    auto value = duckdb_create_time_ns(input);
+    return CreateExternalForValue(env, value);
+  }
 
   // DUCKDB_C_API duckdb_value duckdb_create_time_tz_value(duckdb_time_tz value);
   // function create_time_tz_value(input: TimeTZ): Value
@@ -3354,7 +3377,13 @@ private:
   }
 
   // DUCKDB_C_API duckdb_time_ns duckdb_get_time_ns(duckdb_value val);
-  // TODO time ns
+  // function get_time_ns(value: Value): TimeNS
+  Napi::Value get_time_ns(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto time = duckdb_get_time_ns(value);
+    return MakeTimeNSObject(env, time);
+  }
 
   // DUCKDB_C_API duckdb_time_tz duckdb_get_time_tz(duckdb_value val);
   // function get_time_tz(value: Value): TimeTZ

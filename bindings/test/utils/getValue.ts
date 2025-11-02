@@ -194,6 +194,12 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
     
     case duckdb.Type.SQLNULL:
       return null;
+
+    // STRING_LITERAL
+    // INTEGER_LITERAL
+
+    case duckdb.Type.TIME_NS:
+      return getInt64(dv, index * 8);
     
     default:
       throw new Error(`getValue not implemented for type: ${duckdb.Type[logicalType.typeId]}`);

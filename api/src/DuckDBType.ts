@@ -959,6 +959,39 @@ export class DuckDBSQLNullType extends BaseDuckDBType<DuckDBTypeId.SQLNULL> {
 }
 export const SQLNULL = DuckDBSQLNullType.instance;
 
+export class DuckDBStringLiteralType extends BaseDuckDBType<DuckDBTypeId.STRING_LITERAL> {
+  public constructor(alias?: string) {
+    super(DuckDBTypeId.STRING_LITERAL, alias);
+  }
+  public static readonly instance = new DuckDBStringLiteralType();
+  public static create(alias?: string): DuckDBStringLiteralType {
+    return alias ? new DuckDBStringLiteralType(alias) : DuckDBStringLiteralType.instance;
+  }
+}
+export const STRING_LITERAL = DuckDBStringLiteralType.instance;
+
+export class DuckDBIntegerLiteralType extends BaseDuckDBType<DuckDBTypeId.INTEGER_LITERAL> {
+  public constructor(alias?: string) {
+    super(DuckDBTypeId.INTEGER_LITERAL, alias);
+  }
+  public static readonly instance = new DuckDBIntegerLiteralType();
+  public static create(alias?: string): DuckDBIntegerLiteralType {
+    return alias ? new DuckDBIntegerLiteralType(alias) : DuckDBIntegerLiteralType.instance;
+  }
+}
+export const INTEGER_LITERAL = DuckDBIntegerLiteralType.instance;
+
+export class DuckDBTimeNSType extends BaseDuckDBType<DuckDBTypeId.TIME_NS> {
+  public constructor(alias?: string) {
+    super(DuckDBTypeId.TIME_NS, alias);
+  }
+  public static readonly instance = new DuckDBTimeNSType();
+  public static create(alias?: string): DuckDBTimeNSType {
+    return alias ? new DuckDBTimeNSType(alias) : DuckDBTimeNSType.instance;
+  }
+}
+export const TIME_NS = DuckDBTimeNSType.instance;
+
 export type DuckDBType =
   | DuckDBBooleanType
   | DuckDBTinyIntType
@@ -995,4 +1028,7 @@ export type DuckDBType =
   | DuckDBTimestampTZType
   | DuckDBAnyType
   | DuckDBBigNumType
-  | DuckDBSQLNullType;
+  | DuckDBSQLNullType
+  | DuckDBStringLiteralType
+  | DuckDBIntegerLiteralType
+  | DuckDBTimeNSType;

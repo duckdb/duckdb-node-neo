@@ -13,13 +13,16 @@ import {
   DuckDBEnumType,
   DuckDBFloatType,
   DuckDBHugeIntType,
+  DuckDBIntegerLiteralType,
   DuckDBIntegerType,
   DuckDBIntervalType,
   DuckDBListType,
   DuckDBMapType,
   DuckDBSQLNullType,
   DuckDBSmallIntType,
+  DuckDBStringLiteralType,
   DuckDBStructType,
+  DuckDBTimeNSType,
   DuckDBTimeTZType,
   DuckDBTimeType,
   DuckDBTimestampMillisecondsType,
@@ -87,7 +90,7 @@ export class DuckDBLogicalType {
   }
   public static createStruct(
     entryNames: readonly string[],
-    entryLogicalTypes: readonly DuckDBLogicalType[],    
+    entryLogicalTypes: readonly DuckDBLogicalType[]
   ): DuckDBStructLogicalType {
     const length = entryNames.length;
     if (length !== entryLogicalTypes.length) {
@@ -122,7 +125,7 @@ export class DuckDBLogicalType {
   }
   public static createUnion(
     memberTags: readonly string[],
-    memberLogicalTypes: readonly DuckDBLogicalType[], 
+    memberLogicalTypes: readonly DuckDBLogicalType[]
   ): DuckDBUnionLogicalType {
     const length = memberTags.length;
     if (length !== memberLogicalTypes.length) {
@@ -152,7 +155,7 @@ export class DuckDBLogicalType {
     const alias = this.alias;
     switch (this.typeId) {
       case DuckDBTypeId.BOOLEAN:
-        return  DuckDBBooleanType.create(alias);
+        return DuckDBBooleanType.create(alias);
       case DuckDBTypeId.TINYINT:
         return DuckDBTinyIntType.create(alias);
       case DuckDBTypeId.SMALLINT:
@@ -223,6 +226,12 @@ export class DuckDBLogicalType {
         return DuckDBBigNumType.create(alias);
       case DuckDBTypeId.SQLNULL:
         return DuckDBSQLNullType.create(alias);
+      case DuckDBTypeId.STRING_LITERAL:
+        return DuckDBStringLiteralType.create(alias);
+      case DuckDBTypeId.INTEGER_LITERAL:
+        return DuckDBIntegerLiteralType.create(alias);
+      case DuckDBTypeId.TIME_NS:
+        return DuckDBTimeNSType.create(alias);
       default:
         throw new Error(`Unexpected type id: ${this.typeId}`);
     }
@@ -322,7 +331,11 @@ export class DuckDBStructLogicalType extends DuckDBLogicalType {
     return valueTypes;
   }
   public override asType(): DuckDBStructType {
-    return new DuckDBStructType(this.entryNames(), this.entryTypes(), this.alias);
+    return new DuckDBStructType(
+      this.entryNames(),
+      this.entryTypes(),
+      this.alias
+    );
   }
 }
 
@@ -338,7 +351,11 @@ export class DuckDBMapLogicalType extends DuckDBLogicalType {
     );
   }
   public override asType(): DuckDBMapType {
-    return new DuckDBMapType(this.keyType.asType(), this.valueType.asType(), this.alias);
+    return new DuckDBMapType(
+      this.keyType.asType(),
+      this.valueType.asType(),
+      this.alias
+    );
   }
 }
 
@@ -352,7 +369,11 @@ export class DuckDBArrayLogicalType extends DuckDBLogicalType {
     return duckdb.array_type_array_size(this.logical_type);
   }
   public override asType(): DuckDBArrayType {
-    return new DuckDBArrayType(this.valueType.asType(), this.length, this.alias);
+    return new DuckDBArrayType(
+      this.valueType.asType(),
+      this.length,
+      this.alias
+    );
   }
 }
 
@@ -396,6 +417,10 @@ export class DuckDBUnionLogicalType extends DuckDBLogicalType {
     return valueTypes;
   }
   public override asType(): DuckDBUnionType {
-    return new DuckDBUnionType(this.memberTags(), this.memberTypes(), this.alias);
+    return new DuckDBUnionType(
+      this.memberTags(),
+      this.memberTypes(),
+      this.alias
+    );
   }
 }
