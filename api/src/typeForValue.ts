@@ -16,6 +16,7 @@ import {
   SQLNULL,
   STRUCT,
   TIME,
+  TIME_NS,
   TIMESTAMP,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
@@ -36,6 +37,7 @@ import {
   DuckDBListValue,
   DuckDBMapValue,
   DuckDBStructValue,
+  DuckDBTimeNSValue,
   DuckDBTimestampMillisecondsValue,
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
@@ -105,6 +107,8 @@ export function typeForValue(value: DuckDBValue): DuckDBType {
           return TIMETZ;
         } else if (value instanceof DuckDBTimeValue) {
           return TIME;
+        } else if (value instanceof DuckDBTimeNSValue) {
+          return TIME_NS;
         } else if (value instanceof DuckDBUnionValue) {
           return UNION({ [value.tag]: typeForValue(value.value) });
         } else if (value instanceof DuckDBUUIDValue) {
