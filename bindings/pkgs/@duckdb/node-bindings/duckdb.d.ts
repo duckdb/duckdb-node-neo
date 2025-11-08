@@ -373,8 +373,13 @@ export function set_config(config: Config, name: string, option: string): void;
 // DUCKDB_C_API duckdb_error_data duckdb_create_error_data(duckdb_error_type type, const char *message);
 // DUCKDB_C_API void duckdb_destroy_error_data(duckdb_error_data *error_data);
 // DUCKDB_C_API duckdb_error_type duckdb_error_data_error_type(duckdb_error_data error_data);
+export function error_data_error_type(error_data: ErrorData): ErrorType;
+
 // DUCKDB_C_API const char *duckdb_error_data_message(duckdb_error_data error_data);
+export function error_data_message(error_data: ErrorData): string;
+
 // DUCKDB_C_API bool duckdb_error_data_has_error(duckdb_error_data error_data);
+export function error_data_has_error(error_data: ErrorData): boolean;
 
 // DUCKDB_C_API duckdb_state duckdb_query(duckdb_connection connection, const char *query, duckdb_result *out_result);
 export function query(connection: Connection, query: string): Promise<Result>;
@@ -1234,24 +1239,15 @@ export function appender_column_count(appender: Appender): number;
 // DUCKDB_C_API duckdb_logical_type duckdb_appender_column_type(duckdb_appender appender, idx_t col_idx);
 export function appender_column_type(appender: Appender, column_index: number): LogicalType;
 
-  // #ifndef DUCKDB_API_NO_DEPRECATED
-  // DUCKDB_C_API const char *duckdb_appender_error(duckdb_appender appender);
-  // not exposed: other appender functions throw
-  // #endif
+// #ifndef DUCKDB_API_NO_DEPRECATED
+// DUCKDB_C_API const char *duckdb_appender_error(duckdb_appender appender);
+// not exposed: other appender functions throw
+// #endif
 
-  // DUCKDB_C_API duckdb_error_data duckdb_appender_error_data(duckdb_appender appender);
-  export function appender_error_data(appender: Appender): ErrorData;
+// DUCKDB_C_API duckdb_error_data duckdb_appender_error_data(duckdb_appender appender);
+export function appender_error_data(appender: Appender): ErrorData;
 
-  // DUCKDB_C_API duckdb_error_type duckdb_error_data_error_type(duckdb_error_data error);
-  export function error_data_error_type(error_data: ErrorData): ErrorType;
-
-  // DUCKDB_C_API const char *duckdb_error_data_message(duckdb_error_data error);
-  export function error_data_message(error_data: ErrorData): string;
-
-  // DUCKDB_C_API bool duckdb_error_data_has_error(duckdb_error_data error);
-  export function error_data_has_error(error_data: ErrorData): boolean;
-
-  // DUCKDB_C_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
+// DUCKDB_C_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
 export function appender_flush_sync(appender: Appender): void;
 
 // DUCKDB_C_API duckdb_state duckdb_appender_close(duckdb_appender appender);

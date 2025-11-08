@@ -1442,6 +1442,9 @@ public:
       InstanceMethod("config_count", &DuckDBNodeAddon::config_count),
       InstanceMethod("get_config_flag", &DuckDBNodeAddon::get_config_flag),
       InstanceMethod("set_config", &DuckDBNodeAddon::set_config),
+      InstanceMethod("error_data_error_type", &DuckDBNodeAddon::error_data_error_type),
+      InstanceMethod("error_data_message", &DuckDBNodeAddon::error_data_message),
+      InstanceMethod("error_data_has_error", &DuckDBNodeAddon::error_data_has_error),
 
       InstanceMethod("query", &DuckDBNodeAddon::query),
       InstanceMethod("column_name", &DuckDBNodeAddon::column_name),
@@ -1674,9 +1677,6 @@ public:
       InstanceMethod("appender_close_sync", &DuckDBNodeAddon::appender_close_sync),
       InstanceMethod("appender_end_row", &DuckDBNodeAddon::appender_end_row),
       InstanceMethod("appender_error_data", &DuckDBNodeAddon::appender_error_data),
-      InstanceMethod("error_data_error_type", &DuckDBNodeAddon::error_data_error_type),
-      InstanceMethod("error_data_message", &DuckDBNodeAddon::error_data_message),
-      InstanceMethod("error_data_has_error", &DuckDBNodeAddon::error_data_has_error),
       InstanceMethod("append_default", &DuckDBNodeAddon::append_default),
       InstanceMethod("append_bool", &DuckDBNodeAddon::append_bool),
       InstanceMethod("append_int8", &DuckDBNodeAddon::append_int8),
@@ -1901,13 +1901,31 @@ private:
   // TODO error data
 
   // DUCKDB_C_API duckdb_error_type duckdb_error_data_error_type(duckdb_error_data error_data);
-  // TODO error data
+  Napi::Value error_data_error_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto error_data = GetErrorDataFromExternal(env, info[0]);
+    auto error_type = duckdb_error_data_error_type(error_data);
+    return Napi::Number::New(env, static_cast<uint32_t>(error_type));
+  }
 
   // DUCKDB_C_API const char *duckdb_error_data_message(duckdb_error_data error_data);
-  // TODO error data
+  Napi::Value error_data_message(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto error_data = GetErrorDataFromExternal(env, info[0]);
+    if (!duckdb_error_data_has_error(error_data)) {
+      return Napi::String::New(env, "");
+    }
+    auto message = duckdb_error_data_message(error_data);
+    return Napi::String::New(env, message ? message : "");
+  }
 
   // DUCKDB_C_API bool duckdb_error_data_has_error(duckdb_error_data error_data);
-  // TODO error data
+  Napi::Value error_data_has_error(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto error_data = GetErrorDataFromExternal(env, info[0]);
+    auto has_error = duckdb_error_data_has_error(error_data);
+    return Napi::Boolean::New(env, has_error);
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_query(duckdb_connection connection, const char *query, duckdb_result *out_result);
   // function query(connection: Connection, query: string): Promise<Result>
@@ -4675,43 +4693,11 @@ private:
   // #endif
 
   // DUCKDB_C_API duckdb_error_data duckdb_appender_error_data(duckdb_appender appender);
-  // function appender_error_data(appender: Appender): ErrorData
   Napi::Value appender_error_data(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
     auto error_data = duckdb_appender_error_data(appender);
     return CreateExternalForErrorData(env, error_data);
-  }
-
-  // Error data access functions
-  // DUCKDB_C_API duckdb_error_type duckdb_error_data_error_type(duckdb_error_data error);
-  // function error_data_error_type(error_data: ErrorData): ErrorType
-  Napi::Value error_data_error_type(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto error_data = GetErrorDataFromExternal(env, info[0]);
-    auto error_type = duckdb_error_data_error_type(error_data);
-    return Napi::Number::New(env, static_cast<uint32_t>(error_type));
-  }
-
-  // DUCKDB_C_API const char *duckdb_error_data_message(duckdb_error_data error);
-  // function error_data_message(error_data: ErrorData): string
-  Napi::Value error_data_message(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto error_data = GetErrorDataFromExternal(env, info[0]);
-    if (!duckdb_error_data_has_error(error_data)) {
-      return Napi::String::New(env, "");
-    }
-    auto message = duckdb_error_data_message(error_data);
-    return Napi::String::New(env, message ? message : "");
-  }
-
-  // DUCKDB_C_API bool duckdb_error_data_has_error(duckdb_error_data error);
-  // function error_data_has_error(error_data: ErrorData): boolean
-  Napi::Value error_data_has_error(const Napi::CallbackInfo& info) {
-    auto env = info.Env();
-    auto error_data = GetErrorDataFromExternal(env, info[0]);
-    auto has_error = duckdb_error_data_has_error(error_data);
-    return Napi::Boolean::New(env, has_error);
   }
 
   // DUCKDB_C_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
