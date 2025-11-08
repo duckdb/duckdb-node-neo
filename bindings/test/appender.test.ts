@@ -372,7 +372,7 @@ suite('appender', () => {
     });
   });
 
-  test('error_data: type conversion', async () => {
+  test('error_data: invalid input', async () => {
     await withConnection(async (connection) => {
       await duckdb.query(
         connection,
@@ -386,14 +386,16 @@ suite('appender', () => {
         'test_error_type'
       );
 
-      // Get the error type enumeration (should be valid even with no error)
-      const error_data = duckdb.appender_error_data(appender);
-      const error_type = duckdb.error_data_error_type(error_data);
+      expect(() => {
+        duckdb.append_varchar(appender, 'not an int');
+        duckdb.appender_end_row(appender);
+      }).toThrowError("Could not convert string 'not an int' to INT32");
 
-      // Error type should be a valid number in the ErrorType enum range
-      expect(typeof error_type).toBe('number');
-      expect(error_type).toBeGreaterThanOrEqual(0);
-      expect(error_type).toBeLessThanOrEqual(41); // Max known error type (SEQUENCE)
+      const error_data = duckdb.appender_error_data(appender);
+      expect(duckdb.error_data_has_error(error_data)).toBe(true);
+      expect(duckdb.error_data_error_type(error_data)).toBe(
+        duckdb.ErrorType.INVALID_INPUT
+      );
     });
   });
 });
