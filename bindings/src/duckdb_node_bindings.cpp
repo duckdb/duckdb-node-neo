@@ -1362,6 +1362,54 @@ Napi::Object CreateTypeEnum(Napi::Env env) {
   return typeEnum;
 }
 
+Napi::Object CreateErrorTypeEnum(Napi::Env env) {
+  auto errorTypeEnum = Napi::Object::New(env);
+  DefineEnumMember(errorTypeEnum, "INVALID", 0);
+  DefineEnumMember(errorTypeEnum, "OUT_OF_RANGE", 1);
+  DefineEnumMember(errorTypeEnum, "CONVERSION", 2);
+  DefineEnumMember(errorTypeEnum, "UNKNOWN_TYPE", 3);
+  DefineEnumMember(errorTypeEnum, "DECIMAL", 4);
+  DefineEnumMember(errorTypeEnum, "MISMATCH_TYPE", 5);
+  DefineEnumMember(errorTypeEnum, "DIVIDE_BY_ZERO", 6);
+  DefineEnumMember(errorTypeEnum, "OBJECT_SIZE", 7);
+  DefineEnumMember(errorTypeEnum, "INVALID_TYPE", 8);
+  DefineEnumMember(errorTypeEnum, "SERIALIZATION", 9);
+  DefineEnumMember(errorTypeEnum, "TRANSACTION", 10);
+  DefineEnumMember(errorTypeEnum, "NOT_IMPLEMENTED", 11);
+  DefineEnumMember(errorTypeEnum, "EXPRESSION", 12);
+  DefineEnumMember(errorTypeEnum, "CATALOG", 13);
+  DefineEnumMember(errorTypeEnum, "PARSER", 14);
+  DefineEnumMember(errorTypeEnum, "PLANNER", 15);
+  DefineEnumMember(errorTypeEnum, "SCHEDULER", 16);
+  DefineEnumMember(errorTypeEnum, "EXECUTOR", 17);
+  DefineEnumMember(errorTypeEnum, "CONSTRAINT", 18);
+  DefineEnumMember(errorTypeEnum, "INDEX", 19);
+  DefineEnumMember(errorTypeEnum, "STAT", 20);
+  DefineEnumMember(errorTypeEnum, "CONNECTION", 21);
+  DefineEnumMember(errorTypeEnum, "SYNTAX", 22);
+  DefineEnumMember(errorTypeEnum, "SETTINGS", 23);
+  DefineEnumMember(errorTypeEnum, "BINDER", 24);
+  DefineEnumMember(errorTypeEnum, "NETWORK", 25);
+  DefineEnumMember(errorTypeEnum, "OPTIMIZER", 26);
+  DefineEnumMember(errorTypeEnum, "NULL_POINTER", 27);
+  DefineEnumMember(errorTypeEnum, "IO", 28);
+  DefineEnumMember(errorTypeEnum, "INTERRUPT", 29);
+  DefineEnumMember(errorTypeEnum, "FATAL", 30);
+  DefineEnumMember(errorTypeEnum, "INTERNAL", 31);
+  DefineEnumMember(errorTypeEnum, "INVALID_INPUT", 32);
+  DefineEnumMember(errorTypeEnum, "OUT_OF_MEMORY", 33);
+  DefineEnumMember(errorTypeEnum, "PERMISSION", 34);
+  DefineEnumMember(errorTypeEnum, "PARAMETER_NOT_RESOLVED", 35);
+  DefineEnumMember(errorTypeEnum, "PARAMETER_NOT_ALLOWED", 36);
+  DefineEnumMember(errorTypeEnum, "DEPENDENCY", 37);
+  DefineEnumMember(errorTypeEnum, "HTTP", 38);
+  DefineEnumMember(errorTypeEnum, "MISSING_EXTENSION", 39);
+  DefineEnumMember(errorTypeEnum, "AUTOLOAD", 40);
+  DefineEnumMember(errorTypeEnum, "SEQUENCE", 41);
+  DefineEnumMember(errorTypeEnum, "INVALID_CONFIGURATION", 42);
+  return errorTypeEnum;
+}
+
 // Addon
 
 class DuckDBNodeAddon : public Napi::Addon<DuckDBNodeAddon> {
@@ -1375,6 +1423,7 @@ public:
       InstanceValue("PendingState", CreatePendingStateEnum(env)),
       InstanceValue("ResultType", CreateResultTypeEnum(env)),
       InstanceValue("StatementType", CreateStatementTypeEnum(env)),
+      InstanceValue("ErrorType", CreateErrorTypeEnum(env)),
       InstanceValue("Type", CreateTypeEnum(env)),
 
       InstanceMethod("create_instance_cache", &DuckDBNodeAddon::create_instance_cache),
