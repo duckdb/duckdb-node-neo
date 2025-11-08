@@ -90,6 +90,7 @@ export enum ErrorType {
   MISSING_EXTENSION = 39,
   AUTOLOAD = 40,
   SEQUENCE = 41,
+  INVALID_CONFIGURATION = 42,
 }
 
 export enum Type {
