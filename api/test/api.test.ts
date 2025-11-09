@@ -67,6 +67,7 @@ import {
   DuckDBVarCharVector,
   DuckDBVector,
   ENUM,
+  ErrorType,
   FLOAT,
   HUGEINT,
   INTEGER,
@@ -2603,16 +2604,25 @@ describe('DuckDBErrorData', () => {
     });
   });
 
-  test('errorData errorType property', async () => {
+  test('errorData captures invalid input details', async () => {
     await withConnection(async (connection) => {
       await connection.run('create table test_error_type(i integer)');
       const appender = await connection.createAppender('test_error_type');
 
-      // Get the error type - should be a valid enum value
-      const errorData = appender.errorData;
-      const errorType = errorData.errorType;
+      const expectedMessage = "Could not convert string 'not an int' to INT32";
+      assert.throws(() => {
+        appender.appendVarchar('not an int');
+        appender.endRow();
+      }, expectedMessage);
 
-      assert(typeof errorType === 'number');
+      const errorData = appender.errorData;
+      assert.strictEqual(errorData.hasError, true);
+      assert.strictEqual(errorData.errorType, ErrorType.INVALID_INPUT);
+
+      const message = errorData.message;
+      assert(message !== null);
+      assert.ok(message.includes(expectedMessage));
+      assert.strictEqual(errorData.toString(), message);
     });
   });
 });
