@@ -1,6 +1,6 @@
 {
   "name": "@duckdb/node-bindings-darwin-arm64",
-  "version": "1.4.1-r.4",
+  "version": "1.4.1-r.5",
   "license": "MIT",
   "os": [
     "darwin"
