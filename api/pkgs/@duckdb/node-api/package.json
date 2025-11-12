@@ -1,6 +1,6 @@
 {
   "name": "@duckdb/node-api",
-  "version": "1.4.1-r.5",
+  "version": "1.4.2-r.1",
   "license": "MIT",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
