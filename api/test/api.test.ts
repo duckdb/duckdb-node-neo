@@ -1538,13 +1538,13 @@ ORDER BY name
   });
   test('instance cache - same instance', async () => {
     const cache = new DuckDBInstanceCache();
-    const instance1 = await cache.getOrCreateInstance();
+    const instance1 = await cache.getOrCreateInstance(':memory:m1');
     const connection1 = await instance1.connect();
-    await connection1.run(`attach ':memory:' as mem1`);
+    await connection1.run(`create table t1 as select 1`);
 
-    const instance2 = await cache.getOrCreateInstance();
+    const instance2 = await cache.getOrCreateInstance(':memory:m1');
     const connection2 = await instance2.connect();
-    await connection2.run(`create table mem1.main.t1 as select 1`);
+    await connection2.run(`from t1`);
   });
   // Need to support explicitly destroying instance cache?
   test.skip('instance cache - different instances', async () => {
@@ -1584,11 +1584,13 @@ ORDER BY name
   });
   test('instance cache - different config', async () => {
     const cache = new DuckDBInstanceCache();
-    const instance1 = await cache.getOrCreateInstance();
+    const instance1 = await cache.getOrCreateInstance(':memory:m1');
     const connection1 = await instance1.connect();
-    await connection1.run(`attach ':memory:' as mem1`);
+    await connection1.run(`create table t1 as select 1`);
     try {
-      await cache.getOrCreateInstance(undefined, { accces_mode: 'READ_ONLY' });
+      await cache.getOrCreateInstance(':memory:m1', {
+        accces_mode: 'READ_ONLY',
+      });
       assert.fail('should throw');
     } catch (err) {
       assert.deepEqual(
