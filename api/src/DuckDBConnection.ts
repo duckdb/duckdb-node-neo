@@ -79,7 +79,7 @@ export class DuckDBConnection {
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBResultReader> {
-    const reader = new DuckDBResultReader(await this.run(sql, values, types));
+    const reader = await this.runAndRead(sql, values, types);
     await reader.readAll();
     return reader;
   }
@@ -89,7 +89,7 @@ export class DuckDBConnection {
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBResultReader> {
-    const reader = new DuckDBResultReader(await this.run(sql, values, types));
+    const reader = await this.runAndRead(sql, values, types);
     await reader.readUntil(targetRowCount);
     return reader;
   }
@@ -121,9 +121,7 @@ export class DuckDBConnection {
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBResultReader> {
-    const reader = new DuckDBResultReader(
-      await this.stream(sql, values, types)
-    );
+    const reader = await this.streamAndRead(sql, values, types);
     await reader.readAll();
     return reader;
   }
@@ -133,9 +131,7 @@ export class DuckDBConnection {
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBResultReader> {
-    const reader = new DuckDBResultReader(
-      await this.stream(sql, values, types)
-    );
+    const reader = await this.streamAndRead(sql, values, types);
     await reader.readUntil(targetRowCount);
     return reader;
   }
@@ -154,6 +150,34 @@ export class DuckDBConnection {
       prepared.destroySync();
     }
   }
+  public async startThenRead(
+    sql: string,
+    values?: DuckDBValue[] | Record<string, DuckDBValue>,
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+  ): Promise<DuckDBResultReader> {
+    const pending = await this.start(sql, values, types);
+    await pending.runAllTasks();
+    return new DuckDBResultReader(await pending.getResult());
+  }
+  public async startThenReadAll(
+    sql: string,
+    values?: DuckDBValue[] | Record<string, DuckDBValue>,
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+  ): Promise<DuckDBResultReader> {
+    const reader = await this.startThenRead(sql, values, types);
+    reader.readAll();
+    return reader;
+  }
+  public async startThenReadUntil(
+    sql: string,
+    targetRowCount: number,
+    values?: DuckDBValue[] | Record<string, DuckDBValue>,
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+  ): Promise<DuckDBResultReader> {
+    const reader = await this.startThenRead(sql, values, types);
+    reader.readUntil(targetRowCount);
+    return reader;
+  }
   public async startStream(
     sql: string,
     values?: DuckDBValue[] | Record<string, DuckDBValue>,
@@ -168,6 +192,34 @@ export class DuckDBConnection {
     } finally {
       prepared.destroySync();
     }
+  }
+  public async startStreamThenRead(
+    sql: string,
+    values?: DuckDBValue[] | Record<string, DuckDBValue>,
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+  ): Promise<DuckDBResultReader> {
+    const pending = await this.startStream(sql, values, types);
+    await pending.runAllTasks();
+    return new DuckDBResultReader(await pending.getResult());
+  }
+  public async startStreamThenReadAll(
+    sql: string,
+    values?: DuckDBValue[] | Record<string, DuckDBValue>,
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+  ): Promise<DuckDBResultReader> {
+    const reader = await this.startStreamThenRead(sql, values, types);
+    reader.readAll();
+    return reader;
+  }
+  public async startStreamThenReadUntil(
+    sql: string,
+    targetRowCount: number,
+    values?: DuckDBValue[] | Record<string, DuckDBValue>,
+    types?: DuckDBType[] | Record<string, DuckDBType | undefined>
+  ): Promise<DuckDBResultReader> {
+    const reader = await this.startStreamThenRead(sql, values, types);
+    reader.readUntil(targetRowCount);
+    return reader;
   }
   public async prepare(sql: string): Promise<DuckDBPreparedStatement> {
     const prepared = await this.createPrepared(sql);
