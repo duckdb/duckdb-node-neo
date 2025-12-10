@@ -2,6 +2,7 @@ import duckdb from '@duckdb/node-bindings';
 import { createResult } from './createResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
+import { sleep } from './sleep';
 
 // Values match similar enum in C API.
 export enum DuckDBPendingResultState {
@@ -32,6 +33,11 @@ export class DuckDBPendingResult {
         return DuckDBPendingResultState.NO_TASKS_AVAILABLE;
       default:
         throw new Error(`Unexpected pending state: ${pending_state}`);
+    }
+  }
+  public async runAllTasks(): Promise<void> {
+    while (this.runTask() !== DuckDBPendingResultState.RESULT_READY) {
+      await sleep(1);
     }
   }
   public async getResult(): Promise<DuckDBResult> {
