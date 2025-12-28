@@ -16,8 +16,12 @@ const getNativeNodeBinding = (runtimePlatformArch) => {
         case 'win32-x64':
             return require('@duckdb/node-bindings-win32-x64/duckdb.node');
         default:
-            const [platform, arch] = runtimePlatformArch.split('-')
-            throw new Error(`Error loading duckdb native binding: unsupported arch '${arch}' for platform '${platform}'`);
+            const [platform, arch] = runtimePlatformArch.split('-');
+            try {
+                return require(`@duckdb/node-bindings-${platform}-${arch}/duckdb.node`);
+            } catch (err) {
+                throw new Error(`Error loading duckdb native binding: unsupported arch '${arch}' for platform '${platform}'`);
+            }            
     }
 }
 
