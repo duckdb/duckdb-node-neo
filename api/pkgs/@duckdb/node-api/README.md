@@ -925,6 +925,17 @@ for (let stmtIndex = 0; stmtIndex < statementCount; stmtIndex++) {
 
 ### Control Evaluation of Tasks
 
+DuckDB splits work into relatively short tasks. By controlling the
+evaluation of these tasks explicitly, better cooperative multithreading
+can be accomplished. This is especially important for maximum throughput
+in the Node environment, which has a small, fixed number of threads for
+running asynchronous work.
+(See https://docs.libuv.org/en/stable/threadpool.html)
+
+Below is a low-level way of controlling the evaluation of processing.
+See the "startThenRead" and "startStreamThenRead" methods for helpers
+that do much of this for you.
+
 ```ts
 import { DuckDBPendingResultState } from '@duckdb/node-api';
 
@@ -935,7 +946,7 @@ async function sleep(ms) {
 }
 
 const prepared = await connection.prepare('from range(10_000_000)');
-const pending = prepared.start();
+const pending = prepared.startStream();
 while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
   console.log('not ready');
   await sleep(1);
@@ -943,6 +954,12 @@ while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
 console.log('ready');
 const result = await pending.getResult();
 // ...
+```
+
+Equivalently, using `startStreamThenRead`:
+
+```ts
+const reader = await connection.startStreamThenRead(sql);
 ```
 
 ### Ways to run SQL
@@ -1030,10 +1047,50 @@ const pending = await connection.start(sql);
 const pending = await connection.start(sql, values);
 const pending = await connection.start(sql, values, types);
 
+// The methods beginning with "startThenRead" provide some, but not full,
+// cooperative multithreading. They use pending results to split processing
+// into short tasks, but they fully materialize the result, which can
+// take some time (and memory). For full cooperative multithreading,
+// see the "startStreamThenRead" methods below.
+const reader = await connection.startThenRead(sql);
+const reader = await connection.startThenRead(sql, values);
+const reader = await connection.startThenRead(sql, values, types);
+
+const reader = await connection.startThenReadAll(sql);
+const reader = await connection.startThenReadAll(sql, values);
+const reader = await connection.startThenReadAll(sql, values, types);
+
+const reader = await connection.startThenReadUntil(sql, targetRowCount);
+const reader =
+  await connection.startThenReadUntil(sql, targetRowCount, values);
+const reader =
+  await connection.startThenReadUntil(sql, targetRowCount, values, types);
+
 // Create a pending, streaming result.
 const pending = await connection.startStream(sql);
 const pending = await connection.startStream(sql, values);
 const pending = await connection.startStream(sql, values, types);
+
+// The methods beginning with "startStreamThenRead" are the best options
+// for cooperative multithreading. By creating a streaming result, they
+// prevent the result from being fully materialized. By using a pending
+// result, they split processing into short tasks, preventing any single
+// task from occupying a thread for too long.
+const reader = await connection.startStreamThenRead(sql);
+const reader = await connection.startStreamThenRead(sql, values);
+const reader = await connection.startStreamThenRead(sql, values, types);
+
+const reader = await connection.startStreamThenReadAll(sql);
+const reader = await connection.startStreamThenReadAll(sql, values);
+const reader =
+  await connection.startStreamThenReadAll(sql, values, types);
+
+const reader =
+  await connection.startStreamThenReadUntil(sql, targetRowCount);
+const reader =
+  await connection.startStreamThenReadUntil(sql, targetRowCount, values);
+const reader = await connection.startStreamThenReadUntil(
+  sql, targetRowCount, values, types);
 
 // Create a pending result from a prepared statement.
 const pending = await prepared.start();
@@ -1042,6 +1099,9 @@ const pending = await prepared.startStream();
 while (pending.runTask() !== DuckDBPendingResultState.RESULT_READY) {
   // optionally sleep or do other work between tasks
 }
+
+// Or, run tasks (cooperatively) until the result is ready.
+await pending.runAllTasks();
 
 // Retrieve the result. If not yet READY, will run until it is.
 const result = await pending.getResult();
@@ -1058,13 +1118,29 @@ const reader = await pending.readUntil(targetRowCount);
 
 // Asynchronously retrieve data for all rows:
 const columns = await result.getColumns();
+const columnsJS = await result.getColumnsJS();
 const columnsJson = await result.getColumnsJson();
 const columnsObject = await result.getColumnsObject();
+const columnsObjectJS = await result.getColumnsObjectJS();
 const columnsObjectJson = await result.getColumnsObjectJson();
 const rows = await result.getRows();
+const rowsJS = await result.getRowsJS();
 const rowsJson = await result.getRowsJson();
 const rowObjects = await result.getRowObjects();
+const rowObjectsJS = await result.getRowObjectsJS();
 const rowObjectsJson = await result.getRowObjectsJson();
+
+// Asynchronous iterators can be used to retrieve partial data:
+for await (const chunk of result) {
+  // ...
+}
+
+// Each chunk can be converted to rows:
+for await (const rows of result.yieldRows()) {
+  // ...
+}
+// See also variations of "yieldRow" for returning row objects
+// (instead of row arrays), and with JS, JSON, or custom conversion.
 
 // From a reader
 
@@ -1075,12 +1151,16 @@ await reader.readUntil(targetRowCount);
 
 // Then, (synchronously) get result data for the rows read:
 const columns = reader.getColumns();
+const columnsJS = reader.getColumnsJS();
 const columnsJson = reader.getColumnsJson();
 const columnsObject = reader.getColumnsObject();
+const columnsObjectJS = reader.getColumnsObjectJS();
 const columnsObjectJson = reader.getColumnsObjectJson();
 const rows = reader.getRows();
+const rowsJS = reader.getRowsJS();
 const rowsJson = reader.getRowsJson();
 const rowObjects = reader.getRowObjects();
+const rowObjectsJS = reader.getRowObjectsJS();
 const rowObjectsJson = reader.getRowObjectsJson();
 
 // Individual values can also be read directly:
