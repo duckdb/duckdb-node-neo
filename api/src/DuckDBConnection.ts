@@ -165,7 +165,7 @@ export class DuckDBConnection {
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBResultReader> {
     const reader = await this.startThenRead(sql, values, types);
-    reader.readAll();
+    await reader.readAll();
     return reader;
   }
   public async startThenReadUntil(
@@ -175,7 +175,7 @@ export class DuckDBConnection {
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBResultReader> {
     const reader = await this.startThenRead(sql, values, types);
-    reader.readUntil(targetRowCount);
+    await reader.readUntil(targetRowCount);
     return reader;
   }
   public async startStream(
@@ -208,7 +208,7 @@ export class DuckDBConnection {
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBResultReader> {
     const reader = await this.startStreamThenRead(sql, values, types);
-    reader.readAll();
+    await reader.readAll();
     return reader;
   }
   public async startStreamThenReadUntil(
@@ -218,7 +218,7 @@ export class DuckDBConnection {
     types?: DuckDBType[] | Record<string, DuckDBType | undefined>
   ): Promise<DuckDBResultReader> {
     const reader = await this.startStreamThenRead(sql, values, types);
-    reader.readUntil(targetRowCount);
+    await reader.readUntil(targetRowCount);
     return reader;
   }
   public async prepare(sql: string): Promise<DuckDBPreparedStatement> {
