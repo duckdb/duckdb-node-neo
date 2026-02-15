@@ -3,11 +3,14 @@ import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBFunctionInfo } from './DuckDBFunctionInfo';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBVector } from './DuckDBVector';
+import { DuckDBBindInfo } from './DuckDBBindInfo';
+
+export type DuckDBScalarBindFunction = (bindInfo: DuckDBBindInfo) => void;
 
 export type DuckDBScalarMainFunction = (
   functionInfo: DuckDBFunctionInfo,
   inputDataChunk: DuckDBDataChunk,
-  outputVector: DuckDBVector
+  outputVector: DuckDBVector,
 ) => void;
 
 export class DuckDBScalarFunction {
@@ -19,6 +22,7 @@ export class DuckDBScalarFunction {
 
   public static create({
     name,
+    bindFunction,
     mainFunction,
     returnType,
     parameterTypes,
@@ -28,6 +32,7 @@ export class DuckDBScalarFunction {
     extraInfo,
   }: {
     name: string;
+    bindFunction?: DuckDBScalarBindFunction;
     mainFunction: DuckDBScalarMainFunction;
     returnType: DuckDBType;
     parameterTypes?: readonly DuckDBType[];
@@ -38,6 +43,9 @@ export class DuckDBScalarFunction {
   }): DuckDBScalarFunction {
     const scalarFunction = new DuckDBScalarFunction();
     scalarFunction.setName(name);
+    if (bindFunction) {
+      scalarFunction.setBindFunction(bindFunction);
+    }
     scalarFunction.setMainFunction(mainFunction);
     scalarFunction.setReturnType(returnType);
     if (parameterTypes) {
@@ -68,6 +76,13 @@ export class DuckDBScalarFunction {
     duckdb.scalar_function_set_name(this.scalar_function, name);
   }
 
+  public setBindFunction(bindFunction: DuckDBScalarBindFunction) {
+    duckdb.scalar_function_set_bind(this.scalar_function, (info) => {
+      const bindInfo = new DuckDBBindInfo(info);
+      bindFunction(bindInfo);
+    });
+  }
+
   public setMainFunction(mainFunction: DuckDBScalarMainFunction) {
     duckdb.scalar_function_set_function(
       this.scalar_function,
@@ -76,31 +91,31 @@ export class DuckDBScalarFunction {
         const inputDataChunk = new DuckDBDataChunk(input);
         const outputVector = DuckDBVector.create(
           output,
-          inputDataChunk.rowCount
+          inputDataChunk.rowCount,
         );
         mainFunction(functionInfo, inputDataChunk, outputVector);
-      }
+      },
     );
   }
 
   public setReturnType(returnType: DuckDBType) {
     duckdb.scalar_function_set_return_type(
       this.scalar_function,
-      returnType.toLogicalType().logical_type
+      returnType.toLogicalType().logical_type,
     );
   }
 
   public addParameter(parameterType: DuckDBType) {
     duckdb.scalar_function_add_parameter(
       this.scalar_function,
-      parameterType.toLogicalType().logical_type
+      parameterType.toLogicalType().logical_type,
     );
   }
 
   public setVarArgs(varArgsType: DuckDBType) {
     duckdb.scalar_function_set_varargs(
       this.scalar_function,
-      varArgsType.toLogicalType().logical_type
+      varArgsType.toLogicalType().logical_type,
     );
   }
 

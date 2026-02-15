@@ -37,6 +37,9 @@ export class DuckDBConnection {
     duckdb.disconnect_sync(this.connection);
   }
   public get clientContext(): DuckDBClientContext {
+    return this.getClientContext();
+  }
+  public getClientContext(): DuckDBClientContext {
     return new DuckDBClientContext(
       duckdb.connection_get_client_context(this.connection)
     );

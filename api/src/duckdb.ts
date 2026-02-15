@@ -7,6 +7,7 @@ export {
 export * from './configurationOptionDescriptions';
 export * from './createDuckDBValueConverter';
 export * from './DuckDBAppender';
+export * from './DuckDBBindInfo';
 export * from './DuckDBClientContext';
 export * from './DuckDBConnection';
 export * from './DuckDBDataChunk';

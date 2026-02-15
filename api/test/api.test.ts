@@ -144,7 +144,7 @@ async function sleep(ms: number): Promise<void> {
 }
 
 async function withConnection(
-  fn: (connection: DuckDBConnection) => Promise<void>
+  fn: (connection: DuckDBConnection) => Promise<void>,
 ) {
   const instance = await DuckDBInstance.create();
   const connection = await instance.connect();
@@ -153,12 +153,12 @@ async function withConnection(
 
 function assertColumns(
   result: DuckDBResult,
-  expectedColumns: readonly ColumnNameAndType[]
+  expectedColumns: readonly ColumnNameAndType[],
 ) {
   assert.strictEqual(
     result.columnCount,
     expectedColumns.length,
-    'column count'
+    'column count',
   );
   for (let i = 0; i < expectedColumns.length; i++) {
     const { name, type } = expectedColumns[i];
@@ -166,33 +166,33 @@ function assertColumns(
     assert.strictEqual(
       result.columnTypeId(i),
       type.typeId,
-      `column type id (column: ${name})`
+      `column type id (column: ${name})`,
     );
     assert.deepStrictEqual(
       result.columnType(i),
       type,
-      `column type (column: ${name})`
+      `column type (column: ${name})`,
     );
   }
 }
 
 function isVectorType<
   TValue extends DuckDBValue,
-  TVector extends DuckDBVector<TValue>
+  TVector extends DuckDBVector<TValue>,
 >(
   vector: DuckDBVector<any> | null,
-  vectorType: new (...args: any[]) => TVector
+  vectorType: new (...args: any[]) => TVector,
 ): vector is TVector {
   return vector instanceof vectorType;
 }
 
 function getColumnVector<
   TValue extends DuckDBValue,
-  TVector extends DuckDBVector<TValue>
+  TVector extends DuckDBVector<TValue>,
 >(
   chunk: DuckDBDataChunk,
   columnIndex: number,
-  vectorType: new (...args: any[]) => TVector
+  vectorType: new (...args: any[]) => TVector,
 ): TVector {
   const columnVector = chunk.getColumnVector(columnIndex);
   if (!isVectorType<TValue, TVector>(columnVector, vectorType)) {
@@ -204,7 +204,7 @@ function getColumnVector<
 function assertVectorValues<TValue extends DuckDBValue>(
   vector: DuckDBVector<TValue> | null | undefined,
   values: readonly TValue[],
-  vectorName: string
+  vectorName: string,
 ) {
   if (!vector) {
     assert.fail(`${vectorName} unexpectedly null or undefined`);
@@ -212,7 +212,7 @@ function assertVectorValues<TValue extends DuckDBValue>(
   assert.strictEqual(
     vector.itemCount,
     values.length,
-    `expected vector ${vectorName} item count to be ${values.length} but found ${vector.itemCount}`
+    `expected vector ${vectorName} item count to be ${values.length} but found ${vector.itemCount}`,
   );
   for (let i = 0; i < values.length; i++) {
     const actual: TValue | null = vector.getItem(i);
@@ -220,19 +220,19 @@ function assertVectorValues<TValue extends DuckDBValue>(
     assert.deepStrictEqual(
       actual,
       expected,
-      `expected vector ${vectorName}[${i}] to be ${expected} but found ${actual}`
+      `expected vector ${vectorName}[${i}] to be ${expected} but found ${actual}`,
     );
   }
 }
 
 function assertValues<
   TValue extends DuckDBValue,
-  TVector extends DuckDBVector<TValue>
+  TVector extends DuckDBVector<TValue>,
 >(
   chunk: DuckDBDataChunk,
   columnIndex: number,
   vectorType: new (...args: any[]) => TVector,
-  values: readonly (TValue | null)[]
+  values: readonly (TValue | null)[],
 ) {
   const vector = getColumnVector(chunk, columnIndex, vectorType);
   assertVectorValues(vector, values, `${columnIndex}`);
@@ -240,7 +240,7 @@ function assertValues<
 
 function bigints(start: bigint, end: bigint) {
   return Array.from({ length: Number(end - start) + 1 }).map(
-    (_, i) => start + BigInt(i)
+    (_, i) => start + BigInt(i),
   );
 }
 
@@ -266,12 +266,12 @@ describe('api', () => {
     assert.equal(ResultReturnType[ResultReturnType.INVALID], 'INVALID');
     assert.equal(
       ResultReturnType[ResultReturnType.CHANGED_ROWS],
-      'CHANGED_ROWS'
+      'CHANGED_ROWS',
     );
     assert.equal(ResultReturnType[ResultReturnType.NOTHING], 'NOTHING');
     assert.equal(
       ResultReturnType[ResultReturnType.QUERY_RESULT],
-      'QUERY_RESULT'
+      'QUERY_RESULT',
     );
   });
   test('StatementType enum', () => {
@@ -359,19 +359,19 @@ describe('api', () => {
     assert.equal(TIMESTAMP_NS.toString(), 'TIMESTAMP_NS');
     assert.equal(
       ENUM(['fly', 'swim', 'walk']).toString(),
-      `ENUM('fly', 'swim', 'walk')`
+      `ENUM('fly', 'swim', 'walk')`,
     );
     assert.equal(LIST(INTEGER).toString(), 'INTEGER[]');
     assert.equal(
       STRUCT({ 'id': VARCHAR, 'ts': TIMESTAMP }).toString(),
-      'STRUCT("id" VARCHAR, "ts" TIMESTAMP)'
+      'STRUCT("id" VARCHAR, "ts" TIMESTAMP)',
     );
     assert.equal(MAP(INTEGER, VARCHAR).toString(), 'MAP(INTEGER, VARCHAR)');
     assert.equal(ARRAY(INTEGER, 3).toString(), 'INTEGER[3]');
     assert.equal(UUID.toString(), 'UUID');
     assert.equal(
       UNION({ 'str': VARCHAR, 'num': INTEGER }).toString(),
-      'UNION("str" VARCHAR, "num" INTEGER)'
+      'UNION("str" VARCHAR, "num" INTEGER)',
     );
     assert.equal(BIT.toString(), 'BIT');
     assert.equal(TIMETZ.toString(), 'TIME WITH TIME ZONE');
@@ -390,9 +390,12 @@ describe('api', () => {
     if (chunk) {
       assert.strictEqual(chunk.columnCount, 1);
       assert.strictEqual(chunk.rowCount, 1);
-      assertValues<number, DuckDBIntegerVector>(chunk, 0, DuckDBIntegerVector, [
-        42,
-      ]);
+      assertValues<number, DuckDBIntegerVector>(
+        chunk,
+        0,
+        DuckDBIntegerVector,
+        [42],
+      );
     }
     instance.closeSync();
   });
@@ -409,7 +412,7 @@ describe('api', () => {
     } catch (err) {
       assert.deepEqual(
         err,
-        new Error('Failed to prepare: connection disconnected')
+        new Error('Failed to prepare: connection disconnected'),
       );
     }
     // ensure double-disconnect doesn't break anything
@@ -457,7 +460,7 @@ describe('api', () => {
         assert.strictEqual(
           prepared.parameterName(i + 1),
           params[i].name,
-          `param ${i} name mismatch`
+          `param ${i} name mismatch`,
         );
       }
 
@@ -473,7 +476,7 @@ describe('api', () => {
       prepared.bindList(
         i++,
         [decimalValue(9876n, 4, 1), decimalValue(5432n, 4, 1)],
-        LIST(DECIMAL(4, 1))
+        LIST(DECIMAL(4, 1)),
       );
       prepared.bindList(i++, [null]);
       prepared.bindStruct(i++, { 'a': 42, 'b': 'duck' });
@@ -484,14 +487,14 @@ describe('api', () => {
           { key: 100, value: 'swim' },
           { key: 101, value: 'walk' },
           { key: 102, value: 'fly' },
-        ])
+        ]),
       );
-      prepared.bindUnion(
+      (prepared.bindUnion(
         i++,
         unionValue('age', 42),
-        UNION({ 'name': VARCHAR, 'age': SMALLINT })
+        UNION({ 'name': VARCHAR, 'age': SMALLINT }),
       ),
-        prepared.bindUUID(i++, uuidValue(0xf0e1d2c3b4a596870123456789abcdefn));
+        prepared.bindUUID(i++, uuidValue(0xf0e1d2c3b4a596870123456789abcdefn)));
       prepared.bindBit(i++, bitValue('0010001001011100010101011010111'));
       prepared.bindTimeTZ(i++, TIMETZ.max);
       prepared.bindTimestampTZ(i++, TIMESTAMPTZ.max);
@@ -507,12 +510,12 @@ describe('api', () => {
         assert.equal(
           prepared.parameterTypeId(i + 1),
           type.typeId,
-          `param ${i} type id mismatch`
+          `param ${i} type id mismatch`,
         );
         assert.deepEqual(
           prepared.parameterType(i + 1),
           type,
-          `param ${i} type mismatch`
+          `param ${i} type mismatch`,
         );
       }
 
@@ -540,19 +543,19 @@ describe('api', () => {
           chunk,
           i++,
           DuckDBBooleanVector,
-          [true]
+          [true],
         );
         assertValues<number, DuckDBIntegerVector>(
           chunk,
           i++,
           DuckDBIntegerVector,
-          [10]
+          [10],
         );
         assertValues<string, DuckDBVarCharVector>(
           chunk,
           i++,
           DuckDBVarCharVector,
-          ['abc']
+          ['abc'],
         );
         assertValues(chunk, i++, DuckDBTimestampSecondsVector, [
           TIMESTAMP_S.max,
@@ -600,7 +603,7 @@ describe('api', () => {
           chunk,
           i++,
           DuckDBIntegerVector,
-          [null]
+          [null],
         );
       }
     });
@@ -608,7 +611,7 @@ describe('api', () => {
   test('should support prepare statement bind with list', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare(
-        'select $1 as a, $2 as b, $3 as c'
+        'select $1 as a, $2 as b, $3 as c',
       );
       prepared.bind([42, 'duck', listValue([10, 11, 12])]);
       const result = await prepared.run();
@@ -626,13 +629,13 @@ describe('api', () => {
           chunk,
           0,
           DuckDBIntegerVector,
-          [42]
+          [42],
         );
         assertValues<string, DuckDBVarCharVector>(
           chunk,
           1,
           DuckDBVarCharVector,
-          ['duck']
+          ['duck'],
         );
         assertValues(chunk, 2, DuckDBListVector, [listValue([10, 11, 12])]);
       }
@@ -641,7 +644,7 @@ describe('api', () => {
   test('should support prepare statement bind with object', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare(
-        'select $a as a, $b as b, $c as c, $d as d, $e as e, $f as f'
+        'select $a as a, $b as b, $c as c, $d as d, $e as e, $f as f',
       );
       prepared.bind(
         {
@@ -654,7 +657,7 @@ describe('api', () => {
         },
         {
           f: ARRAY(FLOAT, 2),
-        }
+        },
       );
       const result = await prepared.run();
       assertColumns(result, [
@@ -674,16 +677,19 @@ describe('api', () => {
           chunk,
           0,
           DuckDBIntegerVector,
-          [42]
+          [42],
         );
-        assertValues<number, DuckDBDoubleVector>(chunk, 1, DuckDBDoubleVector, [
-          42.3,
-        ]);
+        assertValues<number, DuckDBDoubleVector>(
+          chunk,
+          1,
+          DuckDBDoubleVector,
+          [42.3],
+        );
         assertValues<string, DuckDBVarCharVector>(
           chunk,
           2,
           DuckDBVarCharVector,
-          ['duck']
+          ['duck'],
         );
         assertValues(chunk, 3, DuckDBListVector, [listValue([10, 11, 12])]);
         assertValues(chunk, 4, DuckDBArrayVector, [
@@ -700,15 +706,15 @@ describe('api', () => {
         prepared.bindStruct(
           0,
           structValue({ 'a': null }),
-          STRUCT({ 'a': ANY })
+          STRUCT({ 'a': ANY }),
         );
         assert.fail('should throw');
       } catch (err) {
         assert.deepEqual(
           err,
           new Error(
-            'Cannot create structs with an entry type of ANY. Specify a specific type.'
-          )
+            'Cannot create structs with an entry type of ANY. Specify a specific type.',
+          ),
         );
       }
     });
@@ -723,8 +729,8 @@ describe('api', () => {
         assert.deepEqual(
           err,
           new Error(
-            'Cannot create lists with item type of ANY. Specify a specific type.'
-          )
+            'Cannot create lists with item type of ANY. Specify a specific type.',
+          ),
         );
       }
     });
@@ -739,8 +745,8 @@ describe('api', () => {
         assert.deepEqual(
           err,
           new Error(
-            'Cannot create arrays with item type of ANY. Specify a specific type.'
-          )
+            'Cannot create arrays with item type of ANY. Specify a specific type.',
+          ),
         );
       }
     });
@@ -748,7 +754,7 @@ describe('api', () => {
   test('should support starting prepared statements and running them incrementally', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare(
-        'select int from test_all_types()'
+        'select int from test_all_types()',
       );
       const pending = prepared.start();
       let taskCount = 0;
@@ -796,32 +802,32 @@ describe('api', () => {
         chunks[1],
         0,
         DuckDBBigIntVector,
-        bigints(2048n, 2048n * 2n - 1n)
+        bigints(2048n, 2048n * 2n - 1n),
       );
       assertValues(
         chunks[2],
         0,
         DuckDBBigIntVector,
-        bigints(2048n * 2n, 2048n * 3n - 1n)
+        bigints(2048n * 2n, 2048n * 3n - 1n),
       );
       assertValues(
         chunks[3],
         0,
         DuckDBBigIntVector,
-        bigints(2048n * 3n, 2048n * 4n - 1n)
+        bigints(2048n * 3n, 2048n * 4n - 1n),
       );
       assertValues(
         chunks[4],
         0,
         DuckDBBigIntVector,
-        bigints(2048n * 4n, 9999n)
+        bigints(2048n * 4n, 9999n),
       );
     });
   });
   test('prepared statement column info (valid)', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare(
-        'select $1::INTEGER as a, $2::VARCHAR as b, $3::INTEGER[] as c'
+        'select $1::INTEGER as a, $2::VARCHAR as b, $3::INTEGER[] as c',
       );
       assert.equal(prepared.columnCount, 3);
       assert.equal(prepared.columnName(0), 'a');
@@ -838,7 +844,7 @@ describe('api', () => {
   test('prepared statement column info (invalid)', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare(
-        'select $1::INTEGER as a, $2::VARCHAR as b, $3 as c'
+        'select $1::INTEGER as a, $2::VARCHAR as b, $3 as c',
       );
       // When any column types are ambiguous, DuckDB returns a column count of 1 with a type of INVALID.
       assert.equal(prepared.columnCount, 1);
@@ -914,7 +920,7 @@ FROM (
 WHERE country = $country
 ORDER BY name
       `,
-        { country: 'US' }
+        { country: 'US' },
       );
       const columns = reader.getColumnsObject();
       assert.deepEqual(columns, {
@@ -929,7 +935,7 @@ ORDER BY name
   test('should support all data types', async () => {
     await withConnection(async (connection) => {
       const result = await connection.run(
-        'from test_all_types(use_large_enum=true)'
+        'from test_all_types(use_large_enum=true)',
       );
       assertColumns(result, createTestAllTypesColumnNameAndTypeObjects());
 
@@ -960,26 +966,26 @@ ORDER BY name
           chunk,
           15,
           DuckDBTimestampSecondsVector,
-          testAllTypesColumns[15]
+          testAllTypesColumns[15],
         );
         assertValues(
           chunk,
           16,
           DuckDBTimestampMillisecondsVector,
-          testAllTypesColumns[16]
+          testAllTypesColumns[16],
         );
         assertValues(
           chunk,
           17,
           DuckDBTimestampNanosecondsVector,
-          testAllTypesColumns[17]
+          testAllTypesColumns[17],
         );
         assertValues(chunk, 18, DuckDBTimeTZVector, testAllTypesColumns[18]);
         assertValues(
           chunk,
           19,
           DuckDBTimestampTZVector,
-          testAllTypesColumns[19]
+          testAllTypesColumns[19],
         );
         assertValues(chunk, 20, DuckDBFloatVector, testAllTypesColumns[20]);
         assertValues(chunk, 21, DuckDBDoubleVector, testAllTypesColumns[21]);
@@ -990,7 +996,7 @@ ORDER BY name
           chunk,
           25,
           DuckDBDecimal128Vector,
-          testAllTypesColumns[25]
+          testAllTypesColumns[25],
         );
         assertValues(chunk, 26, DuckDBUUIDVector, testAllTypesColumns[26]);
         assertValues(chunk, 27, DuckDBIntervalVector, testAllTypesColumns[27]);
@@ -1051,14 +1057,14 @@ ORDER BY name
     assert.equal(bitValue('10101').toString(), '10101');
     assert.equal(
       bitValue('0010001001011100010101011010111').toString(),
-      '0010001001011100010101011010111'
+      '0010001001011100010101011010111',
     );
 
     // blob
     assert.equal(blobValue('').toString(), '');
     assert.equal(
       blobValue('thisisalongblob\x00withnullbytes').toString(),
-      'thisisalongblob\\x00withnullbytes'
+      'thisisalongblob\\x00withnullbytes',
     );
     assert.equal(blobValue('\x00\x00\x00a').toString(), '\\x00\\x00\\x00a');
 
@@ -1079,21 +1085,21 @@ ORDER BY name
     assert.equal(decimalValue(0n, 18, 6).toString(), '0.000000');
     assert.equal(
       decimalValue(987654321098765432n, 18, 6).toString(),
-      '987654321098.765432'
+      '987654321098.765432',
     );
     assert.equal(
       decimalValue(-987654321098765432n, 18, 6).toString(),
-      '-987654321098.765432'
+      '-987654321098.765432',
     );
 
     assert.equal(decimalValue(0n, 38, 10).toString(), '0.0000000000');
     assert.equal(
       decimalValue(98765432109876543210987654321098765432n, 38, 10).toString(),
-      '9876543210987654321098765432.1098765432'
+      '9876543210987654321098765432.1098765432',
     );
     assert.equal(
       decimalValue(-98765432109876543210987654321098765432n, 38, 10).toString(),
-      '-9876543210987654321098765432.1098765432'
+      '-9876543210987654321098765432.1098765432',
     );
 
     // interval
@@ -1129,64 +1135,64 @@ ORDER BY name
     assert.equal(intervalValue(0, 0, -60n * 1000000n).toString(), '-00:01:00');
     assert.equal(
       intervalValue(0, 0, 59n * 60n * 1000000n).toString(),
-      '00:59:00'
+      '00:59:00',
     );
     assert.equal(
       intervalValue(0, 0, -59n * 60n * 1000000n).toString(),
-      '-00:59:00'
+      '-00:59:00',
     );
     assert.equal(
       intervalValue(0, 0, 60n * 60n * 1000000n).toString(),
-      '01:00:00'
+      '01:00:00',
     );
     assert.equal(
       intervalValue(0, 0, -60n * 60n * 1000000n).toString(),
-      '-01:00:00'
+      '-01:00:00',
     );
     assert.equal(
       intervalValue(0, 0, 24n * 60n * 60n * 1000000n).toString(),
-      '24:00:00'
+      '24:00:00',
     );
     assert.equal(
       intervalValue(0, 0, -24n * 60n * 60n * 1000000n).toString(),
-      '-24:00:00'
+      '-24:00:00',
     );
     assert.equal(
       intervalValue(0, 0, 2147483647n * 60n * 60n * 1000000n).toString(),
-      '2147483647:00:00'
+      '2147483647:00:00',
     );
     assert.equal(
       intervalValue(0, 0, -2147483647n * 60n * 60n * 1000000n).toString(),
-      '-2147483647:00:00'
+      '-2147483647:00:00',
     );
     assert.equal(
       intervalValue(0, 0, 2147483647n * 60n * 60n * 1000000n + 1n).toString(),
-      '2147483647:00:00.000001'
+      '2147483647:00:00.000001',
     );
     assert.equal(
       intervalValue(
         0,
         0,
-        -(2147483647n * 60n * 60n * 1000000n + 1n)
+        -(2147483647n * 60n * 60n * 1000000n + 1n),
       ).toString(),
-      '-2147483647:00:00.000001'
+      '-2147483647:00:00.000001',
     );
 
     assert.equal(
       intervalValue(
         2 * 12 + 3,
         5,
-        (7n * 60n * 60n + 11n * 60n + 13n) * 1000000n + 17n
+        (7n * 60n * 60n + 11n * 60n + 13n) * 1000000n + 17n,
       ).toString(),
-      '2 years 3 months 5 days 07:11:13.000017'
+      '2 years 3 months 5 days 07:11:13.000017',
     );
     assert.equal(
       intervalValue(
         -(2 * 12 + 3),
         -5,
-        -((7n * 60n * 60n + 11n * 60n + 13n) * 1000000n + 17n)
+        -((7n * 60n * 60n + 11n * 60n + 13n) * 1000000n + 17n),
       ).toString(),
-      '-2 years -3 months -5 days -07:11:13.000017'
+      '-2 years -3 months -5 days -07:11:13.000017',
     );
 
     // list
@@ -1201,7 +1207,7 @@ ORDER BY name
         { key: 1, value: 'a' },
         { key: 2, value: 'b' },
       ]).toString(),
-      `{1: 'a', 2: 'b'}`
+      `{1: 'a', 2: 'b'}`,
     );
 
     // struct
@@ -1227,11 +1233,11 @@ ORDER BY name
     assert.equal(TIMESTAMPTZ.epoch.toString(), '1969-12-31 18:30:00-05:30');
     assert.equal(
       TIMESTAMPTZ.max.toString(),
-      '294247-01-09 22:30:54.775806-05:30'
+      '294247-01-09 22:30:54.775806-05:30',
     );
     assert.equal(
       TIMESTAMPTZ.min.toString(),
-      '290309-12-21 (BC) 18:30:00-05:30'
+      '290309-12-21 (BC) 18:30:00-05:30',
     );
     assert.equal(TIMESTAMPTZ.posInf.toString(), 'infinity');
     assert.equal(TIMESTAMPTZ.negInf.toString(), '-infinity');
@@ -1248,9 +1254,9 @@ ORDER BY name
     assert.equal(
       timeTZValue(
         (((12n * 60n + 34n) * 60n + 56n) * 1000n + 789n) * 1000n,
-        -((7 * 60 + 9) * 60)
+        -((7 * 60 + 9) * 60),
       ).toString(),
-      '12:34:56.789-07:09'
+      '12:34:56.789-07:09',
     );
     assert.equal(TIMETZ.max.toString(), '24:00:00-15:59:59');
     assert.equal(TIMETZ.min.toString(), '00:00:00+15:59:59');
@@ -1260,9 +1266,9 @@ ORDER BY name
     assert.equal(TIME.min.toString(), '00:00:00');
     assert.equal(
       timeValue(
-        (12n * 60n * 60n + 34n * 60n + 56n) * 1000000n + 987654n
+        (12n * 60n * 60n + 34n * 60n + 56n) * 1000000n + 987654n,
       ).toString(),
-      '12:34:56.987654'
+      '12:34:56.987654',
     );
 
     // union
@@ -1321,27 +1327,27 @@ ORDER BY name
     assert.deepEqual(DuckDBTimeValue.fromParts(timeParts).toParts(), timeParts);
     assert.deepEqual(
       DuckDBTimeTZValue.fromParts(timeTZParts).toParts(),
-      timeTZParts
+      timeTZParts,
     );
     assert.deepEqual(
       DuckDBTimestampValue.fromParts(timestampParts).toParts(),
-      timestampParts
+      timestampParts,
     );
     assert.deepEqual(
       DuckDBTimestampTZValue.fromParts(timestampParts).toParts(),
-      timestampParts
+      timestampParts,
     );
 
     assert.deepEqual(
       DuckDBDecimalValue.fromDouble(3.14159, 6, 5),
-      decimalValue(314159n, 6, 5)
+      decimalValue(314159n, 6, 5),
     );
     assert.deepEqual(decimalValue(314159n, 6, 5).toDouble(), 3.14159);
   });
   test('result inspection conveniences', async () => {
     await withConnection(async (connection) => {
       const result = await connection.run(
-        'select i::int as a, i::int + 10 as b from range(3) t(i)'
+        'select i::int as a, i::int + 10 as b from range(3) t(i)',
       );
       assert.deepEqual(result.columnNames(), ['a', 'b']);
       assert.deepEqual(result.columnTypes(), [INTEGER, INTEGER]);
@@ -1366,7 +1372,7 @@ ORDER BY name
   test('row and column objects', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        'select i::int as a, i::int + 10 as b, (i + 100)::varchar as a from range(3) t(i)'
+        'select i::int as a, i::int + 10 as b, (i + 100)::varchar as a from range(3) t(i)',
       );
       assert.deepEqual(reader.columnNames(), ['a', 'b', 'a']);
       assert.deepEqual(reader.deduplicatedColumnNames(), ['a', 'b', 'a:1']);
@@ -1442,32 +1448,32 @@ ORDER BY name
   test('column names and types json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types(use_large_enum=true)`
+        `from test_all_types(use_large_enum=true)`,
       );
       const columnNamesAndTypesJson = reader.columnNamesAndTypesJson();
       assert.deepEqual(
         columnNamesAndTypesJson,
-        createTestAllTypesColumnNamesAndTypesJson()
+        createTestAllTypesColumnNamesAndTypesJson(),
       );
     });
   });
   test('column name and type objects json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types(use_large_enum=true)`
+        `from test_all_types(use_large_enum=true)`,
       );
       const columnNameAndTypeObjectsJson =
         reader.columnNameAndTypeObjectsJson();
       assert.deepEqual(
         columnNameAndTypeObjectsJson,
-        createTestAllTypesColumnNameAndTypeObjectsJson()
+        createTestAllTypesColumnNameAndTypeObjectsJson(),
       );
     });
   });
   test('result reader', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        'select i::int as a, i::int + 10000 as b from range(5000) t(i)'
+        'select i::int as a, i::int + 10000 as b from range(5000) t(i)',
       );
       assert.deepEqual(reader.columnNames(), ['a', 'b']);
       assert.deepEqual(reader.columnTypes(), [INTEGER, INTEGER]);
@@ -1487,7 +1493,7 @@ ORDER BY name
     const instance = await DuckDBInstance.create();
     const connection = await instance.connect();
     const result = await connection.run(
-      `select current_setting('duckdb_api') as duckdb_api`
+      `select current_setting('duckdb_api') as duckdb_api`,
     );
     assertColumns(result, [{ name: 'duckdb_api', type: VARCHAR }]);
     const chunk = await result.fetchChunk();
@@ -1504,7 +1510,7 @@ ORDER BY name
     const instance = await DuckDBInstance.create(undefined, {});
     const connection = await instance.connect();
     const result = await connection.run(
-      `select current_setting('duckdb_api') as duckdb_api`
+      `select current_setting('duckdb_api') as duckdb_api`,
     );
     assertColumns(result, [{ name: 'duckdb_api', type: VARCHAR }]);
     const chunk = await result.fetchChunk();
@@ -1523,7 +1529,7 @@ ORDER BY name
     });
     const connection = await instance.connect();
     const result = await connection.run(
-      `select current_setting('duckdb_api') as duckdb_api`
+      `select current_setting('duckdb_api') as duckdb_api`,
     );
     assertColumns(result, [{ name: 'duckdb_api', type: VARCHAR }]);
     const chunk = await result.fetchChunk();
@@ -1553,13 +1559,13 @@ ORDER BY name
     try {
       const cache = new DuckDBInstanceCache();
       const instance1 = await cache.getOrCreateInstance(
-        'instance_cache_test_a.db'
+        'instance_cache_test_a.db',
       );
       const connection1 = await instance1.connect();
       await connection1.run(`attach ':memory:' as mem1`);
 
       const instance2 = await cache.getOrCreateInstance(
-        'instance_cache_test_b.db'
+        'instance_cache_test_b.db',
       );
       const connection2 = await instance2.connect();
       try {
@@ -1568,7 +1574,7 @@ ORDER BY name
       } catch (err) {
         assert.deepEqual(
           err,
-          new Error(`Catalog Error: Catalog with name mem1 does not exist!`)
+          new Error(`Catalog Error: Catalog with name mem1 does not exist!`),
         );
       }
     } finally {
@@ -1596,8 +1602,8 @@ ORDER BY name
       assert.deepEqual(
         err,
         new Error(
-          `Connection Error: Can't open a connection to same database file with a different configuration than existing connections`
-        )
+          `Connection Error: Can't open a connection to same database file with a different configuration than existing connections`,
+        ),
       );
     }
   });
@@ -1617,7 +1623,7 @@ ORDER BY name
     } catch (err) {
       assert.deepEqual(
         err,
-        new Error('A data chunk cannot have more than 2048 rows')
+        new Error('A data chunk cannot have more than 2048 rows'),
       );
     }
   });
@@ -1757,13 +1763,13 @@ ORDER BY name
           new Uint8Array([
             0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
             0x0c,
-          ])
+          ]),
         ),
         blobValue(
           new Uint8Array([
             0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
             0x1c, 0x1d,
-          ])
+          ]),
         ),
         null,
       ];
@@ -1826,13 +1832,13 @@ ORDER BY name
 
       const chunk = DuckDBDataChunk.create(
         [LIST(LIST(INTEGER))],
-        originalValues.length
+        originalValues.length,
       );
       chunk.setColumnValues(0, originalValues);
 
       const outerListVector = chunk.getColumnVector(0) as DuckDBListVector;
       const innerListVector = outerListVector.getItemVector(
-        2
+        2,
       ) as DuckDBListVector;
       innerListVector.setItem(1, listValue([350, 351, 352, 353, 354]));
       innerListVector.flush();
@@ -1924,12 +1930,12 @@ ORDER BY name
 
       const chunk = DuckDBDataChunk.create(
         [STRUCT({ 'num': INTEGER, 'str': VARCHAR })],
-        values.length
+        values.length,
       );
       chunk.setColumnValues(0, values);
 
       await connection.run(
-        'create table target(col0 struct(num integer, str varchar))'
+        'create table target(col0 struct(num integer, str varchar))',
       );
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
@@ -1969,7 +1975,7 @@ ORDER BY name
           tinyint tinyint,\
           smallint smallint,\
           int integer\
-        )'
+        )',
       );
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
@@ -2001,7 +2007,7 @@ ORDER BY name
       await connection.run(
         `create table target(${columnNameAndTypeObjects
           .map(({ name, type }) => `"${name.replace(`"`, `""`)}" ${type}`)
-          .join(', ')})`
+          .join(', ')})`,
       );
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
@@ -2032,19 +2038,19 @@ ORDER BY name
           resultChunk,
           15,
           DuckDBTimestampSecondsVector,
-          columns[15]
+          columns[15],
         );
         assertValues(
           resultChunk,
           16,
           DuckDBTimestampMillisecondsVector,
-          columns[16]
+          columns[16],
         );
         assertValues(
           resultChunk,
           17,
           DuckDBTimestampNanosecondsVector,
-          columns[17]
+          columns[17],
         );
         assertValues(resultChunk, 18, DuckDBTimeTZVector, columns[18]);
         assertValues(resultChunk, 19, DuckDBTimestampTZVector, columns[19]);
@@ -2095,7 +2101,7 @@ ORDER BY name
       await connection.run(
         `create table target(${columnNameAndTypeObjects
           .map(({ name, type }) => `"${name.replace(`"`, `""`)}" ${type}`)
-          .join(', ')})`
+          .join(', ')})`,
       );
 
       const appender = await connection.createAppender('target');
@@ -2138,19 +2144,19 @@ ORDER BY name
           resultChunk,
           15,
           DuckDBTimestampSecondsVector,
-          columns[15]
+          columns[15],
         );
         assertValues(
           resultChunk,
           16,
           DuckDBTimestampMillisecondsVector,
-          columns[16]
+          columns[16],
         );
         assertValues(
           resultChunk,
           17,
           DuckDBTimestampNanosecondsVector,
-          columns[17]
+          columns[17],
         );
         assertValues(resultChunk, 18, DuckDBTimeTZVector, columns[18]);
         assertValues(resultChunk, 19, DuckDBTimestampTZVector, columns[19]);
@@ -2218,7 +2224,7 @@ ORDER BY name
 
       const runIteration = async (i: number) => {
         const prepared = await connection.prepare(
-          'SELECT * FROM test_table WHERE id = $1'
+          'SELECT * FROM test_table WHERE id = $1',
         );
         prepared.bindInteger(1, (i % 5) + 1);
 
@@ -2258,11 +2264,42 @@ ORDER BY name
             output.flush();
           },
           returnType: VARCHAR,
-        })
+        }),
       );
       const reader = await connection.runAndReadAll('select my_func()');
       const columns = reader.getColumnsObject();
       assert.deepEqual(columns, { 'my_func()': ['my_output_0'] });
+    });
+  });
+
+  test('scalar function (bind data)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          bindFunction: (info) => {
+            info.setBindData({ 'my_bind_data_key': 'my_bind_data_value' });
+          },
+          mainFunction: (info, input, output) => {
+            const { bindData } = info;
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+              output.setItem(
+                rowIndex,
+                `my_output_${rowIndex}_${JSON.stringify(bindData)}`,
+              );
+            }
+            output.flush();
+          },
+          returnType: VARCHAR,
+        }),
+      );
+      const reader = await connection.runAndReadAll('select my_func()');
+      const columns = reader.getColumnsObject();
+      assert.deepEqual(columns, {
+        'my_func()': [
+          `my_output_0_${JSON.stringify({ 'my_bind_data_key': 'my_bind_data_value' })}`,
+        ],
+      });
     });
   });
 
@@ -2272,18 +2309,18 @@ ORDER BY name
         DuckDBScalarFunction.create({
           name: 'my_func',
           mainFunction: (info, input, output) => {
-            const extraInfo = info.getExtraInfo();
+            const { extraInfo } = info;
             for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
               output.setItem(
                 rowIndex,
-                `my_output_${rowIndex}_${JSON.stringify(extraInfo)}`
+                `my_output_${rowIndex}_${JSON.stringify(extraInfo)}`,
               );
             }
             output.flush();
           },
           returnType: VARCHAR,
           extraInfo: { 'my_extra_info_key': 'my_extra_info_value' },
-        })
+        }),
       );
       const reader = await connection.runAndReadAll('select my_func()');
       const columns = reader.getColumnsObject();
@@ -2295,7 +2332,48 @@ ORDER BY name
     });
   });
 
-  test('scalar function (error handling: throw)', async () => {
+  test('scalar function (extra info & bind data)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          bindFunction: (info) => {
+            const { extraInfo, clientContext } = info;
+            info.setBindData({
+              'my_bind_data_key': 'my_bind_data_value',
+              'extra_info': extraInfo,
+              'valid_connection_id': clientContext.connectionId > 0,
+            });
+          },
+          mainFunction: (info, input, output) => {
+            const { bindData } = info;
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+              output.setItem(
+                rowIndex,
+                `my_output_${rowIndex}_${JSON.stringify(bindData)}`,
+              );
+            }
+            output.flush();
+          },
+          returnType: VARCHAR,
+          extraInfo: { 'my_extra_info_key': 'my_extra_info_value' },
+        }),
+      );
+      const reader = await connection.runAndReadAll('select my_func()');
+      const columns = reader.getColumnsObject();
+      assert.deepEqual(columns, {
+        'my_func()': [
+          `my_output_0_${JSON.stringify({
+            'my_bind_data_key': 'my_bind_data_value',
+            'extra_info': { 'my_extra_info_key': 'my_extra_info_value' },
+            'valid_connection_id': true,
+          })}`,
+        ],
+      });
+    });
+  });
+
+  test('scalar function (error handling: exception in main func)', async () => {
     await withConnection(async (connection) => {
       connection.registerScalarFunction(
         DuckDBScalarFunction.create({
@@ -2304,7 +2382,7 @@ ORDER BY name
             throw new Error('my_error');
           },
           returnType: VARCHAR,
-        })
+        }),
       );
       try {
         await connection.run('select my_func()');
@@ -2315,7 +2393,7 @@ ORDER BY name
     });
   });
 
-  test('scalar function (error handling: setError)', async () => {
+  test('scalar function (error handling: setError in main func)', async () => {
     await withConnection(async (connection) => {
       connection.registerScalarFunction(
         DuckDBScalarFunction.create({
@@ -2324,13 +2402,59 @@ ORDER BY name
             info.setError('my_error');
           },
           returnType: VARCHAR,
-        })
+        }),
       );
       try {
         await connection.run('select my_func()');
         assert.fail('should throw');
       } catch (err) {
         assert.deepEqual(err, new Error('Invalid Input Error: my_error'));
+      }
+    });
+  });
+
+  test('scalar function (error handling: exception in bind func)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          bindFunction: (_info) => {
+            throw new Error('my_bind_error');
+          },
+          mainFunction: (_info, _input, _output) => {
+            throw new Error('my_error');
+          },
+          returnType: VARCHAR,
+        }),
+      );
+      try {
+        await connection.run('select my_func()');
+        assert.fail('should throw');
+      } catch (err) {
+        assert.deepEqual(err, new Error('Binder Error: my_bind_error'));
+      }
+    });
+  });
+
+  test('scalar function (error handling: setError in bind func)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          bindFunction: (info) => {
+            info.setError('my_bind_error');
+          },
+          mainFunction: (info, _input, _output) => {
+            info.setError('my_error');
+          },
+          returnType: VARCHAR,
+        }),
+      );
+      try {
+        await connection.run('select my_func()');
+        assert.fail('should throw');
+      } catch (err) {
+        assert.deepEqual(err, new Error('Binder Error: my_bind_error'));
       }
     });
   });
@@ -2347,8 +2471,8 @@ ORDER BY name
               output.setItem(
                 rowIndex,
                 `my_output_${rowIndex}_${v0.getItem(rowIndex)}_${v1.getItem(
-                  rowIndex
-                )}`
+                  rowIndex,
+                )}`,
               );
             }
             output.flush();
@@ -2356,10 +2480,10 @@ ORDER BY name
           returnType: VARCHAR,
           parameterTypes: [INTEGER, VARCHAR],
           volatile: true,
-        })
+        }),
       );
       const reader = await connection.runAndReadAll(
-        `select my_func(42, 'duck') as my_func_result from range(3)`
+        `select my_func(42, 'duck') as my_func_result from range(3)`,
       );
       const columns = reader.getColumnsObject();
       assert.deepEqual(columns, {
@@ -2388,12 +2512,12 @@ ORDER BY name
                 columnIndex++
               ) {
                 argValues.push(
-                  input.getColumnVector(columnIndex).getItem(rowIndex)
+                  input.getColumnVector(columnIndex).getItem(rowIndex),
                 );
               }
               output.setItem(
                 rowIndex,
-                `my_output_${rowIndex}_${argValues.join('_')}`
+                `my_output_${rowIndex}_${argValues.join('_')}`,
               );
             }
             output.flush();
@@ -2401,10 +2525,10 @@ ORDER BY name
           returnType: VARCHAR,
           varArgsType: INTEGER,
           volatile: true,
-        })
+        }),
       );
       const reader = await connection.runAndReadAll(
-        `select my_func(11, 13, 17) as my_func_result from range(3)`
+        `select my_func(11, 13, 17) as my_func_result from range(3)`,
       );
       const columns = reader.getColumnsObject();
       assert.deepEqual(columns, {
@@ -2431,7 +2555,7 @@ ORDER BY name
           returnType: VARCHAR,
           parameterTypes: [INTEGER],
           specialHandling: true,
-        })
+        }),
       );
       const reader = await connection.runAndReadAll(`select my_func(NULL)`);
       const columns = reader.getColumnsObject();
@@ -2453,7 +2577,7 @@ ORDER BY name
       // String with multiple single quotes
       assert.equal(
         quotedString("it's 'really' good"),
-        "'it''s ''really'' good'"
+        "'it''s ''really'' good'",
       );
 
       // Empty string
@@ -2475,7 +2599,7 @@ ORDER BY name
       // Identifier with multiple double quotes
       assert.equal(
         quotedIdentifier('my"special"table'),
-        '"my""special""table"'
+        '"my""special""table"',
       );
 
       // Empty identifier
@@ -2491,7 +2615,7 @@ ORDER BY name
   test('iterate over DuckDBResult stream in chunks', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        'select i::int, i::int + 10, (i + 100)::varchar from range(3) t(i)'
+        'select i::int, i::int + 10, (i + 100)::varchar from range(3) t(i)',
       );
 
       for await (const chunk of result) {
@@ -2501,19 +2625,19 @@ ORDER BY name
           chunk,
           i++,
           DuckDBIntegerVector,
-          [0, 1, 2]
+          [0, 1, 2],
         );
         assertValues<number, DuckDBIntegerVector>(
           chunk,
           i++,
           DuckDBIntegerVector,
-          [10, 11, 12]
+          [10, 11, 12],
         );
         assertValues<string, DuckDBVarCharVector>(
           chunk,
           i++,
           DuckDBVarCharVector,
-          ['100', '101', '102']
+          ['100', '101', '102'],
         );
       }
     });
@@ -2524,7 +2648,7 @@ ORDER BY name
       const chunkSize = 2048;
       const totalExpectedCount = chunkSize * 3;
       const result = await connection.stream(
-        `select i::int from range(${totalExpectedCount}) t(i)`
+        `select i::int from range(${totalExpectedCount}) t(i)`,
       );
 
       let total = 0;
@@ -2540,7 +2664,7 @@ ORDER BY name
   test('iterate stream of rows', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        'select i::int, i::int + 10, (i + 100)::varchar from range(3) t(i)'
+        'select i::int, i::int + 10, (i + 100)::varchar from range(3) t(i)',
       );
 
       const expectedRows: DuckDBValue[][] = [
@@ -2560,7 +2684,7 @@ ORDER BY name
   test('iterate stream of row objects', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        'select i::int as a, i::int + 10 as b, (i + 100)::varchar as c from range(3) t(i)'
+        'select i::int as a, i::int + 10 as b, (i + 100)::varchar as c from range(3) t(i)',
       );
 
       const expectedRows: Record<string, DuckDBValue>[] = [
@@ -2632,9 +2756,9 @@ ORDER BY name
       assert.deepEqual(
         connection.getTableNames(
           'from memory.main.t1, memory.main.t2, memory.main.t1',
-          true
+          true,
         ),
-        ['memory.main.t1', 'memory.main.t2']
+        ['memory.main.t1', 'memory.main.t2'],
       );
     });
   });
@@ -2643,9 +2767,9 @@ ORDER BY name
       assert.deepEqual(
         connection.getTableNames(
           'from memory.main.t1, memory.main.t2, memory.main.t1',
-          false
+          false,
         ),
-        ['t1', 't2']
+        ['t1', 't2'],
       );
     });
   });
