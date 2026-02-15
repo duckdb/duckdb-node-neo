@@ -383,6 +383,19 @@ duckdb_appender GetAppenderFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_appender>(env, AppenderTypeTag, value, "Invalid appender argument");
 }
 
+static const napi_type_tag BindInfoTypeTag = {
+  0x9922F8468F9A43C0, 0xB2573B112B9600D8
+};
+
+Napi::External<_duckdb_bind_info> CreateExternalForBindInfoWithoutFinalizer(Napi::Env env, duckdb_bind_info bind_info) {
+  // BindInfo objects are never explicitly created; they are passed in to function callbacks.
+  return CreateExternalWithoutFinalizer<_duckdb_bind_info>(env, BindInfoTypeTag, bind_info);
+}
+
+duckdb_bind_info GetBindInfoFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_bind_info>(env, BindInfoTypeTag, value, "Invalid bind info argument");
+}
+
 static const napi_type_tag ClientContextTypeTag = {
   0x1E1738782ED94232, 0x867B024D1858DF3A
 };
@@ -537,8 +550,6 @@ duckdb_function_info GetFunctionInfoFromExternal(Napi::Env env, Napi::Value valu
   return GetDataFromExternal<_duckdb_function_info>(env, FunctionInfoTypeTag, value, "Invalid function info argument");
 }
 
-
-
 static const napi_type_tag InstanceCacheTypeTag = {
   0x2F3346E30FB5457C, 0xB9201EE5112EEF9F
 };
@@ -650,21 +661,37 @@ static const napi_type_tag ScalarFunctionTypeTag = {
   0x95D48B7051D14994, 0x9F883D7DF5DEA86D
 };
 
+using ScalarFunctionBindTSFNContext = std::nullptr_t;
+struct ScalarFunctionBindTSFNData;
+void ScalarFunctionBindTSFNCallback(Napi::Env env, Napi::Function callback, ScalarFunctionBindTSFNContext *context, ScalarFunctionBindTSFNData *data);
+using ScalarFunctionBindTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionBindTSFNContext, ScalarFunctionBindTSFNData, ScalarFunctionBindTSFNCallback>;
+
 using ScalarFunctionMainTSFNContext = std::nullptr_t;
 struct ScalarFunctionMainTSFNData;
 void ScalarFunctionMainTSFNCallback(Napi::Env env, Napi::Function callback, ScalarFunctionMainTSFNContext *context, ScalarFunctionMainTSFNData *data);
 using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainTSFNContext, ScalarFunctionMainTSFNData, ScalarFunctionMainTSFNCallback>;
 
 struct ScalarFunctionInternalExtraInfo {
+  std::unique_ptr<ScalarFunctionBindTSFN> bind_tsfn;
   std::unique_ptr<ScalarFunctionMainTSFN> main_tsfn;
   std::unique_ptr<Napi::ObjectReference> user_extra_info_ref;
 
   ScalarFunctionInternalExtraInfo() {}
 
   ~ScalarFunctionInternalExtraInfo() {
+    if (bool(bind_tsfn)) {
+      bind_tsfn->Release();
+    }
     if (bool(main_tsfn)) {
       main_tsfn->Release();
     }
+  }
+
+  void SetBindFunction(Napi::Env env, Napi::Function func) {
+    if (bool(bind_tsfn)) {
+      bind_tsfn->Release();
+    }
+    bind_tsfn = std::make_unique<ScalarFunctionBindTSFN>(ScalarFunctionBindTSFN::New(env, func, "ScalarFunctionBind", 0, 1));
   }
 
   void SetMainFunction(Napi::Env env, Napi::Function func) {
@@ -757,6 +784,84 @@ duckdb_vector GetVectorFromExternal(Napi::Env env, Napi::Value value) {
 
 // Scalar functions
 
+struct ScalarFunctionInternalBindData {
+  std::unique_ptr<Napi::ObjectReference> user_bind_data_ref;
+
+  void SetUserBindData(Napi::Object user_bind_data) {
+    user_bind_data_ref = std::make_unique<Napi::ObjectReference>(user_bind_data.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_bind_data));
+  }
+};
+
+void DeleteScalarFunctionInternalBindData(ScalarFunctionInternalBindData *internal_bind_data) {
+  delete internal_bind_data;
+}
+
+ScalarFunctionInternalBindData *CopyScalarFunctionInternalBindData(ScalarFunctionInternalBindData *internal_bind_data) {
+  if (!internal_bind_data) {
+    return nullptr;
+  }
+  auto new_internal_bind_data = new ScalarFunctionInternalBindData();
+  if (internal_bind_data->user_bind_data_ref && !internal_bind_data->user_bind_data_ref->IsEmpty()) {
+    new_internal_bind_data->SetUserBindData(internal_bind_data->user_bind_data_ref->Value());
+  }
+  return new_internal_bind_data;
+}
+
+struct ScalarFunctionBindTSFNData {
+  duckdb_bind_info info;
+  std::condition_variable *cv;
+  std::mutex *cv_mutex;
+  bool done;
+};
+
+void ScalarFunctionBindTSFNCallback(Napi::Env env, Napi::Function callback, ScalarFunctionBindTSFNContext *context, ScalarFunctionBindTSFNData *data) {
+  if (env != nullptr) {
+    if (callback != nullptr) {
+      try {
+        callback.Call(
+          env.Undefined(),
+          {
+            CreateExternalForBindInfoWithoutFinalizer(env, data->info)
+          }
+        );
+      } catch (const Napi::Error &err) {
+        duckdb_scalar_function_bind_set_error(data->info, err.Message().c_str());
+      }
+    }
+  }
+  {
+    std::lock_guard lk(*data->cv_mutex);
+    data->done = true;
+  }
+  data->cv->notify_one();
+}
+
+ScalarFunctionInternalExtraInfo *GetScalarFunctionInternalExtraInfoFromBindInfo(duckdb_bind_info bind_info) {
+  return reinterpret_cast<ScalarFunctionInternalExtraInfo*>(duckdb_scalar_function_bind_get_extra_info(bind_info));
+}
+
+void ScalarFunctionBindFunction(duckdb_bind_info info) {
+  auto internal_extra_info = GetScalarFunctionInternalExtraInfoFromBindInfo(info);
+  auto data = reinterpret_cast<ScalarFunctionBindTSFNData*>(duckdb_malloc(sizeof(ScalarFunctionBindTSFNData)));
+  data->info = info;
+  data->cv = new std::condition_variable;
+  data->cv_mutex = new std::mutex;
+  data->done = false;
+  // The "blocking" part of this call only waits for queue space, not for the JS function call to complete.
+  // Since we specify no limit to the queue space, it in fact never blocks.
+  auto status = internal_extra_info->bind_tsfn->BlockingCall(data);
+  if (status == napi_ok) {
+    // Wait for the JS function call to complete.
+    std::unique_lock<std::mutex> lk(*data->cv_mutex);
+    data->cv->wait(lk, [&]{ return data->done; });
+  } else {
+    duckdb_scalar_function_bind_set_error(info, "BlockingCall returned not ok");
+  }
+  delete data->cv;
+  delete data->cv_mutex;
+  duckdb_free(data);
+}
+
 struct ScalarFunctionMainTSFNData {
   duckdb_function_info info;
   duckdb_data_chunk input;
@@ -790,12 +895,12 @@ void ScalarFunctionMainTSFNCallback(Napi::Env env, Napi::Function callback, Scal
   data->cv->notify_one();
 }
 
-ScalarFunctionInternalExtraInfo *GetScalarFunctionInternalExtraInfo(duckdb_function_info function_info) {
+ScalarFunctionInternalExtraInfo *GetScalarFunctionInternalExtraInfoFromFunctionInfo(duckdb_function_info function_info) {
   return reinterpret_cast<ScalarFunctionInternalExtraInfo*>(duckdb_scalar_function_get_extra_info(function_info));
 }
 
 void ScalarFunctionMainFunction(duckdb_function_info info, duckdb_data_chunk input, duckdb_vector output) {
-  auto internal_extra_info = GetScalarFunctionInternalExtraInfo(info);
+  auto internal_extra_info = GetScalarFunctionInternalExtraInfoFromFunctionInfo(info);
   auto data = reinterpret_cast<ScalarFunctionMainTSFNData*>(duckdb_malloc(sizeof(ScalarFunctionMainTSFNData)));
   data->info = info;
   data->input = input;
@@ -1635,9 +1740,15 @@ public:
       InstanceMethod("scalar_function_add_parameter", &DuckDBNodeAddon::scalar_function_add_parameter),
       InstanceMethod("scalar_function_set_return_type", &DuckDBNodeAddon::scalar_function_set_return_type),
       InstanceMethod("scalar_function_set_extra_info", &DuckDBNodeAddon::scalar_function_set_extra_info),
+      InstanceMethod("scalar_function_set_bind", &DuckDBNodeAddon::scalar_function_set_bind),
+      InstanceMethod("scalar_function_set_bind_data", &DuckDBNodeAddon::scalar_function_set_bind_data),
+      InstanceMethod("scalar_function_bind_set_error", &DuckDBNodeAddon::scalar_function_bind_set_error),
       InstanceMethod("scalar_function_set_function", &DuckDBNodeAddon::scalar_function_set_function),
       InstanceMethod("register_scalar_function", &DuckDBNodeAddon::register_scalar_function),
       InstanceMethod("scalar_function_get_extra_info", &DuckDBNodeAddon::scalar_function_get_extra_info),
+      InstanceMethod("scalar_function_bind_get_extra_info", &DuckDBNodeAddon::scalar_function_bind_get_extra_info),
+      InstanceMethod("scalar_function_get_bind_data", &DuckDBNodeAddon::scalar_function_get_bind_data),
+      InstanceMethod("scalar_function_get_client_context", &DuckDBNodeAddon::scalar_function_get_client_context),
       InstanceMethod("scalar_function_set_error", &DuckDBNodeAddon::scalar_function_set_error),
 
       InstanceMethod("appender_create", &DuckDBNodeAddon::appender_create),
@@ -4365,16 +4476,42 @@ private:
   }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_bind(duckdb_scalar_function scalar_function, duckdb_scalar_function_bind_t bind);
-  // TODO scalar function bind
+  // function scalar_function_set_bind(scalar_function: ScalarFunction, func: ScalarFunctionBindFunction): void
+  Napi::Value scalar_function_set_bind(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetScalarFunctionHolderFromExternal(env, info[0]);
+    auto func = info[1].As<Napi::Function>();
+    holder->EnsureInternalExtraInfo();
+    holder->internal_extra_info->SetBindFunction(env, func);
+    duckdb_scalar_function_set_bind(holder->scalar_function, &ScalarFunctionBindFunction);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_bind_data(duckdb_bind_info info, void *bind_data, duckdb_delete_callback_t destroy);
-  // TODO scalar function bind
+  // function scalar_function_set_bind_data(info: BindInfo, bind_data: object): void
+  Napi::Value scalar_function_set_bind_data(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetBindInfoFromExternal(env, info[0]);
+    auto user_bind_data = info[1].As<Napi::Object>();
+    auto internal_bind_data = new ScalarFunctionInternalBindData();
+    internal_bind_data->SetUserBindData(user_bind_data);
+    duckdb_scalar_function_set_bind_data(bind_info, internal_bind_data, reinterpret_cast<duckdb_delete_callback_t>(DeleteScalarFunctionInternalBindData));
+    duckdb_scalar_function_set_bind_data_copy(bind_info, reinterpret_cast<duckdb_copy_callback_t>(CopyScalarFunctionInternalBindData));
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_bind_data_copy(duckdb_bind_info info, duckdb_copy_callback_t copy);
-  // TODO scalar function bind
+  // not exposed: handled by scalar_function_set_bind_data
 
   // DUCKDB_C_API void duckdb_scalar_function_bind_set_error(duckdb_bind_info info, const char *error);
-  // TODO scalar function bind
+  // function scalar_function_bind_set_error(bind_info: BindInfo, error: string): void
+  Napi::Value scalar_function_bind_set_error(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetBindInfoFromExternal(env, info[0]);
+    std::string error = info[1].As<Napi::String>();
+    duckdb_scalar_function_bind_set_error(bind_info, error.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_function(duckdb_scalar_function scalar_function, duckdb_scalar_function_t function);
   // function scalar_function_set_function(scalar_function: ScalarFunction, func: ScalarFunctionMainFunction): void
@@ -4405,7 +4542,7 @@ private:
   Napi::Value scalar_function_get_extra_info(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto function_info = GetFunctionInfoFromExternal(env, info[0]);
-    auto internal_extra_info = GetScalarFunctionInternalExtraInfo(function_info);
+    auto internal_extra_info = GetScalarFunctionInternalExtraInfoFromFunctionInfo(function_info);
     if (!internal_extra_info || !internal_extra_info->user_extra_info_ref || internal_extra_info->user_extra_info_ref->IsEmpty()) {
       return env.Undefined();
     }
@@ -4413,13 +4550,41 @@ private:
   }
 
   // DUCKDB_C_API void *duckdb_scalar_function_bind_get_extra_info(duckdb_bind_info info);
-  // TODO scalar function bind
+  // function scalar_function_bind_get_extra_info(bind_info: BindInfo): object | undefined
+  Napi::Value scalar_function_bind_get_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetBindInfoFromExternal(env, info[0]);
+    auto internal_extra_info = GetScalarFunctionInternalExtraInfoFromBindInfo(bind_info);
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref || internal_extra_info->user_extra_info_ref->IsEmpty()) {
+      return env.Undefined();
+    }
+    return internal_extra_info->user_extra_info_ref->Value();
+  }
 
   // DUCKDB_C_API void *duckdb_scalar_function_get_bind_data(duckdb_function_info info);
-  // TODO scalar function bind
+  // function scalar_function_get_bind_data(function_info: FunctionInfo): object | undefined
+  Napi::Value scalar_function_get_bind_data(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto function_info = GetFunctionInfoFromExternal(env, info[0]);
+    auto internal_bind_data = reinterpret_cast<ScalarFunctionInternalBindData*>(duckdb_scalar_function_get_bind_data(function_info));
+    if (!internal_bind_data || !internal_bind_data->user_bind_data_ref || internal_bind_data->user_bind_data_ref->IsEmpty()) {
+      return env.Undefined();
+    }
+    return internal_bind_data->user_bind_data_ref->Value();
+  }
 
   // DUCKDB_C_API void duckdb_scalar_function_get_client_context(duckdb_bind_info info, duckdb_client_context *out_context);
-  // TODO scalar function bind
+  // function scalar_function_get_client_context(bind_info: BindInfo): ClientContext
+  Napi::Value scalar_function_get_client_context(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetBindInfoFromExternal(env, info[0]);
+    duckdb_client_context client_context;
+    duckdb_scalar_function_get_client_context(bind_info, &client_context);
+    if (!client_context) {
+      throw Napi::Error::New(env, "Failed to get client context");
+    }
+    return CreateExternalForClientContext(env, client_context);
+  }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_error(duckdb_function_info info, const char *error);
   // function scalar_function_set_error(function_info: FunctionInfo, error: string): void
@@ -5270,17 +5435,16 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 459 DUCKDB_C_API
-    264 function
-     24 not exposed
+    270 function
+     25 not exposed
      41 deprecated
-    130 TODO
+    123 TODO
         8 arrow
         5 error data
         1 value to string
         1 register logical type
         2 vector creation
         4 vector manipulation
-        7 scalar function bind
         4 scalar function set
         2 scalar function expression
         3 selection vector
