@@ -47,6 +47,52 @@ export enum StatementType {
   MULTI = 27,
 }
 
+export enum ErrorType {
+  INVALID = 0,
+  OUT_OF_RANGE = 1,
+  CONVERSION = 2,
+  UNKNOWN_TYPE = 3,
+  DECIMAL = 4,
+  MISMATCH_TYPE = 5,
+  DIVIDE_BY_ZERO = 6,
+  OBJECT_SIZE = 7,
+  INVALID_TYPE = 8,
+  SERIALIZATION = 9,
+  TRANSACTION = 10,
+  NOT_IMPLEMENTED = 11,
+  EXPRESSION = 12,
+  CATALOG = 13,
+  PARSER = 14,
+  PLANNER = 15,
+  SCHEDULER = 16,
+  EXECUTOR = 17,
+  CONSTRAINT = 18,
+  INDEX = 19,
+  STAT = 20,
+  CONNECTION = 21,
+  SYNTAX = 22,
+  SETTINGS = 23,
+  BINDER = 24,
+  NETWORK = 25,
+  OPTIMIZER = 26,
+  NULL_POINTER = 27,
+  IO = 28,
+  INTERRUPT = 29,
+  FATAL = 30,
+  INTERNAL = 31,
+  INVALID_INPUT = 32,
+  OUT_OF_MEMORY = 33,
+  PERMISSION = 34,
+  PARAMETER_NOT_RESOLVED = 35,
+  PARAMETER_NOT_ALLOWED = 36,
+  DEPENDENCY = 37,
+  HTTP = 38,
+  MISSING_EXTENSION = 39,
+  AUTOLOAD = 40,
+  SEQUENCE = 41,
+  INVALID_CONFIGURATION = 42,
+}
+
 export enum Type {
   INVALID = 0,
   BOOLEAN = 1,
@@ -220,6 +266,10 @@ export interface DataChunk {
   __duckdb_type: 'duckdb_data_chunk';
 }
 
+export interface ErrorData {
+  __duckdb_type: 'duckdb_error_data';
+}
+
 export interface ExtractedStatements {
   __duckdb_type: 'duckdb_extracted_statements';
 }
@@ -340,8 +390,13 @@ export function set_config(config: Config, name: string, option: string): void;
 // DUCKDB_C_API duckdb_error_data duckdb_create_error_data(duckdb_error_type type, const char *message);
 // DUCKDB_C_API void duckdb_destroy_error_data(duckdb_error_data *error_data);
 // DUCKDB_C_API duckdb_error_type duckdb_error_data_error_type(duckdb_error_data error_data);
+export function error_data_error_type(error_data: ErrorData): ErrorType;
+
 // DUCKDB_C_API const char *duckdb_error_data_message(duckdb_error_data error_data);
+export function error_data_message(error_data: ErrorData): string;
+
 // DUCKDB_C_API bool duckdb_error_data_has_error(duckdb_error_data error_data);
+export function error_data_has_error(error_data: ErrorData): boolean;
 
 // DUCKDB_C_API duckdb_state duckdb_query(duckdb_connection connection, const char *query, duckdb_result *out_result);
 export function query(connection: Connection, query: string): Promise<Result>;
@@ -1228,6 +1283,7 @@ export function appender_column_type(appender: Appender, column_index: number): 
 // #endif
 
 // DUCKDB_C_API duckdb_error_data duckdb_appender_error_data(duckdb_appender appender);
+export function appender_error_data(appender: Appender): ErrorData;
 
 // DUCKDB_C_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
 export function appender_flush_sync(appender: Appender): void;

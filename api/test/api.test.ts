@@ -67,6 +67,7 @@ import {
   DuckDBVarCharVector,
   DuckDBVector,
   ENUM,
+  ErrorType,
   FLOAT,
   HUGEINT,
   INTEGER,
@@ -2776,6 +2777,54 @@ ORDER BY name
   test('getTableNames (none))', async () => {
     await withConnection(async (connection) => {
       assert.deepEqual(connection.getTableNames('select 1', true), []);
+    });
+  });
+});
+
+describe('DuckDBErrorData', () => {
+  test('appender errorData property', async () => {
+    await withConnection(async (connection) => {
+      await connection.run('create table test_error_data(i integer)');
+      const appender = await connection.createAppender('test_error_data');
+
+      // Get error data - should indicate no error on successful append
+      const errorData = appender.errorData;
+      assert(errorData !== null);
+      assert(errorData.hasError === false);
+      assert(errorData.message === null);
+      assert(errorData.toString() === '');
+
+      // Append a value successfully
+      appender.appendInteger(42);
+      appender.endRow();
+      appender.flushSync();
+
+      // Error data should still indicate no error after flush
+      const errorDataAfterFlush = appender.errorData;
+      assert(errorDataAfterFlush.hasError === false);
+      assert(errorDataAfterFlush.message === null);
+    });
+  });
+
+  test('errorData captures invalid input details', async () => {
+    await withConnection(async (connection) => {
+      await connection.run('create table test_error_type(i integer)');
+      const appender = await connection.createAppender('test_error_type');
+
+      const expectedMessage = "Could not convert string 'not an int' to INT32";
+      assert.throws(() => {
+        appender.appendVarchar('not an int');
+        appender.endRow();
+      }, expectedMessage);
+
+      const errorData = appender.errorData;
+      assert.strictEqual(errorData.hasError, true);
+      assert.strictEqual(errorData.errorType, ErrorType.INVALID_INPUT);
+
+      const message = errorData.message;
+      assert(message !== null);
+      assert.ok(message.includes(expectedMessage));
+      assert.strictEqual(errorData.toString(), message);
     });
   });
 });
