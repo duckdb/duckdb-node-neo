@@ -12,6 +12,7 @@
 - [@duckdb/node-bindings-darwin-x64](bindings/pkgs/@duckdb/node-bindings-darwin-x64/README.md)
 - [@duckdb/node-bindings-linux-arm64](bindings/pkgs/@duckdb/node-bindings-linux-arm64/README.md)
 - [@duckdb/node-bindings-linux-x64](bindings/pkgs/@duckdb/node-bindings-linux-x64/README.md)
+- [@duckdb/node-bindings-win32-arm64](bindings/pkgs/@duckdb/node-bindings-win32-arm64/README.md)
 - [@duckdb/node-bindings-win32-x64](bindings/pkgs/@duckdb/node-bindings-win32-x64/README.md)
 
 ### Published
@@ -22,6 +23,7 @@
 - [@duckdb/node-bindings-darwin-x64](https://www.npmjs.com/package/@duckdb/node-bindings-darwin-x64)
 - [@duckdb/node-bindings-linux-arm64](https://www.npmjs.com/package/@duckdb/node-bindings-linux-arm64)
 - [@duckdb/node-bindings-linux-x64](https://www.npmjs.com/package/@duckdb/node-bindings-linux-x64)
+- [@duckdb/node-bindings-win32-arm64](https://www.npmjs.com/package/@duckdb/node-bindings-win32-arm64)
 - [@duckdb/node-bindings-win32-x64](https://www.npmjs.com/package/@duckdb/node-bindings-win32-x64)
 
 ## Development
@@ -53,6 +55,7 @@ Change version in:
 - `bindings/pkgs/@duckdb/node-bindings-darwin-x64/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-linux-arm64/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-linux-x64/package.json`
+- `bindings/pkgs/@duckdb/node-bindings-win32-arm64/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-win32-x64/package.json`
 
 ### Upgrade DuckDB Version
@@ -62,6 +65,7 @@ Change version in:
 - `bindings/scripts/fetch_libduckdb_linux_arm64.py`
 - `bindings/scripts/fetch_libduckdb_osx_universal.py`
 - `bindings/scripts/fetch_libduckdb_windows_amd64.py`
+- `bindings/scripts/fetch_libduckdb_windows_arm64.py`
 - `bindings/test/constants.test.ts`
 
 Also change DuckDB version in package versions.

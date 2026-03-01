@@ -15,6 +15,8 @@ const getNativeNodeBinding = (runtimePlatformArch) => {
             return require('@duckdb/node-bindings-darwin-x64/duckdb.node');
         case 'win32-x64':
             return require('@duckdb/node-bindings-win32-x64/duckdb.node');
+        case 'win32-arm64':
+            return require('@duckdb/node-bindings-win32-arm64/duckdb.node');
         default:
             const [platform, arch] = runtimePlatformArch.split('-');
             try {

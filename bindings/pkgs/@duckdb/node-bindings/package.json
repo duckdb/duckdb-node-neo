@@ -9,6 +9,7 @@
     "@duckdb/node-bindings-darwin-x64": "workspace:*",
     "@duckdb/node-bindings-linux-arm64": "workspace:*",
     "@duckdb/node-bindings-linux-x64": "workspace:*",
+    "@duckdb/node-bindings-win32-arm64": "workspace:*",
     "@duckdb/node-bindings-win32-x64": "workspace:*"
   },
   "repository": {
