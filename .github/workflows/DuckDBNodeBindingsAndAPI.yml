@@ -58,16 +58,6 @@ on:
         type: boolean
         required: true
         default: false
-      windows_x64:
-        description: 'Run on Windows x64'
-        type: boolean
-        required: true
-        default: false
-      # publish_win32_x64:
-      #   description: 'Publish Bindings for Win32 x64'
-      #   type: boolean
-      #   required: true
-      #   default: false
       windows_arm64:
         description: 'Run on Windows arm64'
         type: boolean
@@ -75,6 +65,16 @@ on:
         default: false
       # publish_win32_arm64:
       #   description: 'Publish Bindings for Win32 arm64'
+      #   type: boolean
+      #   required: true
+      #   default: false
+      windows_x64:
+        description: 'Run on Windows x64'
+        type: boolean
+        required: true
+        default: false
+      # publish_win32_x64:
+      #   description: 'Publish Bindings for Win32 x64'
       #   type: boolean
       #   required: true
       #   default: false
@@ -372,7 +372,7 @@ jobs:
 
   windows_arm64:
     name: Windows arm64
-    runs-on: windows-arm64
+    runs-on: windows-11-arm
     permissions:
       contents: read
       id-token: write # for OIDC, for trusted publishing
