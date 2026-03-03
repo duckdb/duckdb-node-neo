@@ -386,23 +386,23 @@ jobs:
 
       - name: Record Node directory
         shell: bash
-        run: echo "NODE_DIR=D:\\a\\node-v24.10.0" >> "$GITHUB_ENV"
+        run: echo "NODE_DIR=C:\\a\\node-v24.10.0" >> "$GITHUB_ENV"
 
       - name: Cache Node directory
         id: cache-node-dir
         uses: actions/cache@v4
         with:
-          path: D:\\a\\node-v24.10.0
+          path: C:\\a\\node-v24.10.0
           key: node-dir-v24.10.0-win-arm64
 
       - name: Download Node headers
         if: steps.cache-node-dir.outputs.cache-hit != 'true'
         shell: bash
-        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o "D:/a/node-v24.10.0-headers.tar.gz"
+        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o "C:/a/node-v24.10.0-headers.tar.gz"
 
       - name: Extract Node headers
         if: steps.cache-node-dir.outputs.cache-hit != 'true'
-        run: tar -xzf D:\a\node-v24.10.0-headers.tar.gz -C D:\a
+        run: tar -xzf C:\a\node-v24.10.0-headers.tar.gz -C C:\a
 
       - name: Download Node lib
         if: steps.cache-node-dir.outputs.cache-hit != 'true'
