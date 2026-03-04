@@ -58,6 +58,16 @@ on:
         type: boolean
         required: true
         default: false
+      windows_arm64:
+        description: 'Run on Windows arm64'
+        type: boolean
+        required: true
+        default: false
+      # publish_win32_arm64:
+      #   description: 'Publish Bindings for Win32 arm64'
+      #   type: boolean
+      #   required: true
+      #   default: false
       windows_x64:
         description: 'Run on Windows x64'
         type: boolean
@@ -358,4 +368,75 @@ jobs:
       - name: Publish - Bindings - Win32 x64
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-win32-x64
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest
+
+  windows_arm64:
+    name: Windows arm64
+    runs-on: windows-11-arm
+    permissions:
+      contents: read
+      id-token: write # for OIDC, for trusted publishing
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_arm64 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Record Node directory
+        shell: bash
+        run: echo "NODE_DIR=C:\\a\\node-v24.10.0" >> "$GITHUB_ENV"
+
+      - name: Cache Node directory
+        id: cache-node-dir
+        uses: actions/cache@v4
+        with:
+          path: C:\\a\\node-v24.10.0
+          key: node-dir-v24.10.0-win-arm64
+
+      - name: Download Node headers
+        if: steps.cache-node-dir.outputs.cache-hit != 'true'
+        shell: bash
+        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/node-v24.10.0-headers.tar.gz" -o "C:/a/node-v24.10.0-headers.tar.gz"
+
+      - name: Extract Node headers
+        if: steps.cache-node-dir.outputs.cache-hit != 'true'
+        run: tar -xzf C:\a\node-v24.10.0-headers.tar.gz -C C:\a
+
+      - name: Download Node lib
+        if: steps.cache-node-dir.outputs.cache-hit != 'true'
+        shell: bash
+        run: curl -sSL "https://nodejs.org/download/release/v24.10.0/win-arm64/node.lib" --create-dirs -o "$NODE_DIR/Release/node.lib"
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Workspace - Install
+        run: pnpm install --ignore-scripts
+
+      - name: Bindings - Build
+        working-directory: bindings
+        run: pnpm run build
+
+      - name: Bindings - Test
+        working-directory: bindings
+        run: pnpm test
+
+      - name: API - Build
+        working-directory: api
+        run: pnpm run build
+
+      - name: API - Test
+        working-directory: api
+        run: pnpm test
+
+      - name: Git Status
+        if: ${{ inputs.publish }}
+        run: git status
+
+      - name: Publish - Bindings - Win32 arm64
+        if: ${{ inputs.publish }}
+        working-directory: bindings/pkgs/@duckdb/node-bindings-win32-arm64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest

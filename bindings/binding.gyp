@@ -19,6 +19,11 @@
             'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_osx_universal.py',
           },
         }],
+        ['OS=="win" and target_arch=="arm64"', {
+          'variables': {
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_windows_arm64.py',
+          },
+        }],
         ['OS=="win" and target_arch=="x64"', {
           'variables': {
             'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_windows_amd64.py',
@@ -112,6 +117,19 @@
             },
           ],
         }],
+        ['OS=="win" and target_arch=="arm64"', {
+          'link_settings': {
+            'libraries': [
+              '<(module_root_dir)/libduckdb/duckdb.lib',
+            ],
+          },
+          'copies': [
+            {
+              'files': ['<(module_root_dir)/libduckdb/duckdb.dll'],
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-win32-arm64',
+            },
+          ],
+        }],
         ['OS=="win" and target_arch=="x64"', {
           'link_settings': {
             'libraries': [
@@ -161,6 +179,14 @@
             {
               'files': ['<(module_root_dir)/build/Release/duckdb.node'],
               'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-darwin-x64',
+            },
+          ],
+        }],
+        ['OS=="win" and target_arch=="arm64"', {
+          'copies': [
+            {
+              'files': ['<(module_root_dir)/build/Release/duckdb.node'],
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-win32-arm64',
             },
           ],
         }],
