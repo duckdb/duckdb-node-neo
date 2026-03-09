@@ -935,7 +935,7 @@ ORDER BY name
   test('should support all data types', async () => {
     await withConnection(async (connection) => {
       const result = await connection.run(
-        'from test_all_types(use_large_enum=true)',
+        'from test_all_types(use_large_enum=true) select * exclude time_ns',
       );
       assertColumns(result, createTestAllTypesColumnNameAndTypeObjects());
 
@@ -1419,28 +1419,36 @@ ORDER BY name
   });
   test('columns json', async () => {
     await withConnection(async (connection) => {
-      const reader = await connection.runAndReadAll(`from test_all_types()`);
+      const reader = await connection.runAndReadAll(
+        `from test_all_types() select * exclude time_ns`,
+      );
       const columnsJson = reader.getColumnsJson();
       assert.deepEqual(columnsJson, createTestAllTypesColumnsJson());
     });
   });
   test('columns object json', async () => {
     await withConnection(async (connection) => {
-      const reader = await connection.runAndReadAll(`from test_all_types()`);
+      const reader = await connection.runAndReadAll(
+        `from test_all_types() select * exclude time_ns`,
+      );
       const columnsJson = reader.getColumnsObjectJson();
       assert.deepEqual(columnsJson, createTestAllTypesColumnsObjectJson());
     });
   });
   test('rows json', async () => {
     await withConnection(async (connection) => {
-      const reader = await connection.runAndReadAll(`from test_all_types()`);
+      const reader = await connection.runAndReadAll(
+        `from test_all_types() select * exclude time_ns`,
+      );
       const rowsJson = reader.getRowsJson();
       assert.deepEqual(rowsJson, createTestAllTypesRowsJson());
     });
   });
   test('row objects json', async () => {
     await withConnection(async (connection) => {
-      const reader = await connection.runAndReadAll(`from test_all_types()`);
+      const reader = await connection.runAndReadAll(
+        `from test_all_types() select * exclude time_ns`,
+      );
       const rowObjectsJson = reader.getRowObjectsJson();
       assert.deepEqual(rowObjectsJson, createTestAllTypesRowObjectsJson());
     });
@@ -1448,7 +1456,7 @@ ORDER BY name
   test('column names and types json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types(use_large_enum=true)`,
+        `from test_all_types(use_large_enum=true) select * exclude time_ns`,
       );
       const columnNamesAndTypesJson = reader.columnNamesAndTypesJson();
       assert.deepEqual(
@@ -1460,7 +1468,7 @@ ORDER BY name
   test('column name and type objects json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types(use_large_enum=true)`,
+        `from test_all_types(use_large_enum=true) select * exclude time_ns`,
       );
       const columnNameAndTypeObjectsJson =
         reader.columnNameAndTypeObjectsJson();
@@ -2721,7 +2729,9 @@ ORDER BY name
 
   test('iterate result stream rows json', async () => {
     await withConnection(async (connection) => {
-      const result = await connection.stream(`from test_all_types()`);
+      const result = await connection.stream(
+        `from test_all_types() select * exclude time_ns`,
+      );
       for await (const row of result.yieldRowsJson()) {
         assert.deepEqual(row, createTestAllTypesRowsJson());
       }
@@ -2730,7 +2740,9 @@ ORDER BY name
 
   test('iterate result stream object json', async () => {
     await withConnection(async (connection) => {
-      const result = await connection.stream(`from test_all_types()`);
+      const result = await connection.stream(
+        `from test_all_types() select * exclude time_ns`,
+      );
       for await (const row of result.yieldRowObjectJson()) {
         assert.deepEqual(row, createTestAllTypesRowObjectsJson());
       }
