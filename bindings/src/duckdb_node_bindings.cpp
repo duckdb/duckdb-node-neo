@@ -782,6 +782,25 @@ duckdb_vector GetVectorFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_vector>(env, VectorTypeTag, value, "Invalid vector argument");
 }
 
+static const napi_type_tag ErrorDataTypeTag = {
+  0xA3B5C7D9E1F3A5B7, 0xC9D1E3F5A7B9C1D3
+};
+
+void FinalizeErrorData(Napi::BasicEnv, duckdb_error_data error_data) {
+  if (error_data) {
+    duckdb_destroy_error_data(&error_data);
+    error_data = nullptr;
+  }
+}
+
+Napi::External<_duckdb_error_data> CreateExternalForErrorData(Napi::Env env, duckdb_error_data error_data) {
+  return CreateExternal<_duckdb_error_data>(env, ErrorDataTypeTag, error_data, FinalizeErrorData);
+}
+
+duckdb_error_data GetErrorDataFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_error_data>(env, ErrorDataTypeTag, value, "Invalid error_data argument");
+}
+
 // Scalar functions
 
 struct ScalarFunctionInternalBindData {
@@ -1479,6 +1498,54 @@ Napi::Object CreateTypeEnum(Napi::Env env) {
   return typeEnum;
 }
 
+Napi::Object CreateErrorTypeEnum(Napi::Env env) {
+  auto errorTypeEnum = Napi::Object::New(env);
+  DefineEnumMember(errorTypeEnum, "INVALID", 0);
+  DefineEnumMember(errorTypeEnum, "OUT_OF_RANGE", 1);
+  DefineEnumMember(errorTypeEnum, "CONVERSION", 2);
+  DefineEnumMember(errorTypeEnum, "UNKNOWN_TYPE", 3);
+  DefineEnumMember(errorTypeEnum, "DECIMAL", 4);
+  DefineEnumMember(errorTypeEnum, "MISMATCH_TYPE", 5);
+  DefineEnumMember(errorTypeEnum, "DIVIDE_BY_ZERO", 6);
+  DefineEnumMember(errorTypeEnum, "OBJECT_SIZE", 7);
+  DefineEnumMember(errorTypeEnum, "INVALID_TYPE", 8);
+  DefineEnumMember(errorTypeEnum, "SERIALIZATION", 9);
+  DefineEnumMember(errorTypeEnum, "TRANSACTION", 10);
+  DefineEnumMember(errorTypeEnum, "NOT_IMPLEMENTED", 11);
+  DefineEnumMember(errorTypeEnum, "EXPRESSION", 12);
+  DefineEnumMember(errorTypeEnum, "CATALOG", 13);
+  DefineEnumMember(errorTypeEnum, "PARSER", 14);
+  DefineEnumMember(errorTypeEnum, "PLANNER", 15);
+  DefineEnumMember(errorTypeEnum, "SCHEDULER", 16);
+  DefineEnumMember(errorTypeEnum, "EXECUTOR", 17);
+  DefineEnumMember(errorTypeEnum, "CONSTRAINT", 18);
+  DefineEnumMember(errorTypeEnum, "INDEX", 19);
+  DefineEnumMember(errorTypeEnum, "STAT", 20);
+  DefineEnumMember(errorTypeEnum, "CONNECTION", 21);
+  DefineEnumMember(errorTypeEnum, "SYNTAX", 22);
+  DefineEnumMember(errorTypeEnum, "SETTINGS", 23);
+  DefineEnumMember(errorTypeEnum, "BINDER", 24);
+  DefineEnumMember(errorTypeEnum, "NETWORK", 25);
+  DefineEnumMember(errorTypeEnum, "OPTIMIZER", 26);
+  DefineEnumMember(errorTypeEnum, "NULL_POINTER", 27);
+  DefineEnumMember(errorTypeEnum, "IO", 28);
+  DefineEnumMember(errorTypeEnum, "INTERRUPT", 29);
+  DefineEnumMember(errorTypeEnum, "FATAL", 30);
+  DefineEnumMember(errorTypeEnum, "INTERNAL", 31);
+  DefineEnumMember(errorTypeEnum, "INVALID_INPUT", 32);
+  DefineEnumMember(errorTypeEnum, "OUT_OF_MEMORY", 33);
+  DefineEnumMember(errorTypeEnum, "PERMISSION", 34);
+  DefineEnumMember(errorTypeEnum, "PARAMETER_NOT_RESOLVED", 35);
+  DefineEnumMember(errorTypeEnum, "PARAMETER_NOT_ALLOWED", 36);
+  DefineEnumMember(errorTypeEnum, "DEPENDENCY", 37);
+  DefineEnumMember(errorTypeEnum, "HTTP", 38);
+  DefineEnumMember(errorTypeEnum, "MISSING_EXTENSION", 39);
+  DefineEnumMember(errorTypeEnum, "AUTOLOAD", 40);
+  DefineEnumMember(errorTypeEnum, "SEQUENCE", 41);
+  DefineEnumMember(errorTypeEnum, "INVALID_CONFIGURATION", 42);
+  return errorTypeEnum;
+}
+
 // Addon
 
 class DuckDBNodeAddon : public Napi::Addon<DuckDBNodeAddon> {
@@ -1492,6 +1559,7 @@ public:
       InstanceValue("PendingState", CreatePendingStateEnum(env)),
       InstanceValue("ResultType", CreateResultTypeEnum(env)),
       InstanceValue("StatementType", CreateStatementTypeEnum(env)),
+      InstanceValue("ErrorType", CreateErrorTypeEnum(env)),
       InstanceValue("Type", CreateTypeEnum(env)),
 
       InstanceMethod("create_instance_cache", &DuckDBNodeAddon::create_instance_cache),
@@ -1515,6 +1583,9 @@ public:
       InstanceMethod("config_count", &DuckDBNodeAddon::config_count),
       InstanceMethod("get_config_flag", &DuckDBNodeAddon::get_config_flag),
       InstanceMethod("set_config", &DuckDBNodeAddon::set_config),
+      InstanceMethod("error_data_error_type", &DuckDBNodeAddon::error_data_error_type),
+      InstanceMethod("error_data_message", &DuckDBNodeAddon::error_data_message),
+      InstanceMethod("error_data_has_error", &DuckDBNodeAddon::error_data_has_error),
 
       InstanceMethod("query", &DuckDBNodeAddon::query),
       InstanceMethod("column_name", &DuckDBNodeAddon::column_name),
@@ -1758,6 +1829,7 @@ public:
       InstanceMethod("appender_flush_sync", &DuckDBNodeAddon::appender_flush_sync),
       InstanceMethod("appender_close_sync", &DuckDBNodeAddon::appender_close_sync),
       InstanceMethod("appender_end_row", &DuckDBNodeAddon::appender_end_row),
+      InstanceMethod("appender_error_data", &DuckDBNodeAddon::appender_error_data),
       InstanceMethod("append_default", &DuckDBNodeAddon::append_default),
       InstanceMethod("append_bool", &DuckDBNodeAddon::append_bool),
       InstanceMethod("append_int8", &DuckDBNodeAddon::append_int8),
@@ -2006,13 +2078,31 @@ private:
   // TODO error data
 
   // DUCKDB_C_API duckdb_error_type duckdb_error_data_error_type(duckdb_error_data error_data);
-  // TODO error data
+  Napi::Value error_data_error_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto error_data = GetErrorDataFromExternal(env, info[0]);
+    auto error_type = duckdb_error_data_error_type(error_data);
+    return Napi::Number::New(env, static_cast<uint32_t>(error_type));
+  }
 
   // DUCKDB_C_API const char *duckdb_error_data_message(duckdb_error_data error_data);
-  // TODO error data
+  Napi::Value error_data_message(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto error_data = GetErrorDataFromExternal(env, info[0]);
+    if (!duckdb_error_data_has_error(error_data)) {
+      return Napi::String::New(env, "");
+    }
+    auto message = duckdb_error_data_message(error_data);
+    return Napi::String::New(env, message ? message : "");
+  }
 
   // DUCKDB_C_API bool duckdb_error_data_has_error(duckdb_error_data error_data);
-  // TODO error data
+  Napi::Value error_data_has_error(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto error_data = GetErrorDataFromExternal(env, info[0]);
+    auto has_error = duckdb_error_data_has_error(error_data);
+    return Napi::Boolean::New(env, has_error);
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_query(duckdb_connection connection, const char *query, duckdb_result *out_result);
   // function query(connection: Connection, query: string): Promise<Result>
@@ -4881,7 +4971,12 @@ private:
   // #endif
 
   // DUCKDB_C_API duckdb_error_data duckdb_appender_error_data(duckdb_appender appender);
-  // TODO appender error data
+  Napi::Value appender_error_data(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    auto error_data = duckdb_appender_error_data(appender);
+    return CreateExternalForErrorData(env, error_data);
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_appender_flush(duckdb_appender appender);
   // function appender_flush(appender: Appender): void
