@@ -1,7 +1,15 @@
 import duckdb from '@duckdb/node-bindings';
+import { withDatabase } from './withDatabase';
 
-export async function withConnection(fn: (connection: duckdb.Connection) => Promise<void>): Promise<void> {
-  const db = await duckdb.open();
-  const connection = await duckdb.connect(db);
-  await fn(connection);
+export async function withConnection(
+  fn: (connection: duckdb.Connection, db: duckdb.Database) => Promise<void>,
+): Promise<void> {
+  await withDatabase({}, async (db) => {
+    const connection = await duckdb.connect(db);
+    try {
+      await fn(connection, db);
+    } finally {
+      duckdb.disconnect_sync(connection);
+    }
+  });
 }
