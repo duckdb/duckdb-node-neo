@@ -25,59 +25,92 @@ suite('config', () => {
   });
   test('default duckdb_api without explicit config', async () => {
     const db = await duckdb.open();
-    const connection = await duckdb.connect(db);
-    const result = await duckdb.query(
-      connection,
-      `select current_setting('duckdb_api') as duckdb_api`,
-    );
-    await expectResult(result, {
-      chunkCount: 1,
-      rowCount: 1,
-      columns: [
-        { name: 'duckdb_api', logicalType: { typeId: duckdb.Type.VARCHAR } },
-      ],
-      chunks: [
-        { rowCount: 1, vectors: [data(16, [true], ['node-neo-bindings'])] },
-      ],
-    });
+    try {
+      const connection = await duckdb.connect(db);
+      try {
+        const result = await duckdb.query(
+          connection,
+          `select current_setting('duckdb_api') as duckdb_api`,
+        );
+        await expectResult(result, {
+          chunkCount: 1,
+          rowCount: 1,
+          columns: [
+            {
+              name: 'duckdb_api',
+              logicalType: { typeId: duckdb.Type.VARCHAR },
+            },
+          ],
+          chunks: [
+            { rowCount: 1, vectors: [data(16, [true], ['node-neo-bindings'])] },
+          ],
+        });
+      } finally {
+        duckdb.disconnect_sync(connection);
+      }
+    } finally {
+      duckdb.close_sync(db);
+    }
   });
   test('default duckdb_api with explicit config', async () => {
     const config = duckdb.create_config();
     const db = await duckdb.open(undefined, config);
-    const connection = await duckdb.connect(db);
-    const result = await duckdb.query(
-      connection,
-      `select current_setting('duckdb_api') as duckdb_api`,
-    );
-    await expectResult(result, {
-      chunkCount: 1,
-      rowCount: 1,
-      columns: [
-        { name: 'duckdb_api', logicalType: { typeId: duckdb.Type.VARCHAR } },
-      ],
-      chunks: [
-        { rowCount: 1, vectors: [data(16, [true], ['node-neo-bindings'])] },
-      ],
-    });
+    try {
+      const connection = await duckdb.connect(db);
+      try {
+        const result = await duckdb.query(
+          connection,
+          `select current_setting('duckdb_api') as duckdb_api`,
+        );
+        await expectResult(result, {
+          chunkCount: 1,
+          rowCount: 1,
+          columns: [
+            {
+              name: 'duckdb_api',
+              logicalType: { typeId: duckdb.Type.VARCHAR },
+            },
+          ],
+          chunks: [
+            { rowCount: 1, vectors: [data(16, [true], ['node-neo-bindings'])] },
+          ],
+        });
+      } finally {
+        duckdb.disconnect_sync(connection);
+      }
+    } finally {
+      duckdb.close_sync(db);
+    }
   });
   test('overriding duckdb_api', async () => {
     const config = duckdb.create_config();
     duckdb.set_config(config, 'duckdb_api', 'custom-duckdb-api');
     const db = await duckdb.open(undefined, config);
-    const connection = await duckdb.connect(db);
-    const result = await duckdb.query(
-      connection,
-      `select current_setting('duckdb_api') as duckdb_api`,
-    );
-    await expectResult(result, {
-      chunkCount: 1,
-      rowCount: 1,
-      columns: [
-        { name: 'duckdb_api', logicalType: { typeId: duckdb.Type.VARCHAR } },
-      ],
-      chunks: [
-        { rowCount: 1, vectors: [data(16, [true], ['custom-duckdb-api'])] },
-      ],
-    });
+    try {
+      const connection = await duckdb.connect(db);
+      try {
+        const result = await duckdb.query(
+          connection,
+          `select current_setting('duckdb_api') as duckdb_api`,
+        );
+        await expectResult(result, {
+          chunkCount: 1,
+          rowCount: 1,
+          columns: [
+            {
+              name: 'duckdb_api',
+              logicalType: { typeId: duckdb.Type.VARCHAR },
+            },
+          ],
+          chunks: [
+            { rowCount: 1, vectors: [data(16, [true], ['custom-duckdb-api'])] },
+          ],
+        });
+      } finally {
+        duckdb.disconnect_sync(connection);
+      }
+    } finally {
+      duckdb.close_sync(db);
+    }
   });
 });
