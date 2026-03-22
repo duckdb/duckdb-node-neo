@@ -832,8 +832,8 @@ void ScalarFunctionBindTSFNCallback(Napi::Env env, Napi::Function callback, Scal
   {
     std::lock_guard lk(*data->cv_mutex);
     data->done = true;
-  }
-  data->cv->notify_one();
+    data->cv->notify_one();
+  } 
 }
 
 ScalarFunctionInternalExtraInfo *GetScalarFunctionInternalExtraInfoFromBindInfo(duckdb_bind_info bind_info) {
@@ -891,8 +891,8 @@ void ScalarFunctionMainTSFNCallback(Napi::Env env, Napi::Function callback, Scal
   {
     std::lock_guard lk(*data->cv_mutex);
     data->done = true;
+    data->cv->notify_one();
   }
-  data->cv->notify_one();
 }
 
 ScalarFunctionInternalExtraInfo *GetScalarFunctionInternalExtraInfoFromFunctionInfo(duckdb_function_info function_info) {
