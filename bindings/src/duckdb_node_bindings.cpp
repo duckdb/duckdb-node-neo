@@ -15,6 +15,14 @@
 
 #define DEFAULT_DUCKDB_API "node-neo-bindings"
 
+// Napi helpers
+
+Napi::Reference<Napi::Value> MakeValueRef(Napi::Value value) {
+  return value.IsUndefined()
+    ? Napi::Reference<Napi::Value>() 
+    : Napi::Reference<Napi::Value>::New(value, 1);
+}
+
 // Conversion betweeen structs and objects
 
 Napi::Object MakeDateObject(Napi::Env env, duckdb_date date) {
@@ -958,8 +966,14 @@ class GetOrCreateFromCacheWorker : public PromiseWorker {
 
 public:
 
-  GetOrCreateFromCacheWorker(Napi::Env env, duckdb_instance_cache instance_cache, std::optional<std::string> path, duckdb_config config)
-      : PromiseWorker(env), instance_cache_(instance_cache), path_(path), config_(config) {
+  GetOrCreateFromCacheWorker(Napi::Env env, Napi::Value instanceCacheValue, std::optional<std::string> path, Napi::Value configValue)
+      : PromiseWorker(env),
+      instance_cache_(GetInstanceCacheFromExternal(env, instanceCacheValue)),
+      instanceCacheValueRef_(MakeValueRef(instanceCacheValue)),
+      path_(path),
+      config_(configValue.IsUndefined() ? nullptr : GetConfigFromExternal(env, configValue)),
+      configValueRef_(MakeValueRef(configValue))
+    {
     }
 
 protected:
@@ -1000,8 +1014,10 @@ protected:
 private:
 
   duckdb_instance_cache instance_cache_;
+  Napi::Reference<Napi::Value> instanceCacheValueRef_;
   std::optional<std::string> path_;
   duckdb_config config_;
+  Napi::Reference<Napi::Value> configValueRef_;
   duckdb_database database_ = nullptr;
 
 };
@@ -1010,8 +1026,12 @@ class OpenWorker : public PromiseWorker {
 
 public:
 
-  OpenWorker(Napi::Env env, std::optional<std::string> path, duckdb_config config)
-    : PromiseWorker(env), path_(path), config_(config) {
+  OpenWorker(Napi::Env env, std::optional<std::string> path, Napi::Value configValue)
+    : PromiseWorker(env),
+    path_(path),
+    config_(configValue.IsUndefined() ? nullptr : GetConfigFromExternal(env, configValue)),
+    configValueRef_(MakeValueRef(configValue))
+  {
   }
 
 protected:
@@ -1053,6 +1073,7 @@ private:
 
   std::optional<std::string> path_;
   duckdb_config config_;
+  Napi::Reference<Napi::Value> configValueRef_;
   duckdb_database database_ = nullptr;
 
 };
@@ -1061,8 +1082,11 @@ class ConnectWorker : public PromiseWorker {
 
 public:
 
-  ConnectWorker(Napi::Env env, duckdb_database database)
-    : PromiseWorker(env), database_(database) {
+  ConnectWorker(Napi::Env env, Napi::Value databaseValue)
+    : PromiseWorker(env),
+    database_(GetDatabaseFromExternal(env, databaseValue)),
+    databaseValueRef_(MakeValueRef(databaseValue))
+  {
   }
 
 protected:
@@ -1084,6 +1108,7 @@ protected:
 private:
 
   duckdb_database database_;
+  Napi::Reference<Napi::Value> databaseValueRef_;
   duckdb_connection connection_ = nullptr;
 
 };
@@ -1092,8 +1117,12 @@ class QueryWorker : public PromiseWorker {
 
 public:
 
-  QueryWorker(Napi::Env env, duckdb_connection connection, std::string query)
-    : PromiseWorker(env), connection_(connection), query_(query) {
+  QueryWorker(Napi::Env env, Napi::Value connectionValue, std::string query)
+    : PromiseWorker(env),
+    connection_(GetConnectionFromExternal(env, connectionValue)),
+    connectionValueRef_(MakeValueRef(connectionValue)),
+    query_(query)
+  {
   }
 
 protected:
@@ -1126,6 +1155,7 @@ protected:
 private:
 
   duckdb_connection connection_;
+  Napi::Reference<Napi::Value> connectionValueRef_;
   std::string query_;
   duckdb_result *result_ptr_ = nullptr;
 
@@ -1135,8 +1165,12 @@ class PrepareWorker : public PromiseWorker {
 
 public:
 
-  PrepareWorker(Napi::Env env, duckdb_connection connection, std::string query)
-    : PromiseWorker(env), connection_(connection), query_(query) {
+  PrepareWorker(Napi::Env env, Napi::Value connectionValue, std::string query)
+    : PromiseWorker(env),
+    connection_(GetConnectionFromExternal(env, connectionValue)),
+    connectionValueRef_(MakeValueRef(connectionValue)),
+    query_(query)
+  {
   }
 
 protected:
@@ -1163,6 +1197,7 @@ protected:
 private:
 
   duckdb_connection connection_;
+  Napi::Reference<Napi::Value> connectionValueRef_;
   std::string query_;
   duckdb_prepared_statement prepared_statement_ = nullptr;
 
@@ -1172,8 +1207,11 @@ class ExecutePreparedWorker : public PromiseWorker {
 
 public:
 
-  ExecutePreparedWorker(Napi::Env env, duckdb_prepared_statement prepared_statement)
-    : PromiseWorker(env), prepared_statement_(prepared_statement) {
+  ExecutePreparedWorker(Napi::Env env, Napi::Value preparedStatementValue)
+    : PromiseWorker(env),
+    prepared_statement_(GetPreparedStatementFromExternal(env, preparedStatementValue)),
+    preparedStatementValueRef_(MakeValueRef(preparedStatementValue))
+  {
   }
 
 protected:
@@ -1202,6 +1240,7 @@ protected:
 private:
 
   duckdb_prepared_statement prepared_statement_;
+  Napi::Reference<Napi::Value> preparedStatementValueRef_;
   duckdb_result *result_ptr_ = nullptr;
 
 };
@@ -1210,8 +1249,11 @@ class ExecutePreparedStreamingWorker : public PromiseWorker {
 
 public:
 
-  ExecutePreparedStreamingWorker(Napi::Env env, duckdb_prepared_statement prepared_statement)
-    : PromiseWorker(env), prepared_statement_(prepared_statement) {
+  ExecutePreparedStreamingWorker(Napi::Env env, Napi::Value preparedStatementValue)
+    : PromiseWorker(env),
+    prepared_statement_(GetPreparedStatementFromExternal(env, preparedStatementValue)),
+    preparedStatementValueRef_(MakeValueRef(preparedStatementValue))
+  {
   }
 
 protected:
@@ -1240,6 +1282,7 @@ protected:
 private:
 
   duckdb_prepared_statement prepared_statement_;
+  Napi::Reference<Napi::Value> preparedStatementValueRef_;
   duckdb_result *result_ptr_;
 
 };
@@ -1248,8 +1291,12 @@ class ExtractStatementsWorker : public PromiseWorker {
 
 public:
 
-  ExtractStatementsWorker(Napi::Env env, duckdb_connection connection, std::string query)
-    : PromiseWorker(env), connection_(connection), query_(query) {
+  ExtractStatementsWorker(Napi::Env env, Napi::Value connectionValue, std::string query)
+    : PromiseWorker(env),
+    connection_(GetConnectionFromExternal(env, connectionValue)),
+    connectionValueRef_(MakeValueRef(connectionValue)),
+    query_(query)
+  {
   }
 
 protected:
@@ -1272,6 +1319,7 @@ protected:
 private:
 
   duckdb_connection connection_;
+  Napi::Reference<Napi::Value> connectionValueRef_;
   std::string query_;
   duckdb_extracted_statements extracted_statements_ = nullptr;
   idx_t statement_count_ = 0;
@@ -1282,8 +1330,14 @@ class PrepareExtractedStatementWorker : public PromiseWorker {
 
 public:
 
-  PrepareExtractedStatementWorker(Napi::Env env, duckdb_connection connection, duckdb_extracted_statements extracted_statements, idx_t index)
-    : PromiseWorker(env), connection_(connection), extracted_statements_(extracted_statements), index_(index) {
+  PrepareExtractedStatementWorker(Napi::Env env, Napi::Value connectionValue, Napi::Value extractedStatementsValue, idx_t index)
+    : PromiseWorker(env),
+    connection_(GetConnectionFromExternal(env, connectionValue)),
+    connectionValueRef_(MakeValueRef(connectionValue)),
+    extracted_statements_(GetExtractedStatementsFromExternal(env, extractedStatementsValue)),
+    extractedStatementsValueRef_(MakeValueRef(extractedStatementsValue)),
+    index_(index)
+  {
   }
 
 protected:
@@ -1310,7 +1364,9 @@ protected:
 private:
 
   duckdb_connection connection_;
+  Napi::Reference<Napi::Value> connectionValueRef_;
   duckdb_extracted_statements extracted_statements_;
+  Napi::Reference<Napi::Value> extractedStatementsValueRef_;
   idx_t index_;
   duckdb_prepared_statement prepared_statement_ = nullptr;
 
@@ -1320,8 +1376,11 @@ class ExecutePendingWorker : public PromiseWorker {
 
 public:
 
-  ExecutePendingWorker(Napi::Env env, duckdb_pending_result pending_result)
-    : PromiseWorker(env), pending_result_(pending_result) {
+  ExecutePendingWorker(Napi::Env env, Napi::Value pendingResultValue)
+    : PromiseWorker(env),
+    pending_result_(GetPendingResultFromExternal(env, pendingResultValue)),
+    pendingResultValueRef_(MakeValueRef(pendingResultValue))
+  {
   }
 
 protected:
@@ -1350,6 +1409,7 @@ protected:
 private:
 
   duckdb_pending_result pending_result_;
+  Napi::Reference<Napi::Value> pendingResultValueRef_;
   duckdb_result *result_ptr_ = nullptr;
 
 };
@@ -1358,8 +1418,11 @@ class FetchWorker : public PromiseWorker {
 
 public:
 
-  FetchWorker(Napi::Env env, duckdb_result *result_ptr)
-    : PromiseWorker(env), result_ptr_(result_ptr) {
+  FetchWorker(Napi::Env env, Napi::Value resultValue)
+    : PromiseWorker(env),
+    result_ptr_(GetResultFromExternal(env, resultValue)),
+    resultValueRef_(MakeValueRef(resultValue))
+  {
   }
 
 protected:
@@ -1375,6 +1438,7 @@ protected:
 private:
 
   duckdb_result *result_ptr_;
+  Napi::Reference<Napi::Value> resultValueRef_;
   duckdb_data_chunk data_chunk_ = nullptr;
 
 };
@@ -1804,18 +1868,14 @@ private:
   // function get_or_create_from_cache(cache: InstanceCache, path?: string, config?: Config): Promise<Database>
   Napi::Value get_or_create_from_cache(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto instance_cache = GetInstanceCacheFromExternal(env, info[0]);
+    auto instanceCacheValue = info[0];
     auto pathValue = info[1];
     auto configValue = info[2];
     std::optional<std::string> path = std::nullopt;
     if (!pathValue.IsUndefined()) {
       path = pathValue.As<Napi::String>();
     }
-    duckdb_config config = nullptr;
-    if (!configValue.IsUndefined()) {
-      config = GetConfigFromExternal(env, configValue);
-    }
-    auto worker = new GetOrCreateFromCacheWorker(env, instance_cache, path, config);
+    auto worker = new GetOrCreateFromCacheWorker(env, instanceCacheValue, path, configValue);
     worker->Queue();
     return worker->Promise();
   }
@@ -1833,11 +1893,7 @@ private:
     if (!pathValue.IsUndefined()) {
       path = pathValue.As<Napi::String>();
     }
-    duckdb_config config = nullptr;
-    if (!configValue.IsUndefined()) {
-      config = GetConfigFromExternal(env, configValue);
-    }
-    auto worker = new OpenWorker(env, path, config);
+    auto worker = new OpenWorker(env, path, configValue);
     worker->Queue();
     return worker->Promise();
   }
@@ -1859,8 +1915,8 @@ private:
   // function connect(database: Database): Promise<Connection>
   Napi::Value connect(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto database = GetDatabaseFromExternal(env, info[0]);
-    auto worker = new ConnectWorker(env, database);
+    auto databaseValue = info[0];
+    auto worker = new ConnectWorker(env, databaseValue);
     worker->Queue();
     return worker->Promise();
   }
@@ -2018,9 +2074,9 @@ private:
   // function query(connection: Connection, query: string): Promise<Result>
   Napi::Value query(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto connectionValue = info[0];
     std::string query = info[1].As<Napi::String>();
-    auto worker = new QueryWorker(env, connection, query);
+    auto worker = new QueryWorker(env, connectionValue, query);
     worker->Queue();
     return worker->Promise();
   }
@@ -2455,9 +2511,9 @@ private:
   // function prepare(connection: Connection, query: string): Promise<PreparedStatement>
   Napi::Value prepare(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto connectionValue = info[0];
     std::string query = info[1].As<Napi::String>();
-    auto worker = new PrepareWorker(env, connection, query);
+    auto worker = new PrepareWorker(env, connectionValue, query);
     worker->Queue();
     return worker->Promise();
   }
@@ -2914,8 +2970,8 @@ private:
   // function execute_prepared(prepared_statement: PreparedStatement): Promise<Result>
   Napi::Value execute_prepared(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
-    auto worker = new ExecutePreparedWorker(env, prepared_statement);
+    auto preparedStatementValue = info[0];
+    auto worker = new ExecutePreparedWorker(env, preparedStatementValue);
     worker->Queue();
     return worker->Promise();
   }
@@ -2926,8 +2982,8 @@ private:
   // function execute_prepared_streaming(prepared_statement: PreparedStatement): Promise<Result>
   Napi::Value execute_prepared_streaming(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
-    auto worker = new ExecutePreparedStreamingWorker(env, prepared_statement);
+    auto preparedStatementValue = info[0];
+    auto worker = new ExecutePreparedStreamingWorker(env, preparedStatementValue);
     worker->Queue();
     return worker->Promise();
   }
@@ -2938,9 +2994,9 @@ private:
   // function extract_statements(connection: Connection, query: string): Promise<ExtractedStatementsAndCount>
   Napi::Value extract_statements(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto connectionValue = info[0];
     std::string query = info[1].As<Napi::String>();
-    auto worker = new ExtractStatementsWorker(env, connection, query);
+    auto worker = new ExtractStatementsWorker(env, connectionValue, query);
     worker->Queue();
     return worker->Promise();
   }
@@ -2949,10 +3005,10 @@ private:
   // function prepare_extracted_statement(connection: Connection, extracted_statements: ExtractedStatements, index: number): Promise<PreparedStatement>
   Napi::Value prepare_extracted_statement(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto connection = GetConnectionFromExternal(env, info[0]);
-    auto extracted_statements = GetExtractedStatementsFromExternal(env, info[1]);
+    auto connectionValue = info[0];
+    auto extractedStatementsValue = info[1];
     auto index = info[2].As<Napi::Number>().Uint32Value();
-    auto worker = new PrepareExtractedStatementWorker(env, connection, extracted_statements, index);
+    auto worker = new PrepareExtractedStatementWorker(env, connectionValue, extractedStatementsValue, index);
     worker->Queue();
     return worker->Promise();
   }
@@ -3035,8 +3091,8 @@ private:
   // function execute_pending(pending_result: PendingResult): Promise<Result>
   Napi::Value execute_pending(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto pending_result = GetPendingResultFromExternal(env, info[0]);
-    auto worker = new ExecutePendingWorker(env, pending_result);
+    auto pendingResultValue = info[0];
+    auto worker = new ExecutePendingWorker(env, pendingResultValue);
     worker->Queue();
     return worker->Promise();
   }
@@ -5370,8 +5426,8 @@ private:
   // function fetch_chunk(result: Result): Promise<DataChunk | null>
   Napi::Value fetch_chunk(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto result_ptr = GetResultFromExternal(env, info[0]);
-    auto worker = new FetchWorker(env, result_ptr);
+    auto resultValue = info[0];
+    auto worker = new FetchWorker(env, resultValue);
     worker->Queue();
     return worker->Promise();
   }
