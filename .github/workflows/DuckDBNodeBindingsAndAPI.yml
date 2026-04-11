@@ -311,7 +311,7 @@ jobs:
 
       - name: Cache Node directory
         id: cache-node-dir
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: D:\\a\\node-v24.10.0
           key: node-dir-v24.10.0-win-x64
@@ -380,7 +380,7 @@ jobs:
 
       - name: Cache Node directory
         id: cache-node-dir
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: C:\\a\\node-v24.10.0
           key: node-dir-v24.10.0-win-arm64
