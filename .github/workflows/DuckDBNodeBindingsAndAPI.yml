@@ -111,8 +111,6 @@ jobs:
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -178,8 +176,6 @@ jobs:
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -219,8 +215,6 @@ jobs:
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -268,8 +262,6 @@ jobs:
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -339,8 +331,6 @@ jobs:
         run: curl -sSL "https://nodejs.org/download/release/v24.10.0/win-x64/node.lib" --create-dirs -o "$NODE_DIR/Release/node.lib"
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -410,8 +400,6 @@ jobs:
         run: curl -sSL "https://nodejs.org/download/release/v24.10.0/win-arm64/node.lib" --create-dirs -o "$NODE_DIR/Release/node.lib"
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
