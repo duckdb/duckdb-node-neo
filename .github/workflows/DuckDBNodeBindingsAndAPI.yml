@@ -112,7 +112,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
         with:
-          version: 9
+          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -179,7 +179,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
         with:
-          version: 9
+          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -220,7 +220,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
         with:
-          version: 9
+          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -269,7 +269,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
         with:
-          version: 9
+          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -340,7 +340,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
         with:
-          version: 9
+          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -411,7 +411,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
         with:
-          version: 9
+          version: 10
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
