@@ -101,7 +101,7 @@ jobs:
       # - name: check LIBCXX strings in libstdc++
       #   run: strings /lib64/libstdc++.so.6 | grep LIBCXX
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -110,9 +110,7 @@ jobs:
       - name: Record Node directory
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - uses: pnpm/action-setup@v6
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -168,7 +166,7 @@ jobs:
       # - name: check LIBCXX strings in libstdc++
       #   run: strings /lib64/libstdc++.so.6 | grep LIBCXX
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -177,9 +175,7 @@ jobs:
       - name: Record Node directory
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - uses: pnpm/action-setup@v6
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -209,7 +205,7 @@ jobs:
       id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos_arm64 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -218,9 +214,7 @@ jobs:
       - name: Record Node directory
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - uses: pnpm/action-setup@v6
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -258,7 +252,7 @@ jobs:
       id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos_x64 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -267,9 +261,7 @@ jobs:
       - name: Record Node directory
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - uses: pnpm/action-setup@v6
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -307,7 +299,7 @@ jobs:
       id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_x64 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -319,7 +311,7 @@ jobs:
 
       - name: Cache Node directory
         id: cache-node-dir
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: D:\\a\\node-v24.10.0
           key: node-dir-v24.10.0-win-x64
@@ -338,9 +330,7 @@ jobs:
         shell: bash
         run: curl -sSL "https://nodejs.org/download/release/v24.10.0/win-x64/node.lib" --create-dirs -o "$NODE_DIR/Release/node.lib"
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - uses: pnpm/action-setup@v6
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -378,7 +368,7 @@ jobs:
       id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_arm64 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
@@ -390,7 +380,7 @@ jobs:
 
       - name: Cache Node directory
         id: cache-node-dir
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: C:\\a\\node-v24.10.0
           key: node-dir-v24.10.0-win-arm64
@@ -409,9 +399,7 @@ jobs:
         shell: bash
         run: curl -sSL "https://nodejs.org/download/release/v24.10.0/win-arm64/node.lib" --create-dirs -o "$NODE_DIR/Release/node.lib"
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - uses: pnpm/action-setup@v6
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
