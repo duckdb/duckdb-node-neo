@@ -1,6 +1,6 @@
 {
   "name": "@duckdb/node-bindings-win32-arm64",
-  "version": "1.5.1-r.2",
+  "version": "1.5.2-r.1",
   "license": "MIT",
   "os": [
     "win32"
