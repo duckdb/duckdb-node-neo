@@ -5,10 +5,10 @@ import { data } from './utils/expectedVectors';
 
 suite('config', () => {
   test('config_count', () => {
-    expect(duckdb.config_count()).toBe(238);
+    expect(duckdb.config_count()).toBe(268);
   });
   test('get_config_flag', () => {
-    expect(duckdb.get_config_flag(0).name).toBe('access_mode');
+    expect(duckdb.get_config_flag(0).name).toBe('__delta_only_variant_encoding_enabled');
     expect(duckdb.get_config_flag(duckdb.config_count() - 1).name).toBe(
       'unsafe_enable_version_guessing',
     );

@@ -68,7 +68,7 @@ suite('query', () => {
   test('test_all_types()', async () => {
     await withConnection(async (connection) => {
       const result = await duckdb.query(connection,
-        `from test_all_types(use_large_enum=${useLargeEnum}) select * exclude time_ns`);
+        `from test_all_types(use_large_enum=${useLargeEnum}) select * exclude (time_ns, geometry)`);
       const validity = [true, true, false];
       await expectResult(result, {
         chunkCount: 1,
