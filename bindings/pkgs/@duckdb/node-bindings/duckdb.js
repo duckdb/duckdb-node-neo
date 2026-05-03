@@ -5,10 +5,22 @@ const getRuntimePlatformArch = () => `${process.platform}-${process.arch}`;
  */
 const getNativeNodeBinding = (runtimePlatformArch) => {
     switch(runtimePlatformArch) {
-        case `linux-x64`:
-            return require('@duckdb/node-bindings-linux-x64/duckdb.node');
-        case 'linux-arm64':
-            return require('@duckdb/node-bindings-linux-arm64/duckdb.node');
+        case `linux-x64`: {
+            const { familySync, MUSL } = require('detect-libc');
+            if (familySync() === MUSL) {
+                return require('@duckdb/node-bindings-linux-x64-musl/duckdb.node');
+            } else {
+                return require('@duckdb/node-bindings-linux-x64/duckdb.node');
+            }
+        }
+        case 'linux-arm64': {
+            const { familySync, MUSL } = require('detect-libc');
+            if (familySync() === MUSL) {
+                return require('@duckdb/node-bindings-linux-arm64-musl/duckdb.node');
+            } else {
+                return require('@duckdb/node-bindings-linux-arm64/duckdb.node');
+            }
+        }
         case 'darwin-arm64':
             return require('@duckdb/node-bindings-darwin-arm64/duckdb.node');
         case 'darwin-x64':

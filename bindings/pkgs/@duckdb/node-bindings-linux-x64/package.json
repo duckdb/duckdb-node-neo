@@ -8,6 +8,9 @@
   "cpu": [
     "x64"
   ],
+  "libc": [
+    "glibc"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/duckdb/duckdb-node-neo.git"

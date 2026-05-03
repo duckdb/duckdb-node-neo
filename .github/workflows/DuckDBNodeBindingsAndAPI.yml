@@ -14,7 +14,12 @@ on:
         required: true
         default: true
       linux_x64:
-        description: 'Run on Linux x64'
+        description: 'Run on Linux x64 (glibc)'
+        type: boolean
+        required: true
+        default: false
+      linux_x64_musl:
+        description: 'Run on Linux x64 musl'
         type: boolean
         required: true
         default: false
@@ -34,7 +39,12 @@ on:
       #   required: true
       #   default: false
       linux_arm64:
-        description: 'Run on Linux arm64'
+        description: 'Run on Linux arm64 (glibc)'
+        type: boolean
+        required: true
+        default: false
+      linux_arm64_musl:
+        description: 'Run on Linux arm64 musl'
         type: boolean
         required: true
         default: false
@@ -86,7 +96,7 @@ concurrency:
 
 jobs:
   linux_x64:
-    name: Linux x64
+    name: Linux x64 (glibc)
     runs-on: ubuntu-24.04
     container:
       image: quay.io/pypa/manylinux_2_28_x86_64
@@ -135,7 +145,7 @@ jobs:
       #   if: ${{ inputs.publish }}
       #   run: git status
 
-      - name: Publish - Bindings - Linux x64
+      - name: Publish - Bindings - Linux x64 (glibc)
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-linux-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
@@ -150,8 +160,57 @@ jobs:
         working-directory: api/pkgs/@duckdb/node-api
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
 
+  linux_x64_musl:
+    name: Linux x64 musl
+    runs-on: ubuntu-24.04
+    container:
+      image: quay.io/pypa/musllinux_1_2_x86_64
+    permissions:
+      contents: read
+      id-token: write # for OIDC, for trusted publishing
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_x64_musl }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Record Node directory
+        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
+
+      - uses: pnpm/action-setup@v6
+
+      - name: Workspace - Install
+        run: pnpm install --ignore-scripts
+
+      - name: Bindings - Build
+        working-directory: bindings
+        run: pnpm run build
+
+      - name: Bindings - Test
+        working-directory: bindings
+        run: pnpm test
+
+      - name: API - Build
+        working-directory: api
+        run: pnpm run build
+
+      - name: API - Test
+        working-directory: api
+        run: pnpm test
+
+      # - name: Git Status
+      #   if: ${{ inputs.publish }}
+      #   run: git status
+
+      - name: Publish - Bindings - Linux x64 musl
+        if: ${{ inputs.publish }}
+        working-directory: bindings/pkgs/@duckdb/node-bindings-linux-x64-musl
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
+
   linux_arm64:
-    name: Linux arm64
+    name: Linux arm64 (glibc)
     runs-on: ubuntu-24.04-arm
     container:
       image: quay.io/pypa/manylinux_2_28_aarch64
@@ -195,6 +254,47 @@ jobs:
       - name: Publish - Bindings - Linux arm64
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-linux-arm64
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
+
+  linux_arm64_musl:
+    name: Linux arm64 musl
+    runs-on: ubuntu-24.04-arm
+    container:
+      image: quay.io/pypa/musllinux_1_2_aarch64
+    permissions:
+      contents: read
+      id-token: write # for OIDC, for trusted publishing
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64_musl }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Record Node directory
+        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
+
+      - uses: pnpm/action-setup@v6
+
+      - name: Workspace - Install
+        run: pnpm install --ignore-scripts
+
+      - name: Bindings - Build
+        working-directory: bindings
+        run: pnpm run build
+
+      - name: Bindings - Test
+        working-directory: bindings
+        run: pnpm test
+
+      # - name: Git Status
+      #   if: ${{ inputs.publish }}
+      #   run: git status
+
+      - name: Publish - Bindings - Linux arm64 musl
+        if: ${{ inputs.publish }}
+        working-directory: bindings/pkgs/@duckdb/node-bindings-linux-arm64-musl
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
 
   macos_arm64:

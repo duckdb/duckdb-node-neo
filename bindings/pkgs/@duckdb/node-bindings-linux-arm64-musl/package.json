@@ -9,7 +9,7 @@
     "arm64"
   ],
   "libc": [
-    "glibc"
+    "musl"
   ],
   "repository": {
     "type": "git",
