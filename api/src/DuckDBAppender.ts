@@ -1,6 +1,7 @@
 import duckdb from '@duckdb/node-bindings';
 import { createValue } from './createValue';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
+import { DuckDBErrorData } from './DuckDBErrorData';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import {
   BIGNUM,
@@ -63,6 +64,9 @@ export class DuckDBAppender {
     return DuckDBLogicalType.create(
       duckdb.appender_column_type(this.appender, columnIndex)
     ).asType();
+  }
+  public get errorData(): DuckDBErrorData {
+    return new DuckDBErrorData(duckdb.appender_error_data(this.appender));
   }
   public endRow() {
     duckdb.appender_end_row(this.appender);
