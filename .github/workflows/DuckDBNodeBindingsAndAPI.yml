@@ -162,13 +162,17 @@ jobs:
 
   linux_x64_musl:
     name: Linux x64 musl
+    # Run on the glibc Ubuntu host (no `container:`) so JS-based actions like
+    # checkout/setup-node and pnpm/action-setup execute on a libc they support.
+    # The build/test that need musl run via `docker run` below.
     runs-on: ubuntu-24.04
-    container:
-      image: quay.io/pypa/musllinux_1_2_x86_64
     permissions:
       contents: read
       id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_x64_musl }}
+    env:
+      MUSL_IMAGE: quay.io/pypa/musllinux_1_2_x86_64
+      PNPM_VERSION: 10.33.0
     steps:
       - uses: actions/checkout@v6
 
@@ -176,34 +180,29 @@ jobs:
         with:
           node-version: 24
 
-      - name: Record Node directory
-        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
+      - uses: pnpm/action-setup@v6
 
-      - name: Install pnpm
-        run: npm install -g pnpm
-
-      - name: Workspace - Install
-        run: pnpm install --ignore-scripts
-
-      - name: Bindings - Build
-        working-directory: bindings
-        run: pnpm run build
-
-      - name: Bindings - Test
-        working-directory: bindings
-        run: pnpm test
-
-      - name: API - Build
-        working-directory: api
-        run: pnpm run build
-
-      - name: API - Test
-        working-directory: api
-        run: pnpm test
-
-      # - name: Git Status
-      #   if: ${{ inputs.publish }}
-      #   run: git status
+      - name: Bindings & API - Build & Test (in musllinux container)
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" -w /work \
+            -e NODE_DIR=/usr \
+            -e HOST_UID="$(id -u)" \
+            -e HOST_GID="$(id -g)" \
+            -e PNPM_VERSION \
+            "$MUSL_IMAGE" \
+            sh -c '
+              set -eu
+              chown_back() {
+                chown -R "$HOST_UID:$HOST_GID" /work 2>/dev/null || true
+              }
+              trap chown_back EXIT
+              apk add --no-cache nodejs npm
+              npm install -g "pnpm@$PNPM_VERSION"
+              pnpm install --ignore-scripts
+              (cd bindings && pnpm run build && pnpm test)
+              (cd api && pnpm run build && pnpm test)
+            '
 
       - name: Publish - Bindings - Linux x64 musl
         if: ${{ inputs.publish }}
@@ -259,13 +258,18 @@ jobs:
 
   linux_arm64_musl:
     name: Linux arm64 musl
+    # Run on the glibc Ubuntu arm64 host (no `container:`). GitHub does not
+    # ship a linux-arm64-musl Node for the runner to inject into JS-based
+    # actions, so using `container:` with a musllinux aarch64 image fails at
+    # checkout. The build/test that need musl run via `docker run` below.
     runs-on: ubuntu-24.04-arm
-    container:
-      image: quay.io/pypa/musllinux_1_2_aarch64
     permissions:
       contents: read
       id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64_musl }}
+    env:
+      MUSL_IMAGE: quay.io/pypa/musllinux_1_2_aarch64
+      PNPM_VERSION: 10.33.0
     steps:
       - uses: actions/checkout@v6
 
@@ -273,26 +277,30 @@ jobs:
         with:
           node-version: 24
 
-      - name: Record Node directory
-        run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
+      - uses: pnpm/action-setup@v6
 
-      - name: Install pnpm
-        run: npm install -g pnpm
-
-      - name: Workspace - Install
-        run: pnpm install --ignore-scripts
-
-      - name: Bindings - Build
-        working-directory: bindings
-        run: pnpm run build
-
-      - name: Bindings - Test
-        working-directory: bindings
-        run: pnpm test
-
-      # - name: Git Status
-      #   if: ${{ inputs.publish }}
-      #   run: git status
+      - name: Bindings - Build & Test (in musllinux container)
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" -w /work \
+            -e NODE_DIR=/usr \
+            -e HOST_UID="$(id -u)" \
+            -e HOST_GID="$(id -g)" \
+            -e PNPM_VERSION \
+            "$MUSL_IMAGE" \
+            sh -c '
+              set -eu
+              chown_back() {
+                chown -R "$HOST_UID:$HOST_GID" /work 2>/dev/null || true
+              }
+              trap chown_back EXIT
+              apk add --no-cache nodejs npm
+              npm install -g "pnpm@$PNPM_VERSION"
+              pnpm install --ignore-scripts
+              cd bindings
+              pnpm run build
+              pnpm test
+            '
 
       - name: Publish - Bindings - Linux arm64 musl
         if: ${{ inputs.publish }}
