@@ -179,7 +179,8 @@ jobs:
       - name: Record Node directory
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v6
+      - name: Install pnpm
+        run: npm install -g pnpm
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts
@@ -275,7 +276,8 @@ jobs:
       - name: Record Node directory
         run: echo "NODE_DIR=$(dirname $(dirname $(which node)))" >> "$GITHUB_ENV"
 
-      - uses: pnpm/action-setup@v6
+      - name: Install pnpm
+        run: npm install -g pnpm
 
       - name: Workspace - Install
         run: pnpm install --ignore-scripts

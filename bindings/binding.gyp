@@ -7,7 +7,7 @@
         ['OS=="linux" and target_arch=="x64"', {
           'variables': {
             'variables': {
-              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep -c "musl")'
+              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
             },
             'conditions': [
               ['<(libc_musl%) == 1', {
@@ -22,7 +22,7 @@
         ['OS=="linux" and target_arch=="arm64"', {
           'variables': {
             'variables': {
-              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep -c "musl")'
+              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
             },
             'conditions': [
               ['<(libc_musl%) == 1', {
