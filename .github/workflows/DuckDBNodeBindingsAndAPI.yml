@@ -287,7 +287,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
 
-      - name: Bindings - Build & Test (in musllinux container)
+      - name: Bindings & API - Build & Test (in musllinux container)
         run: |
           docker run --rm \
             -v "$PWD:/work" -w /work \
@@ -306,11 +306,10 @@ jobs:
               pnpm install --ignore-scripts
               # node-gyp 10+ stages the Node source tree (with common.gypi)
               # under ~/.cache/node-gyp/<version>/, not ~/.node-gyp/.
-              cd bindings
-              pnpm exec node-gyp install
+              (cd bindings && pnpm exec node-gyp install)
               export NODE_DIR="$HOME/.cache/node-gyp/$(node -p process.versions.node)"
-              pnpm run build
-              pnpm test
+              (cd bindings && pnpm run build && pnpm test)
+              (cd api && pnpm run build && pnpm test)
             '
 
       - name: Publish - Bindings - Linux arm64 musl
