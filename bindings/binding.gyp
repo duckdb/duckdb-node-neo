@@ -1,28 +1,28 @@
 {
-  'target_defaults': {
+  # Detect musl vs glibc once at file load and expose suffix variables to
+  # every target. The nested-variables pattern resolves <!()-shells before
+  # the conditions that consume them. The OS=="linux" gate keeps gyp from
+  # trying to run `ldd` on macOS or Windows.
+  'variables': {
+    'variables': {
+      'conditions': [
+        ['OS=="linux"', {
+            'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)',
+          }, {
+            'libc_musl%': 0,
+          }
+        ],
+      ],
+    },
     'conditions': [
-      ['OS=="linux"', {
-        # Detect musl vs glibc once and expose suffix variables to all
-        # targets. The nested-variables pattern resolves the shell
-        # expansion before the conditions that consume it. The whole
-        # block is gated on OS=="linux" so gyp does not try to run
-        # `ldd` on macOS or Windows.
-        'variables': {
-          'variables': {
-            'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
-          },
-          'conditions': [
-            ['<(libc_musl) == 1', {
-                'libc_pkg_suffix%': '-musl',
-                'libc_script_suffix%': '_musl',
-              }, {
-                'libc_pkg_suffix%': '',
-                'libc_script_suffix%': '',
-              }
-            ]
-          ]
-        },
-      }],
+      ['<(libc_musl) == 1', {
+          'libc_pkg_suffix%': '-musl',
+          'libc_script_suffix%': '_musl',
+        }, {
+          'libc_pkg_suffix%': '',
+          'libc_script_suffix%': '',
+        }
+      ],
     ],
   },
   'targets': [
