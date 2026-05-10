@@ -171,7 +171,10 @@ jobs:
       id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_x64_musl }}
     env:
-      MUSL_IMAGE: quay.io/pypa/musllinux_1_2_x86_64
+      # Official Node Alpine image: ships a known-version Node 24 (whose
+      # headers are downloadable from nodejs.org), so node-gyp install can
+      # populate ~/.node-gyp/<version>/. We add the build toolchain via apk.
+      MUSL_IMAGE: node:24-alpine
       PNPM_VERSION: 10.33.0
     steps:
       - uses: actions/checkout@v6
@@ -191,18 +194,17 @@ jobs:
             -e PNPM_VERSION \
             "$MUSL_IMAGE" \
             sh -c '
-              set -eu
+              set -eux
               chown_back() {
                 chown -R "$HOST_UID:$HOST_GID" /work 2>/dev/null || true
               }
               trap chown_back EXIT
-              apk add --no-cache nodejs npm
+              apk add --no-cache python3 make g++
               npm install -g "pnpm@$PNPM_VERSION"
               pnpm install --ignore-scripts
-              # Download a Node source tree (with common.gypi) for node-gyp
-              # to point --nodedir at; apk-installed nodejs does not ship
-              # gyp scaffolding under /usr.
-              (cd bindings && pnpm exec node-gyp install)
+              # Download a Node source tree (with common.gypi) into
+              # ~/.node-gyp/<version>/ for node-gyp to point --nodedir at.
+              (cd bindings && pnpm exec node-gyp install --verbose)
               export NODE_DIR="$HOME/.node-gyp/$(node -p process.versions.node)"
               (cd bindings && pnpm run build && pnpm test)
               (cd api && pnpm run build && pnpm test)
@@ -272,7 +274,9 @@ jobs:
       id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64_musl }}
     env:
-      MUSL_IMAGE: quay.io/pypa/musllinux_1_2_aarch64
+      # Official Node Alpine image (multi-arch; arm64 variant pulled here).
+      # Ships a known Node 24 with downloadable headers; we add toolchain via apk.
+      MUSL_IMAGE: node:24-alpine
       PNPM_VERSION: 10.33.0
     steps:
       - uses: actions/checkout@v6
@@ -292,19 +296,18 @@ jobs:
             -e PNPM_VERSION \
             "$MUSL_IMAGE" \
             sh -c '
-              set -eu
+              set -eux
               chown_back() {
                 chown -R "$HOST_UID:$HOST_GID" /work 2>/dev/null || true
               }
               trap chown_back EXIT
-              apk add --no-cache nodejs npm
+              apk add --no-cache python3 make g++
               npm install -g "pnpm@$PNPM_VERSION"
               pnpm install --ignore-scripts
-              # Download a Node source tree (with common.gypi) for node-gyp
-              # to point --nodedir at; apk-installed nodejs does not ship
-              # gyp scaffolding under /usr.
+              # Download a Node source tree (with common.gypi) into
+              # ~/.node-gyp/<version>/ for node-gyp to point --nodedir at.
               cd bindings
-              pnpm exec node-gyp install
+              pnpm exec node-gyp install --verbose
               export NODE_DIR="$HOME/.node-gyp/$(node -p process.versions.node)"
               pnpm run build
               pnpm test
