@@ -171,10 +171,10 @@ jobs:
       id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_x64_musl }}
     env:
-      # Official Node Alpine image: ships a known-version Node 24 (whose
-      # headers are downloadable from nodejs.org), so node-gyp install can
-      # populate ~/.node-gyp/<version>/. We add the build toolchain via apk.
-      MUSL_IMAGE: node:24-alpine
+      # Official Node Alpine image — ships Node 24 with matching headers
+      # downloadable from nodejs.org. We add the gyp toolchain via apk
+      # inside the container.
+      ALPINE_IMAGE: node:24-alpine
       PNPM_VERSION: 10.33.0
     steps:
       - uses: actions/checkout@v6
@@ -185,14 +185,14 @@ jobs:
 
       - uses: pnpm/action-setup@v6
 
-      - name: Bindings & API - Build & Test (in musllinux container)
+      - name: Bindings & API - Build & Test (in Alpine container)
         run: |
           docker run --rm \
             -v "$PWD:/work" -w /work \
             -e HOST_UID="$(id -u)" \
             -e HOST_GID="$(id -g)" \
             -e PNPM_VERSION \
-            "$MUSL_IMAGE" \
+            "$ALPINE_IMAGE" \
             sh -c '
               set -eux
               chown_back() {
@@ -274,9 +274,10 @@ jobs:
       id-token: write # for OIDC, for trusted publishing
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64_musl }}
     env:
-      # Official Node Alpine image (multi-arch; arm64 variant pulled here).
-      # Ships a known Node 24 with downloadable headers; we add toolchain via apk.
-      MUSL_IMAGE: node:24-alpine
+      # Official Node Alpine image — multi-arch, the arm64 variant is
+      # pulled on this host. Ships Node 24 with headers on nodejs.org;
+      # we add the gyp toolchain via apk inside the container.
+      ALPINE_IMAGE: node:24-alpine
       PNPM_VERSION: 10.33.0
     steps:
       - uses: actions/checkout@v6
@@ -287,14 +288,14 @@ jobs:
 
       - uses: pnpm/action-setup@v6
 
-      - name: Bindings & API - Build & Test (in musllinux container)
+      - name: Bindings & API - Build & Test (in Alpine container)
         run: |
           docker run --rm \
             -v "$PWD:/work" -w /work \
             -e HOST_UID="$(id -u)" \
             -e HOST_GID="$(id -g)" \
             -e PNPM_VERSION \
-            "$MUSL_IMAGE" \
+            "$ALPINE_IMAGE" \
             sh -c '
               set -eux
               chown_back() {
