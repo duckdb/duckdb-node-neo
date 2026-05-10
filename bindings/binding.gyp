@@ -1,4 +1,30 @@
 {
+  'target_defaults': {
+    'conditions': [
+      ['OS=="linux"', {
+        # Detect musl vs glibc once and expose suffix variables to all
+        # targets. The nested-variables pattern resolves the shell
+        # expansion before the conditions that consume it. The whole
+        # block is gated on OS=="linux" so gyp does not try to run
+        # `ldd` on macOS or Windows.
+        'variables': {
+          'variables': {
+            'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
+          },
+          'conditions': [
+            ['<(libc_musl) == 1', {
+                'libc_pkg_suffix%': '-musl',
+                'libc_script_suffix%': '_musl',
+              }, {
+                'libc_pkg_suffix%': '',
+                'libc_script_suffix%': '',
+              }
+            ]
+          ]
+        },
+      }],
+    ],
+  },
   'targets': [
     {
       'target_name': 'fetch_libduckdb',
@@ -6,32 +32,12 @@
       'conditions': [
         ['OS=="linux" and target_arch=="x64"', {
           'variables': {
-            'variables': {
-              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
-            },
-            'conditions': [
-              ['<(libc_musl) == 1', {
-                  'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_amd64_musl.py',
-                }, {
-                  'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_amd64.py',
-                }
-              ]
-            ]
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_amd64<(libc_script_suffix).py',
           },
         }],
         ['OS=="linux" and target_arch=="arm64"', {
           'variables': {
-            'variables': {
-              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
-            },
-            'conditions': [
-              ['<(libc_musl) == 1', {
-                  'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_arm64_musl.py',
-                }, {
-                  'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_arm64.py',
-                }
-              ]
-            ]
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_arm64<(libc_script_suffix).py',
           },
         }],
         ['OS=="mac"', {
@@ -70,19 +76,6 @@
       'include_dirs': ['<(module_root_dir)/libduckdb'],
       'conditions': [
         ['OS=="linux" and target_arch=="x64"', {
-          'variables': {
-            'variables': {
-              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
-            },
-            'conditions': [
-              ['<(libc_musl) == 1', {
-                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64-musl',
-                }, {
-                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
-                }
-              ]
-            ]
-          },
           'link_settings': {
             'libraries': [
               '-lduckdb',
@@ -93,24 +86,11 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
-              'destination': '<(pkg_dir)',
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64<(libc_pkg_suffix)',
             },
           ],
         }],
         ['OS=="linux" and target_arch=="arm64"', {
-          'variables': {
-            'variables': {
-              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
-            },
-            'conditions': [
-              ['<(libc_musl) == 1', {
-                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64-musl',
-                }, {
-                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
-                }
-              ]
-            ]
-          },
           'link_settings': {
             'libraries': [
               '-lduckdb',
@@ -121,7 +101,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
-              'destination': '<(pkg_dir)',
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64<(libc_pkg_suffix)',
             },
           ],
         }],
@@ -197,44 +177,18 @@
       'dependencies': ['duckdb'],
       'conditions': [
         ['OS=="linux" and target_arch=="x64"', {
-          'variables': {
-            'variables': {
-              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
-            },
-            'conditions': [
-              ['<(libc_musl) == 1', {
-                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64-musl',
-                }, {
-                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
-                }
-              ]
-            ]
-          },
           'copies': [
             {
               'files': ['<(module_root_dir)/build/Release/duckdb.node'],
-              'destination': '<(pkg_dir)',
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64<(libc_pkg_suffix)',
             },
           ],
         }],
         ['OS=="linux" and target_arch=="arm64"', {
-          'variables': {
-            'variables': {
-              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
-            },
-            'conditions': [
-              ['<(libc_musl) == 1', {
-                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64-musl',
-                }, {
-                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
-                }
-              ]
-            ]
-          },
           'copies': [
             {
               'files': ['<(module_root_dir)/build/Release/duckdb.node'],
-              'destination': '<(pkg_dir)',
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64<(libc_pkg_suffix)',
             },
           ],
         }],
