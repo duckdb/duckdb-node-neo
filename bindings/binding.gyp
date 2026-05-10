@@ -70,6 +70,19 @@
       'include_dirs': ['<(module_root_dir)/libduckdb'],
       'conditions': [
         ['OS=="linux" and target_arch=="x64"', {
+          'variables': {
+            'variables': {
+              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
+            },
+            'conditions': [
+              ['<(libc_musl) == 1', {
+                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64-musl',
+                }, {
+                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
+                }
+              ]
+            ]
+          },
           'link_settings': {
             'libraries': [
               '-lduckdb',
@@ -80,11 +93,24 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
-              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
+              'destination': '<(pkg_dir)',
             },
           ],
         }],
         ['OS=="linux" and target_arch=="arm64"', {
+          'variables': {
+            'variables': {
+              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
+            },
+            'conditions': [
+              ['<(libc_musl) == 1', {
+                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64-musl',
+                }, {
+                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
+                }
+              ]
+            ]
+          },
           'link_settings': {
             'libraries': [
               '-lduckdb',
@@ -95,7 +121,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
-              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
+              'destination': '<(pkg_dir)',
             },
           ],
         }],
@@ -171,18 +197,44 @@
       'dependencies': ['duckdb'],
       'conditions': [
         ['OS=="linux" and target_arch=="x64"', {
+          'variables': {
+            'variables': {
+              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
+            },
+            'conditions': [
+              ['<(libc_musl) == 1', {
+                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64-musl',
+                }, {
+                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
+                }
+              ]
+            ]
+          },
           'copies': [
             {
               'files': ['<(module_root_dir)/build/Release/duckdb.node'],
-              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
+              'destination': '<(pkg_dir)',
             },
           ],
         }],
         ['OS=="linux" and target_arch=="arm64"', {
+          'variables': {
+            'variables': {
+              'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
+            },
+            'conditions': [
+              ['<(libc_musl) == 1', {
+                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64-musl',
+                }, {
+                  'pkg_dir%': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
+                }
+              ]
+            ]
+          },
           'copies': [
             {
               'files': ['<(module_root_dir)/build/Release/duckdb.node'],
-              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
+              'destination': '<(pkg_dir)',
             },
           ],
         }],
