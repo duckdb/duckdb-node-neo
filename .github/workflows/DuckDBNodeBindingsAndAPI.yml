@@ -202,10 +202,10 @@ jobs:
               apk add --no-cache python3 make g++
               npm install -g "pnpm@$PNPM_VERSION"
               pnpm install --ignore-scripts
-              # Download a Node source tree (with common.gypi) into
-              # ~/.node-gyp/<version>/ for node-gyp to point --nodedir at.
-              (cd bindings && pnpm exec node-gyp install --verbose)
-              export NODE_DIR="$HOME/.node-gyp/$(node -p process.versions.node)"
+              # node-gyp 10+ stages the Node source tree (with common.gypi)
+              # under ~/.cache/node-gyp/<version>/, not ~/.node-gyp/.
+              (cd bindings && pnpm exec node-gyp install)
+              export NODE_DIR="$HOME/.cache/node-gyp/$(node -p process.versions.node)"
               (cd bindings && pnpm run build && pnpm test)
               (cd api && pnpm run build && pnpm test)
             '
@@ -304,11 +304,11 @@ jobs:
               apk add --no-cache python3 make g++
               npm install -g "pnpm@$PNPM_VERSION"
               pnpm install --ignore-scripts
-              # Download a Node source tree (with common.gypi) into
-              # ~/.node-gyp/<version>/ for node-gyp to point --nodedir at.
+              # node-gyp 10+ stages the Node source tree (with common.gypi)
+              # under ~/.cache/node-gyp/<version>/, not ~/.node-gyp/.
               cd bindings
-              pnpm exec node-gyp install --verbose
-              export NODE_DIR="$HOME/.node-gyp/$(node -p process.versions.node)"
+              pnpm exec node-gyp install
+              export NODE_DIR="$HOME/.cache/node-gyp/$(node -p process.versions.node)"
               pnpm run build
               pnpm test
             '
