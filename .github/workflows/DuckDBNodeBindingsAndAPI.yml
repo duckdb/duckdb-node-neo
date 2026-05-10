@@ -14,7 +14,12 @@ on:
         required: true
         default: true
       linux_x64:
-        description: 'Run on Linux x64'
+        description: 'Run on Linux x64 glibc'
+        type: boolean
+        required: true
+        default: false
+      linux_x64_musl:
+        description: 'Run on Linux x64 musl'
         type: boolean
         required: true
         default: false
@@ -34,7 +39,12 @@ on:
       #   required: true
       #   default: false
       linux_arm64:
-        description: 'Run on Linux arm64'
+        description: 'Run on Linux arm64 glibc'
+        type: boolean
+        required: true
+        default: false
+      linux_arm64_musl:
+        description: 'Run on Linux arm64 musl'
         type: boolean
         required: true
         default: false
@@ -86,7 +96,7 @@ concurrency:
 
 jobs:
   linux_x64:
-    name: Linux x64
+    name: Linux x64 glibc
     runs-on: ubuntu-24.04
     container:
       image: quay.io/pypa/manylinux_2_28_x86_64
@@ -135,7 +145,7 @@ jobs:
       #   if: ${{ inputs.publish }}
       #   run: git status
 
-      - name: Publish - Bindings - Linux x64
+      - name: Publish - Bindings - Linux x64 glibc
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-linux-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
@@ -150,8 +160,63 @@ jobs:
         working-directory: api/pkgs/@duckdb/node-api
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
 
+  linux_x64_musl:
+    name: Linux x64 musl
+    # Run on the glibc Ubuntu host (no `container:`) so JS-based actions like
+    # checkout/setup-node and pnpm/action-setup execute on a libc they support.
+    # The build/test that need musl run via `docker run` below.
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write # for OIDC, for trusted publishing
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_x64_musl }}
+    env:
+      # Official Node Alpine image — ships Node 24 with matching headers
+      # downloadable from nodejs.org. We add the gyp toolchain via apk
+      # inside the container.
+      ALPINE_IMAGE: node:24-alpine
+      PNPM_VERSION: 10.33.0
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: pnpm/action-setup@v6
+
+      - name: Bindings & API - Build & Test (in Alpine container)
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" -w /work \
+            -e HOST_UID="$(id -u)" \
+            -e HOST_GID="$(id -g)" \
+            -e PNPM_VERSION \
+            "$ALPINE_IMAGE" \
+            sh -c '
+              set -eux
+              chown_back() {
+                chown -R "$HOST_UID:$HOST_GID" /work 2>/dev/null || true
+              }
+              trap chown_back EXIT
+              apk add --no-cache python3 make g++
+              npm install -g "pnpm@$PNPM_VERSION"
+              pnpm install --ignore-scripts
+              # node-gyp 10+ stages the Node source tree (with common.gypi)
+              # under ~/.cache/node-gyp/<version>/, not ~/.node-gyp/.
+              (cd bindings && pnpm exec node-gyp install)
+              export NODE_DIR="$HOME/.cache/node-gyp/$(node -p process.versions.node)"
+              (cd bindings && pnpm run build && pnpm test)
+              (cd api && pnpm run build && pnpm test)
+            '
+
+      - name: Publish - Bindings - Linux x64 musl
+        if: ${{ inputs.publish }}
+        working-directory: bindings/pkgs/@duckdb/node-bindings-linux-x64-musl
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
+
   linux_arm64:
-    name: Linux arm64
+    name: Linux arm64 glibc
     runs-on: ubuntu-24.04-arm
     container:
       image: quay.io/pypa/manylinux_2_28_aarch64
@@ -195,6 +260,62 @@ jobs:
       - name: Publish - Bindings - Linux arm64
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-linux-arm64
+        run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
+
+  linux_arm64_musl:
+    name: Linux arm64 musl
+    # Run on the glibc Ubuntu arm64 host (no `container:`). GitHub does not
+    # ship a linux-arm64-musl Node for the runner to inject into JS-based
+    # actions, so using `container:` with a musllinux aarch64 image fails at
+    # checkout. The build/test that need musl run via `docker run` below.
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      id-token: write # for OIDC, for trusted publishing
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux_arm64_musl }}
+    env:
+      # Official Node Alpine image — multi-arch, the arm64 variant is
+      # pulled on this host. Ships Node 24 with headers on nodejs.org;
+      # we add the gyp toolchain via apk inside the container.
+      ALPINE_IMAGE: node:24-alpine
+      PNPM_VERSION: 10.33.0
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: pnpm/action-setup@v6
+
+      - name: Bindings & API - Build & Test (in Alpine container)
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" -w /work \
+            -e HOST_UID="$(id -u)" \
+            -e HOST_GID="$(id -g)" \
+            -e PNPM_VERSION \
+            "$ALPINE_IMAGE" \
+            sh -c '
+              set -eux
+              chown_back() {
+                chown -R "$HOST_UID:$HOST_GID" /work 2>/dev/null || true
+              }
+              trap chown_back EXIT
+              apk add --no-cache python3 make g++
+              npm install -g "pnpm@$PNPM_VERSION"
+              pnpm install --ignore-scripts
+              # node-gyp 10+ stages the Node source tree (with common.gypi)
+              # under ~/.cache/node-gyp/<version>/, not ~/.node-gyp/.
+              (cd bindings && pnpm exec node-gyp install)
+              export NODE_DIR="$HOME/.cache/node-gyp/$(node -p process.versions.node)"
+              (cd bindings && pnpm run build && pnpm test)
+              (cd api && pnpm run build && pnpm test)
+            '
+
+      - name: Publish - Bindings - Linux arm64 musl
+        if: ${{ inputs.publish }}
+        working-directory: bindings/pkgs/@duckdb/node-bindings-linux-arm64-musl
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
 
   macos_arm64:

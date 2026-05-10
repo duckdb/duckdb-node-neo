@@ -61,7 +61,9 @@ Change version in:
 ### Upgrade DuckDB Version
 
 Change version in:
+- `bindings/scripts/fetch_libduckdb_linux_amd64_musl.py`
 - `bindings/scripts/fetch_libduckdb_linux_amd64.py`
+- `bindings/scripts/fetch_libduckdb_linux_arm64_musl.py`
 - `bindings/scripts/fetch_libduckdb_linux_arm64.py`
 - `bindings/scripts/fetch_libduckdb_osx_universal.py`
 - `bindings/scripts/fetch_libduckdb_windows_amd64.py`

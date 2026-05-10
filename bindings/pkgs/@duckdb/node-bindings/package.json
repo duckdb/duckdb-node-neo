@@ -4,11 +4,16 @@
   "license": "MIT",
   "main": "./duckdb.js",
   "types": "./duckdb.d.ts",
+  "dependencies": {
+    "detect-libc": "^2.1.2"
+  },
   "optionalDependencies": {
     "@duckdb/node-bindings-darwin-arm64": "workspace:*",
     "@duckdb/node-bindings-darwin-x64": "workspace:*",
     "@duckdb/node-bindings-linux-arm64": "workspace:*",
+    "@duckdb/node-bindings-linux-arm64-musl": "workspace:*",
     "@duckdb/node-bindings-linux-x64": "workspace:*",
+    "@duckdb/node-bindings-linux-x64-musl": "workspace:*",
     "@duckdb/node-bindings-win32-arm64": "workspace:*",
     "@duckdb/node-bindings-win32-x64": "workspace:*"
   },

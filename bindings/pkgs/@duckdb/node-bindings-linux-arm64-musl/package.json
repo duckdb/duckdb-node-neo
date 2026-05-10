@@ -1,5 +1,5 @@
 {
-  "name": "@duckdb/node-bindings-linux-arm64",
+  "name": "@duckdb/node-bindings-linux-arm64-musl",
   "version": "1.5.2-r.1",
   "license": "MIT",
   "os": [
@@ -9,7 +9,7 @@
     "arm64"
   ],
   "libc": [
-    "glibc"
+    "musl"
   ],
   "repository": {
     "type": "git",

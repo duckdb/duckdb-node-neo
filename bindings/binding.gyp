@@ -1,4 +1,30 @@
 {
+  # Detect musl vs glibc once at file load and expose suffix variables to
+  # every target. The nested-variables pattern resolves <!()-shells before
+  # the conditions that consume them. The OS=="linux" gate keeps gyp from
+  # trying to run `ldd` on macOS or Windows.
+  'variables': {
+    'variables': {
+      'conditions': [
+        ['OS=="linux"', {
+            'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)',
+          }, {
+            'libc_musl%': 0,
+          }
+        ],
+      ],
+    },
+    'conditions': [
+      ['<(libc_musl) == 1', {
+          'libc_pkg_suffix%': '-musl',
+          'libc_script_suffix%': '_musl',
+        }, {
+          'libc_pkg_suffix%': '',
+          'libc_script_suffix%': '',
+        }
+      ],
+    ],
+  },
   'targets': [
     {
       'target_name': 'fetch_libduckdb',
@@ -6,12 +32,12 @@
       'conditions': [
         ['OS=="linux" and target_arch=="x64"', {
           'variables': {
-            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_amd64.py',
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_amd64<(libc_script_suffix).py',
           },
         }],
         ['OS=="linux" and target_arch=="arm64"', {
           'variables': {
-            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_arm64.py',
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_arm64<(libc_script_suffix).py',
           },
         }],
         ['OS=="mac"', {
@@ -60,7 +86,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
-              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64<(libc_pkg_suffix)',
             },
           ],
         }],
@@ -75,7 +101,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/libduckdb/libduckdb.so'],
-              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64<(libc_pkg_suffix)',
             },
           ],
         }],
@@ -154,7 +180,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/build/Release/duckdb.node'],
-              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64',
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-x64<(libc_pkg_suffix)',
             },
           ],
         }],
@@ -162,7 +188,7 @@
           'copies': [
             {
               'files': ['<(module_root_dir)/build/Release/duckdb.node'],
-              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64',
+              'destination': '<(module_root_dir)/pkgs/@duckdb/node-bindings-linux-arm64<(libc_pkg_suffix)',
             },
           ],
         }],
