@@ -10,7 +10,7 @@
               'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
             },
             'conditions': [
-              ['<(libc_musl%) == 1', {
+              ['<(libc_musl) == 1', {
                   'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_amd64_musl.py',
                 }, {
                   'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_amd64.py',
@@ -25,7 +25,7 @@
               'libc_musl%': '<!(ldd --version 2>&1 | head -n1 | grep "musl" | wc -l)'
             },
             'conditions': [
-              ['<(libc_musl%) == 1', {
+              ['<(libc_musl) == 1', {
                   'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_arm64_musl.py',
                 }, {
                   'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_arm64.py',
