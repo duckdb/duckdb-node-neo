@@ -14,7 +14,7 @@ on:
         required: true
         default: true
       linux_x64:
-        description: 'Run on Linux x64 (glibc)'
+        description: 'Run on Linux x64 glibc'
         type: boolean
         required: true
         default: false
@@ -39,7 +39,7 @@ on:
       #   required: true
       #   default: false
       linux_arm64:
-        description: 'Run on Linux arm64 (glibc)'
+        description: 'Run on Linux arm64 glibc'
         type: boolean
         required: true
         default: false
@@ -96,7 +96,7 @@ concurrency:
 
 jobs:
   linux_x64:
-    name: Linux x64 (glibc)
+    name: Linux x64 glibc
     runs-on: ubuntu-24.04
     container:
       image: quay.io/pypa/manylinux_2_28_x86_64
@@ -145,7 +145,7 @@ jobs:
       #   if: ${{ inputs.publish }}
       #   run: git status
 
-      - name: Publish - Bindings - Linux x64 (glibc)
+      - name: Publish - Bindings - Linux x64 glibc
         if: ${{ inputs.publish }}
         working-directory: bindings/pkgs/@duckdb/node-bindings-linux-x64
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
@@ -216,7 +216,7 @@ jobs:
         run: pnpm publish ${{ inputs.publish_dry_run && '--dry-run' || '' }} --publish-branch ${{ github.ref_name }} --access public --tag latest --no-git-checks
 
   linux_arm64:
-    name: Linux arm64 (glibc)
+    name: Linux arm64 glibc
     runs-on: ubuntu-24.04-arm
     container:
       image: quay.io/pypa/manylinux_2_28_aarch64

@@ -1,4 +1,4 @@
-# DuckDB Node Bindings: Linux x64
+# DuckDB Node Bindings: Linux x64 musl
 
 Binaries supporting [Node](https://nodejs.org/) bindings to the [DuckDB C API](https://duckdb.org/docs/api/c/overview) for Linux x64 musl.
 
