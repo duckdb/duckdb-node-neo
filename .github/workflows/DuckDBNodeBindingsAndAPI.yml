@@ -186,7 +186,6 @@ jobs:
         run: |
           docker run --rm \
             -v "$PWD:/work" -w /work \
-            -e NODE_DIR=/usr \
             -e HOST_UID="$(id -u)" \
             -e HOST_GID="$(id -g)" \
             -e PNPM_VERSION \
@@ -200,6 +199,11 @@ jobs:
               apk add --no-cache nodejs npm
               npm install -g "pnpm@$PNPM_VERSION"
               pnpm install --ignore-scripts
+              # Download a Node source tree (with common.gypi) for node-gyp
+              # to point --nodedir at; apk-installed nodejs does not ship
+              # gyp scaffolding under /usr.
+              (cd bindings && pnpm exec node-gyp install)
+              export NODE_DIR="$HOME/.node-gyp/$(node -p process.versions.node)"
               (cd bindings && pnpm run build && pnpm test)
               (cd api && pnpm run build && pnpm test)
             '
@@ -283,7 +287,6 @@ jobs:
         run: |
           docker run --rm \
             -v "$PWD:/work" -w /work \
-            -e NODE_DIR=/usr \
             -e HOST_UID="$(id -u)" \
             -e HOST_GID="$(id -g)" \
             -e PNPM_VERSION \
@@ -297,7 +300,12 @@ jobs:
               apk add --no-cache nodejs npm
               npm install -g "pnpm@$PNPM_VERSION"
               pnpm install --ignore-scripts
+              # Download a Node source tree (with common.gypi) for node-gyp
+              # to point --nodedir at; apk-installed nodejs does not ship
+              # gyp scaffolding under /usr.
               cd bindings
+              pnpm exec node-gyp install
+              export NODE_DIR="$HOME/.node-gyp/$(node -p process.versions.node)"
               pnpm run build
               pnpm test
             '
