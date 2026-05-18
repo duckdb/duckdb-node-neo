@@ -11,7 +11,9 @@
 - [@duckdb/node-bindings-darwin-arm64](bindings/pkgs/@duckdb/node-bindings-darwin-arm64/README.md)
 - [@duckdb/node-bindings-darwin-x64](bindings/pkgs/@duckdb/node-bindings-darwin-x64/README.md)
 - [@duckdb/node-bindings-linux-arm64](bindings/pkgs/@duckdb/node-bindings-linux-arm64/README.md)
+- [@duckdb/node-bindings-linux-arm64-musl](bindings/pkgs/@duckdb/node-bindings-linux-arm64-musl/README.md)
 - [@duckdb/node-bindings-linux-x64](bindings/pkgs/@duckdb/node-bindings-linux-x64/README.md)
+- [@duckdb/node-bindings-linux-x64-musl](bindings/pkgs/@duckdb/node-bindings-linux-x64-musl/README.md)
 - [@duckdb/node-bindings-win32-arm64](bindings/pkgs/@duckdb/node-bindings-win32-arm64/README.md)
 - [@duckdb/node-bindings-win32-x64](bindings/pkgs/@duckdb/node-bindings-win32-x64/README.md)
 
@@ -22,7 +24,9 @@
 - [@duckdb/node-bindings-darwin-arm64](https://www.npmjs.com/package/@duckdb/node-bindings-darwin-arm64)
 - [@duckdb/node-bindings-darwin-x64](https://www.npmjs.com/package/@duckdb/node-bindings-darwin-x64)
 - [@duckdb/node-bindings-linux-arm64](https://www.npmjs.com/package/@duckdb/node-bindings-linux-arm64)
+- [@duckdb/node-bindings-linux-arm64-musl](https://www.npmjs.com/package/@duckdb/node-bindings-linux-arm64-musl)
 - [@duckdb/node-bindings-linux-x64](https://www.npmjs.com/package/@duckdb/node-bindings-linux-x64)
+- [@duckdb/node-bindings-linux-x64-musl](https://www.npmjs.com/package/@duckdb/node-bindings-linux-x64-musl)
 - [@duckdb/node-bindings-win32-arm64](https://www.npmjs.com/package/@duckdb/node-bindings-win32-arm64)
 - [@duckdb/node-bindings-win32-x64](https://www.npmjs.com/package/@duckdb/node-bindings-win32-x64)
 
@@ -54,7 +58,9 @@ Change version in:
 - `bindings/pkgs/@duckdb/node-bindings-darwin-arm64/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-darwin-x64/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-linux-arm64/package.json`
+- `bindings/pkgs/@duckdb/node-bindings-linux-arm64-musl/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-linux-x64/package.json`
+- `bindings/pkgs/@duckdb/node-bindings-linux-x64-musl/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-win32-arm64/package.json`
 - `bindings/pkgs/@duckdb/node-bindings-win32-x64/package.json`
 
