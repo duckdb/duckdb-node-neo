@@ -5,6 +5,7 @@ import { Json } from './Json';
 import { quotedIdentifier, quotedString } from './sql';
 import {
   DuckDBDateValue,
+  DuckDBTimeNSValue,
   DuckDBTimestampMillisecondsValue,
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
@@ -988,6 +989,12 @@ export class DuckDBTimeNSType extends BaseDuckDBType<DuckDBTypeId.TIME_NS> {
   public static readonly instance = new DuckDBTimeNSType();
   public static create(alias?: string): DuckDBTimeNSType {
     return alias ? new DuckDBTimeNSType(alias) : DuckDBTimeNSType.instance;
+  }
+  public get max() {
+    return DuckDBTimeNSValue.Max;
+  }
+  public get min() {
+    return DuckDBTimeNSValue.Min;
   }
 }
 export const TIME_NS = DuckDBTimeNSType.instance;

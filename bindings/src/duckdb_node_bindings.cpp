@@ -1540,6 +1540,9 @@ Napi::Object CreateTypeEnum(Napi::Env env) {
   DefineEnumMember(typeEnum, "ANY", 34);
   DefineEnumMember(typeEnum, "BIGNUM", 35);
   DefineEnumMember(typeEnum, "SQLNULL", 36);
+  DefineEnumMember(typeEnum, "STRING_LITERAL", 37);
+  DefineEnumMember(typeEnum, "INTEGER_LITERAL", 38);
+  DefineEnumMember(typeEnum, "TIME_NS", 39);
   return typeEnum;
 }
 

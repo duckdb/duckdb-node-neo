@@ -32,6 +32,7 @@ import {
   STRUCT,
   structValue,
   TIME,
+  TIME_NS,
   TIMESTAMP,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
@@ -778,6 +779,13 @@ export function createTestAllTypesData(): ColumnNameTypeAndValues[] {
         ],
         null,
       ]
+    ),
+    col(
+      'time_ns',
+      TIME_NS,
+      { typeId: 39 },
+      [TIME_NS.min, TIME_NS.max, null],
+      [String(TIME_NS.min), String(TIME_NS.max), null]
     ),
   ];
 }

@@ -22,6 +22,7 @@ import {
   SMALLINT,
   STRUCT,
   TIME,
+  TIME_NS,
   TIME_TZ,
   TIMESTAMP,
   TIMESTAMP_MS,
@@ -68,7 +69,7 @@ suite('query', () => {
   test('test_all_types()', async () => {
     await withConnection(async (connection) => {
       const result = await duckdb.query(connection,
-        `from test_all_types(use_large_enum=${useLargeEnum}) select * exclude (time_ns, geometry)`);
+        `from test_all_types(use_large_enum=${useLargeEnum}) select * exclude (geometry)`);
       const validity = [true, true, false];
       await expectResult(result, {
         chunkCount: 1,
@@ -131,6 +132,7 @@ suite('query', () => {
           { name: 'struct_of_fixed_array', logicalType: STRUCT(ENTRY('a', ARRAY(INTEGER, 3)), ENTRY('b', ARRAY(VARCHAR, 3))) },
           { name: 'fixed_array_of_int_list', logicalType: ARRAY(LIST(INTEGER), 3) },
           { name: 'list_of_fixed_int_array', logicalType: LIST(ARRAY(INTEGER, 3)) },
+          { name: 'time_ns', logicalType: TIME_NS },
         ],
         chunks: [
           {
@@ -257,14 +259,14 @@ suite('query', () => {
                     [null, 2, 3, 4, 5, 6, null, 2, 3, 4, 5, 6, null, 2, 3, 4, 5, 6])
                 )
               ), // 53: list_of_fixed_int_array
+              data(8, validity, [0n, 86400000000000n, null]), // 54: time_ns
             ],
           },
         ],
       });
     });
   });
-  // TODO: Need DuckDB fix to LogicalTypeIdFromC and LogicalTypeIdToC
-  test.skip('time_ns', async () => {
+  test('time_ns', async () => {
     await withConnection(async (connection) => {
       const result = await duckdb.query(connection, `select '12:34:56.789123456'::time_ns as time_ns`);
       await expectResult(result, {
@@ -274,7 +276,7 @@ suite('query', () => {
           { name: 'time_ns', logicalType: { typeId: duckdb.Type.TIME_NS } },
         ],
         chunks: [
-          { rowCount: 1, vectors: [data(4, [true], [45296789123456n])]},
+          { rowCount: 1, vectors: [data(8, [true], [45296789123456n])]},
         ],
       });
     });
