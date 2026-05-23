@@ -1481,6 +1481,8 @@ export function fetch_chunk(result: Result): Promise<DataChunk | null>;
 // DUCKDB_C_API void duckdb_log_storage_set_name(duckdb_log_storage log_storage, const char *name);
 // DUCKDB_C_API duckdb_state duckdb_register_log_storage(duckdb_database database, duckdb_log_storage log_storage);
 
+// DUCKDB_C_API char *duckdb_geometry_type_get_crs(duckdb_logical_type type);
+
 // ADDED
 /** 
  * Read a pointer from `array_buffer` at `pointer_offset`, then read and return `byte_count` bytes from that pointer.
