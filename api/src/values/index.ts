@@ -3,6 +3,7 @@ export * from './DuckDBBitValue';
 export * from './DuckDBBlobValue';
 export * from './DuckDBDateValue';
 export * from './DuckDBDecimalValue';
+export * from './DuckDBGeometryValue';
 export * from './DuckDBIntervalValue';
 export * from './DuckDBListValue';
 export * from './DuckDBMapValue';

@@ -113,7 +113,7 @@ import {
   timeValue,
   unionValue,
   uuidValue,
-  version,
+  version
 } from '../src';
 import { DuckDBInstanceCache } from '../src/DuckDBInstanceCache';
 import { DuckDBScalarFunction } from '../src/DuckDBScalarFunction';
@@ -936,14 +936,14 @@ ORDER BY name
   test('should support all data types', async () => {
     await withConnection(async (connection) => {
       const result = await connection.run(
-        'from test_all_types(use_large_enum=true) select * exclude (geometry)',
+        'from test_all_types(use_large_enum=true)',
       );
       assertColumns(result, createTestAllTypesColumnNameAndTypeObjects());
 
       const chunk = await result.fetchChunk();
       assert.isDefined(chunk);
       if (chunk) {
-        assert.strictEqual(chunk.columnCount, 55);
+        assert.strictEqual(chunk.columnCount, 56);
         assert.strictEqual(chunk.rowCount, 3);
 
         const testAllTypesColumns = createTestAllTypesColumns();
@@ -1423,7 +1423,7 @@ ORDER BY name
   test('columns json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types() select * exclude (geometry)`,
+        `from test_all_types()`,
       );
       const columnsJson = reader.getColumnsJson();
       assert.deepEqual(columnsJson, createTestAllTypesColumnsJson());
@@ -1432,7 +1432,7 @@ ORDER BY name
   test('columns object json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types() select * exclude (geometry)`,
+        `from test_all_types()`,
       );
       const columnsJson = reader.getColumnsObjectJson();
       assert.deepEqual(columnsJson, createTestAllTypesColumnsObjectJson());
@@ -1441,7 +1441,7 @@ ORDER BY name
   test('rows json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types() select * exclude (geometry)`,
+        `from test_all_types()`,
       );
       const rowsJson = reader.getRowsJson();
       assert.deepEqual(rowsJson, createTestAllTypesRowsJson());
@@ -1450,7 +1450,7 @@ ORDER BY name
   test('row objects json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types() select * exclude (geometry)`,
+        `from test_all_types()`,
       );
       const rowObjectsJson = reader.getRowObjectsJson();
       assert.deepEqual(rowObjectsJson, createTestAllTypesRowObjectsJson());
@@ -1459,7 +1459,7 @@ ORDER BY name
   test('column names and types json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types(use_large_enum=true) select * exclude (geometry)`,
+        `from test_all_types(use_large_enum=true)`,
       );
       const columnNamesAndTypesJson = reader.columnNamesAndTypesJson();
       assert.deepEqual(
@@ -1471,7 +1471,7 @@ ORDER BY name
   test('column name and type objects json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types(use_large_enum=true) select * exclude (geometry)`,
+        `from test_all_types(use_large_enum=true)`,
       );
       const columnNameAndTypeObjectsJson =
         reader.columnNameAndTypeObjectsJson();
@@ -2123,7 +2123,12 @@ ORDER BY name
           if (value === null) {
             appender.appendNull();
           } else {
-            appender.appendValue(value, type);
+            if (type.typeId === DuckDBTypeId.GEOMETRY) {
+              // TODO: Appending GEOMETRY is not yet supported
+              appender.appendNull();
+            } else {
+              appender.appendValue(value, type);
+            }
           }
         }
         appender.endRow();
@@ -2205,6 +2210,7 @@ ORDER BY name
         assertValues(resultChunk, 51, DuckDBStructVector, columns[51]); // struct_of_fixed_array
         assertValues(resultChunk, 52, DuckDBArrayVector, columns[52]); // fixed_array_of_int_list
         assertValues(resultChunk, 53, DuckDBListVector, columns[53]); // list_of_fixed_int_array
+        assertValues(resultChunk, 54, DuckDBTimeNSVector, columns[54]); // time_ns
       }
     });
   });
@@ -2733,7 +2739,7 @@ ORDER BY name
   test('iterate result stream rows json', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        `from test_all_types() select * exclude (geometry)`,
+        `from test_all_types()`,
       );
       for await (const row of result.yieldRowsJson()) {
         assert.deepEqual(row, createTestAllTypesRowsJson());
@@ -2744,7 +2750,7 @@ ORDER BY name
   test('iterate result stream object json', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        `from test_all_types() select * exclude (geometry)`,
+        `from test_all_types()`,
       );
       for await (const row of result.yieldRowObjectJson()) {
         assert.deepEqual(row, createTestAllTypesRowObjectsJson());

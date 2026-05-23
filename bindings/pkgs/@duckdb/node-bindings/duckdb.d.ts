@@ -88,6 +88,7 @@ export enum Type {
   STRING_LITERAL = 37,
   INTEGER_LITERAL = 38,
   TIME_NS = 39,
+  GEOMETRY = 40,
 }
 
 

@@ -999,6 +999,17 @@ export class DuckDBTimeNSType extends BaseDuckDBType<DuckDBTypeId.TIME_NS> {
 }
 export const TIME_NS = DuckDBTimeNSType.instance;
 
+export class DuckDBGeometryType extends BaseDuckDBType<DuckDBTypeId.GEOMETRY> {
+  public constructor(alias?: string) {
+    super(DuckDBTypeId.GEOMETRY, alias);
+  }
+  public static readonly instance = new DuckDBGeometryType();
+  public static create(alias?: string): DuckDBGeometryType {
+    return alias ? new DuckDBGeometryType(alias) : DuckDBGeometryType.instance;
+  }
+}
+export const GEOMETRY = DuckDBGeometryType.instance;
+
 export type DuckDBType =
   | DuckDBBooleanType
   | DuckDBTinyIntType
@@ -1038,4 +1049,5 @@ export type DuckDBType =
   | DuckDBSQLNullType
   | DuckDBStringLiteralType
   | DuckDBIntegerLiteralType
-  | DuckDBTimeNSType;
+  | DuckDBTimeNSType
+  | DuckDBGeometryType;
