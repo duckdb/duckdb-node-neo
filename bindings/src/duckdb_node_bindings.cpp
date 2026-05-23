@@ -5706,6 +5706,9 @@ private:
   // DUCKDB_C_API duckdb_state duckdb_register_log_storage(duckdb_database database, duckdb_log_storage log_storage);
   // TODO log storage
 
+  // DUCKDB_C_API char *duckdb_geometry_type_get_crs(duckdb_logical_type type);
+  // TODO geometry
+
   // ADDED
   // function get_data_from_pointer(array_buffer: ArrayBuffer, pointer_offset: number, byte_count: number): Uint8Array
   Napi::Value get_data_from_pointer(const Napi::CallbackInfo& info) {
@@ -5752,11 +5755,11 @@ NODE_API_ADDON(DuckDBNodeAddon)
 
 /*
 
-545 DUCKDB_C_API
+546 DUCKDB_C_API
     270 function
      25 not exposed
      41 deprecated
-    209 TODO
+    210 TODO
         8 arrow
         5 error data
         2 utf8
@@ -5790,9 +5793,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
        36 copy function
         7 catalog
         6 log storage
+        1 geometry
   3 ADDED
 ---
-548 total
+549 total
 
 regexes:
 // DUCKDB_C_API.*\n  // (function|not exposed|deprecated|TODO)
