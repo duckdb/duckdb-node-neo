@@ -13,6 +13,7 @@ import {
   DuckDBBlobValue,
   DuckDBDateValue,
   DuckDBDecimalValue,
+  DuckDBGeometryValue,
   DuckDBIntervalValue,
   DuckDBListValue,
   DuckDBMapValue,
@@ -84,6 +85,13 @@ export function bytesFromBitValue(value: DuckDBValue): Uint8Array {
     return value.data;
   }
   throw new Error(`Expected DuckDBBitValue`);
+}
+
+export function bytesFromGeometryValue(value: DuckDBValue): Uint8Array {
+  if (value instanceof DuckDBGeometryValue) {
+    return value.bytes;
+  }
+  throw new Error(`Expected DuckDBGeometryValue`);
 }
 
 export function dateFromDateValue(value: DuckDBValue): Date {

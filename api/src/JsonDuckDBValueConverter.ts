@@ -61,6 +61,7 @@ const JsonConvertersByTypeId: Record<
   [DuckDBTypeId.STRING_LITERAL]: unsupportedConverter,
   [DuckDBTypeId.INTEGER_LITERAL]: unsupportedConverter,
   [DuckDBTypeId.TIME_NS]: stringFromValue,
+  [DuckDBTypeId.GEOMETRY]: stringFromValue,
 };
 
 export const JsonDuckDBValueConverter = createDuckDBValueConverter(

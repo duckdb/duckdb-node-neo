@@ -3,6 +3,7 @@ import { DuckDBBitValue } from './DuckDBBitValue';
 import { DuckDBBlobValue } from './DuckDBBlobValue';
 import { DuckDBDateValue } from './DuckDBDateValue';
 import { DuckDBDecimalValue } from './DuckDBDecimalValue';
+import { DuckDBGeometryValue } from './DuckDBGeometryValue';
 import { DuckDBIntervalValue } from './DuckDBIntervalValue';
 import { DuckDBListValue } from './DuckDBListValue';
 import { DuckDBMapValue } from './DuckDBMapValue';
@@ -29,6 +30,7 @@ export type DuckDBValue =
   | DuckDBBlobValue
   | DuckDBDateValue
   | DuckDBDecimalValue
+  | DuckDBGeometryValue
   | DuckDBIntervalValue
   | DuckDBListValue
   | DuckDBMapValue

@@ -1543,6 +1543,7 @@ Napi::Object CreateTypeEnum(Napi::Env env) {
   DefineEnumMember(typeEnum, "STRING_LITERAL", 37);
   DefineEnumMember(typeEnum, "INTEGER_LITERAL", 38);
   DefineEnumMember(typeEnum, "TIME_NS", 39);
+  DefineEnumMember(typeEnum, "GEOMETRY", 40);
   return typeEnum;
 }
 

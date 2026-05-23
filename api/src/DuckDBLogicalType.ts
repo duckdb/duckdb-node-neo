@@ -12,6 +12,7 @@ import {
   DuckDBDoubleType,
   DuckDBEnumType,
   DuckDBFloatType,
+  DuckDBGeometryType,
   DuckDBHugeIntType,
   DuckDBIntegerLiteralType,
   DuckDBIntegerType,
@@ -232,6 +233,8 @@ export class DuckDBLogicalType {
         return DuckDBIntegerLiteralType.create(alias);
       case DuckDBTypeId.TIME_NS:
         return DuckDBTimeNSType.create(alias);
+      case DuckDBTypeId.GEOMETRY:
+        return DuckDBGeometryType.create(alias);
       default:
         throw new Error(`Unexpected type id: ${this.typeId}`);
     }

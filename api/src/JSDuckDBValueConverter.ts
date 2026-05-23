@@ -9,6 +9,7 @@ import {
   booleanFromValue,
   bytesFromBitValue,
   bytesFromBlobValue,
+  bytesFromGeometryValue,
   dateFromDateValue,
   dateFromTimestampMillisecondsValue,
   dateFromTimestampNanosecondsValue,
@@ -69,6 +70,7 @@ const JSConvertersByTypeId: Record<DuckDBTypeId, DuckDBValueConverter<JS>> = {
   [DuckDBTypeId.STRING_LITERAL]: unsupportedConverter,
   [DuckDBTypeId.INTEGER_LITERAL]: unsupportedConverter,
   [DuckDBTypeId.TIME_NS]: bigintFromTimeValue,
+  [DuckDBTypeId.GEOMETRY]: bytesFromGeometryValue,
 };
 
 export const JSDuckDBValueConverter =

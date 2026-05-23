@@ -7,6 +7,7 @@ import {
   DuckDBBlobValue,
   DuckDBDateValue,
   DuckDBDecimalValue,
+  DuckDBGeometryValue,
   DuckDBIntervalValue,
   DuckDBListValue,
   DuckDBMapValue,
@@ -271,6 +272,13 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
         return duckdb.create_time_ns(input);
       }
       throw new Error(`input is not a DuckDBTimeNSValue`);
+    case DuckDBTypeId.GEOMETRY:
+      if (input instanceof DuckDBGeometryValue) {
+        throw new Error(`Creating values of type GEOMETRY is not yet supported.`);
+        // TODO: create_geometry doesn't exist; create_blob results in Failed to cast value: Unimplemented type for cast (BLOB -> GEOMETRY)
+        // return duckdb.create_blob(input.bytes);
+      }
+      throw new Error(`input is not a DuckDBGeometryValue`);
     default:
       throw new Error(`unrecognized type id ${typeId}`);
   }
