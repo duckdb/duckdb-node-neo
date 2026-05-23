@@ -34,6 +34,7 @@ import {
   SMALLINT,
   STRUCT,
   TIME,
+  TIME_NS,
   TIME_TZ,
   TIMESTAMP,
   TIMESTAMP_MS,
@@ -194,8 +195,7 @@ suite('values', () => {
   test('time_ns', () => {
     const input: TimeNS = { nanos: 86400000000000n };
     const time_ns_value = duckdb.create_time_ns(input);
-    // TODO: Need DuckDB fix to LogicalTypeIdFromC and LogicalTypeIdToC
-    // expectLogicalType(duckdb.get_value_type(time_ns_value), TIME_NS);
+    expectLogicalType(duckdb.get_value_type(time_ns_value), TIME_NS);
     expect(duckdb.get_time_ns(time_ns_value)).toStrictEqual(input);
   });
   test('time_tz', () => {

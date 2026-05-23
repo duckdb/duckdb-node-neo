@@ -42,6 +42,7 @@ import {
   DuckDBResult,
   DuckDBSmallIntVector,
   DuckDBStructVector,
+  DuckDBTimeNSVector,
   DuckDBTimeTZValue,
   DuckDBTimeTZVector,
   DuckDBTimeValue,
@@ -935,14 +936,14 @@ ORDER BY name
   test('should support all data types', async () => {
     await withConnection(async (connection) => {
       const result = await connection.run(
-        'from test_all_types(use_large_enum=true) select * exclude (time_ns, geometry)',
+        'from test_all_types(use_large_enum=true) select * exclude (geometry)',
       );
       assertColumns(result, createTestAllTypesColumnNameAndTypeObjects());
 
       const chunk = await result.fetchChunk();
       assert.isDefined(chunk);
       if (chunk) {
-        assert.strictEqual(chunk.columnCount, 54);
+        assert.strictEqual(chunk.columnCount, 55);
         assert.strictEqual(chunk.rowCount, 3);
 
         const testAllTypesColumns = createTestAllTypesColumns();
@@ -1043,6 +1044,8 @@ ORDER BY name
         assertValues(chunk, 52, DuckDBArrayVector, testAllTypesColumns[52]);
         // list_of_fixed_int_array
         assertValues(chunk, 53, DuckDBListVector, testAllTypesColumns[53]);
+        // time_ns
+        assertValues(chunk, 54, DuckDBTimeNSVector, testAllTypesColumns[54]);
       }
     });
   });
@@ -1420,7 +1423,7 @@ ORDER BY name
   test('columns json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types() select * exclude (time_ns, geometry)`,
+        `from test_all_types() select * exclude (geometry)`,
       );
       const columnsJson = reader.getColumnsJson();
       assert.deepEqual(columnsJson, createTestAllTypesColumnsJson());
@@ -1429,7 +1432,7 @@ ORDER BY name
   test('columns object json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types() select * exclude (time_ns, geometry)`,
+        `from test_all_types() select * exclude (geometry)`,
       );
       const columnsJson = reader.getColumnsObjectJson();
       assert.deepEqual(columnsJson, createTestAllTypesColumnsObjectJson());
@@ -1438,7 +1441,7 @@ ORDER BY name
   test('rows json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types() select * exclude (time_ns, geometry)`,
+        `from test_all_types() select * exclude (geometry)`,
       );
       const rowsJson = reader.getRowsJson();
       assert.deepEqual(rowsJson, createTestAllTypesRowsJson());
@@ -1447,7 +1450,7 @@ ORDER BY name
   test('row objects json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types() select * exclude (time_ns, geometry)`,
+        `from test_all_types() select * exclude (geometry)`,
       );
       const rowObjectsJson = reader.getRowObjectsJson();
       assert.deepEqual(rowObjectsJson, createTestAllTypesRowObjectsJson());
@@ -1456,7 +1459,7 @@ ORDER BY name
   test('column names and types json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types(use_large_enum=true) select * exclude (time_ns, geometry)`,
+        `from test_all_types(use_large_enum=true) select * exclude (geometry)`,
       );
       const columnNamesAndTypesJson = reader.columnNamesAndTypesJson();
       assert.deepEqual(
@@ -1468,7 +1471,7 @@ ORDER BY name
   test('column name and type objects json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types(use_large_enum=true) select * exclude (time_ns, geometry)`,
+        `from test_all_types(use_large_enum=true) select * exclude (geometry)`,
       );
       const columnNameAndTypeObjectsJson =
         reader.columnNameAndTypeObjectsJson();
@@ -2730,7 +2733,7 @@ ORDER BY name
   test('iterate result stream rows json', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        `from test_all_types() select * exclude (time_ns, geometry)`,
+        `from test_all_types() select * exclude (geometry)`,
       );
       for await (const row of result.yieldRowsJson()) {
         assert.deepEqual(row, createTestAllTypesRowsJson());
@@ -2741,7 +2744,7 @@ ORDER BY name
   test('iterate result stream object json', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        `from test_all_types() select * exclude (time_ns, geometry)`,
+        `from test_all_types() select * exclude (geometry)`,
       );
       for await (const row of result.yieldRowObjectJson()) {
         assert.deepEqual(row, createTestAllTypesRowObjectsJson());
