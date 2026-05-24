@@ -752,6 +752,56 @@ describe('api', () => {
       }
     });
   });
+  test('should infer integer and floating-point values when binding to prepared statements', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare('select ? as i1, ? as i2, ? as b1, ? as b2, ? as d');
+      prepared.bind([2_147_483_647, -2_147_483_648, 2_147_483_648, -2_147_483_649, 3.14]);
+      const result = await prepared.run();
+      assertColumns(result, [
+        { name: 'i1', type: INTEGER },
+        { name: 'i2', type: INTEGER },
+        { name: 'b1', type: BIGINT },
+        { name: 'b2', type: BIGINT },
+        { name: 'd', type: DOUBLE },
+      ]);
+      const chunk = await result.fetchChunk();
+      assert.isDefined(chunk);
+      if (chunk) {
+        assert.strictEqual(chunk.columnCount, 5);
+        assert.strictEqual(chunk.rowCount, 1);
+        assertValues<number, DuckDBIntegerVector>(
+          chunk,
+          0,
+          DuckDBIntegerVector,
+          [2_147_483_647],
+        );
+        assertValues<number, DuckDBIntegerVector>(
+          chunk,
+          1,
+          DuckDBIntegerVector,
+          [-2_147_483_648],
+        );
+        assertValues<bigint, DuckDBBigIntVector>(
+          chunk,
+          2,
+          DuckDBBigIntVector,
+          [2_147_483_648n],
+        );
+        assertValues<bigint, DuckDBBigIntVector>(
+          chunk,
+          3,
+          DuckDBBigIntVector,
+          [-2_147_483_649n],
+        );
+        assertValues<number, DuckDBDoubleVector>(
+          chunk,
+          4,
+          DuckDBDoubleVector,
+          [3.14],
+        );
+      }
+    });
+  });
   test('should support starting prepared statements and running them incrementally', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare(

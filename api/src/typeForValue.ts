@@ -1,6 +1,7 @@
 import {
   ANY,
   ARRAY,
+  BIGINT,
   BIT,
   BLOB,
   BOOLEAN,
@@ -58,8 +59,11 @@ export function typeForValue(value: DuckDBValue): DuckDBType {
       case 'boolean':
         return BOOLEAN;
       case 'number':
-        if (Math.round(value) === value) {
-          return INTEGER;
+        if (Number.isInteger(value)) {
+          if (value >= -2_147_483_648 && value <= 2_147_483_647) {
+            return INTEGER;
+          }
+          return BIGINT;
         } else {
           return DOUBLE;
         }
