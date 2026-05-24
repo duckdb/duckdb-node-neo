@@ -52,8 +52,8 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a number`);
     case DuckDBTypeId.BIGINT:
-      if (typeof input === 'bigint') {
-        return duckdb.create_int64(input);
+      if (typeof input === 'bigint' || typeof input === 'number') {
+        return duckdb.create_int64(BigInt(input));
       }
       throw new Error(`input is not a bigint`);
     case DuckDBTypeId.UTINYINT:
@@ -72,8 +72,8 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a number`);
     case DuckDBTypeId.UBIGINT:
-      if (typeof input === 'bigint') {
-        return duckdb.create_uint64(input);
+      if (typeof input === 'bigint' || typeof input === 'number') {
+        return duckdb.create_uint64(BigInt(input));
       }
       throw new Error(`input is not a bigint`);
     case DuckDBTypeId.FLOAT:
