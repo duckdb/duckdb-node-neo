@@ -1926,10 +1926,13 @@ export class DuckDBBlobVector extends DuckDBVector<DuckDBBlobValue> {
       : null;
   }
   /**
-   * Returns the raw bytes for the item at `itemIndex` as a zero-copy
-   * `Uint8Array` view over the underlying string_t backing buffer, or null
-   * if the item is SQL NULL. Useful when callers want to read the bytes
-   * without paying for the `Buffer.from(...)` copy that `getItem` does.
+   * Returns the raw bytes for the item at `itemIndex`, or null if the item
+   * is SQL NULL. Avoids the `Buffer.from(...)` copy that `getItem` does.
+   *
+   * The returned `Uint8Array` is a view over the underlying string_t
+   * backing buffer for inline payloads (≤12 bytes); for larger payloads
+   * it's a fresh allocation returned by the native bindings. Treat the
+   * result as read-only either way.
    */
   public getItemBytes(itemIndex: number): Uint8Array | null {
     return this.validity.itemValid(itemIndex)

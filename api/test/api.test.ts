@@ -3164,8 +3164,15 @@ ORDER BY name
     test('creating VARIANT values is not yet supported', async () => {
       await withConnection(async (connection) => {
         const prepared = await connection.prepare('select ? as v');
+        // Same actionable message whether or not the input is wrapped —
+        // a caller shouldn't have to wrap first to learn writes aren't
+        // supported.
         assert.throws(
           () => prepared.bind([variantValue(1)], [VARIANT]),
+          /VARIANT is not yet supported/,
+        );
+        assert.throws(
+          () => prepared.bind([1], [VARIANT]),
           /VARIANT is not yet supported/,
         );
       });
