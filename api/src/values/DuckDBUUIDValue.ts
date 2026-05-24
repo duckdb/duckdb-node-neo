@@ -20,7 +20,13 @@ export class DuckDBUUIDValue {
 
   /** Create a DuckDBUUIDValue from an unsigned 128-bit integer in a JS BigInt. */
   public static fromUint128(uint128: bigint): DuckDBUUIDValue {
-    return new DuckDBUUIDValue((uint128 ^ 0x80000000000000000000000000000000n) & 0xffffffffffffffffffffffffffffffffn);
+    // Convert the unsigned 128-bit input into DuckDB's storage form: MSB
+    // flipped (so numeric ordering matches string ordering) and held as a
+    // signed int128 (the same form `DuckDBUUIDVector` produces via
+    // `getInt128`).
+    return new DuckDBUUIDValue(
+      BigInt.asIntN(128, uint128 ^ 0x80000000000000000000000000000000n),
+    );
   }
 
   /**

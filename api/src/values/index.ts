@@ -19,3 +19,4 @@ export * from './DuckDBTimeValue';
 export * from './DuckDBUnionValue';
 export * from './DuckDBUUIDValue';
 export * from './DuckDBValue';
+export * from './DuckDBVariantValue';

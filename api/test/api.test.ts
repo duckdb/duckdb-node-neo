@@ -66,11 +66,13 @@ import {
   DuckDBUnionVector,
   DuckDBValue,
   DuckDBVarCharVector,
+  DuckDBVariantVector,
   DuckDBVector,
   ENUM,
   FLOAT,
   HUGEINT,
   INTEGER,
+  JSDuckDBValueConverter,
   INTERVAL,
   LIST,
   MAP,
@@ -98,10 +100,15 @@ import {
   UTINYINT,
   UUID,
   VARCHAR,
+  VARIANT,
+  DuckDBListValue,
+  DuckDBStructValue,
+  DuckDBVariantValue,
   arrayValue,
   bitValue,
   blobValue,
   configurationOptionDescriptions,
+  dateValue,
   decimalValue,
   intervalValue,
   listValue,
@@ -111,10 +118,16 @@ import {
   structValue,
   timeTZValue,
   timeValue,
+  timestampMillisValue,
+  timestampNanosValue,
+  timestampSecondsValue,
+  timestampValue,
   unionValue,
   uuidValue,
+  variantValue,
   version
 } from '../src';
+import { varintDecode } from '../src/conversion/varintDecode';
 import { DuckDBInstanceCache } from '../src/DuckDBInstanceCache';
 import { DuckDBScalarFunction } from '../src/DuckDBScalarFunction';
 import { replaceSqlNullWithInteger } from './util/replaceSqlNullWithInteger';
@@ -2847,6 +2860,440 @@ ORDER BY name
   test('getTableNames (none))', async () => {
     await withConnection(async (connection) => {
       assert.deepEqual(connection.getTableNames('select 1', true), []);
+    });
+  });
+
+  // VARIANT --------------------------------------------------------------
+  describe('VARIANT', () => {
+    test('column type and SQL NULL row', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(`select NULL::VARIANT as v`);
+        assertColumns(result, [{ name: 'v', type: VARIANT }]);
+        const chunk = await result.fetchChunk();
+        assert.isDefined(chunk);
+        if (chunk) {
+          assertValues<DuckDBVariantValue, DuckDBVariantVector>(
+            chunk,
+            0,
+            DuckDBVariantVector,
+            [null],
+          );
+        }
+      });
+    });
+
+    test('primitive scalars round-trip through VARIANT', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(`
+          select
+            true::VARIANT                              as b_true,
+            false::VARIANT                             as b_false,
+            (-128)::TINYINT::VARIANT                   as i8,
+            32767::SMALLINT::VARIANT                   as i16,
+            (-2147483648)::INTEGER::VARIANT            as i32,
+            9223372036854775807::BIGINT::VARIANT       as i64,
+            170141183460469231731687303715884105727::HUGEINT::VARIANT as i128,
+            255::UTINYINT::VARIANT                     as u8,
+            65535::USMALLINT::VARIANT                  as u16,
+            4294967295::UINTEGER::VARIANT              as u32,
+            18446744073709551615::UBIGINT::VARIANT     as u64,
+            340282366920938463463374607431768211455::UHUGEINT::VARIANT as u128,
+            (1.5)::FLOAT::VARIANT                      as f32,
+            (2.5)::DOUBLE::VARIANT                     as f64,
+            'hello'::VARCHAR::VARIANT                  as s,
+            '\\x00\\xFF'::BLOB::VARIANT                as bl,
+            (123.45)::DECIMAL(5,2)::VARIANT            as dec_s,
+            (12345678901234.5)::DECIMAL(18,1)::VARIANT as dec_64,
+            (1234567890123456789012345.6789)::DECIMAL(38,4)::VARIANT as dec_128,
+            DATE '2024-01-02'::VARIANT                 as d,
+            TIME '12:34:56.789'::VARIANT               as t_us,
+            TIMESTAMP '2024-01-02 03:04:05.678'::VARIANT as ts_us,
+            TIMESTAMP_S '2024-01-02 03:04:05'::VARIANT  as ts_s,
+            TIMESTAMP_MS '2024-01-02 03:04:05.678'::VARIANT as ts_ms,
+            TIMESTAMP_NS '2024-01-02 03:04:05.678901234'::VARIANT as ts_ns,
+            INTERVAL '3 months 4 days 5 minutes'::VARIANT as iv,
+            '00112233-4455-6677-8899-aabbccddeeff'::UUID::VARIANT as uu
+        `);
+        assertColumns(result, [
+          { name: 'b_true', type: VARIANT },
+          { name: 'b_false', type: VARIANT },
+          { name: 'i8', type: VARIANT },
+          { name: 'i16', type: VARIANT },
+          { name: 'i32', type: VARIANT },
+          { name: 'i64', type: VARIANT },
+          { name: 'i128', type: VARIANT },
+          { name: 'u8', type: VARIANT },
+          { name: 'u16', type: VARIANT },
+          { name: 'u32', type: VARIANT },
+          { name: 'u64', type: VARIANT },
+          { name: 'u128', type: VARIANT },
+          { name: 'f32', type: VARIANT },
+          { name: 'f64', type: VARIANT },
+          { name: 's', type: VARIANT },
+          { name: 'bl', type: VARIANT },
+          { name: 'dec_s', type: VARIANT },
+          { name: 'dec_64', type: VARIANT },
+          { name: 'dec_128', type: VARIANT },
+          { name: 'd', type: VARIANT },
+          { name: 't_us', type: VARIANT },
+          { name: 'ts_us', type: VARIANT },
+          { name: 'ts_s', type: VARIANT },
+          { name: 'ts_ms', type: VARIANT },
+          { name: 'ts_ns', type: VARIANT },
+          { name: 'iv', type: VARIANT },
+          { name: 'uu', type: VARIANT },
+        ]);
+        const chunk = await result.fetchChunk();
+        assert.isDefined(chunk);
+        if (!chunk) return;
+
+        // 2024-01-02 = 1970-01-01 + 19724 days; ts is 1704164645 unix seconds.
+        const oneRow = (v: DuckDBValue) => [variantValue(v)];
+        let i = 0;
+        const expect = (v: DuckDBValue) =>
+          assertValues<DuckDBVariantValue, DuckDBVariantVector>(
+            chunk,
+            i++,
+            DuckDBVariantVector,
+            oneRow(v),
+          );
+
+        expect(true);
+        expect(false);
+        expect(-128);
+        expect(32767);
+        expect(-2147483648);
+        expect(9223372036854775807n);
+        expect(170141183460469231731687303715884105727n);
+        expect(255);
+        expect(65535);
+        expect(4294967295);
+        expect(18446744073709551615n);
+        expect(340282366920938463463374607431768211455n);
+        expect(1.5);
+        expect(2.5);
+        expect('hello');
+        expect(blobValue(new Uint8Array([0x00, 0xff])));
+        expect(decimalValue(12345n, 5, 2));
+        expect(decimalValue(123456789012345n, 18, 1));
+        expect(decimalValue(12345678901234567890123456789n, 38, 4));
+        expect(dateValue(19724));
+        expect(timeValue(BigInt(((12 * 60 + 34) * 60 + 56) * 1_000_000 + 789_000)));
+        expect(timestampValue(1704164645678000n));
+        expect(timestampSecondsValue(1704164645n));
+        expect(timestampMillisValue(1704164645678n));
+        expect(timestampNanosValue(1704164645678901234n));
+        expect(intervalValue(3, 4, BigInt(5 * 60 * 1_000_000)));
+        expect(uuidValue(0x00112233_4455_6677_8899_aabbccddeeffn));
+      });
+    });
+
+    test('OBJECT decodes to DuckDBStructValue', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(
+          `select '{"a": 1, "b": "hi", "c": null}'::JSON::VARIANT as v`,
+        );
+        assertColumns(result, [{ name: 'v', type: VARIANT }]);
+        const chunk = await result.fetchChunk();
+        // JSON numbers parse to BIGINT; 1 becomes 1n.
+        assertValues<DuckDBVariantValue, DuckDBVariantVector>(
+          chunk!,
+          0,
+          DuckDBVariantVector,
+          [variantValue(structValue({ a: 1n, b: 'hi', c: null }))],
+        );
+      });
+    });
+
+    test('ARRAY decodes to DuckDBListValue with heterogeneous items', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(
+          `select '[1, "two", null, true]'::JSON::VARIANT as v`,
+        );
+        const chunk = await result.fetchChunk();
+        assertValues<DuckDBVariantValue, DuckDBVariantVector>(
+          chunk!,
+          0,
+          DuckDBVariantVector,
+          [variantValue(listValue([1n, 'two', null, true]))],
+        );
+      });
+    });
+
+    test('nested OBJECT containing ARRAY exercises recursive walk', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(
+          `select '{"outer": [1, {"inner": "leaf"}, [null, true]]}'::JSON::VARIANT as v`,
+        );
+        const chunk = await result.fetchChunk();
+        assertValues<DuckDBVariantValue, DuckDBVariantVector>(
+          chunk!,
+          0,
+          DuckDBVariantVector,
+          [
+            variantValue(
+              structValue({
+                outer: listValue([
+                  1n,
+                  structValue({ inner: 'leaf' }),
+                  listValue([null, true]),
+                ]),
+              }),
+            ),
+          ],
+        );
+      });
+    });
+
+    test('VARIANT nested inside a LIST', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(`
+          select [1::INTEGER::VARIANT, 'x'::VARCHAR::VARIANT, NULL::VARIANT] as items
+        `);
+        assertColumns(result, [
+          { name: 'items', type: LIST(VARIANT) },
+        ]);
+        const chunk = await result.fetchChunk();
+        assertValues<DuckDBListValue, DuckDBListVector>(
+          chunk!,
+          0,
+          DuckDBListVector,
+          [listValue([variantValue(1), variantValue('x'), null])],
+        );
+      });
+    });
+
+    test('VARIANT nested inside a STRUCT', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(`
+          select {x: 42::INTEGER::VARIANT, y: 'hello'::VARCHAR::VARIANT}
+                 ::STRUCT(x VARIANT, y VARIANT) as s
+        `);
+        assertColumns(result, [
+          { name: 's', type: STRUCT({ x: VARIANT, y: VARIANT }) },
+        ]);
+        const chunk = await result.fetchChunk();
+        assertValues<DuckDBStructValue, DuckDBStructVector>(
+          chunk!,
+          0,
+          DuckDBStructVector,
+          [structValue({ x: variantValue(42), y: variantValue('hello') })],
+        );
+      });
+    });
+
+    test('JSON converter recurses through VARIANT (heterogeneous list)', async () => {
+      await withConnection(async (connection) => {
+        const reader = await connection.runAndReadAll(`
+          select '{"a": 1, "b": [true, null, "x"], "c": 3.14}'::JSON::VARIANT as v
+        `);
+        assert.deepStrictEqual(reader.getRowObjectsJson(), [
+          {
+            v: {
+              a: '1', // JSON converter renders BIGINTs as strings
+              b: [true, null, 'x'],
+              c: 3.14,
+            },
+          },
+        ]);
+      });
+    });
+
+    test('JS converter unwraps VARIANT to plain JS shape', async () => {
+      await withConnection(async (connection) => {
+        const reader = await connection.runAndReadAll(`
+          select '{"a": 1, "b": [true, null, "x"]}'::JSON::VARIANT as v
+        `);
+        assert.deepStrictEqual(reader.getRowObjectsJS(), [
+          { v: { a: 1n, b: [true, null, 'x'] } },
+        ]);
+      });
+    });
+
+    test('JSON converter handles VARIANT nested inside a LIST', async () => {
+      // Confirms the existing LIST converter dispatches per-element to the
+      // VARIANT converter without needing variant-specific changes.
+      await withConnection(async (connection) => {
+        const reader = await connection.runAndReadAll(`
+          select [1::INTEGER::VARIANT, 'x'::VARCHAR::VARIANT, NULL::VARIANT] as items
+        `);
+        assert.deepStrictEqual(reader.getRowObjectsJson(), [
+          { items: [1, 'x', null] },
+        ]);
+      });
+    });
+
+    test('JSON converter handles VARIANT nested inside a STRUCT', async () => {
+      await withConnection(async (connection) => {
+        const reader = await connection.runAndReadAll(`
+          select {x: 42::INTEGER::VARIANT, y: 'hello'::VARCHAR::VARIANT}
+                 ::STRUCT(x VARIANT, y VARIANT) as s
+        `);
+        assert.deepStrictEqual(reader.getRowObjectsJson(), [
+          { s: { x: 42, y: 'hello' } },
+        ]);
+      });
+    });
+
+    test('VARIANT-of-MAP unwraps via the variant converter', () => {
+      // VARIANT decoding never produces MAP values, but if a caller wraps
+      // a DuckDBMapValue in a DuckDBVariantValue (e.g. for testing or via
+      // a future write path) the converter should still produce the same
+      // {key, value}[] shape that objectArrayFromMapValue produces.
+      const v = variantValue(
+        mapValue([
+          { key: 'a', value: 1 },
+          { key: 'b', value: 2n },
+        ]),
+      );
+      assert.deepStrictEqual(JSDuckDBValueConverter(v, VARIANT, JSDuckDBValueConverter), [
+        { key: 'a', value: 1 },
+        { key: 'b', value: 2n },
+      ]);
+    });
+
+    test('VARIANT-of-UNION unwraps via the variant converter', () => {
+      const v = variantValue(unionValue('s', 'hi'));
+      assert.deepStrictEqual(JSDuckDBValueConverter(v, VARIANT, JSDuckDBValueConverter), {
+        tag: 's',
+        value: 'hi',
+      });
+    });
+
+    test('creating VARIANT values is not yet supported', async () => {
+      await withConnection(async (connection) => {
+        const prepared = await connection.prepare('select ? as v');
+        assert.throws(
+          () => prepared.bind([variantValue(1)], [VARIANT]),
+          /VARIANT is not yet supported/,
+        );
+      });
+    });
+  });
+
+  // DuckDBUUIDValue.fromUint128 ----------------------------------------------
+  // Regression coverage for the MSB-flip-with-signed-storage contract:
+  // DuckDBUUIDValue always holds DuckDB's signed-int128 storage form, and
+  // `fromUint128` must convert into that form (including for inputs whose
+  // unsigned value sits below 2**127, which after the MSB flip end up with
+  // bit 127 set and therefore need a negative bigint to represent).
+  describe('DuckDBUUIDValue.fromUint128', () => {
+    test('low-MSB input maps to a negative signed-int128 hugeint', async () => {
+      // 0x0011… has bit 127 clear; after MSB flip it has bit 127 set, which
+      // must surface as a negative bigint to match DuckDB's int128 storage.
+      const v = uuidValue(0x00112233_4455_6677_8899_aabbccddeeffn);
+      assert.strictEqual(
+        v.hugeint,
+        BigInt.asIntN(128, 0x80112233_4455_6677_8899_aabbccddeeffn),
+      );
+      assert.isTrue(v.hugeint < 0n, 'hugeint should be negative');
+      assert.strictEqual(v.toString(), '00112233-4455-6677-8899-aabbccddeeff');
+      // And: the same UUID round-tripped through a UUID column matches
+      // exactly (the column decoder uses `fromStoredHugeInt` + `getInt128`).
+      await withConnection(async (connection) => {
+        const reader = await connection.runAndReadAll(
+          `select '00112233-4455-6677-8899-aabbccddeeff'::UUID as u`,
+        );
+        const decoded = reader.getRows()[0][0];
+        assert.deepStrictEqual(decoded, v);
+      });
+    });
+
+    test('high-MSB input maps to a positive hugeint', async () => {
+      // 0xf0e1… has bit 127 set; after MSB flip the high bit is clear and
+      // the value fits in a positive signed int128.
+      const v = uuidValue(0xf0e1d2c3b4a596870123456789abcdefn);
+      assert.strictEqual(
+        v.hugeint,
+        0x70e1d2c3b4a596870123456789abcdefn,
+      );
+      assert.isTrue(v.hugeint > 0n, 'hugeint should be positive');
+      assert.strictEqual(v.toString(), 'f0e1d2c3-b4a5-9687-0123-456789abcdef');
+      await withConnection(async (connection) => {
+        const reader = await connection.runAndReadAll(
+          `select 'f0e1d2c3-b4a5-9687-0123-456789abcdef'::UUID as u`,
+        );
+        const decoded = reader.getRows()[0][0];
+        assert.deepStrictEqual(decoded, v);
+      });
+    });
+
+    test('toUint128 round-trips both halves of the range', () => {
+      const low = uuidValue(0x00112233_4455_6677_8899_aabbccddeeffn);
+      assert.strictEqual(
+        low.toUint128(),
+        0x00112233_4455_6677_8899_aabbccddeeffn,
+      );
+      const high = uuidValue(0xf0e1d2c3b4a596870123456789abcdefn);
+      assert.strictEqual(
+        high.toUint128(),
+        0xf0e1d2c3b4a596870123456789abcdefn,
+      );
+      // Extremes.
+      const allZeros = uuidValue(0n);
+      assert.strictEqual(allZeros.toUint128(), 0n);
+      const allOnes = uuidValue(2n ** 128n - 1n);
+      assert.strictEqual(allOnes.toUint128(), 2n ** 128n - 1n);
+    });
+  });
+
+  // varintDecode (LEB128) ----------------------------------------------------
+  describe('varintDecode', () => {
+    function makeView(bytes: number[]): DataView {
+      const buf = new Uint8Array(bytes);
+      return new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    }
+    test('single-byte values (< 0x80)', () => {
+      assert.deepStrictEqual(varintDecode(makeView([0x00]), 0), {
+        value: 0,
+        nextOffset: 1,
+      });
+      assert.deepStrictEqual(varintDecode(makeView([0x01]), 0), {
+        value: 1,
+        nextOffset: 1,
+      });
+      assert.deepStrictEqual(varintDecode(makeView([0x7f]), 0), {
+        value: 127,
+        nextOffset: 1,
+      });
+    });
+    test('two-byte values', () => {
+      // 128 = 0b1000_0000 → bytes [0x80, 0x01]
+      assert.deepStrictEqual(varintDecode(makeView([0x80, 0x01]), 0), {
+        value: 128,
+        nextOffset: 2,
+      });
+      // 300 = 0b1_0010_1100 → bytes [0xac, 0x02]
+      assert.deepStrictEqual(varintDecode(makeView([0xac, 0x02]), 0), {
+        value: 300,
+        nextOffset: 2,
+      });
+    });
+    test('respects starting offset', () => {
+      // Skip a leading byte; decode 300 starting at offset 1.
+      const view = makeView([0xff, 0xac, 0x02, 0x99]);
+      assert.deepStrictEqual(varintDecode(view, 1), {
+        value: 300,
+        nextOffset: 3,
+      });
+    });
+    test('five-byte value (uint32 max)', () => {
+      // 0xffffffff → bytes [0xff, 0xff, 0xff, 0xff, 0x0f]
+      assert.deepStrictEqual(
+        varintDecode(makeView([0xff, 0xff, 0xff, 0xff, 0x0f]), 0),
+        { value: 0xffffffff, nextOffset: 5 },
+      );
+    });
+    test('throws on overflow', () => {
+      // Six continuation bytes would shift past 32 bits.
+      assert.throws(
+        () =>
+          varintDecode(
+            makeView([0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01]),
+            0,
+          ),
+        /varint overflow/,
+      );
     });
   });
 });

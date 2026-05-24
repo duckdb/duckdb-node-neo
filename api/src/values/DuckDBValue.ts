@@ -18,6 +18,7 @@ import { DuckDBTimeTZValue } from './DuckDBTimeTZValue';
 import { DuckDBTimeValue } from './DuckDBTimeValue';
 import { DuckDBUnionValue } from './DuckDBUnionValue';
 import { DuckDBUUIDValue } from './DuckDBUUIDValue';
+import { DuckDBVariantValue } from './DuckDBVariantValue';
 
 export type DuckDBValue =
   | null
@@ -44,4 +45,5 @@ export type DuckDBValue =
   | DuckDBTimeValue
   | DuckDBTimeNSValue
   | DuckDBUnionValue
-  | DuckDBUUIDValue;
+  | DuckDBUUIDValue
+  | DuckDBVariantValue;

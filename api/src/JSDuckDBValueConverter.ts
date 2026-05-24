@@ -17,6 +17,7 @@ import {
   dateFromTimestampTZValue,
   dateFromTimestampValue,
   doubleFromDecimalValue,
+  fromVariantValue,
   nullConverter,
   numberFromValue,
   objectArrayFromMapValue,
@@ -71,6 +72,7 @@ const JSConvertersByTypeId: Record<DuckDBTypeId, DuckDBValueConverter<JS>> = {
   [DuckDBTypeId.INTEGER_LITERAL]: unsupportedConverter,
   [DuckDBTypeId.TIME_NS]: bigintFromTimeValue,
   [DuckDBTypeId.GEOMETRY]: bytesFromGeometryValue,
+  [DuckDBTypeId.VARIANT]: fromVariantValue,
 };
 
 export const JSDuckDBValueConverter =

@@ -23,6 +23,7 @@ import {
   DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
+  DuckDBVariantValue,
 } from './values';
 
 export function createValue(type: DuckDBType, input: DuckDBValue): Value {
@@ -279,6 +280,11 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
         // return duckdb.create_blob(input.bytes);
       }
       throw new Error(`input is not a DuckDBGeometryValue`);
+    case DuckDBTypeId.VARIANT:
+      if (input instanceof DuckDBVariantValue) {
+        throw new Error(`Creating values of type VARIANT is not yet supported.`);
+      }
+      throw new Error(`input is not a DuckDBVariantValue`);
     default:
       throw new Error(`unrecognized type id ${typeId}`);
   }

@@ -41,4 +41,5 @@ export enum DuckDBTypeId {
   INTEGER_LITERAL = 38,
   TIME_NS = 39,
   GEOMETRY = 40,
+  VARIANT = 41,
 }
