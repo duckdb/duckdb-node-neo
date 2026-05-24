@@ -5,6 +5,7 @@ import {
   arrayFromArrayValue,
   arrayFromListValue,
   booleanFromValue,
+  fromVariantValue,
   jsonNumberFromValue,
   jsonObjectFromIntervalValue,
   nullConverter,
@@ -62,6 +63,7 @@ const JsonConvertersByTypeId: Record<
   [DuckDBTypeId.INTEGER_LITERAL]: unsupportedConverter,
   [DuckDBTypeId.TIME_NS]: stringFromValue,
   [DuckDBTypeId.GEOMETRY]: stringFromValue,
+  [DuckDBTypeId.VARIANT]: fromVariantValue,
 };
 
 export const JsonDuckDBValueConverter = createDuckDBValueConverter(

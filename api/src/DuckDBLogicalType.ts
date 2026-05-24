@@ -41,6 +41,7 @@ import {
   DuckDBUUIDType,
   DuckDBUnionType,
   DuckDBVarCharType,
+  DuckDBVariantType,
 } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 
@@ -235,6 +236,8 @@ export class DuckDBLogicalType {
         return DuckDBTimeNSType.create(alias);
       case DuckDBTypeId.GEOMETRY:
         return DuckDBGeometryType.create(alias);
+      case DuckDBTypeId.VARIANT:
+        return DuckDBVariantType.create(alias);
       default:
         throw new Error(`Unexpected type id: ${this.typeId}`);
     }

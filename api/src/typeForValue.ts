@@ -27,6 +27,7 @@ import {
   UNION,
   UUID,
   VARCHAR,
+  VARIANT,
 } from './DuckDBType';
 import {
   DuckDBArrayValue,
@@ -49,6 +50,7 @@ import {
   DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
+  DuckDBVariantValue,
 } from './values';
 
 export function typeForValue(value: DuckDBValue): DuckDBType {
@@ -117,6 +119,8 @@ export function typeForValue(value: DuckDBValue): DuckDBType {
           return UNION({ [value.tag]: typeForValue(value.value) });
         } else if (value instanceof DuckDBUUIDValue) {
           return UUID;
+        } else if (value instanceof DuckDBVariantValue) {
+          return VARIANT;
         }
         break;
     }

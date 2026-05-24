@@ -1010,6 +1010,17 @@ export class DuckDBGeometryType extends BaseDuckDBType<DuckDBTypeId.GEOMETRY> {
 }
 export const GEOMETRY = DuckDBGeometryType.instance;
 
+export class DuckDBVariantType extends BaseDuckDBType<DuckDBTypeId.VARIANT> {
+  public constructor(alias?: string) {
+    super(DuckDBTypeId.VARIANT, alias);
+  }
+  public static readonly instance = new DuckDBVariantType();
+  public static create(alias?: string): DuckDBVariantType {
+    return alias ? new DuckDBVariantType(alias) : DuckDBVariantType.instance;
+  }
+}
+export const VARIANT = DuckDBVariantType.instance;
+
 export type DuckDBType =
   | DuckDBBooleanType
   | DuckDBTinyIntType
@@ -1050,4 +1061,5 @@ export type DuckDBType =
   | DuckDBStringLiteralType
   | DuckDBIntegerLiteralType
   | DuckDBTimeNSType
-  | DuckDBGeometryType;
+  | DuckDBGeometryType
+  | DuckDBVariantType;

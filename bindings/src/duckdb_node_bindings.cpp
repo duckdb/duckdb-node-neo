@@ -1544,6 +1544,7 @@ Napi::Object CreateTypeEnum(Napi::Env env) {
   DefineEnumMember(typeEnum, "INTEGER_LITERAL", 38);
   DefineEnumMember(typeEnum, "TIME_NS", 39);
   DefineEnumMember(typeEnum, "GEOMETRY", 40);
+  DefineEnumMember(typeEnum, "VARIANT", 41);
   return typeEnum;
 }
 

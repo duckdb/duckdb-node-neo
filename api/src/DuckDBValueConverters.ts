@@ -6,7 +6,9 @@ import {
   DuckDBType,
   DuckDBUnionType,
 } from './DuckDBType';
+import { DuckDBTypeId } from './DuckDBTypeId';
 import { DuckDBValueConverter } from './DuckDBValueConverter';
+import { typeForValue } from './typeForValue';
 import {
   DuckDBArrayValue,
   DuckDBBitValue,
@@ -27,6 +29,7 @@ import {
   DuckDBTimestampValue,
   DuckDBUnionValue,
   DuckDBValue,
+  DuckDBVariantValue,
 } from './values';
 
 const MIN_DATE_DAYS = -100000000;
@@ -297,4 +300,80 @@ export function objectFromUnionValue<T>(
     };
   }
   throw new Error(`Expected DuckDBUnionValue and DuckDBUnionType`);
+}
+
+/**
+ * Converter for VARIANT values: unwraps the `DuckDBVariantValue` wrapper
+ * and recursively walks the inner value, re-dispatching each scalar leaf
+ * through the supplied converter with a freshly-derived `DuckDBType`.
+ *
+ * A walker is needed (rather than just dispatching through the converter)
+ * because VARIANT containers are *heterogeneous* — items in a list or
+ * fields in a struct can have different types — while
+ * `arrayFromListValue` / `objectFromStructValue` / `objectArrayFromMapValue`
+ * assume a homogeneous element type pulled from the enclosing
+ * `DuckDBListType` / `DuckDBStructType` / `DuckDBMapType`. The walker
+ * emits the same output shape those converters do, but recovers each
+ * child's type via `typeForValue`.
+ */
+export function fromVariantValue<T>(
+  value: DuckDBValue,
+  _type: DuckDBType,
+  converter: DuckDBValueConverter<T>
+): T | null {
+  if (!(value instanceof DuckDBVariantValue)) {
+    throw new Error(`Expected DuckDBVariantValue`);
+  }
+  return convertVariantInner(value.value, converter);
+}
+
+function convertVariantInner<T>(
+  value: DuckDBValue,
+  converter: DuckDBValueConverter<T>
+): T | null {
+  if (value === null) {
+    return null;
+  }
+  if (value instanceof DuckDBListValue || value instanceof DuckDBArrayValue) {
+    return value.items.map((item) =>
+      convertVariantInner(item, converter)
+    ) as unknown as T;
+  }
+  if (value instanceof DuckDBStructValue) {
+    const result: { [key: string]: T | null } = {};
+    for (const key in value.entries) {
+      result[key] = convertVariantInner(value.entries[key], converter);
+    }
+    return result as unknown as T;
+  }
+  if (value instanceof DuckDBMapValue) {
+    return value.entries.map((entry) => ({
+      key: convertVariantInner(entry.key, converter),
+      value: convertVariantInner(entry.value, converter),
+    })) as unknown as T;
+  }
+  if (value instanceof DuckDBUnionValue) {
+    return {
+      tag: value.tag,
+      value: convertVariantInner(value.value, converter),
+    } as unknown as T;
+  }
+  if (value instanceof DuckDBVariantValue) {
+    // Variant-of-variant: unwrap and continue.
+    return convertVariantInner(value.value, converter);
+  }
+  // Scalar (or non-recursable rich value like DECIMAL, BLOB, DATE, etc.):
+  // dispatch through the regular converter with its own recovered type.
+  const inferredType = typeForValue(value);
+  // `typeForValue` infers BIGINT for any JS integer number outside INT32
+  // range (e.g. a UINT32 VARIANT payload of 4_294_967_295). The BIGINT
+  // converters expect a `bigint`, not a `number`, and would otherwise
+  // throw. Coerce to bigint so the dispatch lands on a compatible reader.
+  if (
+    typeof value === 'number' &&
+    inferredType.typeId === DuckDBTypeId.BIGINT
+  ) {
+    return converter(BigInt(value), inferredType, converter);
+  }
+  return converter(value, inferredType, converter);
 }

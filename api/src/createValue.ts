@@ -279,6 +279,13 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
         // return duckdb.create_blob(input.bytes);
       }
       throw new Error(`input is not a DuckDBGeometryValue`);
+    case DuckDBTypeId.VARIANT:
+      // Surface the same actionable message regardless of input shape — a
+      // caller who first tries a raw value and then wraps it in
+      // `variantValue(...)` should not see two different errors. When write
+      // is implemented, reintroduce the `input instanceof DuckDBVariantValue`
+      // type-mismatch path.
+      throw new Error(`Creating values of type VARIANT is not yet supported.`);
     default:
       throw new Error(`unrecognized type id ${typeId}`);
   }
