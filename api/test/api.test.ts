@@ -110,6 +110,7 @@ import {
   configurationOptionDescriptions,
   dateValue,
   decimalValue,
+  geometryValue,
   intervalValue,
   listValue,
   mapValue,
@@ -3169,6 +3170,129 @@ ORDER BY name
         );
       });
     });
+
+    // Extended primitive tags (BIT, BIGNUM, TIME_TZ, GEOMETRY): these share
+    // length-prefixed encoding (BIT/BIGNUM/GEOMETRY) or use signed/unsigned
+    // variants of integer reads (TIME_TZ), and weren't exercised by the main
+    // scalar round-trip test.
+
+    test('BITSTRING round-trips through VARIANT', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(
+          `select '0101'::BIT::VARIANT as v`,
+        );
+        const chunk = await result.fetchChunk();
+        assertValues<DuckDBVariantValue, DuckDBVariantVector>(
+          chunk!,
+          0,
+          DuckDBVariantVector,
+          [variantValue(bitValue('0101'))],
+        );
+      });
+    });
+
+    test('BIGNUM round-trips through VARIANT', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(
+          `select '1234567890123456789012345'::BIGNUM::VARIANT as v`,
+        );
+        const chunk = await result.fetchChunk();
+        assertValues<DuckDBVariantValue, DuckDBVariantVector>(
+          chunk!,
+          0,
+          DuckDBVariantVector,
+          [variantValue(1234567890123456789012345n)],
+        );
+      });
+    });
+
+    test('TIME WITH TIME ZONE round-trips through VARIANT', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(
+          `select TIME WITH TIME ZONE '12:34:56.789+05:30'::VARIANT as v`,
+        );
+        const chunk = await result.fetchChunk();
+        assertValues<DuckDBVariantValue, DuckDBVariantVector>(
+          chunk!,
+          0,
+          DuckDBVariantVector,
+          [variantValue(timeTZValue(45296789000n, 5 * 3600 + 30 * 60))],
+        );
+      });
+    });
+
+    test('GEOMETRY round-trips through VARIANT', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(
+          `select 'POINT(1 2)'::GEOMETRY::VARIANT as v`,
+        );
+        const chunk = await result.fetchChunk();
+        // WKB for POINT(1, 2), little-endian: 1 | 01 00 00 00 | 8-byte LE
+        // double 1.0 | 8-byte LE double 2.0.
+        const pointWkb = new Uint8Array([
+          0x01, 0x01, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40,
+        ]);
+        assertValues<DuckDBVariantValue, DuckDBVariantVector>(
+          chunk!,
+          0,
+          DuckDBVariantVector,
+          [variantValue(geometryValue(pointWkb))],
+        );
+      });
+    });
+
+    // Regression tests for code-review fixes.
+
+    test('UINTEGER max routes through the JS / JSON converters', async () => {
+      // typeForValue infers BIGINT for a number > INT32 max; the variant
+      // walker now coerces such numbers to bigint before dispatching, so
+      // bigintFromBigIntValue / stringFromValue both succeed.
+      await withConnection(async (connection) => {
+        const reader = await connection.runAndReadAll(
+          `select 4294967295::UINTEGER::VARIANT as u`,
+        );
+        assert.deepStrictEqual(reader.getRowObjectsJS(), [
+          { u: 4294967295n },
+        ]);
+        assert.deepStrictEqual(reader.getRowObjectsJson(), [
+          { u: '4294967295' },
+        ]);
+      });
+    });
+
+    test('setItem(null) and flush() on a VARIANT vector are no-ops', async () => {
+      await withConnection(async (connection) => {
+        const result = await connection.run(
+          `select 42::INTEGER::VARIANT as v`,
+        );
+        const chunk = await result.fetchChunk();
+        const vec = chunk!.getColumnVector(0) as DuckDBVariantVector;
+        // No throw: parent containers (struct/list/array) call setItem(null)
+        // and flush() generically on every child; VARIANT must tolerate
+        // those even though writes aren't supported.
+        vec.setItem(0, null);
+        vec.flush();
+        // Writing a non-null value remains an error.
+        assert.throws(
+          () => vec.setItem(0, variantValue(1)),
+          /Setting VARIANT values is not yet supported/,
+        );
+      });
+    });
+
+    test('STRUCT(VARIANT, INTEGER) can be read end-to-end', async () => {
+      await withConnection(async (connection) => {
+        const reader = await connection.runAndReadAll(`
+          select {x: 42::INTEGER::VARIANT, y: 7::INTEGER}
+                 ::STRUCT(x VARIANT, y INTEGER) as s
+        `);
+        assert.deepStrictEqual(reader.getRowObjectsJS(), [
+          { s: { x: 42, y: 7 } },
+        ]);
+      });
+    });
   });
 
   // DuckDBUUIDValue.fromUint128 ----------------------------------------------
@@ -3284,7 +3408,7 @@ ORDER BY name
         { value: 0xffffffff, nextOffset: 5 },
       );
     });
-    test('throws on overflow', () => {
+    test('throws on overflow (6+ byte varint)', () => {
       // Six continuation bytes would shift past 32 bits.
       assert.throws(
         () =>
@@ -3295,5 +3419,31 @@ ORDER BY name
         /varint overflow/,
       );
     });
+    test('throws on overflow (5-byte value > uint32 max)', () => {
+      // [0xff,0xff,0xff,0xff,0x10] decodes to 2**32 — one above uint32 max.
+      assert.throws(
+        () =>
+          varintDecode(makeView([0xff, 0xff, 0xff, 0xff, 0x10]), 0),
+        /varint overflow/,
+      );
+      // [0xff,0xff,0xff,0xff,0x7f] decodes to 2**35-1 — a 35-bit value
+      // that the previous (looser) guard accepted.
+      assert.throws(
+        () =>
+          varintDecode(makeView([0xff, 0xff, 0xff, 0xff, 0x7f]), 0),
+        /varint overflow/,
+      );
+    });
+    test('throws on truncated input (continuation bit set on final byte)', () => {
+      assert.throws(
+        () => varintDecode(makeView([0x80]), 0),
+        /varint truncated/,
+      );
+      assert.throws(
+        () => varintDecode(makeView([0xff, 0xff, 0xff]), 0),
+        /varint truncated/,
+      );
+    });
   });
+
 });

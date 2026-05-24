@@ -6,6 +6,7 @@ import {
   DuckDBType,
   DuckDBUnionType,
 } from './DuckDBType';
+import { DuckDBTypeId } from './DuckDBTypeId';
 import { DuckDBValueConverter } from './DuckDBValueConverter';
 import { typeForValue } from './typeForValue';
 import {
@@ -363,5 +364,16 @@ function convertVariantInner<T>(
   }
   // Scalar (or non-recursable rich value like DECIMAL, BLOB, DATE, etc.):
   // dispatch through the regular converter with its own recovered type.
-  return converter(value, typeForValue(value), converter);
+  const inferredType = typeForValue(value);
+  // `typeForValue` infers BIGINT for any JS integer number outside INT32
+  // range (e.g. a UINT32 VARIANT payload of 4_294_967_295). The BIGINT
+  // converters expect a `bigint`, not a `number`, and would otherwise
+  // throw. Coerce to bigint so the dispatch lands on a compatible reader.
+  if (
+    typeof value === 'number' &&
+    inferredType.typeId === DuckDBTypeId.BIGINT
+  ) {
+    return converter(BigInt(value), inferredType, converter);
+  }
+  return converter(value, inferredType, converter);
 }

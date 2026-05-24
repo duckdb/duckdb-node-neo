@@ -2835,6 +2835,10 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
   public getEntryOffset(itemIndex: number): number {
     return Number(this.entryData[itemIndex * 2]);
   }
+  /** Returns the number of elements this row contributes to `childVector`. */
+  public getEntryLength(itemIndex: number): number {
+    return Number(this.entryData[itemIndex * 2 + 1]);
+  }
   /** The (flat) child vector backing all rows' list elements. */
   public get childVector(): DuckDBVector {
     return this.childData;
@@ -3973,30 +3977,35 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
       // Defensive: a valid row's data BLOB is expected to be present.
       return null;
     }
-    const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
-    const valuesOffset = this.valuesList.getEntryOffset(itemIndex);
-    const childrenOffset = this.childrenList.getEntryOffset(itemIndex);
-    const keysOffset = this.keysList.getEntryOffset(itemIndex);
-    const inner = this.decodeNode(
-      0,
-      valuesOffset,
-      childrenOffset,
-      keysOffset,
+    const row: VariantRow = {
       blob,
-      view
-    );
-    return new DuckDBVariantValue(inner);
+      view: new DataView(blob.buffer, blob.byteOffset, blob.byteLength),
+      valuesOffset: this.valuesList.getEntryOffset(itemIndex),
+      valuesLength: this.valuesList.getEntryLength(itemIndex),
+      childrenOffset: this.childrenList.getEntryOffset(itemIndex),
+      childrenLength: this.childrenList.getEntryLength(itemIndex),
+      keysOffset: this.keysList.getEntryOffset(itemIndex),
+      keysLength: this.keysList.getEntryLength(itemIndex),
+    };
+    return new DuckDBVariantValue(this.decodeNode(0, row));
   }
 
   public override setItem(
     _itemIndex: number,
-    _value: DuckDBVariantValue | null
+    value: DuckDBVariantValue | null
   ): void {
-    throw new Error('Setting VARIANT values is not yet supported.');
+    // Writing a VARIANT value isn't supported yet. setItem(null) is
+    // tolerated as a no-op so a parent struct/list/array can iterate
+    // every child and call setItem(null) on this column without failing
+    // — the read path remains usable inside arbitrary container types.
+    if (value !== null) {
+      throw new Error('Setting VARIANT values is not yet supported.');
+    }
   }
 
   public override flush(): void {
-    throw new Error('Flushing VARIANT vectors is not yet supported.');
+    // No-op: VARIANT is read-only, but a parent vector's flush() will
+    // still call this on every child. Nothing to write back.
   }
 
   public override slice(offset: number, length: number): DuckDBVariantVector {
@@ -4004,23 +4013,25 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
   }
 
   /**
-   * Decode one variant node, identified by its row-local `valueIndex` into
-   * the row's `values` list. `valuesOffset`/`childrenOffset`/`keysOffset`
-   * are the flat backing-array offsets where this row's slices of those
-   * lists begin. `blob` is the row's `data` BLOB bytes; `view` is a
-   * DataView over them.
+   * Decode one variant node identified by its row-local `valueIndex`
+   * (an index into the row's `values` list). Per-row state is bundled in
+   * `row`: the data blob plus the row-local list slice extents and the
+   * absolute backing-array offsets they begin at. All recursive calls
+   * share the same `row`; only `valueIndex` changes.
+   *
+   * Throws if any index decoded from the blob falls outside its row-local
+   * list slice — guards against malformed or hostile VARIANT payloads.
    */
-  private decodeNode(
-    valueIndex: number,
-    valuesOffset: number,
-    childrenOffset: number,
-    keysOffset: number,
-    blob: Uint8Array,
-    view: DataView
-  ): DuckDBValue {
-    const nodeAbs = valuesOffset + valueIndex;
+  private decodeNode(valueIndex: number, row: VariantRow): DuckDBValue {
+    if (valueIndex >= row.valuesLength) {
+      throw new Error(
+        `Malformed VARIANT: value_index ${valueIndex} out of bounds (row values length ${row.valuesLength})`
+      );
+    }
+    const nodeAbs = row.valuesOffset + valueIndex;
     const tag = this.typeIdVec.getItem(nodeAbs) as number;
     const byteOffset = this.byteOffsetVec.getItem(nodeAbs) as number;
+    const { blob, view } = row;
     switch (tag as VariantLogicalType) {
       case VariantLogicalType.VARIANT_NULL:
         return null;
@@ -4122,38 +4133,33 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
       }
       case VariantLogicalType.OBJECT: {
         const { childCount, childrenIdx } = readNestedHeader(view, byteOffset);
+        this.checkChildrenSlice(childrenIdx, childCount, row);
         const entries: { [name: string]: DuckDBValue } = {};
         for (let k = 0; k < childCount; k++) {
-          const entryAbs = childrenOffset + childrenIdx + k;
+          const entryAbs = row.childrenOffset + childrenIdx + k;
           const keyIdx = this.keysIdxVec.getItem(entryAbs) as number;
-          const keyStr = this.keysEntry.getItem(keysOffset + keyIdx) as string;
+          if (keyIdx >= row.keysLength) {
+            throw new Error(
+              `Malformed VARIANT: keys_index ${keyIdx} out of bounds (row keys length ${row.keysLength})`
+            );
+          }
+          const keyStr = this.keysEntry.getItem(
+            row.keysOffset + keyIdx
+          ) as string;
           const valIdx = this.valuesIdxVec.getItem(entryAbs) as number;
-          entries[keyStr] = this.decodeNode(
-            valIdx,
-            valuesOffset,
-            childrenOffset,
-            keysOffset,
-            blob,
-            view
-          );
+          entries[keyStr] = this.decodeNode(valIdx, row);
         }
         return new DuckDBStructValue(entries);
       }
       case VariantLogicalType.ARRAY: {
         const { childCount, childrenIdx } = readNestedHeader(view, byteOffset);
+        this.checkChildrenSlice(childrenIdx, childCount, row);
         const items: DuckDBValue[] = [];
         for (let k = 0; k < childCount; k++) {
-          const entryAbs = childrenOffset + childrenIdx + k;
+          const entryAbs = row.childrenOffset + childrenIdx + k;
           const valIdx = this.valuesIdxVec.getItem(entryAbs) as number;
           items.push(
-            this.decodeNode(
-              valIdx,
-              valuesOffset,
-              childrenOffset,
-              keysOffset,
-              blob,
-              view
-            )
+            this.decodeNode(valIdx, row)
           );
         }
         return new DuckDBListValue(items);
@@ -4162,12 +4168,38 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
         throw new Error(`Unknown VARIANT type id: ${tag}`);
     }
   }
+
+  /** Bounds-check an OBJECT / ARRAY's `[childrenIdx, childrenIdx+childCount)` range. */
+  private checkChildrenSlice(
+    childrenIdx: number,
+    childCount: number,
+    row: VariantRow
+  ): void {
+    if (childrenIdx + childCount > row.childrenLength) {
+      throw new Error(
+        `Malformed VARIANT: children slice [${childrenIdx}, ${childrenIdx + childCount}) out of bounds (row children length ${row.childrenLength})`
+      );
+    }
+  }
+}
+
+/** Per-row state shared across recursive VARIANT decode calls. */
+interface VariantRow {
+  blob: Uint8Array;
+  view: DataView;
+  valuesOffset: number;
+  valuesLength: number;
+  childrenOffset: number;
+  childrenLength: number;
+  keysOffset: number;
+  keysLength: number;
 }
 
 /**
  * Reads a length-prefixed payload (`<varint length><length bytes>`) from a
  * variant data blob. Returns a (possibly aliased) Uint8Array view over the
  * payload bytes — callers that need to retain the data should copy.
+ * Throws if the prefix length would read past the row's blob.
  */
 function readVarintBytes(
   view: DataView,
@@ -4175,6 +4207,11 @@ function readVarintBytes(
   blob: Uint8Array
 ): Uint8Array {
   const { value: length, nextOffset } = varintDecode(view, offset);
+  if (nextOffset + length > blob.byteLength) {
+    throw new Error(
+      `Malformed VARIANT payload: length-prefixed read of ${length} bytes at offset ${nextOffset} exceeds row blob size ${blob.byteLength}`
+    );
+  }
   return new Uint8Array(blob.buffer, blob.byteOffset + nextOffset, length);
 }
 

@@ -4,8 +4,9 @@
  * a continuation flag.
  *
  * Returns the decoded `value` and the byte position `nextOffset` immediately
- * after the varint. Throws if the varint would overflow a 32-bit unsigned
- * value (the format never produces wider varints in this codebase).
+ * after the varint. Throws if the varint:
+ *   - reads past the end of `view` (truncated),
+ *   - exceeds 2**32-1 (overflow).
  *
  * Uses arithmetic (not bitwise) accumulation so values up to 2**32-1
  * round-trip correctly — JS bitwise operators coerce to signed int32 and
@@ -18,18 +19,24 @@ export function varintDecode(
   let value = 0;
   let multiplier = 1;
   let cur = offset;
-  let bits = 0;
   while (true) {
+    if (cur >= view.byteLength) {
+      throw new Error('varint truncated');
+    }
     const byte = view.getUint8(cur++);
     value += (byte & 0x7f) * multiplier;
     if ((byte & 0x80) === 0) {
       break;
     }
     multiplier *= 128;
-    bits += 7;
-    if (bits > 32) {
+    if (multiplier > 0x80000000) {
+      // multiplier == 128**5 means we're about to process a 6th byte —
+      // even a single payload bit beyond would push past 2**32-1.
       throw new Error('varint overflow');
     }
+  }
+  if (value > 0xffffffff) {
+    throw new Error('varint overflow');
   }
   return { value, nextOffset: cur };
 }
