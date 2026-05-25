@@ -1,6 +1,7 @@
 import duckdb, { Value } from '@duckdb/node-bindings';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
+import { typeForValue } from './typeForValue';
 import {
   DuckDBArrayValue,
   DuckDBBitValue,
@@ -23,6 +24,7 @@ import {
   DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
+  DuckDBVariantValue,
 } from './values';
 
 export function createValue(type: DuckDBType, input: DuckDBValue): Value {
@@ -178,11 +180,20 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
             'Cannot create structs with an entry type of ANY. Specify a specific type.'
           );
         }
+        // Pair entries by name rather than positionally so that
+        // `structValue({b: 'x', a: 1})` against `STRUCT({a: INTEGER, b:
+        // VARCHAR})` doesn't silently mispair when the value's insertion
+        // order differs from the type's declared field order.
         return duckdb.create_struct_value(
           type.toLogicalType().logical_type,
-          Object.values(input.entries).map((value, i) =>
-            createValue(type.entryTypes[i], value)
-          )
+          type.entryNames.map((name, i) => {
+            if (!(name in input.entries)) {
+              throw new Error(
+                `STRUCT entry '${name}' is missing from input`
+              );
+            }
+            return createValue(type.entryTypes[i], input.entries[name]);
+          })
         );
       }
       throw new Error(`input is not a DuckDBStructValue`);
@@ -279,13 +290,35 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
         // return duckdb.create_blob(input.bytes);
       }
       throw new Error(`input is not a DuckDBGeometryValue`);
-    case DuckDBTypeId.VARIANT:
-      // Surface the same actionable message regardless of input shape — a
-      // caller who first tries a raw value and then wraps it in
-      // `variantValue(...)` should not see two different errors. When write
-      // is implemented, reintroduce the `input instanceof DuckDBVariantValue`
-      // type-mismatch path.
-      throw new Error(`Creating values of type VARIANT is not yet supported.`);
+    case DuckDBTypeId.VARIANT: {
+      // VARIANT has no direct create primitive in the C API; DuckDB
+      // implicitly casts from any compatible type when the target column
+      // or parameter is VARIANT. Recurse on the input's natural type so
+      // we hand DuckDB a Value it can cast.
+      //
+      // If the input is a DuckDBVariantValue, prefer its embedded `.type`
+      // (set by the decoder from the on-disk variant tag) so heterogeneous
+      // content round-trips faithfully. Fall back to `typeForValue` when
+      // no type hint is attached. The recursion is wrapped so a
+      // mismatched wrapper (e.g. `variantValue('hello', INTEGER)`)
+      // surfaces a VARIANT-flavored error rather than a confusing
+      // `input is not a number` from a sibling case.
+      const inner =
+        input instanceof DuckDBVariantValue ? input.value : input;
+      const innerType =
+        input instanceof DuckDBVariantValue && input.type
+          ? input.type
+          : typeForValue(inner);
+      try {
+        return createValue(innerType, inner);
+      } catch (err) {
+        throw new Error(
+          `Failed to create VARIANT value (inner type ${innerType}): ${
+            (err as Error).message
+          }`
+        );
+      }
+    }
     default:
       throw new Error(`unrecognized type id ${typeId}`);
   }

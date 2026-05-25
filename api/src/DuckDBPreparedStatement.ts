@@ -21,6 +21,7 @@ import {
   TIMESTAMPTZ,
   TIMETZ,
   UUID,
+  VARIANT,
 } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { StatementType } from './enums';
@@ -45,6 +46,7 @@ import {
   DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
+  DuckDBVariantValue,
   listValue,
   structValue,
 } from './values';
@@ -251,6 +253,16 @@ export class DuckDBPreparedStatement {
   }
   public bindBit(parameterIndex: number, value: DuckDBBitValue) {
     this.bindValue(parameterIndex, value, BIT);
+  }
+  public bindVariant(
+    parameterIndex: number,
+    value: DuckDBVariantValue | null
+  ) {
+    if (value === null) {
+      this.bindNull(parameterIndex);
+      return;
+    }
+    this.bindValue(parameterIndex, value, VARIANT);
   }
   public bindNull(parameterIndex: number) {
     duckdb.bind_null(this.prepared_statement, parameterIndex);

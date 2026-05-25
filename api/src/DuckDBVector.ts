@@ -3,7 +3,14 @@ import os from 'os';
 import { varintDecode } from './conversion/varintDecode';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import {
+  BIGINT,
+  BIGNUM,
+  BIT,
   BLOB,
+  BOOLEAN,
+  DATE,
+  DECIMAL,
+  DOUBLE,
   DuckDBArrayType,
   DuckDBBigIntType,
   DuckDBBigNumType,
@@ -42,11 +49,32 @@ import {
   DuckDBUnionType,
   DuckDBVarCharType,
   DuckDBVariantType,
+  FLOAT,
+  GEOMETRY,
+  HUGEINT,
+  INTEGER,
+  INTERVAL,
   LIST,
+  SMALLINT,
+  SQLNULL,
   STRUCT,
+  TIME,
+  TIME_NS,
+  TIMESTAMP,
+  TIMESTAMPTZ,
+  TIMESTAMP_MS,
+  TIMESTAMP_NS,
+  TIMESTAMP_S,
+  TIMETZ,
+  TINYINT,
+  UBIGINT,
+  UHUGEINT,
   UINTEGER,
+  USMALLINT,
   UTINYINT,
+  UUID,
   VARCHAR,
+  VARIANT,
 } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import {
@@ -3990,7 +4018,8 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
       keysOffset: this.keysList.getEntryOffset(itemIndex),
       keysLength: this.keysList.getEntryLength(itemIndex),
     };
-    return new DuckDBVariantValue(this.decodeNode(0, row));
+    const root = this.decodeNode(0, row);
+    return new DuckDBVariantValue(root.value, root.type);
   }
 
   public override setItem(
@@ -4022,10 +4051,17 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
    * absolute backing-array offsets they begin at. All recursive calls
    * share the same `row`; only `valueIndex` changes.
    *
+   * Returns both the decoded value and the `DuckDBType` corresponding to
+   * the node's on-disk tag, so the top-level caller can attach the type
+   * to the resulting `DuckDBVariantValue` for round-trip fidelity.
+   *
    * Throws if any index decoded from the blob falls outside its row-local
    * list slice — guards against malformed or hostile VARIANT payloads.
    */
-  private decodeNode(valueIndex: number, row: VariantRow): DuckDBValue {
+  private decodeNode(
+    valueIndex: number,
+    row: VariantRow
+  ): { value: DuckDBValue; type: DuckDBType } {
     if (valueIndex >= row.valuesLength) {
       throw new Error(
         `Malformed VARIANT: value_index ${valueIndex} out of bounds (row values length ${row.valuesLength})`
@@ -4037,82 +4073,134 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
     const { blob, view } = row;
     switch (tag as VariantLogicalType) {
       case VariantLogicalType.VARIANT_NULL:
-        return null;
+        return { value: null, type: SQLNULL };
       case VariantLogicalType.BOOL_TRUE:
-        return true;
+        return { value: true, type: BOOLEAN };
       case VariantLogicalType.BOOL_FALSE:
-        return false;
+        return { value: false, type: BOOLEAN };
       case VariantLogicalType.INT8:
-        return view.getInt8(byteOffset);
+        return { value: view.getInt8(byteOffset), type: TINYINT };
       case VariantLogicalType.INT16:
-        return getInt16(view, byteOffset);
+        return { value: getInt16(view, byteOffset), type: SMALLINT };
       case VariantLogicalType.INT32:
-        return getInt32(view, byteOffset);
+        return { value: getInt32(view, byteOffset), type: INTEGER };
       case VariantLogicalType.INT64:
-        return getInt64(view, byteOffset);
+        return { value: getInt64(view, byteOffset), type: BIGINT };
       case VariantLogicalType.INT128:
-        return getInt128(view, byteOffset);
+        return { value: getInt128(view, byteOffset), type: HUGEINT };
       case VariantLogicalType.UINT8:
-        return getUInt8(view, byteOffset);
+        return { value: getUInt8(view, byteOffset), type: UTINYINT };
       case VariantLogicalType.UINT16:
-        return getUInt16(view, byteOffset);
+        return { value: getUInt16(view, byteOffset), type: USMALLINT };
       case VariantLogicalType.UINT32:
-        return getUInt32(view, byteOffset);
+        return { value: getUInt32(view, byteOffset), type: UINTEGER };
       case VariantLogicalType.UINT64:
-        return getUInt64(view, byteOffset);
+        return { value: getUInt64(view, byteOffset), type: UBIGINT };
       case VariantLogicalType.UINT128:
-        return getUInt128(view, byteOffset);
+        return { value: getUInt128(view, byteOffset), type: UHUGEINT };
       case VariantLogicalType.FLOAT:
-        return view.getFloat32(byteOffset, littleEndian);
+        return {
+          value: view.getFloat32(byteOffset, littleEndian),
+          type: FLOAT,
+        };
       case VariantLogicalType.DOUBLE:
-        return view.getFloat64(byteOffset, littleEndian);
+        return {
+          value: view.getFloat64(byteOffset, littleEndian),
+          type: DOUBLE,
+        };
       case VariantLogicalType.UUID:
-        return DuckDBUUIDValue.fromStoredHugeInt(getInt128(view, byteOffset));
+        return {
+          value: DuckDBUUIDValue.fromStoredHugeInt(getInt128(view, byteOffset)),
+          type: UUID,
+        };
       case VariantLogicalType.DATE:
-        return new DuckDBDateValue(getInt32(view, byteOffset));
+        return {
+          value: new DuckDBDateValue(getInt32(view, byteOffset)),
+          type: DATE,
+        };
       case VariantLogicalType.TIME_MICROS:
-        return new DuckDBTimeValue(getInt64(view, byteOffset));
+        return {
+          value: new DuckDBTimeValue(getInt64(view, byteOffset)),
+          type: TIME,
+        };
       case VariantLogicalType.TIME_NANOS:
-        return new DuckDBTimeNSValue(getInt64(view, byteOffset));
+        return {
+          value: new DuckDBTimeNSValue(getInt64(view, byteOffset)),
+          type: TIME_NS,
+        };
       case VariantLogicalType.TIME_MICROS_TZ:
-        return DuckDBTimeTZValue.fromBits(getUInt64(view, byteOffset));
+        return {
+          value: DuckDBTimeTZValue.fromBits(getUInt64(view, byteOffset)),
+          type: TIMETZ,
+        };
       case VariantLogicalType.TIMESTAMP_SEC:
-        return new DuckDBTimestampSecondsValue(getInt64(view, byteOffset));
+        return {
+          value: new DuckDBTimestampSecondsValue(getInt64(view, byteOffset)),
+          type: TIMESTAMP_S,
+        };
       case VariantLogicalType.TIMESTAMP_MILIS:
-        return new DuckDBTimestampMillisecondsValue(getInt64(view, byteOffset));
+        return {
+          value: new DuckDBTimestampMillisecondsValue(
+            getInt64(view, byteOffset)
+          ),
+          type: TIMESTAMP_MS,
+        };
       case VariantLogicalType.TIMESTAMP_MICROS:
-        return new DuckDBTimestampValue(getInt64(view, byteOffset));
+        return {
+          value: new DuckDBTimestampValue(getInt64(view, byteOffset)),
+          type: TIMESTAMP,
+        };
       case VariantLogicalType.TIMESTAMP_NANOS:
-        return new DuckDBTimestampNanosecondsValue(getInt64(view, byteOffset));
+        return {
+          value: new DuckDBTimestampNanosecondsValue(
+            getInt64(view, byteOffset)
+          ),
+          type: TIMESTAMP_NS,
+        };
       case VariantLogicalType.TIMESTAMP_MICROS_TZ:
-        return new DuckDBTimestampTZValue(getInt64(view, byteOffset));
+        return {
+          value: new DuckDBTimestampTZValue(getInt64(view, byteOffset)),
+          type: TIMESTAMPTZ,
+        };
       case VariantLogicalType.INTERVAL:
-        return new DuckDBIntervalValue(
-          getInt32(view, byteOffset),
-          getInt32(view, byteOffset + 4),
-          getInt64(view, byteOffset + 8)
-        );
+        return {
+          value: new DuckDBIntervalValue(
+            getInt32(view, byteOffset),
+            getInt32(view, byteOffset + 4),
+            getInt64(view, byteOffset + 8)
+          ),
+          type: INTERVAL,
+        };
       case VariantLogicalType.VARCHAR: {
         const bytes = readVarintBytes(view, byteOffset, blob);
-        return textDecoder.decode(bytes);
+        return { value: textDecoder.decode(bytes), type: VARCHAR };
       }
       case VariantLogicalType.BLOB: {
         // Copy out — the bytes alias the underlying vector storage, which
         // we don't want to share through to user code.
         const bytes = readVarintBytes(view, byteOffset, blob);
-        return new DuckDBBlobValue(new Uint8Array(bytes));
+        return {
+          value: new DuckDBBlobValue(new Uint8Array(bytes)),
+          type: BLOB,
+        };
       }
       case VariantLogicalType.BITSTRING: {
         const bytes = readVarintBytes(view, byteOffset, blob);
-        return new DuckDBBitValue(new Uint8Array(bytes));
+        return {
+          value: new DuckDBBitValue(new Uint8Array(bytes)),
+          type: BIT,
+        };
       }
       case VariantLogicalType.BIGNUM: {
         const bytes = readVarintBytes(view, byteOffset, blob);
-        return getBigNumFromBytes(bytes);
+        return { value: getBigNumFromBytes(bytes), type: BIGNUM };
       }
       case VariantLogicalType.GEOMETRY: {
         const bytes = readVarintBytes(view, byteOffset, blob);
-        return new DuckDBGeometryValue(new Uint8Array(bytes));
+        return {
+          value: new DuckDBGeometryValue(new Uint8Array(bytes)),
+          type: GEOMETRY,
+        };
       }
       case VariantLogicalType.DECIMAL: {
         const wParse = varintDecode(view, byteOffset);
@@ -4132,12 +4220,16 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
         } else {
           throw new Error(`VARIANT DECIMAL width too large: ${width}`);
         }
-        return new DuckDBDecimalValue(intValue, width, scale);
+        return {
+          value: new DuckDBDecimalValue(intValue, width, scale),
+          type: DECIMAL(width, scale),
+        };
       }
       case VariantLogicalType.OBJECT: {
         const { childCount, childrenIdx } = readNestedHeader(view, byteOffset);
         this.checkChildrenSlice(childrenIdx, childCount, row);
         const entries: { [name: string]: DuckDBValue } = {};
+        const fields: { [name: string]: DuckDBType } = {};
         for (let k = 0; k < childCount; k++) {
           const entryAbs = row.childrenOffset + childrenIdx + k;
           const keyIdx = this.keysIdxVec.getItem(entryAbs) as number;
@@ -4150,22 +4242,50 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
             row.keysOffset + keyIdx
           ) as string;
           const valIdx = this.valuesIdxVec.getItem(entryAbs) as number;
-          entries[keyStr] = this.decodeNode(valIdx, row);
+          const child = this.decodeNode(valIdx, row);
+          entries[keyStr] = child.value;
+          fields[keyStr] = child.type;
         }
-        return new DuckDBStructValue(entries);
+        return {
+          value: new DuckDBStructValue(entries),
+          type: STRUCT(fields),
+        };
       }
       case VariantLogicalType.ARRAY: {
         const { childCount, childrenIdx } = readNestedHeader(view, byteOffset);
         this.checkChildrenSlice(childrenIdx, childCount, row);
-        const items: DuckDBValue[] = [];
+        // Decode all children first so we can decide whether their types
+        // are uniform. If they are (treating SQLNULL as compatible with
+        // any sibling, so e.g. [1, 2, null] reads as LIST(UBIGINT)), use
+        // `LIST(commonType)` with bare items — that's a Value the C API's
+        // create_list_value will accept, and it round-trips through
+        // bind/append cleanly. Otherwise fall back to `LIST(VARIANT)`
+        // with non-null items wrapped to preserve their type; null items
+        // remain bare to match how column-level LIST(VARIANT) decodes a
+        // null element.
+        const children: { value: DuckDBValue; type: DuckDBType }[] = [];
         for (let k = 0; k < childCount; k++) {
           const entryAbs = row.childrenOffset + childrenIdx + k;
           const valIdx = this.valuesIdxVec.getItem(entryAbs) as number;
-          items.push(
-            this.decodeNode(valIdx, row)
-          );
+          children.push(this.decodeNode(valIdx, row));
         }
-        return new DuckDBListValue(items);
+        const commonType = uniformVariantChildType(children);
+        if (commonType !== null) {
+          return {
+            value: new DuckDBListValue(children.map((c) => c.value)),
+            type: LIST(commonType),
+          };
+        }
+        return {
+          value: new DuckDBListValue(
+            children.map((c) =>
+              c.value === null
+                ? null
+                : new DuckDBVariantValue(c.value, c.type),
+            ),
+          ),
+          type: LIST(VARIANT),
+        };
       }
       default:
         throw new Error(`Unknown VARIANT type id: ${tag}`);
@@ -4184,6 +4304,50 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
       );
     }
   }
+}
+
+/**
+ * Returns the shared DuckDBType if every non-null child has the same type,
+ * or `null` if non-null children differ. Used to pick between
+ * `LIST(commonType)` and `LIST(VARIANT)` for a decoded ARRAY.
+ *
+ * SQLNULL children are treated as compatible with any sibling — that way a
+ * very common JSON shape like `[1, 2, null]` decodes as `LIST(UBIGINT)`
+ * with a bare null element rather than `LIST(VARIANT)`. An array whose
+ * children are all SQLNULL (including the empty array) collapses to
+ * SQLNULL itself — DuckDB casts `LIST(SQLNULL)` to VARIANT for round-trip,
+ * but a `LIST(VARIANT)` of nulls or an empty `LIST(VARIANT)` doesn't
+ * survive `create_list_value`.
+ */
+function uniformVariantChildType(
+  children: { value: DuckDBValue; type: DuckDBType }[]
+): DuckDBType | null {
+  let common: DuckDBType | null = null;
+  let commonKey: string | null = null;
+  for (const child of children) {
+    if (child.type.typeId === DuckDBTypeId.SQLNULL) {
+      continue;
+    }
+    const key = typeKey(child.type);
+    if (common === null) {
+      common = child.type;
+      commonKey = key;
+    } else if (key !== commonKey) {
+      return null;
+    }
+  }
+  // All children (if any) are SQLNULL: collapse to SQLNULL.
+  return common ?? SQLNULL;
+}
+
+/**
+ * Returns a canonical string for a DuckDBType, suitable for equality
+ * comparison between types produced by the same decode pass. Uses the
+ * structured `toJson()` representation rather than the SQL-syntactic
+ * `toString()` so nested types compare structurally.
+ */
+function typeKey(type: DuckDBType): string {
+  return JSON.stringify(type.toJson());
 }
 
 /** Per-row state shared across recursive VARIANT decode calls. */
