@@ -19,6 +19,7 @@ import {
   TIMESTAMPTZ,
   TIMETZ,
   UUID,
+  VARIANT,
 } from './DuckDBType';
 import { typeForValue } from './typeForValue';
 import {
@@ -41,6 +42,7 @@ import {
   DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
+  DuckDBVariantValue,
   listValue,
   structValue,
 } from './values';
@@ -190,6 +192,9 @@ export class DuckDBAppender {
   }
   public appendBigNum(value: bigint) {
     this.appendValue(value, BIGNUM);
+  }
+  public appendVariant(value: DuckDBVariantValue) {
+    this.appendValue(value, VARIANT);
   }
   public appendNull() {
     duckdb.append_null(this.appender);

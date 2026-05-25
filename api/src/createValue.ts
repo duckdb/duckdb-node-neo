@@ -1,6 +1,7 @@
 import duckdb, { Value } from '@duckdb/node-bindings';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
+import { typeForValue } from './typeForValue';
 import {
   DuckDBArrayValue,
   DuckDBBitValue,
@@ -23,6 +24,7 @@ import {
   DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
+  DuckDBVariantValue,
 } from './values';
 
 export function createValue(type: DuckDBType, input: DuckDBValue): Value {
@@ -279,13 +281,25 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
         // return duckdb.create_blob(input.bytes);
       }
       throw new Error(`input is not a DuckDBGeometryValue`);
-    case DuckDBTypeId.VARIANT:
-      // Surface the same actionable message regardless of input shape — a
-      // caller who first tries a raw value and then wraps it in
-      // `variantValue(...)` should not see two different errors. When write
-      // is implemented, reintroduce the `input instanceof DuckDBVariantValue`
-      // type-mismatch path.
-      throw new Error(`Creating values of type VARIANT is not yet supported.`);
+    case DuckDBTypeId.VARIANT: {
+      // VARIANT has no direct create primitive in the C API; DuckDB
+      // implicitly casts from any compatible type when the target column
+      // or parameter is VARIANT. Recurse on the input's natural type so
+      // we hand DuckDB a Value it can cast.
+      //
+      // If the input is a DuckDBVariantValue, prefer its embedded `.type`
+      // (set by the decoder from the on-disk variant tag) so heterogeneous
+      // content round-trips faithfully. Fall back to `typeForValue` when
+      // no type hint is attached.
+      if (input instanceof DuckDBVariantValue) {
+        const inner = input.value;
+        if (inner === null) {
+          return duckdb.create_null_value();
+        }
+        return createValue(input.type ?? typeForValue(inner), inner);
+      }
+      return createValue(typeForValue(input), input);
+    }
     default:
       throw new Error(`unrecognized type id ${typeId}`);
   }
