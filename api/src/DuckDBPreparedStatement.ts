@@ -254,7 +254,14 @@ export class DuckDBPreparedStatement {
   public bindBit(parameterIndex: number, value: DuckDBBitValue) {
     this.bindValue(parameterIndex, value, BIT);
   }
-  public bindVariant(parameterIndex: number, value: DuckDBVariantValue) {
+  public bindVariant(
+    parameterIndex: number,
+    value: DuckDBVariantValue | null
+  ) {
+    if (value === null) {
+      this.bindNull(parameterIndex);
+      return;
+    }
     this.bindValue(parameterIndex, value, VARIANT);
   }
   public bindNull(parameterIndex: number) {

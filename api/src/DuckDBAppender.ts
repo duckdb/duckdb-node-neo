@@ -193,7 +193,11 @@ export class DuckDBAppender {
   public appendBigNum(value: bigint) {
     this.appendValue(value, BIGNUM);
   }
-  public appendVariant(value: DuckDBVariantValue) {
+  public appendVariant(value: DuckDBVariantValue | null) {
+    if (value === null) {
+      this.appendNull();
+      return;
+    }
     this.appendValue(value, VARIANT);
   }
   public appendNull() {

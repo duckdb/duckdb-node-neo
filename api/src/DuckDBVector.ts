@@ -4255,12 +4255,14 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
         const { childCount, childrenIdx } = readNestedHeader(view, byteOffset);
         this.checkChildrenSlice(childrenIdx, childCount, row);
         // Decode all children first so we can decide whether their types
-        // are uniform. If they are, use `LIST(commonType)` with bare items
-        // — that's a Value the C API's create_list_value will accept, and
-        // it round-trips through bind/append cleanly. Otherwise fall back
-        // to `LIST(VARIANT)` with each item wrapped to preserve its type
-        // (heterogeneous case: round-trip via prepared bind is not
-        // supported by create_list_value).
+        // are uniform. If they are (treating SQLNULL as compatible with
+        // any sibling, so e.g. [1, 2, null] reads as LIST(UBIGINT)), use
+        // `LIST(commonType)` with bare items — that's a Value the C API's
+        // create_list_value will accept, and it round-trips through
+        // bind/append cleanly. Otherwise fall back to `LIST(VARIANT)`
+        // with non-null items wrapped to preserve their type; null items
+        // remain bare to match how column-level LIST(VARIANT) decodes a
+        // null element.
         const children: { value: DuckDBValue; type: DuckDBType }[] = [];
         for (let k = 0; k < childCount; k++) {
           const entryAbs = row.childrenOffset + childrenIdx + k;
@@ -4276,7 +4278,11 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
         }
         return {
           value: new DuckDBListValue(
-            children.map((c) => new DuckDBVariantValue(c.value, c.type)),
+            children.map((c) =>
+              c.value === null
+                ? null
+                : new DuckDBVariantValue(c.value, c.type),
+            ),
           ),
           type: LIST(VARIANT),
         };
@@ -4301,24 +4307,47 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
 }
 
 /**
- * Returns the shared DuckDBType if every child has the same canonical type
- * (via `toString` equality), or `null` if any child differs. Used to pick
- * between `LIST(commonType)` and `LIST(VARIANT)` for a decoded ARRAY.
+ * Returns the shared DuckDBType if every non-null child has the same type,
+ * or `null` if non-null children differ. Used to pick between
+ * `LIST(commonType)` and `LIST(VARIANT)` for a decoded ARRAY.
+ *
+ * SQLNULL children are treated as compatible with any sibling — that way a
+ * very common JSON shape like `[1, 2, null]` decodes as `LIST(UBIGINT)`
+ * with a bare null element rather than `LIST(VARIANT)`. An array whose
+ * children are all SQLNULL (including the empty array) collapses to
+ * SQLNULL itself — DuckDB casts `LIST(SQLNULL)` to VARIANT for round-trip,
+ * but a `LIST(VARIANT)` of nulls or an empty `LIST(VARIANT)` doesn't
+ * survive `create_list_value`.
  */
 function uniformVariantChildType(
   children: { value: DuckDBValue; type: DuckDBType }[]
 ): DuckDBType | null {
-  if (children.length === 0) {
-    return null;
-  }
-  const first = children[0].type;
-  const firstString = first.toString();
-  for (let i = 1; i < children.length; i++) {
-    if (children[i].type.toString() !== firstString) {
+  let common: DuckDBType | null = null;
+  let commonKey: string | null = null;
+  for (const child of children) {
+    if (child.type.typeId === DuckDBTypeId.SQLNULL) {
+      continue;
+    }
+    const key = typeKey(child.type);
+    if (common === null) {
+      common = child.type;
+      commonKey = key;
+    } else if (key !== commonKey) {
       return null;
     }
   }
-  return first;
+  // All children (if any) are SQLNULL: collapse to SQLNULL.
+  return common ?? SQLNULL;
+}
+
+/**
+ * Returns a canonical string for a DuckDBType, suitable for equality
+ * comparison between types produced by the same decode pass. Uses the
+ * structured `toJson()` representation rather than the SQL-syntactic
+ * `toString()` so nested types compare structurally.
+ */
+function typeKey(type: DuckDBType): string {
+  return JSON.stringify(type.toJson());
 }
 
 /** Per-row state shared across recursive VARIANT decode calls. */

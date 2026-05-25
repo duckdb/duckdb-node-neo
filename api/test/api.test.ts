@@ -3022,9 +3022,10 @@ ORDER BY name
           `select '[1, "two", null, true]'::JSON::VARIANT as v`,
         );
         const chunk = await result.fetchChunk();
-        // ARRAY children carry their own tags; each is wrapped as a
-        // variantValue with its inner type. The outer list type is
-        // LIST(VARIANT).
+        // Non-null children carry differing tags so the list stays
+        // LIST(VARIANT) with each non-null item wrapped. A null child
+        // remains bare to match how a column-level LIST(VARIANT) decodes
+        // a NULL element.
         assertValues<DuckDBVariantValue, DuckDBVariantVector>(
           chunk!,
           0,
@@ -3034,7 +3035,7 @@ ORDER BY name
               listValue([
                 variantValue(1n, UBIGINT),
                 variantValue('two', VARCHAR),
-                variantValue(null, SQLNULL),
+                null,
                 variantValue(true, BOOLEAN),
               ]),
               LIST(VARIANT),
@@ -3050,6 +3051,9 @@ ORDER BY name
           `select '{"outer": [1, {"inner": "leaf"}, [null, true]]}'::JSON::VARIANT as v`,
         );
         const chunk = await result.fetchChunk();
+        // The innermost [null, true] homogenizes to LIST(BOOLEAN) — null
+        // is compatible with any sibling type. The outer array remains
+        // heterogeneous (number / struct / list) so it's LIST(VARIANT).
         assertValues<DuckDBVariantValue, DuckDBVariantVector>(
           chunk!,
           0,
@@ -3063,13 +3067,7 @@ ORDER BY name
                     structValue({ inner: 'leaf' }),
                     STRUCT({ inner: VARCHAR }),
                   ),
-                  variantValue(
-                    listValue([
-                      variantValue(null, SQLNULL),
-                      variantValue(true, BOOLEAN),
-                    ]),
-                    LIST(VARIANT),
-                  ),
+                  variantValue(listValue([null, true]), LIST(BOOLEAN)),
                 ]),
               }),
               STRUCT({ outer: LIST(VARIANT) }),
@@ -3307,18 +3305,21 @@ ORDER BY name
     // Regression tests for code-review fixes.
 
     test('UINTEGER max routes through the JS / JSON converters', async () => {
-      // typeForValue infers BIGINT for a number > INT32 max; the variant
-      // walker now coerces such numbers to bigint before dispatching, so
-      // bigintFromBigIntValue / stringFromValue both succeed.
+      // The decoder records the exact UINTEGER type on the wrapper, so the
+      // converter dispatches via UINTEGER → numberFromValue and the value
+      // stays a JS number. (Without the type hint, `typeForValue` would
+      // infer BIGINT for a number > INT32 max and the variant walker
+      // would coerce to bigint as a fallback — exercised separately for
+      // unwrapped numeric values.)
       await withConnection(async (connection) => {
         const reader = await connection.runAndReadAll(
           `select 4294967295::UINTEGER::VARIANT as u`,
         );
         assert.deepStrictEqual(reader.getRowObjectsJS(), [
-          { u: 4294967295n },
+          { u: 4294967295 },
         ]);
         assert.deepStrictEqual(reader.getRowObjectsJson(), [
-          { u: '4294967295' },
+          { u: 4294967295 },
         ]);
       });
     });
@@ -3516,9 +3517,11 @@ ORDER BY name
     test('heterogeneous LIST(VARIANT) cannot be bound directly', async () => {
       // The C API's create_list_value rejects a list of values with
       // heterogeneous physical types, so a decoded `LIST(VARIANT)` (which
-      // wraps each element to preserve mixed types) cannot be bound back
-      // through a prepared statement. Pin the failure so we notice if the
-      // surface changes.
+      // wraps each non-null element to preserve mixed types) cannot be
+      // bound back through a prepared statement. Pin the failure so we
+      // notice if the surface changes. The error wording originates in
+      // the native bindings — if it changes phrasing across DuckDB
+      // versions, update the regex.
       await withConnection(async (connection) => {
         const r1 = await connection.runAndReadAll(
           `select '[1, "two"]'::JSON::VARIANT as v`,
@@ -3529,7 +3532,110 @@ ORDER BY name
         const prepared = await connection.prepare(`select ?::VARIANT as v`);
         assert.throws(
           () => prepared.bindVariant(1, decoded),
-          /Failed to create list value/,
+          /Failed to create (?:VARIANT value.*?Failed to create )?list value/,
+        );
+      });
+    });
+
+    // Round-trip coverage for the SQLNULL-compatible homogenize logic.
+
+    test('[1, 2, null] homogenizes to LIST(UBIGINT) with a bare null', async () => {
+      await withConnection(async (connection) => {
+        const r1 = await connection.runAndReadAll(
+          `select '[1, 2, null]'::JSON::VARIANT as v`,
+        );
+        const decoded = r1.getRowObjects()[0].v as DuckDBVariantValue;
+        assert.deepStrictEqual(decoded, variantValue(
+          listValue([1n, 2n, null]),
+          LIST(UBIGINT),
+        ));
+        // And round-trips back through bindVariant.
+        const p = await connection.prepare(`select ?::VARIANT as v`);
+        p.bindVariant(1, decoded);
+        const r2 = await p.runAndReadAll();
+        assert.deepStrictEqual(r2.getRowObjects()[0].v, decoded);
+      });
+    });
+
+    test('[null, null] collapses to LIST(SQLNULL) and round-trips', async () => {
+      await withConnection(async (connection) => {
+        const r1 = await connection.runAndReadAll(
+          `select '[null, null]'::JSON::VARIANT as v`,
+        );
+        const decoded = r1.getRowObjects()[0].v as DuckDBVariantValue;
+        assert.deepStrictEqual(decoded, variantValue(
+          listValue([null, null]),
+          LIST(SQLNULL),
+        ));
+        const p = await connection.prepare(`select ?::VARIANT as v`);
+        p.bindVariant(1, decoded);
+        const r2 = await p.runAndReadAll();
+        assert.deepStrictEqual(r2.getRowObjects()[0].v, decoded);
+      });
+    });
+
+    test('empty [] decodes as LIST(SQLNULL) and round-trips', async () => {
+      await withConnection(async (connection) => {
+        const r1 = await connection.runAndReadAll(
+          `select '[]'::JSON::VARIANT as v`,
+        );
+        const decoded = r1.getRowObjects()[0].v as DuckDBVariantValue;
+        assert.deepStrictEqual(decoded, variantValue(listValue([]), LIST(SQLNULL)));
+        const p = await connection.prepare(`select ?::VARIANT as v`);
+        p.bindVariant(1, decoded);
+        const r2 = await p.runAndReadAll();
+        assert.deepStrictEqual(r2.getRowObjects()[0].v, decoded);
+      });
+    });
+
+    test('empty {} decodes as STRUCT() and round-trips', async () => {
+      await withConnection(async (connection) => {
+        const r1 = await connection.runAndReadAll(
+          `select '{}'::JSON::VARIANT as v`,
+        );
+        const decoded = r1.getRowObjects()[0].v as DuckDBVariantValue;
+        assert.deepStrictEqual(decoded, variantValue(structValue({}), STRUCT({})));
+        const p = await connection.prepare(`select ?::VARIANT as v`);
+        p.bindVariant(1, decoded);
+        const r2 = await p.runAndReadAll();
+        assert.deepStrictEqual(r2.getRowObjects()[0].v, decoded);
+      });
+    });
+
+    test('STRUCT VARIANT containing a SQLNULL-typed field round-trips', async () => {
+      // Covers the case where a struct field is JSON-null; the decoder
+      // captures the field type as SQLNULL and the bind path must accept
+      // it (top-level null shortcut in createValue handles the inner null).
+      await withConnection(async (connection) => {
+        const r1 = await connection.runAndReadAll(
+          `select '{"a": 1, "b": null}'::JSON::VARIANT as v`,
+        );
+        const decoded = r1.getRowObjects()[0].v as DuckDBVariantValue;
+        const p = await connection.prepare(`select ?::VARIANT as v`);
+        p.bindVariant(1, decoded);
+        const r2 = await p.runAndReadAll();
+        assert.deepStrictEqual(r2.getRowObjects()[0].v, decoded);
+      });
+    });
+
+    test('bindVariant accepts null (short-circuits to bindNull)', async () => {
+      await withConnection(async (connection) => {
+        const prepared = await connection.prepare(`select ?::VARIANT as v`);
+        prepared.bindVariant(1, null);
+        const reader = await prepared.runAndReadAll();
+        assert.deepStrictEqual(reader.getRowObjects(), [{ v: null }]);
+      });
+    });
+
+    test('mismatched DuckDBVariantValue wrapper produces a VARIANT-context error', async () => {
+      // `variantValue('hello', INTEGER)` claims the inner value is an
+      // integer but it's actually a string. The error message should
+      // surface the VARIANT context to aid debugging.
+      await withConnection(async (connection) => {
+        const prepared = await connection.prepare(`select ?::VARIANT as v`);
+        assert.throws(
+          () => prepared.bindVariant(1, variantValue('hello', INTEGER)),
+          /Failed to create VARIANT value.*input is not a number/,
         );
       });
     });
