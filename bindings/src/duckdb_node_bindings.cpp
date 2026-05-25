@@ -1853,6 +1853,8 @@ public:
 
       InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
 
+      InstanceMethod("geometry_type_get_crs", &DuckDBNodeAddon::geometry_type_get_crs),
+
       InstanceMethod("get_data_from_pointer", &DuckDBNodeAddon::get_data_from_pointer),
       InstanceMethod("copy_data_to_vector", &DuckDBNodeAddon::copy_data_to_vector),
       InstanceMethod("copy_data_to_vector_validity", &DuckDBNodeAddon::copy_data_to_vector_validity),
@@ -5708,7 +5710,18 @@ private:
   // TODO log storage
 
   // DUCKDB_C_API char *duckdb_geometry_type_get_crs(duckdb_logical_type type);
-  // TODO geometry
+  // function geometry_type_get_crs(logical_type: LogicalType): string | null
+  Napi::Value geometry_type_get_crs(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto crs = duckdb_geometry_type_get_crs(logical_type);
+    if (!crs) {
+      return env.Null();
+    }
+    auto str = Napi::String::New(env, crs);
+    duckdb_free(crs);
+    return str;
+  }
 
   // ADDED
   // function get_data_from_pointer(array_buffer: ArrayBuffer, pointer_offset: number, byte_count: number): Uint8Array
@@ -5757,10 +5770,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 546 DUCKDB_C_API
-    270 function
+    271 function
      25 not exposed
      41 deprecated
-    210 TODO
+    209 TODO
         8 arrow
         5 error data
         2 utf8
@@ -5794,7 +5807,6 @@ NODE_API_ADDON(DuckDBNodeAddon)
        36 copy function
         7 catalog
         6 log storage
-        1 geometry
   3 ADDED
 ---
 549 total
