@@ -32,6 +32,7 @@ import {
   DuckDBEnum32Vector,
   DuckDBEnum8Vector,
   DuckDBFloatVector,
+  DuckDBGeometryType,
   DuckDBHugeIntVector,
   DuckDBInstance,
   DuckDBIntegerVector,
@@ -3299,6 +3300,48 @@ ORDER BY name
           DuckDBVariantVector,
           [variantValue(geometryValue(pointWkb), GEOMETRY)],
         );
+      });
+    });
+
+    test('DuckDBGeometryType exposes the CRS from the logical type', async () => {
+      // Direct construction: crs is preserved, and the cached `instance` is
+      // only used when both alias and crs are absent.
+      const explicit = DuckDBGeometryType.create(undefined, 'GEOGCRS["x"]');
+      assert.strictEqual(explicit.crs, 'GEOGCRS["x"]');
+      assert.notStrictEqual(explicit, DuckDBGeometryType.instance);
+      assert.strictEqual(DuckDBGeometryType.create(), DuckDBGeometryType.instance);
+      assert.strictEqual(DuckDBGeometryType.instance.crs, undefined);
+
+      // toString / toJson include the CRS when present.
+      assert.strictEqual(DuckDBGeometryType.instance.toString(), 'GEOMETRY');
+      assert.strictEqual(explicit.toString(), `GEOMETRY('GEOGCRS["x"]')`);
+      assert.deepStrictEqual(DuckDBGeometryType.instance.toJson(), {
+        typeId: DuckDBTypeId.GEOMETRY,
+      });
+      assert.deepStrictEqual(explicit.toJson(), {
+        typeId: DuckDBTypeId.GEOMETRY,
+        crs: 'GEOGCRS["x"]',
+      });
+      // CRS strings containing single quotes are escaped in toString.
+      assert.strictEqual(
+        new DuckDBGeometryType(undefined, `it's`).toString(),
+        `GEOMETRY('it''s')`,
+      );
+
+      // Round-trip through SQL: `column_logical_type` -> `asType()` should
+      // produce a DuckDBGeometryType carrying the CRS.
+      await withConnection(async (connection) => {
+        const withCrs = await connection.run(
+          `SELECT 'POINT(1 2)'::GEOMETRY('GEOGCRS["x"]') AS g`,
+        );
+        const withCrsType = withCrs.columnTypes()[0];
+        assert.ok(withCrsType instanceof DuckDBGeometryType);
+        assert.strictEqual(withCrsType.crs, 'GEOGCRS["x"]');
+
+        const plain = await connection.run(`SELECT 'POINT(1 2)'::GEOMETRY AS g`);
+        const plainType = plain.columnTypes()[0];
+        assert.ok(plainType instanceof DuckDBGeometryType);
+        assert.strictEqual(plainType.crs, undefined);
       });
     });
 

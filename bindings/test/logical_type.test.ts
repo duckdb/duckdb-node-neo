@@ -1,5 +1,6 @@
 import duckdb from '@duckdb/node-bindings';
 import { expect, suite, test } from 'vitest';
+import { withConnection } from './utils/withConnection';
 
 suite('logical_type', () => {
   test('create, get id, get/set alias, and destroy', () => {
@@ -142,5 +143,25 @@ suite('logical_type', () => {
     expect(duckdb.get_type_id(union_type)).toBe(duckdb.Type.UNION);
     expect(duckdb.logical_type_get_alias(union_type)).toBeNull();
     expect(duckdb.union_type_member_count(union_type)).toBe(0);
+  });
+  test('geometry (no crs)', () => {
+    const geometry_type = duckdb.create_logical_type(duckdb.Type.GEOMETRY);
+    expect(duckdb.get_type_id(geometry_type)).toBe(duckdb.Type.GEOMETRY);
+    expect(duckdb.geometry_type_get_crs(geometry_type)).toBeNull();
+  });
+  test('geometry (with crs)', async () => {
+    await withConnection(async (connection) => {
+      const result = await duckdb.query(
+        connection,
+        `SELECT 'POINT(1 2)'::GEOMETRY('GEOGCRS["x"]') AS g`,
+      );
+      const geometry_type = duckdb.column_logical_type(result, 0);
+      expect(duckdb.get_type_id(geometry_type)).toBe(duckdb.Type.GEOMETRY);
+      expect(duckdb.geometry_type_get_crs(geometry_type)).toBe('GEOGCRS["x"]');
+    });
+  });
+  test('geometry_type_get_crs returns null for non-geometry types', () => {
+    const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    expect(duckdb.geometry_type_get_crs(int_type)).toBeNull();
   });
 });

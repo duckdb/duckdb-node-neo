@@ -66,6 +66,8 @@ export class DuckDBLogicalType {
         return new DuckDBArrayLogicalType(logical_type);
       case duckdb.Type.UNION:
         return new DuckDBUnionLogicalType(logical_type);
+      case duckdb.Type.GEOMETRY:
+        return new DuckDBGeometryLogicalType(logical_type);
       default:
         return new DuckDBLogicalType(logical_type);
     }
@@ -235,7 +237,7 @@ export class DuckDBLogicalType {
       case DuckDBTypeId.TIME_NS:
         return DuckDBTimeNSType.create(alias);
       case DuckDBTypeId.GEOMETRY:
-        return DuckDBGeometryType.create(alias);
+        throw new Error('Expected override');
       case DuckDBTypeId.VARIANT:
         return DuckDBVariantType.create(alias);
       default:
@@ -428,5 +430,14 @@ export class DuckDBUnionLogicalType extends DuckDBLogicalType {
       this.memberTypes(),
       this.alias
     );
+  }
+}
+
+export class DuckDBGeometryLogicalType extends DuckDBLogicalType {
+  public get crs(): string | undefined {
+    return duckdb.geometry_type_get_crs(this.logical_type) || undefined;
+  }
+  public override asType(): DuckDBGeometryType {
+    return DuckDBGeometryType.create(this.alias, this.crs);
   }
 }

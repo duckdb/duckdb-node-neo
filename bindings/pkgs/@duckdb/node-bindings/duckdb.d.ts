@@ -1483,6 +1483,7 @@ export function fetch_chunk(result: Result): Promise<DataChunk | null>;
 // DUCKDB_C_API duckdb_state duckdb_register_log_storage(duckdb_database database, duckdb_log_storage log_storage);
 
 // DUCKDB_C_API char *duckdb_geometry_type_get_crs(duckdb_logical_type type);
+export function geometry_type_get_crs(logical_type: LogicalType): string | null;
 
 // ADDED
 /** 
