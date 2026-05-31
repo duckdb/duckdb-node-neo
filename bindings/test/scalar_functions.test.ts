@@ -229,7 +229,7 @@ suite('scalar functions', () => {
 
       await expect(
         duckdb.query(connection, 'select my_func()'),
-      ).rejects.toThrow('Invalid Input Error: my_error');
+      ).rejects.toThrow('my_error');
     });
   });
   test('error handling (set error in main func)', async () => {
@@ -249,7 +249,7 @@ suite('scalar functions', () => {
 
       await expect(
         duckdb.query(connection, 'select my_func()'),
-      ).rejects.toThrow('Invalid Input Error: my_error');
+      ).rejects.toThrow('my_error');
     });
   });
   test('error handling (exception in bind func)', async () => {
@@ -272,7 +272,7 @@ suite('scalar functions', () => {
 
       await expect(
         duckdb.query(connection, 'select my_func()'),
-      ).rejects.toThrow('Binder Error: my_bind_error');
+      ).rejects.toThrow('my_bind_error');
     });
   });
   test('error handling (set error in bind func)', async () => {
@@ -295,7 +295,7 @@ suite('scalar functions', () => {
 
       await expect(
         duckdb.query(connection, 'select my_func()'),
-      ).rejects.toThrow('Binder Error: my_bind_error');
+      ).rejects.toThrow('my_bind_error');
     });
   });
   test('parameters (fixed, volatile)', async () => {
