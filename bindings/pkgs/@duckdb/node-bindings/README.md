@@ -10,4 +10,5 @@ See [@duckdb/node-api](https://www.npmjs.com/package/@duckdb/node-api) for a hig
 - Linux x64
 - Mac OS X (Darwin) arm64 (Apple Silicon)
 - Mac OS X (Darwin) x64 (Intel)
+- Windows (Win32) arm64
 - Windows (Win32) x64
