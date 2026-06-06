@@ -290,6 +290,7 @@ export class DuckDBConnection {
     catalog?: string | null
   ): Promise<DuckDBAppender> {
     return new DuckDBAppender(
+      this,
       duckdb.appender_create_ext(
         this.connection,
         catalog ?? null,
