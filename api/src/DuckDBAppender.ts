@@ -1,5 +1,6 @@
 import duckdb from '@duckdb/node-bindings';
 import { createValue } from './createValue';
+import { DuckDBConnection } from './DuckDBConnection';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import {
@@ -48,8 +49,10 @@ import {
 } from './values';
 
 export class DuckDBAppender {
+  public readonly connection: DuckDBConnection;
   private readonly appender: duckdb.Appender;
-  constructor(appender: duckdb.Appender) {
+  constructor(connection: DuckDBConnection, appender: duckdb.Appender) {
+    this.connection = connection;
     this.appender = appender;
   }
   public closeSync() {
