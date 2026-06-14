@@ -341,4 +341,61 @@ suite('appender', () => {
       });
     });
   });
+
+  test('error_data: basic error access', async () => {
+    await withConnection(async (connection) => {
+      await duckdb.query(
+        connection,
+        'create table test_error_data(i integer)'
+      );
+
+      const appender = duckdb.appender_create_ext(
+        connection,
+        'memory',
+        'main',
+        'test_error_data'
+      );
+
+      // Get error data even when there's no error
+      const error_data = duckdb.appender_error_data(appender);
+      expect(duckdb.error_data_has_error(error_data)).toBe(false);
+      expect(duckdb.error_data_message(error_data)).toBe('');
+
+      // Successful append operations should not have errors
+      duckdb.append_int32(appender, 42);
+      duckdb.appender_end_row(appender);
+      duckdb.appender_flush_sync(appender);
+
+      // Error data should still indicate no error after successful operations
+      const error_data_after = duckdb.appender_error_data(appender);
+      expect(duckdb.error_data_has_error(error_data_after)).toBe(false);
+    });
+  });
+
+  test('error_data: invalid input', async () => {
+    await withConnection(async (connection) => {
+      await duckdb.query(
+        connection,
+        'create table test_error_type(i integer)'
+      );
+
+      const appender = duckdb.appender_create_ext(
+        connection,
+        'memory',
+        'main',
+        'test_error_type'
+      );
+
+      expect(() => {
+        duckdb.append_varchar(appender, 'not an int');
+        duckdb.appender_end_row(appender);
+      }).toThrowError("Could not convert string 'not an int' to INT32");
+
+      const error_data = duckdb.appender_error_data(appender);
+      expect(duckdb.error_data_has_error(error_data)).toBe(true);
+      expect(duckdb.error_data_error_type(error_data)).toBe(
+        duckdb.ErrorType.INVALID_INPUT
+      );
+    });
+  });
 });
