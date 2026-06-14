@@ -1,0 +1,47 @@
+export * from './DuckDBArrayVector';
+export * from './DuckDBBigIntVector';
+export * from './DuckDBBigNumVector';
+export * from './DuckDBBitVector';
+export * from './DuckDBBlobVector';
+export * from './DuckDBBooleanVector';
+export * from './DuckDBDateVector';
+export * from './DuckDBDecimal128Vector';
+export * from './DuckDBDecimal16Vector';
+export * from './DuckDBDecimal32Vector';
+export * from './DuckDBDecimal64Vector';
+export * from './DuckDBDoubleVector';
+export * from './DuckDBEnum16Vector';
+export * from './DuckDBEnum32Vector';
+export * from './DuckDBEnum8Vector';
+export * from './DuckDBFloatVector';
+export * from './DuckDBGeometryVector';
+export * from './DuckDBHugeIntVector';
+export * from './DuckDBIntegerVector';
+export * from './DuckDBIntervalVector';
+export * from './DuckDBListVector';
+export * from './DuckDBMapVector';
+export * from './DuckDBSmallIntVector';
+export * from './DuckDBStructVector';
+export * from './DuckDBTimeNSVector';
+export * from './DuckDBTimeTZVector';
+export * from './DuckDBTimeVector';
+export * from './DuckDBTimestampMillisecondsVector';
+export * from './DuckDBTimestampNanosecondsVector';
+export * from './DuckDBTimestampSecondsVector';
+export * from './DuckDBTimestampTZVector';
+export * from './DuckDBTimestampVector';
+export * from './DuckDBTinyIntVector';
+export * from './DuckDBUBigIntVector';
+export * from './DuckDBUHugeIntVector';
+export * from './DuckDBUIntegerVector';
+export * from './DuckDBUSmallIntVector';
+export * from './DuckDBUTinyIntVector';
+export * from './DuckDBUUIDVector';
+export * from './DuckDBUnionVector';
+export * from './DuckDBVarCharVector';
+export * from './DuckDBVariantVector';
+export * from './DuckDBVector';
+
+// Side-effect import: registers the concrete DuckDBVector.create() factory.
+// Keep last so the base class and all subclasses are defined first.
+import './createVector';
