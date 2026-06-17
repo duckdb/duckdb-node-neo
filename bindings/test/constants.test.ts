@@ -6,7 +6,7 @@ suite('constants', () => {
     expect(duckdb.sizeof_bool).toBe(1);
   });
   test('library_version', () => {
-    expect(duckdb.library_version()).toBe('v1.5.3');
+    expect(duckdb.library_version()).toBe('v1.5.4');
   });
   test('vector_size', () => {
     expect(duckdb.vector_size()).toBe(2048);
