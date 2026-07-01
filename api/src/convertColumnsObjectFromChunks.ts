@@ -7,23 +7,25 @@ export function convertColumnsObjectFromChunks<T>(
   converter: DuckDBValueConverter<T>
 ): Record<string, (T | null)[]> {
   const convertedColumnsObject: Record<string, (T | null)[]> = {};
-  for (const columnName of columnNames) {
-    convertedColumnsObject[columnName] = [];
+  const columnCount = columnNames.length;
+  let totalRowCount = 0;
+  for (const chunk of chunks) {
+    totalRowCount += chunk.rowCount;
   }
-  if (chunks.length === 0) {
-    return convertedColumnsObject;
+  const convertedColumns: (T | null)[][] = new Array(columnCount);
+  for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+    const column: (T | null)[] = new Array(totalRowCount);
+    convertedColumns[columnIndex] = column;
+    convertedColumnsObject[columnNames[columnIndex]] = column;
   }
-  const columnCount = chunks[0].columnCount;
-  for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+  let rowOffset = 0;
+  for (const chunk of chunks) {
     for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-      chunks[chunkIndex].visitColumnValues(
-        columnIndex,
-        (value, _rowIndex, _columnIndex, type) =>
-          convertedColumnsObject[columnNames[columnIndex]].push(
-            converter(value, type, converter)
-          )
-      );
+      chunk
+        .getColumnVector(columnIndex)
+        .convertTo(converter, convertedColumns[columnIndex], rowOffset);
     }
+    rowOffset += chunk.rowCount;
   }
   return convertedColumnsObject;
 }
