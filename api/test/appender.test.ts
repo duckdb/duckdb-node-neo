@@ -49,6 +49,7 @@ import {
   DuckDBVarCharVector,
   INTEGER,
   LIST,
+  MAP,
   SMALLINT,
   STRUCT,
   TINYINT,
@@ -56,6 +57,7 @@ import {
   arrayValue,
   blobValue,
   listValue,
+  mapValue,
   structValue,
 } from '../src';
 import {
@@ -318,6 +320,159 @@ describe('appender', () => {
         assert.equal(resultChunk.columnCount, 1);
         assert.equal(resultChunk.rowCount, modifiedValues.length);
         assertValues(resultChunk, 0, DuckDBListVector, modifiedValues);
+      }
+    });
+  });
+  test('create and append data chunk with lists of integers exceeding child vector capacity', async () => {
+    await withConnection(async (connection) => {
+      // The child vector of a list starts with a capacity of only
+      // STANDARD_VECTOR_SIZE (2048), so lists totaling more child elements
+      // than that require growing its capacity before writing them.
+      const listLength = 1000;
+      const values = [
+        ...Array.from({ length: 4 }, (_, listIndex) =>
+          listValue(
+            Array.from(
+              { length: listLength },
+              (_, itemIndex) => listIndex * listLength + itemIndex,
+            ),
+          ),
+        ),
+        null,
+      ];
+
+      const chunk = DuckDBDataChunk.create([LIST(INTEGER)], values.length);
+      chunk.setColumnValues(0, values);
+
+      await connection.run('create table target(col0 integer[])');
+      const appender = await connection.createAppender('target');
+      appender.appendDataChunk(chunk);
+      appender.flushSync();
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, values.length);
+        assertValues(resultChunk, 0, DuckDBListVector, values);
+      }
+    });
+  });
+  test('create and append data chunk with lists of varchars exceeding child vector capacity', async () => {
+    await withConnection(async (connection) => {
+      const listLength = 1000;
+      const values = [
+        ...Array.from({ length: 4 }, (_, listIndex) =>
+          listValue(
+            Array.from(
+              { length: listLength },
+              // long enough to be stored out-of-line
+              (_, itemIndex) => `str_${listIndex * listLength + itemIndex}_xyz`,
+            ),
+          ),
+        ),
+        null,
+      ];
+
+      const chunk = DuckDBDataChunk.create([LIST(VARCHAR)], values.length);
+      chunk.setColumnValues(0, values);
+
+      await connection.run('create table target(col0 varchar[])');
+      const appender = await connection.createAppender('target');
+      appender.appendDataChunk(chunk);
+      appender.flushSync();
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, values.length);
+        assertValues(resultChunk, 0, DuckDBListVector, values);
+      }
+    });
+  });
+  test('create and append data chunk with nested lists exceeding child vector capacity', async () => {
+    await withConnection(async (connection) => {
+      // 4 * 50 = 200 inner lists (within the outer child vector's initial
+      // capacity), but 4 * 50 * 50 = 10000 integers (well beyond the inner
+      // child vector's initial capacity).
+      const outerListLength = 50;
+      const innerListLength = 50;
+      const values = [
+        ...Array.from({ length: 4 }, (_, outerIndex) =>
+          listValue(
+            Array.from({ length: outerListLength }, (_, innerIndex) =>
+              listValue(
+                Array.from(
+                  { length: innerListLength },
+                  (_, itemIndex) =>
+                    (outerIndex * outerListLength + innerIndex) *
+                      innerListLength +
+                    itemIndex,
+                ),
+              ),
+            ),
+          ),
+        ),
+        null,
+      ];
+
+      const chunk = DuckDBDataChunk.create(
+        [LIST(LIST(INTEGER))],
+        values.length,
+      );
+      chunk.setColumnValues(0, values);
+
+      await connection.run('create table target(col0 integer[][])');
+      const appender = await connection.createAppender('target');
+      appender.appendDataChunk(chunk);
+      appender.flushSync();
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, values.length);
+        assertValues(resultChunk, 0, DuckDBListVector, values);
+      }
+    });
+  });
+  test('create and append data chunk with maps exceeding child vector capacity', async () => {
+    await withConnection(async (connection) => {
+      const entryCount = 1000;
+      const values = [
+        ...Array.from({ length: 4 }, (_, mapIndex) =>
+          mapValue(
+            Array.from({ length: entryCount }, (_, entryIndex) => {
+              const n = mapIndex * entryCount + entryIndex;
+              return { key: `key_${n}_xyz`, value: n };
+            }),
+          ),
+        ),
+        null,
+      ];
+
+      const chunk = DuckDBDataChunk.create(
+        [MAP(VARCHAR, INTEGER)],
+        values.length,
+      );
+      chunk.setColumnValues(0, values);
+
+      await connection.run('create table target(col0 map(varchar, integer))');
+      const appender = await connection.createAppender('target');
+      appender.appendDataChunk(chunk);
+      appender.flushSync();
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, values.length);
+        assertValues(resultChunk, 0, DuckDBMapVector, values);
       }
     });
   });
