@@ -153,6 +153,9 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
         }
       }
 
+      // grow child vector capacity (set_size does not allocate)
+      duckdb.list_vector_reserve(this.vector, totalLength);
+
       // set new child vector size
       duckdb.list_vector_set_size(this.vector, totalLength);
 
