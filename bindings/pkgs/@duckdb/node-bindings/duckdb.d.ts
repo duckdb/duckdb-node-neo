@@ -45,6 +45,9 @@ export enum StatementType {
   ATTACH = 25,
   DETACH = 26,
   MULTI = 27,
+  COPY_DATABASE = 28,
+	UPDATE_EXTENSIONS = 29,
+	MERGE_INTO = 30,
 }
 
 export enum Type {

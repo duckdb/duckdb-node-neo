@@ -56,6 +56,9 @@ describe('enums', () => {
     assert.equal(StatementType.ATTACH, 25);
     assert.equal(StatementType.DETACH, 26);
     assert.equal(StatementType.MULTI, 27);
+    assert.equal(StatementType.COPY_DATABASE, 28);
+    assert.equal(StatementType.UPDATE_EXTENSIONS, 29);
+    assert.equal(StatementType.MERGE_INTO, 30);
 
     assert.equal(StatementType[StatementType.INVALID], 'INVALID');
     assert.equal(StatementType[StatementType.SELECT], 'SELECT');
@@ -85,5 +88,8 @@ describe('enums', () => {
     assert.equal(StatementType[StatementType.ATTACH], 'ATTACH');
     assert.equal(StatementType[StatementType.DETACH], 'DETACH');
     assert.equal(StatementType[StatementType.MULTI], 'MULTI');
+    assert.equal(StatementType[StatementType.COPY_DATABASE], 'COPY_DATABASE');
+    assert.equal(StatementType[StatementType.UPDATE_EXTENSIONS], 'UPDATE_EXTENSIONS');
+    assert.equal(StatementType[StatementType.MERGE_INTO], 'MERGE_INTO');
   });
 });
