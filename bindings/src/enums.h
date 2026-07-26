@@ -58,6 +58,9 @@ inline Napi::Object CreateStatementTypeEnum(Napi::Env env) {
 	DefineEnumMember(statementTypeEnum, "ATTACH", 25);
 	DefineEnumMember(statementTypeEnum, "DETACH", 26);
 	DefineEnumMember(statementTypeEnum, "MULTI", 27);
+	DefineEnumMember(statementTypeEnum, "COPY_DATABASE", 28);
+	DefineEnumMember(statementTypeEnum, "UPDATE_EXTENSIONS", 29);
+	DefineEnumMember(statementTypeEnum, "MERGE_INTO", 30);
   return statementTypeEnum;
 }
 
