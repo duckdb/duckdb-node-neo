@@ -1,0 +1,6 @@
+clients
+__pycache__
+
+# The CSV is left trackable on purpose: committing it makes each DuckDB upgrade show up
+# as a reviewable coverage diff. The JSON is the same data, so it stays out.
+capi_coverage.json
