@@ -89,6 +89,13 @@ export function typeForValue(value: DuckDBValue): DuckDBType {
         } else if (value instanceof DuckDBListValue) {
           return LIST(typeForValue(value.items[0]));
         } else if (value instanceof DuckDBMapValue) {
+          if (value.entries.length === 0) {
+            // An empty map carries no entries to infer key/value types from.
+            // Mirror the empty-list path (LIST(ANY)) so createValue raises the
+            // same "Cannot create maps with key type of ANY" error, instead of
+            // a cryptic "Cannot read properties of undefined (reading 'key')".
+            return MAP(ANY, ANY);
+          }
           return MAP(
             typeForValue(value.entries[0].key),
             typeForValue(value.entries[0].value)

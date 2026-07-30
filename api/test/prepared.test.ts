@@ -397,6 +397,22 @@ describe('prepared statements', () => {
       }
     });
   });
+  test('should fail gracefully when type cannot be inferred when binding maps to prepared statements', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare('select ?');
+      try {
+        prepared.bind([mapValue([])]);
+        assert.fail('should throw');
+      } catch (err) {
+        assert.deepEqual(
+          err,
+          new Error(
+            'Cannot create maps with key type of ANY. Specify a specific type.',
+          ),
+        );
+      }
+    });
+  });
   test('should infer integer and floating-point values when binding to prepared statements', async () => {
     await withConnection(async (connection) => {
       const prepared = await connection.prepare('select ? as i1, ? as i2, ? as b1, ? as b2, ? as d');
