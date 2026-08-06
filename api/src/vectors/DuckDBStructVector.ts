@@ -8,6 +8,10 @@ import {
 } from '../values';
 import { DuckDBVector } from './DuckDBVector';
 import { DuckDBValidity } from './DuckDBValidity';
+import {
+  getStructValueEntriesBuilder,
+  StructValueEntriesBuilder,
+} from './compileStructValueBuilder';
 
 export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
   private readonly structType: DuckDBStructType;
@@ -15,6 +19,7 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
   private readonly entryVectors: readonly DuckDBVector[];
   private readonly validity: DuckDBValidity;
   private readonly vector: duckdb.Vector;
+  private readonly entriesBuilder: StructValueEntriesBuilder;
   constructor(
     structType: DuckDBStructType,
     itemCount: number,
@@ -28,6 +33,7 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
     this.entryVectors = entryVectors;
     this.validity = validity;
     this.vector = vector;
+    this.entriesBuilder = getStructValueEntriesBuilder(structType.entryNames);
   }
   static fromRawVector(
     structType: DuckDBStructType,
@@ -61,13 +67,12 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
     if (!this.validity.itemValid(itemIndex)) {
       return null;
     }
-    const entries: { [name: string]: DuckDBValue } = {};
-    const entryCount = this.structType.entryCount;
-    for (let i = 0; i < entryCount; i++) {
-      entries[this.structType.entryNames[i]] =
-        this.entryVectors[i].getItem(itemIndex);
-    }
-    return new DuckDBStructValue(entries);
+    // Fixed-shape literal via the compiled builder (fast-properties, no dynamic keys).
+    return new DuckDBStructValue(
+      this.entriesBuilder(this.entryVectors, itemIndex) as {
+        [name: string]: DuckDBValue;
+      }
+    );
   }
   public getItemValue(
     itemIndex: number,

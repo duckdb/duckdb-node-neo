@@ -67,11 +67,16 @@ export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
     if (!this.validity.itemValid(itemIndex)) {
       return null;
     }
-    return new DuckDBArrayValue(
-      this.childData
-        .slice(itemIndex * this.arrayType.length, this.arrayType.length)
-        .toArray()
-    );
+    // Read elements directly from the flat child vector instead of allocating a sliced
+    // vector per cell. Fill a pre-sized array (no push regrowth).
+    const length = this.arrayType.length;
+    const start = itemIndex * length;
+    const childData = this.childData;
+    const items = new Array(length);
+    for (let i = 0; i < length; i++) {
+      items[i] = childData.getItem(start + i);
+    }
+    return new DuckDBArrayValue(items);
   }
   public override setItem(itemIndex: number, value: DuckDBArrayValue | null) {
     if (value != null) {

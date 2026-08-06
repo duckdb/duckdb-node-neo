@@ -4,6 +4,7 @@ export {
   hugeint_to_double,
   uhugeint_to_double
 } from '@duckdb/node-bindings';
+export * from './compileRowObjectBuilder';
 export * from './configurationOptionDescriptions';
 export * from './createDuckDBValueConverter';
 export * from './DuckDBAppender';

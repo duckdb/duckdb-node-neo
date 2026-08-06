@@ -8,20 +8,23 @@ export function convertColumnsFromChunks<T>(
   if (chunks.length === 0) {
     return [];
   }
-  const convertedColumns = chunks[0].convertColumns(converter);
-  for (let chunkIndex = 1; chunkIndex < chunks.length; chunkIndex++) {
-    for (
-      let columnIndex = 0;
-      columnIndex < convertedColumns.length;
-      columnIndex++
-    ) {
-      const chunk = chunks[chunkIndex];
-      chunk.visitColumnValues(
-        columnIndex,
-        (value, _rowIndex, _columnIndex, type) =>
-          convertedColumns[columnIndex].push(converter(value, type, converter))
-      );
+  const columnCount = chunks[0].columnCount;
+  let totalRowCount = 0;
+  for (const chunk of chunks) {
+    totalRowCount += chunk.rowCount;
+  }
+  const convertedColumns: (T | null)[][] = new Array(columnCount);
+  for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+    convertedColumns[columnIndex] = new Array(totalRowCount);
+  }
+  let rowOffset = 0;
+  for (const chunk of chunks) {
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+      chunk
+        .getColumnVector(columnIndex)
+        .convertTo(converter, convertedColumns[columnIndex], rowOffset);
     }
+    rowOffset += chunk.rowCount;
   }
   return convertedColumns;
 }

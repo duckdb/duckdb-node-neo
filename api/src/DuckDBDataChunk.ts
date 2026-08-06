@@ -1,14 +1,20 @@
 import duckdb from '@duckdb/node-bindings';
+import {
+  ConvertingRowObjectBuilder,
+  compileRowObjectBuilderSafe,
+  RowObjectBuilder,
+} from './compileRowObjectBuilder';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBValueConverter } from './DuckDBValueConverter';
-import { DuckDBVector } from './DuckDBVector';
+import { DuckDBVector, FlatArray } from './DuckDBVector';
 import { DuckDBValue } from './values';
 
 export class DuckDBDataChunk {
   public readonly chunk: duckdb.DataChunk;
-  private readonly vectors: DuckDBVector[] = [];
+  private readonly vectors: DuckDBVector[];
   constructor(chunk: duckdb.DataChunk) {
     this.chunk = chunk;
+    this.vectors = new Array(duckdb.data_chunk_get_column_count(chunk));
   }
   public static create(
     types: readonly DuckDBType[],
@@ -65,7 +71,7 @@ export class DuckDBDataChunk {
     }
   }
   public appendColumnValues(columnIndex: number, values: DuckDBValue[]) {
-    this.visitColumnValues(columnIndex, (value) => values.push(value));
+    this.getColumnVector(columnIndex).appendTo(values, values.length);
   }
   public getColumnValues(columnIndex: number): DuckDBValue[] {
     const values: DuckDBValue[] = [];
@@ -77,9 +83,7 @@ export class DuckDBDataChunk {
     converter: DuckDBValueConverter<T>
   ): (T | null)[] {
     const convertedValues: (T | null)[] = [];
-    this.visitColumnValues(columnIndex, (value, _r, _c, type) =>
-      convertedValues.push(converter(value, type, converter))
-    );
+    this.getColumnVector(columnIndex).convertTo(converter, convertedValues, 0);
     return convertedValues;
   }
   public setColumnValues(columnIndex: number, values: readonly DuckDBValue[]) {
@@ -248,6 +252,69 @@ export class DuckDBDataChunk {
       vector.flush();
     }
   }
+  private getColumnVectors(): DuckDBVector[] {
+    const columnCount = this.columnCount;
+    const vectors = new Array<DuckDBVector>(columnCount);
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+      vectors[columnIndex] = this.getColumnVector(columnIndex);
+    }
+    return vectors;
+  }
+  /**
+   * Which columns support inline (flat typed-array) reads in the compiled row builder.
+   * Stable across all chunks of a result (column types don't change), so a builder can
+   * be compiled once from any chunk's flags.
+   */
+  public getFlatFlags(): boolean[] {
+    const columnCount = this.columnCount;
+    const flatFlags = new Array<boolean>(columnCount);
+    for (let c = 0; c < columnCount; c++) {
+      flatFlags[c] = this.getColumnVector(c).flatReadArray() !== null;
+    }
+    return flatFlags;
+  }
+  public appendToRowObjectsWithBuilder(
+    builder: RowObjectBuilder,
+    rowObjects: Record<string, DuckDBValue>[]
+  ) {
+    const columnCount = this.columnCount;
+    // Per-column accessors prepared once per chunk, hoisted out of the row loop.
+    const items = new Array<FlatArray | null>(columnCount);
+    const validityBytes = new Array<Uint8Array | null>(columnCount);
+    const validityOffset = new Array<number>(columnCount);
+    const vectors = new Array<DuckDBVector>(columnCount);
+    for (let c = 0; c < columnCount; c++) {
+      const vector = this.getColumnVector(c);
+      vectors[c] = vector;
+      const flatArray = vector.flatReadArray();
+      items[c] = flatArray;
+      if (flatArray) {
+        const validity = vector.getValidity();
+        validityBytes[c] = validity ? validity.bytesLE() : null;
+        validityOffset[c] = validity ? validity.bitOffset() : 0;
+      } else {
+        validityBytes[c] = null;
+        validityOffset[c] = 0;
+      }
+    }
+    const rowCount = this.rowCount;
+    // Pre-size once and let the builder fill the slice in a single call (its row loop
+    // is compiled inline), avoiding per-row call overhead and per-push regrowth.
+    const base = rowObjects.length;
+    rowObjects.length = base + rowCount;
+    builder(rowObjects, base, rowCount, items, validityBytes, validityOffset, vectors);
+  }
+  public convertToRowObjectsWithBuilder<T>(
+    builder: ConvertingRowObjectBuilder<T>,
+    converter: DuckDBValueConverter<T>,
+    rowObjects: Record<string, T | null>[]
+  ) {
+    const vectors = this.getColumnVectors(); // hoisted out of the row loop
+    const rowCount = this.rowCount;
+    for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+      rowObjects.push(builder(vectors, rowIndex, converter));
+    }
+  }
   public appendToRowObjects(
     columnNames: readonly string[],
     rowObjects: Record<string, DuckDBValue>[]
@@ -258,14 +325,10 @@ export class DuckDBDataChunk {
         `Provided number of column names (${columnNames.length}) does not match column count (${this.columnCount})`
       );
     }
-    const rowCount = this.rowCount;
-    for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-      let rowObject: Record<string, DuckDBValue> = {};
-      this.visitRowValues(rowIndex, (value, _, columnIndex) => {
-        rowObject[columnNames[columnIndex]] = value;
-      });
-      rowObjects.push(rowObject);
-    }
+    this.appendToRowObjectsWithBuilder(
+      compileRowObjectBuilderSafe(columnNames, this.getFlatFlags()),
+      rowObjects
+    );
   }
   public getRowObjects(columnNames: readonly string[]) {
     const rowObjects: Record<string, DuckDBValue>[] = [];
