@@ -153,8 +153,12 @@ suite('worker threads', () => {
         if (timer) {
           clearTimeout(timer);
         }
-        // Leaves nothing running behind a failure.
-        await Promise.all(workers.map((worker) => worker.terminate()));
+        // Best effort, and deliberately not awaited: terminate() does not settle
+        // for a worker wedged inside a blocking native call, and awaiting it here
+        // swallowed the diagnostic above in favour of vitest's own timeout.
+        for (const worker of workers) {
+          void worker.terminate();
+        }
       }
     },
     testTimeoutMs,

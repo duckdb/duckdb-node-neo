@@ -1,6 +1,7 @@
 #pragma once
 
 #include "napi_setup.h"
+#include "duckdb.h"
 #include "napi_ref_reaper.h"
 #include <condition_variable>
 #include <memory>
@@ -35,14 +36,14 @@
 //   static void Call(Napi::Env, Napi::Function, const Payload &);
 //   static void SetError(const Payload &, const char *message);
 
-// One in-flight call. Lives on the calling DuckDB thread's stack: Invoke does not
-// return until the dispatch below has signalled, including when it is draining.
+// One in-flight call, allocated by the calling DuckDB thread and freed by it once
+// the dispatch below has signalled.
 template <typename Traits>
 struct DuckDBThreadCallbackCall {
   typename Traits::Payload payload;
-  std::condition_variable cv;
-  std::mutex mutex;
-  bool done = false;
+  std::condition_variable *cv;
+  std::mutex *mutex;
+  bool done;
 };
 
 template <typename Traits>
@@ -59,10 +60,13 @@ void DuckDBThreadCallbackDispatch(Napi::Env env, Napi::Function callback, std::n
     }
   }
   {
-    std::lock_guard<std::mutex> lock(call->mutex);
+    // Signal while still holding the lock. The waiting thread frees this call
+    // once it wakes, so notifying after releasing the lock would let it destroy
+    // the condition variable before notify_one touches it.
+    std::lock_guard<std::mutex> lock(*call->mutex);
     call->done = true;
+    call->cv->notify_one();
   }
-  call->cv.notify_one();
 }
 
 template <typename Traits>
@@ -99,17 +103,23 @@ public:
     if (!tsfn) {
       return;
     }
-    DuckDBThreadCallbackCall<Traits> call;
-    call.payload = payload;
+    auto call = reinterpret_cast<DuckDBThreadCallbackCall<Traits>*>(duckdb_malloc(sizeof(DuckDBThreadCallbackCall<Traits>)));
+    call->payload = payload;
+    call->cv = new std::condition_variable;
+    call->mutex = new std::mutex;
+    call->done = false;
     // The "blocking" part of BlockingCall only waits for queue space, and the
     // queue is unlimited, so it never actually blocks. Waiting for the JS
     // function to run is the wait below.
-    if (tsfn->BlockingCall(&call) != napi_ok) {
+    if (tsfn->BlockingCall(call) == napi_ok) {
+      std::unique_lock<std::mutex> lock(*call->mutex);
+      call->cv->wait(lock, [call] { return call->done; });
+    } else {
       Traits::SetError(payload, "BlockingCall returned not ok");
-      return;
     }
-    std::unique_lock<std::mutex> lock(call.mutex);
-    call.cv.wait(lock, [&call] { return call.done; });
+    delete call->cv;
+    delete call->mutex;
+    duckdb_free(call);
   }
 
 private:
