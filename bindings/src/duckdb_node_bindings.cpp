@@ -13,6 +13,7 @@
 #include "bindings_config.h"
 #include "conversion_helpers.h"
 #include "externals.h"
+#include "napi_ref_reaper.h"
 #include "scalar_function_helpers.h"
 #include "promise_workers.h"
 #include "enums.h"
