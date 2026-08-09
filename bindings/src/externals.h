@@ -44,15 +44,6 @@ inline duckdb_appender GetAppenderFromExternal(Napi::Env env, Napi::Value value)
   return GetDataFromExternal<_duckdb_appender>(env, AppenderTypeTag, value, "Invalid appender argument");
 }
 
-inline Napi::External<_duckdb_bind_info> CreateExternalForBindInfoWithoutFinalizer(Napi::Env env, duckdb_bind_info bind_info) {
-  // BindInfo objects are never explicitly created; they are passed in to function callbacks.
-  return CreateExternalWithoutFinalizer<_duckdb_bind_info>(env, BindInfoTypeTag, bind_info);
-}
-
-inline duckdb_bind_info GetBindInfoFromExternal(Napi::Env env, Napi::Value value) {
-  return GetDataFromExternal<_duckdb_bind_info>(env, BindInfoTypeTag, value, "Invalid bind info argument");
-}
-
 inline void FinalizeClientContext(Napi::BasicEnv, duckdb_client_context client_context) {
   duckdb_destroy_client_context(&client_context);
 }
@@ -168,15 +159,6 @@ inline Napi::External<_duckdb_extracted_statements> CreateExternalForExtractedSt
 
 inline duckdb_extracted_statements GetExtractedStatementsFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_extracted_statements>(env, ExtractedStatementsTypeTag, value, "Invalid extracted statements argument");
-}
-
-inline Napi::External<_duckdb_function_info> CreateExternalForFunctionInfoWithoutFinalizer(Napi::Env env, duckdb_function_info function_info) {
-  // FunctionInfo objects are never explicitly created; they are passed in to function callbacks.
-  return CreateExternalWithoutFinalizer<_duckdb_function_info>(env, FunctionInfoTypeTag, function_info);
-}
-
-inline duckdb_function_info GetFunctionInfoFromExternal(Napi::Env env, Napi::Value value) {
-  return GetDataFromExternal<_duckdb_function_info>(env, FunctionInfoTypeTag, value, "Invalid function info argument");
 }
 
 inline void FinalizeInstanceCache(Napi::BasicEnv, duckdb_instance_cache instance_cache) {

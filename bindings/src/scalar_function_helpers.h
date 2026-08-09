@@ -13,6 +13,32 @@
 // family-specific state and so does not belong in externals.h. Later function
 // families should follow the same shape.
 
+// Info externals
+//
+// These wrap duckdb_bind_info and duckdb_function_info, which the C API also
+// reuses for other function families. The struct behind each handle differs per
+// family and is reinterpret_cast with no check, so a scalar handle passed to a
+// table function accessor would corrupt memory. The per-family tags make that a
+// thrown error instead.
+//
+// Neither is ever created explicitly; both are passed in to callbacks.
+
+inline Napi::External<_duckdb_bind_info> CreateExternalForScalarFunctionBindInfo(Napi::Env env, duckdb_bind_info bind_info) {
+  return CreateExternalWithoutFinalizer<_duckdb_bind_info>(env, ScalarFunctionBindInfoTypeTag, bind_info);
+}
+
+inline duckdb_bind_info GetScalarFunctionBindInfoFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_bind_info>(env, ScalarFunctionBindInfoTypeTag, value, "Invalid scalar function bind info argument");
+}
+
+inline Napi::External<_duckdb_function_info> CreateExternalForScalarFunctionInfo(Napi::Env env, duckdb_function_info function_info) {
+  return CreateExternalWithoutFinalizer<_duckdb_function_info>(env, ScalarFunctionInfoTypeTag, function_info);
+}
+
+inline duckdb_function_info GetScalarFunctionInfoFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_function_info>(env, ScalarFunctionInfoTypeTag, value, "Invalid scalar function info argument");
+}
+
 // Callbacks
 
 struct ScalarFunctionBindCallbackTraits {
@@ -26,7 +52,7 @@ struct ScalarFunctionBindCallbackTraits {
     callback.Call(
       env.Undefined(),
       {
-        CreateExternalForBindInfoWithoutFinalizer(env, payload)
+        CreateExternalForScalarFunctionBindInfo(env, payload)
       }
     );
   }
@@ -51,7 +77,7 @@ struct ScalarFunctionMainCallbackTraits {
     callback.Call(
       env.Undefined(),
       {
-        CreateExternalForFunctionInfoWithoutFinalizer(env, payload.info),
+        CreateExternalForScalarFunctionInfo(env, payload.info),
         CreateExternalForDataChunkWithoutFinalizer(env, payload.input),
         CreateExternalForVectorWithoutFinalizer(env, payload.output)
       }
