@@ -2,6 +2,7 @@
 
 #include "napi_setup.h"
 #include "duckdb.h"
+#include "type_tags.h"
 
 // Externals
 
@@ -28,12 +29,6 @@ T* GetDataFromExternal(Napi::Env env, const napi_type_tag &type_tag, Napi::Value
   return external.Data();
 }
 
-// The following type tags are generated using: uuidgen | sed -r -e 's/-//g' -e 's/(.{16})(.*)/0x\1, 0x\2/'
-
-static const napi_type_tag AppenderTypeTag = {
-  0x32E0AB3B83F74A89, 0xB785905D92D54996
-};
-
 inline void FinalizeAppender(Napi::BasicEnv, duckdb_appender appender) {
   if (appender) {
     duckdb_appender_destroy(&appender);
@@ -49,10 +44,6 @@ inline duckdb_appender GetAppenderFromExternal(Napi::Env env, Napi::Value value)
   return GetDataFromExternal<_duckdb_appender>(env, AppenderTypeTag, value, "Invalid appender argument");
 }
 
-static const napi_type_tag BindInfoTypeTag = {
-  0x9922F8468F9A43C0, 0xB2573B112B9600D8
-};
-
 inline Napi::External<_duckdb_bind_info> CreateExternalForBindInfoWithoutFinalizer(Napi::Env env, duckdb_bind_info bind_info) {
   // BindInfo objects are never explicitly created; they are passed in to function callbacks.
   return CreateExternalWithoutFinalizer<_duckdb_bind_info>(env, BindInfoTypeTag, bind_info);
@@ -61,10 +52,6 @@ inline Napi::External<_duckdb_bind_info> CreateExternalForBindInfoWithoutFinaliz
 inline duckdb_bind_info GetBindInfoFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_bind_info>(env, BindInfoTypeTag, value, "Invalid bind info argument");
 }
-
-static const napi_type_tag ClientContextTypeTag = {
-  0x1E1738782ED94232, 0x867B024D1858DF3A
-};
 
 inline void FinalizeClientContext(Napi::BasicEnv, duckdb_client_context client_context) {
   duckdb_destroy_client_context(&client_context);
@@ -77,10 +64,6 @@ inline Napi::External<_duckdb_client_context> CreateExternalForClientContext(Nap
 inline duckdb_client_context GetClientContextFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_client_context>(env, ClientContextTypeTag, value, "Invalid client context argument");
 }
-
-static const napi_type_tag ConfigTypeTag = {
-  0x5963FBB9648B4D2A, 0xB41ADE86056218D1
-};
 
 inline void FinalizeConfig(Napi::BasicEnv, duckdb_config config) {
   if (config) {
@@ -96,10 +79,6 @@ inline Napi::External<_duckdb_config> CreateExternalForConfig(Napi::Env env, duc
 inline duckdb_config GetConfigFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_config>(env, ConfigTypeTag, value, "Invalid config argument");
 }
-
-static const napi_type_tag ConnectionTypeTag = {
-  0x922B9BF54AB04DFC, 0x8A258578D371DB71
-};
 
 typedef struct {
   duckdb_connection connection;
@@ -129,10 +108,6 @@ inline duckdb_connection GetConnectionFromExternal(Napi::Env env, Napi::Value va
   return GetConnectionHolderFromExternal(env, value)->connection;
 }
 
-static const napi_type_tag DatabaseTypeTag = {
-  0x835A8533653C40D1, 0x83B3BE2B233BA8F3
-};
-
 typedef struct {
   duckdb_database database;
 } duckdb_database_holder;
@@ -161,10 +136,6 @@ inline duckdb_database GetDatabaseFromExternal(Napi::Env env, Napi::Value value)
   return GetDatabaseHolderFromExternal(env, value)->database;
 }
 
-static const napi_type_tag DataChunkTypeTag = {
-  0x2C7537AB063A4296, 0xB1E70F08B0BBD1A3
-};
-
 inline void FinalizeDataChunk(Napi::BasicEnv, duckdb_data_chunk chunk) {
   if (chunk) {
     duckdb_destroy_data_chunk(&chunk);
@@ -184,10 +155,6 @@ inline duckdb_data_chunk GetDataChunkFromExternal(Napi::Env env, Napi::Value val
   return GetDataFromExternal<_duckdb_data_chunk>(env, DataChunkTypeTag, value, "Invalid data chunk argument");
 }
 
-static const napi_type_tag ExtractedStatementsTypeTag = {
-  0x59288E1C60C44EEB, 0xBFA35376EE0F04DD
-};
-
 inline void FinalizeExtractedStatements(Napi::BasicEnv, duckdb_extracted_statements extracted_statements) {
   if (extracted_statements) {
     duckdb_destroy_extracted(&extracted_statements);
@@ -203,10 +170,6 @@ inline duckdb_extracted_statements GetExtractedStatementsFromExternal(Napi::Env 
   return GetDataFromExternal<_duckdb_extracted_statements>(env, ExtractedStatementsTypeTag, value, "Invalid extracted statements argument");
 }
 
-static const napi_type_tag FunctionInfoTypeTag = {
-  0xB0E6739D698048EA, 0x9E79734E3E137AC3
-};
-
 inline Napi::External<_duckdb_function_info> CreateExternalForFunctionInfoWithoutFinalizer(Napi::Env env, duckdb_function_info function_info) {
   // FunctionInfo objects are never explicitly created; they are passed in to function callbacks.
   return CreateExternalWithoutFinalizer<_duckdb_function_info>(env, FunctionInfoTypeTag, function_info);
@@ -215,10 +178,6 @@ inline Napi::External<_duckdb_function_info> CreateExternalForFunctionInfoWithou
 inline duckdb_function_info GetFunctionInfoFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_function_info>(env, FunctionInfoTypeTag, value, "Invalid function info argument");
 }
-
-static const napi_type_tag InstanceCacheTypeTag = {
-  0x2F3346E30FB5457C, 0xB9201EE5112EEF9F
-};
 
 inline void FinalizeInstanceCache(Napi::BasicEnv, duckdb_instance_cache instance_cache) {
   duckdb_destroy_instance_cache(&instance_cache);
@@ -231,10 +190,6 @@ inline Napi::External<_duckdb_instance_cache> CreateExternalForInstanceCache(Nap
 inline duckdb_instance_cache GetInstanceCacheFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_instance_cache>(env, InstanceCacheTypeTag, value, "Invalid instance cache argument");
 }
-
-static const napi_type_tag LogicalTypeTypeTag = {
-  0x78AF202191ED4A23, 0x8093715369592A2B
-};
 
 inline void FinalizeLogicalType(Napi::BasicEnv, duckdb_logical_type logical_type) {
   duckdb_destroy_logical_type(&logical_type);
@@ -252,10 +207,6 @@ inline duckdb_logical_type GetLogicalTypeFromExternal(Napi::Env env, Napi::Value
   return GetDataFromExternal<_duckdb_logical_type>(env, LogicalTypeTypeTag, value, "Invalid logical type argument");
 }
 
-static const napi_type_tag PendingResultTypeTag = {
-  0x257E88ECE8294FEC, 0xB64963BBBD1DBB41
-};
-
 inline void FinalizePendingResult(Napi::BasicEnv, duckdb_pending_result pending_result) {
   if (pending_result) {
     duckdb_destroy_pending(&pending_result);
@@ -270,10 +221,6 @@ inline Napi::External<_duckdb_pending_result> CreateExternalForPendingResult(Nap
 inline duckdb_pending_result GetPendingResultFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_pending_result>(env, PendingResultTypeTag, value, "Invalid pending result argument");
 }
-
-static const napi_type_tag PreparedStatementTypeTag = {
-  0xA8B03DAD16D34416, 0x9735A7E1F2A1240C
-};
 
 typedef struct {
   duckdb_prepared_statement prepared;
@@ -303,10 +250,6 @@ inline duckdb_prepared_statement GetPreparedStatementFromExternal(Napi::Env env,
   return GetPreparedStatementHolderFromExternal(env, value)->prepared;
 }
 
-static const napi_type_tag ResultTypeTag = {
-  0x08F7FE3AE12345E5, 0x8733310DC29372D9
-};
-
 inline void FinalizeResult(Napi::BasicEnv, duckdb_result *result_ptr) {
   if (result_ptr) {
     duckdb_destroy_result(result_ptr);
@@ -323,10 +266,6 @@ inline duckdb_result *GetResultFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<duckdb_result>(env, ResultTypeTag, value, "Invalid result argument");
 }
 
-static const napi_type_tag ValueTypeTag = {
-  0xC60F36613BF14E93, 0xBAA92848936FAA25
-};
-
 inline void FinalizeValue(Napi::BasicEnv, duckdb_value value) {
   if (value) {
     duckdb_destroy_value(&value);
@@ -341,10 +280,6 @@ inline Napi::External<_duckdb_value> CreateExternalForValue(Napi::Env env, duckd
 inline duckdb_value GetValueFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_value>(env, ValueTypeTag, value, "Invalid value argument");
 }
-
-static const napi_type_tag VectorTypeTag = {
-  0x9FE56DE8E3124D07, 0x9ABF31145EDE1C9E
-};
 
 inline Napi::External<_duckdb_vector> CreateExternalForVectorWithoutFinalizer(Napi::Env env, duckdb_vector vector) {
   // Vectors live as long as their containing data chunk; they cannot be explicitly destroyed.
