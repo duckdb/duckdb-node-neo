@@ -11,8 +11,14 @@ import { expect, suite, test } from 'vitest';
 // It caught a deadlock on its first CI run -- an unreleased thread-safe function
 // blocking env teardown, from a release that could only happen once teardown had
 // finished -- which reproduced on Linux but not macOS. It is deterministic and
-// takes well under a second, so it belongs in the main suite where it runs on
-// every platform, rather than in test/stress.
+// takes well under a second locally, so it belongs in the main suite where it
+// runs on every platform, rather than in test/stress.
+//
+// Because the failure mode it guards against is a hang, the deadline below is
+// generous: a slow runner should not fail, only a genuine hang should. When one
+// happens, the reported state distinguishes "the worker never finished its work"
+// from "the worker finished but its env never tore down", which is the
+// distinction that matters.
 
 const bindings_path = createRequire(import.meta.url).resolve(
   '@duckdb/node-bindings',
@@ -22,10 +28,12 @@ const worker_count = 4;
 const queries_per_worker = 25;
 const chunks_per_query = 3; // range(5000) at a vector size of 2048
 
+const deadlineMs = 25000;
+const testTimeoutMs = 40000; // Above deadlineMs, so the diagnostic below wins.
+
 // Each worker registers a scalar function, checks on every invocation that its
 // extra info and bind data are intact, then closes everything and reports how
-// many times it was called. A worker that hangs on teardown never emits its
-// 'exit' event, which fails the test.
+// many times it was called.
 const worker_source = `
   const { parentPort, workerData } = require('node:worker_threads');
   const duckdb = require(workerData.bindings_path);
@@ -69,38 +77,86 @@ const worker_source = `
   });
 `;
 
-function runWorker(): Promise<{ calls?: number; error?: string }> {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(worker_source, {
-      eval: true,
-      workerData: { bindings_path },
-    });
-    let message: { calls?: number; error?: string } | undefined;
-    worker.on('message', (m) => {
-      message = m;
-    });
-    worker.on('error', reject);
-    // Resolving on 'exit' rather than 'message' is the point: the work
-    // completing is not enough, the env has to tear down too.
-    worker.on('exit', (code) => {
-      if (code !== 0) {
-        reject(new Error(`worker exited with code ${code}`));
-      } else {
-        resolve(message ?? { error: 'worker sent no message' });
-      }
-    });
+interface WorkerOutcome {
+  calls?: number;
+  error?: string;
+}
+
+interface WorkerProgress {
+  online: boolean;
+  reported: boolean; // finished its work and posted a result
+  exited: boolean; // its env tore down
+}
+
+function describe(progress: readonly WorkerProgress[]): string {
+  const states = progress.map((p, i) => {
+    if (p.exited) return `${i}:exited`;
+    if (p.reported) return `${i}:WORK DONE BUT NEVER EXITED`;
+    if (p.online) return `${i}:ONLINE BUT WORK UNFINISHED`;
+    return `${i}:NEVER STARTED`;
   });
+  return `workers did not all exit within ${deadlineMs}ms [${states.join(', ')}]`;
 }
 
 suite('worker threads', () => {
-  test('scalar functions work, and their envs tear down, in workers', async () => {
-    // Several envs concurrently, each with its own addon instance and reaper.
-    const results = await Promise.all(
-      Array.from({ length: worker_count }, () => runWorker()),
-    );
-    for (const result of results) {
-      expect(result.error).toBeUndefined();
-      expect(result.calls).toBe(queries_per_worker * chunks_per_query);
-    }
-  });
+  test(
+    'scalar functions work, and their envs tear down, in workers',
+    async () => {
+      const progress: WorkerProgress[] = Array.from(
+        { length: worker_count },
+        () => ({ online: false, reported: false, exited: false }),
+      );
+      const workers: Worker[] = [];
+
+      const runs = progress.map((state, index) => {
+        return new Promise<WorkerOutcome>((resolve, reject) => {
+          const worker = new Worker(worker_source, {
+            eval: true,
+            workerData: { bindings_path },
+          });
+          workers.push(worker);
+          let outcome: WorkerOutcome | undefined;
+          worker.on('online', () => {
+            state.online = true;
+          });
+          worker.on('message', (m: WorkerOutcome) => {
+            outcome = m;
+            state.reported = true;
+          });
+          worker.on('error', reject);
+          // Resolving on 'exit' rather than 'message' is the point: the work
+          // completing is not enough, the env has to tear down too.
+          worker.on('exit', (code) => {
+            state.exited = true;
+            if (code !== 0) {
+              reject(new Error(`worker ${index} exited with code ${code}`));
+            } else {
+              resolve(outcome ?? { error: 'worker sent no message' });
+            }
+          });
+        });
+      });
+
+      let timer: NodeJS.Timeout | undefined;
+      try {
+        const results = await Promise.race([
+          Promise.all(runs),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error(describe(progress))), deadlineMs);
+          }),
+        ]);
+        for (const result of results) {
+          expect(result.error).toBeUndefined();
+          expect(result.calls).toBe(queries_per_worker * chunks_per_query);
+        }
+      } finally {
+        if (timer) {
+          clearTimeout(timer);
+        }
+        // Leaves nothing running behind a failure.
+        await Promise.all(workers.map((worker) => worker.terminate()));
+      }
+    },
+    testTimeoutMs,
+  );
 });
