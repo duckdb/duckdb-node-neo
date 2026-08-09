@@ -3,6 +3,7 @@
 #include "napi_setup.h"
 #include "duckdb.h"
 #include "napi_ref_reaper.h"
+#include "duckdb_thread_callback.h"
 #include <cstddef>
 #include <memory>
 
@@ -330,65 +331,42 @@ static const napi_type_tag ScalarFunctionTypeTag = {
   0x95D48B7051D14994, 0x9F883D7DF5DEA86D
 };
 
-using ScalarFunctionBindTSFNContext = std::nullptr_t;
-struct ScalarFunctionBindTSFNData;
-void ScalarFunctionBindTSFNCallback(Napi::Env env, Napi::Function callback, ScalarFunctionBindTSFNContext *context, ScalarFunctionBindTSFNData *data);
-using ScalarFunctionBindTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionBindTSFNContext, ScalarFunctionBindTSFNData, ScalarFunctionBindTSFNCallback>;
+// Per-callback details for DuckDBThreadCallback. Defined in
+// scalar_function_helpers.h, which is included after the CreateExternalFor*
+// helpers these need.
 
-using ScalarFunctionMainTSFNContext = std::nullptr_t;
-struct ScalarFunctionMainTSFNData;
-void ScalarFunctionMainTSFNCallback(Napi::Env env, Napi::Function callback, ScalarFunctionMainTSFNContext *context, ScalarFunctionMainTSFNData *data);
-using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainTSFNContext, ScalarFunctionMainTSFNData, ScalarFunctionMainTSFNCallback>;
+struct ScalarFunctionBindCallbackTraits {
+  using Payload = duckdb_bind_info;
+  static const char *ResourceName();
+  static void Call(Napi::Env env, Napi::Function callback, const Payload &payload);
+  static void SetError(const Payload &payload, const char *message);
+};
+
+struct ScalarFunctionMainCallbackTraits {
+  struct Payload {
+    duckdb_function_info info;
+    duckdb_data_chunk input;
+    duckdb_vector output;
+  };
+  static const char *ResourceName();
+  static void Call(Napi::Env env, Napi::Function callback, const Payload &payload);
+  static void SetError(const Payload &payload, const char *message);
+};
 
 struct ScalarFunctionInternalExtraInfo {
-  std::unique_ptr<ScalarFunctionBindTSFN> bind_tsfn;
-  std::unique_ptr<ScalarFunctionMainTSFN> main_tsfn;
+  DuckDBThreadCallback<ScalarFunctionBindCallbackTraits> bind_callback;
+  DuckDBThreadCallback<ScalarFunctionMainCallbackTraits> main_callback;
   std::shared_ptr<ManagedObjectReference> user_extra_info_ref;
 
-  // Held to answer one question: is the env still alive? See the destructor.
-  std::shared_ptr<NapiRefReaper> env_state;
-
-  explicit ScalarFunctionInternalExtraInfo(std::shared_ptr<NapiRefReaper> env_state_in)
-    : env_state(std::move(env_state_in)) {}
-
-  ~ScalarFunctionInternalExtraInfo() {
-    // Once the env has begun tearing down, Node has already destroyed these
-    // thread-safe functions, and releasing them again is a use-after-free. Node
-    // runs env cleanup hooks before finalizers, so this is accurate by the time
-    // this destructor runs from one.
-    if (!env_state || !env_state->EnvIsAlive()) {
-      return;
-    }
-    if (bool(bind_tsfn)) {
-      bind_tsfn->Release();
-    }
-    if (bool(main_tsfn)) {
-      main_tsfn->Release();
-    }
-  }
-
-  // Thread-safe functions are created referenced, which keeps the event loop
-  // alive for as long as they exist. These are only released when this extra
-  // info is destroyed, which needs the scalar function to be unregistered and
-  // its handle destroyed -- so a registered scalar function would otherwise stop
-  // its process (or its worker thread) from ever exiting. Unreferencing them is
-  // safe: a call in flight is always inside a query, and the async worker
-  // running that query keeps the loop alive on its own.
+  explicit ScalarFunctionInternalExtraInfo(const std::shared_ptr<NapiRefReaper> &env_state)
+    : bind_callback(env_state), main_callback(env_state) {}
 
   void SetBindFunction(Napi::Env env, Napi::Function func) {
-    if (bool(bind_tsfn)) {
-      bind_tsfn->Release();
-    }
-    bind_tsfn = std::make_unique<ScalarFunctionBindTSFN>(ScalarFunctionBindTSFN::New(env, func, "ScalarFunctionBind", 0, 1));
-    bind_tsfn->Unref(env);
+    bind_callback.Set(env, func);
   }
 
   void SetMainFunction(Napi::Env env, Napi::Function func) {
-    if (bool(main_tsfn)) {
-      main_tsfn->Release();
-    }
-    main_tsfn = std::make_unique<ScalarFunctionMainTSFN>(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1));
-    main_tsfn->Unref(env);
+    main_callback.Set(env, func);
   }
 
   void SetUserExtraInfo(const std::shared_ptr<NapiRefReaper> &reaper, Napi::Object user_extra_info) {
