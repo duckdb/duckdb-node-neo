@@ -3,6 +3,7 @@ import { expect, suite, test } from 'vitest';
 import { data } from './utils/expectedVectors';
 import { expectResult } from './utils/expectResult';
 import { withConnection } from './utils/withConnection';
+import { withDatabase } from './utils/withDatabase';
 
 suite('table functions', () => {
   test('create', () => {
@@ -521,6 +522,122 @@ suite('table functions', () => {
       expect(new DataView(countData.buffer).getBigInt64(0, true)).toBe(
         BigInt(duckdb.vector_size() * 2),
       );
+    });
+  });
+
+  test('error handling (exception in local init func)', async () => {
+    await withConnection(async (connection) => {
+      registerFunction(connection, {
+        localInitFunction: () => {
+          throw new Error('my_local_init_error');
+        },
+      });
+      await expect(
+        duckdb.query(connection, 'select * from my_func()'),
+      ).rejects.toThrow('my_local_init_error');
+    });
+  });
+
+  test('error handling (set error in local init func)', async () => {
+    await withConnection(async (connection) => {
+      registerFunction(connection, {
+        localInitFunction: (info) => {
+          duckdb.init_set_error(info, 'my_local_init_error');
+        },
+      });
+      await expect(
+        duckdb.query(connection, 'select * from my_func()'),
+      ).rejects.toThrow('my_local_init_error');
+    });
+  });
+
+  test('a scan producing no rows', async () => {
+    await withConnection(async (connection) => {
+      registerFunction(connection, { rowCount: 0 });
+      const result = await duckdb.query(connection, 'select * from my_func()');
+      await expectResult(result, {
+        chunkCount: 0,
+        rowCount: 0,
+        columns: [
+          { name: 'my_column', logicalType: { typeId: duckdb.Type.VARCHAR } },
+        ],
+        chunks: [],
+      });
+    });
+  });
+
+  test('registering the same name twice keeps the first registration', async () => {
+    await withConnection(async (connection) => {
+      registerFunction(connection, { rowCount: 1 });
+      // The C API docs say registering an existing name returns an error. It does
+      // not: the second registration reports success and is then ignored, so the
+      // first function is what runs. Re-registering to replace a function
+      // silently does nothing.
+      registerFunction(connection, { rowCount: 2 });
+      const result = await duckdb.query(connection, 'select * from my_func()');
+      await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 1,
+        columns: [
+          { name: 'my_column', logicalType: { typeId: duckdb.Type.VARCHAR } },
+        ],
+        chunks: [{ rowCount: 1, vectors: [data(16, [true], ['row_0'])] }],
+      });
+    });
+  });
+
+  test('the function outlives the connection that registered it', async () => {
+    // Registration goes into the database catalog, so the extra info holding the
+    // callbacks has to stay alive for other connections after the registering
+    // one is gone.
+    await withDatabase({}, async (db) => {
+      const registrar = await duckdb.connect(db);
+      registerFunction(registrar, { rowCount: 2 });
+      duckdb.disconnect_sync(registrar);
+
+      const connection = await duckdb.connect(db);
+      try {
+        const result = await duckdb.query(
+          connection,
+          'select * from my_func()',
+        );
+        await expectResult(result, {
+          chunkCount: 1,
+          rowCount: 2,
+          columns: [
+            { name: 'my_column', logicalType: { typeId: duckdb.Type.VARCHAR } },
+          ],
+          chunks: [
+            { rowCount: 2, vectors: [data(16, [true, true], ['row_0', 'row_1'])] },
+          ],
+        });
+      } finally {
+        duckdb.disconnect_sync(connection);
+      }
+    });
+  });
+
+  test('a scan can be interrupted', async () => {
+    await withConnection(async (connection) => {
+      let calls = 0;
+      registerFunction(connection, {
+        mainFunction: (_info, output) => {
+          calls++;
+          // Never signals completion, so the scan runs until interrupted.
+          const vector = duckdb.data_chunk_get_vector(output, 0);
+          for (let i = 0; i < duckdb.vector_size(); i++) {
+            duckdb.vector_assign_string_element(vector, i, 'row');
+          }
+          duckdb.data_chunk_set_size(output, duckdb.vector_size());
+          if (calls === 3) {
+            duckdb.interrupt(connection);
+          }
+        },
+      });
+      await expect(
+        duckdb.query(connection, 'select * from my_func()'),
+      ).rejects.toThrow(/INTERRUPT|interrupted/i);
+      expect(calls).toBeGreaterThanOrEqual(3);
     });
   });
 });
