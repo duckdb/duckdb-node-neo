@@ -8,25 +8,29 @@
 // Scalar functions
 
 struct ScalarFunctionInternalBindData {
-  std::unique_ptr<Napi::ObjectReference> user_bind_data_ref;
+  std::shared_ptr<ManagedObjectReference> user_bind_data_ref;
 
-  void SetUserBindData(Napi::Object user_bind_data) {
-    user_bind_data_ref = std::make_unique<Napi::ObjectReference>(user_bind_data.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_bind_data));
+  void SetUserBindData(const std::shared_ptr<NapiRefReaper> &reaper, Napi::Object user_bind_data) {
+    user_bind_data_ref = user_bind_data.IsUndefined() ? nullptr : MakeManagedObjectReference(reaper, user_bind_data);
   }
 };
 
+// Called by DuckDB when the bound expression is destroyed, on whatever thread
+// tears down the plan. Dropping the last reference hands it to the reaper, which
+// deletes it on the JS thread.
 inline void DeleteScalarFunctionInternalBindData(ScalarFunctionInternalBindData *internal_bind_data) {
   delete internal_bind_data;
 }
 
+// Called by DuckDB when the bound expression is copied, also on an arbitrary
+// thread. Sharing the reference makes this a refcount bump, so no N-API call is
+// made here.
 inline ScalarFunctionInternalBindData *CopyScalarFunctionInternalBindData(ScalarFunctionInternalBindData *internal_bind_data) {
   if (!internal_bind_data) {
     return nullptr;
   }
   auto new_internal_bind_data = new ScalarFunctionInternalBindData();
-  if (internal_bind_data->user_bind_data_ref && !internal_bind_data->user_bind_data_ref->IsEmpty()) {
-    new_internal_bind_data->SetUserBindData(internal_bind_data->user_bind_data_ref->Value());
-  }
+  new_internal_bind_data->user_bind_data_ref = internal_bind_data->user_bind_data_ref;
   return new_internal_bind_data;
 }
 

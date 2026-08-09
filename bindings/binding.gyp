@@ -14,6 +14,18 @@
         ],
       ],
     },
+    # Off by default. When set to 1, aborts if a Napi::ObjectReference is ever
+    # destroyed off the JS thread (see napi_ref_reaper.h). This is a manual
+    # check, not part of any test suite; run it after touching reference
+    # ownership with:
+    #
+    #   node-gyp configure -- -Dduckdb_node_instrument_napi_refs=1
+    #   node-gyp build
+    #   pnpm test
+    #
+    # A clean run means every reference was destroyed on the JS thread.
+    # Reconfigure without the flag afterwards to get an uninstrumented build.
+    'duckdb_node_instrument_napi_refs%': 0,
     'conditions': [
       ['<(libc_musl) == 1', {
           'libc_pkg_suffix%': '-musl',
@@ -75,6 +87,9 @@
       'sources': ['src/duckdb_node_bindings.cpp'],
       'include_dirs': ['<(module_root_dir)/libduckdb'],
       'conditions': [
+        ['duckdb_node_instrument_napi_refs==1', {
+          'defines': ['DUCKDB_NODE_INSTRUMENT_NAPI_REFS'],
+        }],
         ['OS=="linux" and target_arch=="x64"', {
           'link_settings': {
             'libraries': [

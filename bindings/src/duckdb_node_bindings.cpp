@@ -23,7 +23,7 @@ class DuckDBNodeAddon : public Napi::Addon<DuckDBNodeAddon> {
 
 public:
 
-  DuckDBNodeAddon(Napi::Env env, Napi::Object exports) {
+  DuckDBNodeAddon(Napi::Env env, Napi::Object exports) : ref_reaper(std::make_shared<NapiRefReaper>(env)) {
     DefineAddon(exports, {
       InstanceValue("sizeof_bool", Napi::Number::New(env, sizeof(bool))),
 
@@ -330,7 +330,20 @@ public:
     });
   }
 
+  ~DuckDBNodeAddon() {
+    // Runs on the JS thread when the env is torn down, which is what matters for
+    // worker threads. Node may skip instance data finalizers for the main env at
+    // process exit; that is harmless, since the reaper's thread-safe function is
+    // unref'd and so never holds the process open. After shutdown, references
+    // still held by DuckDB can no longer be reaped and are leaked instead.
+    ref_reaper->Shutdown();
+  }
+
 private:
+
+  // Destroys user-object references on the JS thread, whatever thread DuckDB's
+  // delete callbacks run on. See napi_ref_reaper.h.
+  std::shared_ptr<NapiRefReaper> ref_reaper;
 
   // DUCKDB_C_API duckdb_instance_cache duckdb_create_instance_cache();
   // function create_instance_cache(): InstanceCache
@@ -3009,7 +3022,7 @@ private:
     auto holder = GetScalarFunctionHolderFromExternal(env, info[0]);
     auto user_extra_info = info[1].As<Napi::Object>();
     holder->EnsureInternalExtraInfo();
-    holder->internal_extra_info->SetUserExtraInfo(user_extra_info);
+    holder->internal_extra_info->SetUserExtraInfo(ref_reaper, user_extra_info);
     return env.Undefined();
   }
 
@@ -3032,7 +3045,7 @@ private:
     auto bind_info = GetBindInfoFromExternal(env, info[0]);
     auto user_bind_data = info[1].As<Napi::Object>();
     auto internal_bind_data = new ScalarFunctionInternalBindData();
-    internal_bind_data->SetUserBindData(user_bind_data);
+    internal_bind_data->SetUserBindData(ref_reaper, user_bind_data);
     duckdb_scalar_function_set_bind_data(bind_info, internal_bind_data, reinterpret_cast<duckdb_delete_callback_t>(DeleteScalarFunctionInternalBindData));
     duckdb_scalar_function_set_bind_data_copy(bind_info, reinterpret_cast<duckdb_copy_callback_t>(CopyScalarFunctionInternalBindData));
     return env.Undefined();
@@ -3081,10 +3094,10 @@ private:
     auto env = info.Env();
     auto function_info = GetFunctionInfoFromExternal(env, info[0]);
     auto internal_extra_info = GetScalarFunctionInternalExtraInfoFromFunctionInfo(function_info);
-    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref || internal_extra_info->user_extra_info_ref->IsEmpty()) {
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
       return env.Undefined();
     }
-    return internal_extra_info->user_extra_info_ref->Value();
+    return internal_extra_info->user_extra_info_ref->ref.Value();
   }
 
   // DUCKDB_C_API void *duckdb_scalar_function_bind_get_extra_info(duckdb_bind_info info);
@@ -3093,10 +3106,10 @@ private:
     auto env = info.Env();
     auto bind_info = GetBindInfoFromExternal(env, info[0]);
     auto internal_extra_info = GetScalarFunctionInternalExtraInfoFromBindInfo(bind_info);
-    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref || internal_extra_info->user_extra_info_ref->IsEmpty()) {
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
       return env.Undefined();
     }
-    return internal_extra_info->user_extra_info_ref->Value();
+    return internal_extra_info->user_extra_info_ref->ref.Value();
   }
 
   // DUCKDB_C_API void *duckdb_scalar_function_get_bind_data(duckdb_function_info info);
@@ -3105,10 +3118,10 @@ private:
     auto env = info.Env();
     auto function_info = GetFunctionInfoFromExternal(env, info[0]);
     auto internal_bind_data = reinterpret_cast<ScalarFunctionInternalBindData*>(duckdb_scalar_function_get_bind_data(function_info));
-    if (!internal_bind_data || !internal_bind_data->user_bind_data_ref || internal_bind_data->user_bind_data_ref->IsEmpty()) {
+    if (!internal_bind_data || !internal_bind_data->user_bind_data_ref) {
       return env.Undefined();
     }
-    return internal_bind_data->user_bind_data_ref->Value();
+    return internal_bind_data->user_bind_data_ref->ref.Value();
   }
 
   // DUCKDB_C_API void duckdb_scalar_function_get_client_context(duckdb_bind_info info, duckdb_client_context *out_context);
