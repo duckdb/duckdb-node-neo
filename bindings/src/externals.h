@@ -2,9 +2,6 @@
 
 #include "napi_setup.h"
 #include "duckdb.h"
-#include "napi_ref_reaper.h"
-#include <cstddef>
-#include <memory>
 
 // Externals
 
@@ -324,120 +321,6 @@ inline Napi::External<duckdb_result> CreateExternalForResult(Napi::Env env, duck
 
 inline duckdb_result *GetResultFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<duckdb_result>(env, ResultTypeTag, value, "Invalid result argument");
-}
-
-static const napi_type_tag ScalarFunctionTypeTag = {
-  0x95D48B7051D14994, 0x9F883D7DF5DEA86D
-};
-
-using ScalarFunctionBindTSFNContext = std::nullptr_t;
-struct ScalarFunctionBindTSFNData;
-void ScalarFunctionBindTSFNCallback(Napi::Env env, Napi::Function callback, ScalarFunctionBindTSFNContext *context, ScalarFunctionBindTSFNData *data);
-using ScalarFunctionBindTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionBindTSFNContext, ScalarFunctionBindTSFNData, ScalarFunctionBindTSFNCallback>;
-
-using ScalarFunctionMainTSFNContext = std::nullptr_t;
-struct ScalarFunctionMainTSFNData;
-void ScalarFunctionMainTSFNCallback(Napi::Env env, Napi::Function callback, ScalarFunctionMainTSFNContext *context, ScalarFunctionMainTSFNData *data);
-using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainTSFNContext, ScalarFunctionMainTSFNData, ScalarFunctionMainTSFNCallback>;
-
-struct ScalarFunctionInternalExtraInfo {
-  std::unique_ptr<ScalarFunctionBindTSFN> bind_tsfn;
-  std::unique_ptr<ScalarFunctionMainTSFN> main_tsfn;
-  std::shared_ptr<ManagedObjectReference> user_extra_info_ref;
-
-  // Held to answer one question: is the env still alive? See the destructor.
-  std::shared_ptr<NapiRefReaper> env_state;
-
-  explicit ScalarFunctionInternalExtraInfo(std::shared_ptr<NapiRefReaper> env_state_in)
-    : env_state(std::move(env_state_in)) {}
-
-  ~ScalarFunctionInternalExtraInfo() {
-    // Once the env has begun tearing down, Node has already destroyed these
-    // thread-safe functions, and releasing them again is a use-after-free. Node
-    // runs env cleanup hooks before finalizers, so this is accurate by the time
-    // this destructor runs from one.
-    if (!env_state || !env_state->EnvIsAlive()) {
-      return;
-    }
-    if (bool(bind_tsfn)) {
-      bind_tsfn->Release();
-    }
-    if (bool(main_tsfn)) {
-      main_tsfn->Release();
-    }
-  }
-
-  // Thread-safe functions are created referenced, which keeps the event loop
-  // alive for as long as they exist. These are only released when this extra
-  // info is destroyed, which needs the scalar function to be unregistered and
-  // its handle destroyed -- so a registered scalar function would otherwise stop
-  // its process (or its worker thread) from ever exiting. Unreferencing them is
-  // safe: a call in flight is always inside a query, and the async worker
-  // running that query keeps the loop alive on its own.
-
-  void SetBindFunction(Napi::Env env, Napi::Function func) {
-    if (bool(bind_tsfn)) {
-      bind_tsfn->Release();
-    }
-    bind_tsfn = std::make_unique<ScalarFunctionBindTSFN>(ScalarFunctionBindTSFN::New(env, func, "ScalarFunctionBind", 0, 1));
-    bind_tsfn->Unref(env);
-  }
-
-  void SetMainFunction(Napi::Env env, Napi::Function func) {
-    if (bool(main_tsfn)) {
-      main_tsfn->Release();
-    }
-    main_tsfn = std::make_unique<ScalarFunctionMainTSFN>(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1));
-    main_tsfn->Unref(env);
-  }
-
-  void SetUserExtraInfo(const std::shared_ptr<NapiRefReaper> &reaper, Napi::Object user_extra_info) {
-    user_extra_info_ref = user_extra_info.IsUndefined() ? nullptr : MakeManagedObjectReference(reaper, user_extra_info);
-  }
-};
-
-inline void DeleteScalarFunctionInternalExtraInfo(ScalarFunctionInternalExtraInfo *internal_extra_info) {
-  delete internal_extra_info;
-}
-
-struct ScalarFunctionHolder {
-  duckdb_scalar_function scalar_function;
-  ScalarFunctionInternalExtraInfo *internal_extra_info;
-
-  ScalarFunctionHolder(duckdb_scalar_function scalar_function_in): scalar_function(scalar_function_in), internal_extra_info(nullptr) {}
-
-  ~ScalarFunctionHolder() {
-    // duckdb_destroy_scalar_function is a no-op if already destroyed
-    duckdb_destroy_scalar_function(&scalar_function);
-  }
-
-  ScalarFunctionInternalExtraInfo *EnsureInternalExtraInfo(const std::shared_ptr<NapiRefReaper> &env_state) {
-    if (!internal_extra_info) {
-      internal_extra_info = new ScalarFunctionInternalExtraInfo(env_state);
-      duckdb_scalar_function_set_extra_info(scalar_function, internal_extra_info, reinterpret_cast<duckdb_delete_callback_t>(DeleteScalarFunctionInternalExtraInfo));
-    }
-    return internal_extra_info;
-  }
-};
-
-inline ScalarFunctionHolder *CreateScalarFunctionHolder(duckdb_scalar_function scalar_function) {
-  return new ScalarFunctionHolder(scalar_function);
-}
-
-inline void FinalizeScalarFunctionHolder(Napi::BasicEnv, ScalarFunctionHolder *holder) {
-  delete holder;
-}
-
-inline Napi::External<ScalarFunctionHolder> CreateExternalForScalarFunction(Napi::Env env, duckdb_scalar_function scalar_function) {
-  return CreateExternal<ScalarFunctionHolder>(env, ScalarFunctionTypeTag, CreateScalarFunctionHolder(scalar_function), FinalizeScalarFunctionHolder);
-}
-
-inline ScalarFunctionHolder *GetScalarFunctionHolderFromExternal(Napi::Env env, Napi::Value value) {
-  return GetDataFromExternal<ScalarFunctionHolder>(env, ScalarFunctionTypeTag, value, "Invalid scalar function argument");
-}
-
-inline duckdb_scalar_function GetScalarFunctionFromExternal(Napi::Env env, Napi::Value value) {
-  return GetScalarFunctionHolderFromExternal(env, value)->scalar_function;
 }
 
 static const napi_type_tag ValueTypeTag = {

@@ -1,8 +1,6 @@
 import duckdb from '@duckdb/node-bindings';
-import { createRequire } from 'node:module';
 import v8 from 'node:v8';
 import vm from 'node:vm';
-import { Worker } from 'node:worker_threads';
 import { expect, suite, test } from 'vitest';
 import { withConnection } from '../utils/withConnection';
 import { withDatabase } from '../utils/withDatabase';
@@ -15,6 +13,9 @@ import { withDatabase } from '../utils/withDatabase';
 // To check the invariant these tests are protecting -- that a reference is only
 // ever destroyed on the JS thread -- build with instrumentation enabled and run
 // any suite; see the comment on duckdb_node_instrument_napi_refs in binding.gyp.
+//
+// Env teardown is covered by test/worker_threads.test.ts in the main suite, since
+// that is deterministic and worth running on every platform.
 
 // Obtain gc() without requiring the process to be launched with --expose-gc.
 //
@@ -182,91 +183,5 @@ suite('scalar function reference lifetime', () => {
       }
       forceGC();
     });
-  });
-
-  // The reaper is owned by the addon and therefore scoped to a napi_env. Under
-  // worker_threads the addon is instantiated per env, so this covers both that
-  // scoping and the env teardown path that runs NapiRefReaper::Shutdown -- which
-  // never runs for the main env, since Node skips instance data finalizers at
-  // process exit.
-  test('references are reaped per env under worker_threads', async () => {
-    const bindings_path = createRequire(import.meta.url).resolve(
-      '@duckdb/node-bindings',
-    );
-    const queries_per_worker = 25;
-    const chunks_per_query = 3; // range(5000) at a vector size of 2048
-
-    const worker_source = `
-      const { parentPort, workerData } = require('node:worker_threads');
-      const duckdb = require(workerData.bindings_path);
-      (async () => {
-        const db = await duckdb.open();
-        const connection = await duckdb.connect(db);
-        const fn = duckdb.create_scalar_function();
-        duckdb.scalar_function_set_name(fn, 'my_func');
-        duckdb.scalar_function_set_return_type(
-          fn,
-          duckdb.create_logical_type(duckdb.Type.VARCHAR),
-        );
-        duckdb.scalar_function_set_volatile(fn);
-        duckdb.scalar_function_set_extra_info(fn, { token: 'extra_info' });
-        duckdb.scalar_function_set_bind(fn, (info) => {
-          duckdb.scalar_function_set_bind_data(info, { token: 'bind_data' });
-        });
-        let calls = 0;
-        duckdb.scalar_function_set_function(fn, (info, input, output) => {
-          calls++;
-          const bind_data = duckdb.scalar_function_get_bind_data(info);
-          const extra_info = duckdb.scalar_function_get_extra_info(info);
-          if (bind_data.token !== 'bind_data' || extra_info.token !== 'extra_info') {
-            throw new Error('reference corrupted in worker');
-          }
-          const rowCount = duckdb.data_chunk_get_size(input);
-          for (let i = 0; i < rowCount; i++) {
-            duckdb.vector_assign_string_element(output, i, 'ok');
-          }
-        });
-        duckdb.register_scalar_function(connection, fn);
-        duckdb.destroy_scalar_function_sync(fn);
-        for (let i = 0; i < ${queries_per_worker}; i++) {
-          await duckdb.query(connection, 'select my_func() from range(5000)');
-        }
-        duckdb.disconnect_sync(connection);
-        duckdb.close_sync(db);
-        parentPort.postMessage({ calls });
-      })().catch((e) => {
-        parentPort.postMessage({ error: String((e && e.message) || e) });
-      });
-    `;
-
-    function runWorker(): Promise<{ calls?: number; error?: string }> {
-      return new Promise((resolve, reject) => {
-        const worker = new Worker(worker_source, {
-          eval: true,
-          workerData: { bindings_path },
-        });
-        let message: { calls?: number; error?: string } | undefined;
-        worker.on('message', (m) => {
-          message = m;
-        });
-        worker.on('error', reject);
-        worker.on('exit', (code) => {
-          if (code !== 0) {
-            reject(new Error(`worker exited with code ${code}`));
-          } else {
-            resolve(message ?? { error: 'worker sent no message' });
-          }
-        });
-      });
-    }
-
-    // Several envs concurrently, each with its own addon instance and reaper.
-    const results = await Promise.all(
-      Array.from({ length: 4 }, () => runWorker()),
-    );
-    for (const result of results) {
-      expect(result.error).toBeUndefined();
-      expect(result.calls).toBe(queries_per_worker * chunks_per_query);
-    }
   });
 });
