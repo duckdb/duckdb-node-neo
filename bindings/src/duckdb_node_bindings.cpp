@@ -3021,7 +3021,7 @@ private:
     auto env = info.Env();
     auto holder = GetScalarFunctionHolderFromExternal(env, info[0]);
     auto user_extra_info = info[1].As<Napi::Object>();
-    holder->EnsureInternalExtraInfo();
+    holder->EnsureInternalExtraInfo(ref_reaper);
     holder->internal_extra_info->SetUserExtraInfo(ref_reaper, user_extra_info);
     return env.Undefined();
   }
@@ -3032,7 +3032,7 @@ private:
     auto env = info.Env();
     auto holder = GetScalarFunctionHolderFromExternal(env, info[0]);
     auto func = info[1].As<Napi::Function>();
-    holder->EnsureInternalExtraInfo();
+    holder->EnsureInternalExtraInfo(ref_reaper);
     holder->internal_extra_info->SetBindFunction(env, func);
     duckdb_scalar_function_set_bind(holder->scalar_function, &ScalarFunctionBindFunction);
     return env.Undefined();
@@ -3070,7 +3070,7 @@ private:
     auto env = info.Env();
     auto holder = GetScalarFunctionHolderFromExternal(env, info[0]);
     auto func = info[1].As<Napi::Function>();
-    holder->EnsureInternalExtraInfo();
+    holder->EnsureInternalExtraInfo(ref_reaper);
     holder->internal_extra_info->SetMainFunction(env, func);
     duckdb_scalar_function_set_function(holder->scalar_function, &ScalarFunctionMainFunction);
     return env.Undefined();
