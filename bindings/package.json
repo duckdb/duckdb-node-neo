@@ -8,8 +8,9 @@
     "clean:gyp": "node-gyp clean",
     "clean:libduckdb": "rimraf libduckdb",
     "clean:package": "rimraf pkgs/@duckdb/**/*.node pkgs/@duckdb/**/*.so pkgs/@duckdb/**/*.dylib pkgs/@duckdb/**/*.dll",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run --exclude 'test/stress/**'",
+    "test:stress": "vitest run test/stress",
+    "test:watch": "vitest --exclude 'test/stress/**'"
   },
   "devDependencies": {
     "@duckdb/node-bindings": "workspace:*",

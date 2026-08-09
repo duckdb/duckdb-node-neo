@@ -141,6 +141,35 @@ jobs:
         working-directory: api
         run: pnpm test
 
+      # The steps below rebuild the addon with DUCKDB_NODE_INSTRUMENT_NAPI_REFS,
+      # which aborts if a Napi::ObjectReference is ever destroyed off the JS
+      # thread, and re-run the suites against it. See the comment on
+      # duckdb_node_instrument_napi_refs in bindings/binding.gyp.
+      #
+      # They come last because they leave an instrumented addon in bindings/pkgs
+      # which must never be published. Publishing only happens on
+      # workflow_dispatch, so the pull_request condition already keeps the two
+      # apart; keep it that way if these move.
+
+      - name: Bindings - Build (N-API reference instrumentation)
+        if: ${{ github.event_name == 'pull_request' }}
+        working-directory: bindings
+        run: |
+          pnpm exec node-gyp configure --nodedir=$NODE_DIR -- -Dduckdb_node_instrument_napi_refs=1
+          pnpm exec node-gyp build --nodedir=$NODE_DIR
+
+      - name: Bindings - Test (N-API reference instrumentation)
+        if: ${{ github.event_name == 'pull_request' }}
+        working-directory: bindings
+        run: |
+          pnpm test
+          pnpm run test:stress
+
+      - name: API - Test (N-API reference instrumentation)
+        if: ${{ github.event_name == 'pull_request' }}
+        working-directory: api
+        run: pnpm test
+
       # - name: Git Status
       #   if: ${{ inputs.publish }}
       #   run: git status

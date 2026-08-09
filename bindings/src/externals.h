@@ -2,6 +2,7 @@
 
 #include "napi_setup.h"
 #include "duckdb.h"
+#include "napi_ref_reaper.h"
 #include <cstddef>
 #include <memory>
 
@@ -342,7 +343,7 @@ using ScalarFunctionMainTSFN = Napi::TypedThreadSafeFunction<ScalarFunctionMainT
 struct ScalarFunctionInternalExtraInfo {
   std::unique_ptr<ScalarFunctionBindTSFN> bind_tsfn;
   std::unique_ptr<ScalarFunctionMainTSFN> main_tsfn;
-  std::unique_ptr<Napi::ObjectReference> user_extra_info_ref;
+  std::shared_ptr<ManagedObjectReference> user_extra_info_ref;
 
   ScalarFunctionInternalExtraInfo() {}
 
@@ -369,8 +370,8 @@ struct ScalarFunctionInternalExtraInfo {
     main_tsfn = std::make_unique<ScalarFunctionMainTSFN>(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1));
   }
 
-  void SetUserExtraInfo(Napi::Object user_extra_info) {
-    user_extra_info_ref = std::make_unique<Napi::ObjectReference>(user_extra_info.IsUndefined() ? Napi::ObjectReference() : Napi::Persistent(user_extra_info));
+  void SetUserExtraInfo(const std::shared_ptr<NapiRefReaper> &reaper, Napi::Object user_extra_info) {
+    user_extra_info_ref = user_extra_info.IsUndefined() ? nullptr : MakeManagedObjectReference(reaper, user_extra_info);
   }
 };
 
