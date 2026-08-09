@@ -15,6 +15,7 @@
 #include "externals.h"
 #include "napi_ref_reaper.h"
 #include "scalar_function_helpers.h"
+#include "table_function_helpers.h"
 #include "promise_workers.h"
 #include "enums.h"
 
@@ -289,6 +290,15 @@ public:
       InstanceMethod("scalar_function_get_bind_data", &DuckDBNodeAddon::scalar_function_get_bind_data),
       InstanceMethod("scalar_function_get_client_context", &DuckDBNodeAddon::scalar_function_get_client_context),
       InstanceMethod("scalar_function_set_error", &DuckDBNodeAddon::scalar_function_set_error),
+
+      InstanceMethod("create_table_function", &DuckDBNodeAddon::create_table_function),
+      InstanceMethod("destroy_table_function_sync", &DuckDBNodeAddon::destroy_table_function_sync),
+      InstanceMethod("table_function_set_name", &DuckDBNodeAddon::table_function_set_name),
+      InstanceMethod("table_function_add_parameter", &DuckDBNodeAddon::table_function_add_parameter),
+      InstanceMethod("table_function_add_named_parameter", &DuckDBNodeAddon::table_function_add_named_parameter),
+      InstanceMethod("table_function_set_extra_info", &DuckDBNodeAddon::table_function_set_extra_info),
+      InstanceMethod("table_function_supports_projection_pushdown", &DuckDBNodeAddon::table_function_supports_projection_pushdown),
+      InstanceMethod("register_table_function", &DuckDBNodeAddon::register_table_function),
 
       InstanceMethod("appender_create", &DuckDBNodeAddon::appender_create),
       InstanceMethod("appender_create_ext", &DuckDBNodeAddon::appender_create_ext),
@@ -3245,22 +3255,64 @@ private:
   // TODO aggregate function set
 
   // DUCKDB_C_API duckdb_table_function duckdb_create_table_function();
-  // TODO table function
+  // function create_table_function(): TableFunction
+  Napi::Value create_table_function(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto table_function = duckdb_create_table_function();
+    return CreateExternalForTableFunction(env, table_function);
+  }
 
   // DUCKDB_C_API void duckdb_destroy_table_function(duckdb_table_function *table_function);
-  // TODO table function
+  // function destroy_table_function_sync(table_function: TableFunction): void
+  Napi::Value destroy_table_function_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetTableFunctionHolderFromExternal(env, info[0]);
+    // duckdb_destroy_table_function is a no-op if already destroyed
+    duckdb_destroy_table_function(&holder->table_function);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_table_function_set_name(duckdb_table_function table_function, const char *name);
-  // TODO table function
+  // function table_function_set_name(table_function: TableFunction, name: string): void
+  Napi::Value table_function_set_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto table_function = GetTableFunctionFromExternal(env, info[0]);
+    std::string name = info[1].As<Napi::String>();
+    duckdb_table_function_set_name(table_function, name.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_table_function_add_parameter(duckdb_table_function table_function, duckdb_logical_type type);
-  // TODO table function
+  // function table_function_add_parameter(table_function: TableFunction, logical_type: LogicalType): void
+  Napi::Value table_function_add_parameter(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto table_function = GetTableFunctionFromExternal(env, info[0]);
+    auto logical_type = GetLogicalTypeFromExternal(env, info[1]);
+    duckdb_table_function_add_parameter(table_function, logical_type);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_table_function_add_named_parameter(duckdb_table_function table_function, const char *name, duckdb_logical_type type);
-  // TODO table function
+  // function table_function_add_named_parameter(table_function: TableFunction, name: string, logical_type: LogicalType): void
+  Napi::Value table_function_add_named_parameter(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto table_function = GetTableFunctionFromExternal(env, info[0]);
+    std::string name = info[1].As<Napi::String>();
+    auto logical_type = GetLogicalTypeFromExternal(env, info[2]);
+    duckdb_table_function_add_named_parameter(table_function, name.c_str(), logical_type);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_table_function_set_extra_info(duckdb_table_function table_function, void *extra_info, duckdb_delete_callback_t destroy);
-  // TODO table function
+  // function table_function_set_extra_info(table_function: TableFunction, extra_info: object): void
+  Napi::Value table_function_set_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetTableFunctionHolderFromExternal(env, info[0]);
+    auto user_extra_info = info[1].As<Napi::Object>();
+    holder->EnsureInternalExtraInfo();
+    holder->internal_extra_info->SetUserExtraInfo(ref_reaper, user_extra_info);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_table_function_set_bind(duckdb_table_function table_function, duckdb_table_function_bind_t bind);
   // TODO table function
@@ -3275,10 +3327,26 @@ private:
   // TODO table function
 
   // DUCKDB_C_API void duckdb_table_function_supports_projection_pushdown(duckdb_table_function table_function, bool pushdown);
-  // TODO table function
+  // function table_function_supports_projection_pushdown(table_function: TableFunction, pushdown: boolean): void
+  Napi::Value table_function_supports_projection_pushdown(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto table_function = GetTableFunctionFromExternal(env, info[0]);
+    auto pushdown = info[1].As<Napi::Boolean>().Value();
+    duckdb_table_function_supports_projection_pushdown(table_function, pushdown);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_register_table_function(duckdb_connection con, duckdb_table_function function);
-  // TODO table function
+  // function register_table_function(connection: Connection, table_function: TableFunction): void
+  Napi::Value register_table_function(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto table_function = GetTableFunctionFromExternal(env, info[1]);
+    if (duckdb_register_table_function(connection, table_function)) {
+      throw Napi::Error::New(env, "Failed to register table function");
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void *duckdb_bind_get_extra_info(duckdb_bind_info info);
   // TODO bind info

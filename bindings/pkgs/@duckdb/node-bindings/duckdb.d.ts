@@ -285,6 +285,10 @@ export interface ScalarFunction {
   __duckdb_type: 'duckdb_scalar_function';
 }
 
+export interface TableFunction {
+  __duckdb_type: 'duckdb_table_function';
+}
+
 // export interface SelectionVector {
 //   __duckdb_type: 'duckdb_selection_vector';
 // }
@@ -1210,17 +1214,32 @@ export function scalar_function_set_error(function_info: ScalarFunctionInfo, err
 // DUCKDB_C_API duckdb_state duckdb_register_aggregate_function_set(duckdb_connection con, duckdb_aggregate_function_set set);
 
 // DUCKDB_C_API duckdb_table_function duckdb_create_table_function();
+export function create_table_function(): TableFunction;
+
 // DUCKDB_C_API void duckdb_destroy_table_function(duckdb_table_function *table_function);
+export function destroy_table_function_sync(table_function: TableFunction): void;
+
 // DUCKDB_C_API void duckdb_table_function_set_name(duckdb_table_function table_function, const char *name);
+export function table_function_set_name(table_function: TableFunction, name: string): void;
+
 // DUCKDB_C_API void duckdb_table_function_add_parameter(duckdb_table_function table_function, duckdb_logical_type type);
+export function table_function_add_parameter(table_function: TableFunction, logical_type: LogicalType): void;
+
 // DUCKDB_C_API void duckdb_table_function_add_named_parameter(duckdb_table_function table_function, const char *name, duckdb_logical_type type);
+export function table_function_add_named_parameter(table_function: TableFunction, name: string, logical_type: LogicalType): void;
+
 // DUCKDB_C_API void duckdb_table_function_set_extra_info(duckdb_table_function table_function, void *extra_info, duckdb_delete_callback_t destroy);
+export function table_function_set_extra_info(table_function: TableFunction, extra_info: object): void;
+
 // DUCKDB_C_API void duckdb_table_function_set_bind(duckdb_table_function table_function, duckdb_table_function_bind_t bind);
 // DUCKDB_C_API void duckdb_table_function_set_init(duckdb_table_function table_function, duckdb_table_function_init_t init);
 // DUCKDB_C_API void duckdb_table_function_set_local_init(duckdb_table_function table_function, duckdb_table_function_init_t init);
 // DUCKDB_C_API void duckdb_table_function_set_function(duckdb_table_function table_function, duckdb_table_function_t function);
 // DUCKDB_C_API void duckdb_table_function_supports_projection_pushdown(duckdb_table_function table_function, bool pushdown);
+export function table_function_supports_projection_pushdown(table_function: TableFunction, pushdown: boolean): void;
+
 // DUCKDB_C_API duckdb_state duckdb_register_table_function(duckdb_connection con, duckdb_table_function function);
+export function register_table_function(connection: Connection, table_function: TableFunction): void;
 
 // DUCKDB_C_API void *duckdb_bind_get_extra_info(duckdb_bind_info info);
 // DUCKDB_C_API void duckdb_table_function_get_client_context(duckdb_bind_info info, duckdb_client_context *out_context);
