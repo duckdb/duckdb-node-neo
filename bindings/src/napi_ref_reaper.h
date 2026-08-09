@@ -1,6 +1,7 @@
 #pragma once
 
 #include "napi_setup.h"
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -100,30 +101,62 @@ public:
     }
     if (OnJSThread()) {
       // Shutdown also runs on the JS thread, so it cannot be racing with this.
-      delete managed_ref;
+      // It can already have run, though, in which case the env is going away and
+      // the reference must be leaked rather than deleted.
+      if (alive) {
+        delete managed_ref;
+      } else {
+        LeakReference();
+      }
       return;
     }
+    // Holding the mutex across the check and the call is what stands in for the
+    // per-thread Acquire/Release that N-API's thread-safe function contract
+    // otherwise expects: it keeps Shutdown's Release from dropping the last
+    // thread count while a call is in flight. Callers must not move the call
+    // out of the lock.
     std::lock_guard<std::mutex> lock(mutex);
-    if (!alive || tsfn.NonBlockingCall([managed_ref](Napi::Env, Napi::Function) { delete managed_ref; }) != napi_ok) {
-      // The env is gone (or the queue rejected the call), so the reference can
-      // no longer be deleted safely from any thread. Leak it: this only happens
-      // during teardown, where the underlying JS object is already unreachable.
+    if (!alive) {
+      LeakReference();
       return;
+    }
+    auto status = tsfn.NonBlockingCall([managed_ref](Napi::Env, Napi::Function) { delete managed_ref; });
+    if (status != napi_ok) {
+      // A failed call means the thread-safe function is closing. Node closes it
+      // from its own env cleanup hook, independently of Shutdown, and N-API
+      // forbids using it afterwards because it may already have been freed.
+      // Mark the reaper dead so no other thread calls into it.
+      alive = false;
+      LeakReference();
     }
   }
 
 private:
 
+  // The reference can no longer be deleted safely from any thread, so leaking it
+  // is the only correct option. This happens only once the env is going away,
+  // where the underlying JS object is already unreachable.
+  static void LeakReference() {
+#ifdef DUCKDB_NODE_INSTRUMENT_NAPI_REFS
+    fprintf(stderr, "INFO: leaked a Napi::ObjectReference during teardown instead of destroying it.\n");
+    fflush(stderr);
+#endif
+  }
+
   std::thread::id js_thread_id;
   Napi::ThreadSafeFunction tsfn;
   std::mutex mutex;
-  bool alive;
+  // Written under the mutex, but read without it on the JS thread fast path.
+  std::atomic<bool> alive;
 
 };
 
 // Creates a reference to the given object whose destruction is routed through
 // the reaper. The deleter holds the reaper alive for as long as any reference
 // created from it survives.
+//
+// The resulting reference is never empty, so holders can treat a null
+// shared_ptr as "no user object" without also checking IsEmpty().
 inline std::shared_ptr<ManagedObjectReference> MakeManagedObjectReference(const std::shared_ptr<NapiRefReaper> &reaper, Napi::Object object) {
   return std::shared_ptr<ManagedObjectReference>(
     new ManagedObjectReference(Napi::Persistent(object)),

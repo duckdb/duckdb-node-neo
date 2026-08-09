@@ -25,6 +25,12 @@ inline void DeleteScalarFunctionInternalBindData(ScalarFunctionInternalBindData 
 // Called by DuckDB when the bound expression is copied, also on an arbitrary
 // thread. Sharing the reference makes this a refcount bump, so no N-API call is
 // made here.
+//
+// No test covers this: 18 query shapes were tried (common subexpressions, filter
+// pushdown, joins, set operations, windows, subqueries, CTAS, repeated execution
+// of a prepared statement) and DuckDB 1.5.5 did not copy the bind data for any of
+// them. Registering the copy callback is still correct, and sharing the reference
+// means the path is safe if it is ever reached.
 inline ScalarFunctionInternalBindData *CopyScalarFunctionInternalBindData(ScalarFunctionInternalBindData *internal_bind_data) {
   if (!internal_bind_data) {
     return nullptr;

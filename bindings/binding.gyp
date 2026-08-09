@@ -23,7 +23,10 @@
     #   node-gyp build
     #   pnpm test
     #
-    # A clean run means every reference was destroyed on the JS thread.
+    # A clean run means no reference was destroyed off the JS thread. Note that
+    # references still queued when the env tears down are leaked rather than
+    # destroyed, so a clean run is not by itself proof that every reference was
+    # reaped; the instrumented build reports those leaks separately on stderr.
     # Reconfigure without the flag afterwards to get an uninstrumented build.
     'duckdb_node_instrument_napi_refs%': 0,
     'conditions': [
