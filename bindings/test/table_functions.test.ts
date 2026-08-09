@@ -332,4 +332,195 @@ suite('table functions', () => {
       expect(caught).toBe('Invalid scalar function info argument');
     });
   });
+
+  test('positional and named parameters', async () => {
+    await withConnection(async (connection) => {
+      const table_function = duckdb.create_table_function();
+      duckdb.table_function_set_name(table_function, 'my_func');
+      const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+      const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
+      duckdb.table_function_add_parameter(table_function, int_type);
+      duckdb.table_function_add_named_parameter(
+        table_function,
+        'prefix',
+        varchar_type,
+      );
+      duckdb.table_function_set_bind(table_function, (info) => {
+        const parameter_count = duckdb.bind_get_parameter_count(info);
+        const count_value = duckdb.bind_get_parameter(info, 0);
+        const count = duckdb.get_int32(count_value);
+        const prefix_value = duckdb.bind_get_named_parameter(info, 'prefix');
+        const prefix = prefix_value ? duckdb.get_varchar(prefix_value) : 'none';
+        const missing = duckdb.bind_get_named_parameter(info, 'not_supplied');
+        duckdb.bind_add_result_column(info, 'my_column', varchar_type);
+        // Cardinality is only a hint to the optimizer, so nothing observable
+        // depends on it; this just exercises the call.
+        duckdb.bind_set_cardinality(info, count, true);
+        duckdb.bind_set_bind_data(info, {
+          count,
+          prefix,
+          parameter_count,
+          'missing_is_null': missing === null,
+        });
+      });
+      duckdb.table_function_set_init(table_function, (info) => {
+        duckdb.init_set_init_data(info, { 'done': false });
+      });
+      duckdb.table_function_set_function(table_function, (info, output) => {
+        const bind_data = duckdb.function_get_bind_data(info) as {
+          count: number;
+          prefix: string;
+          parameter_count: number;
+          missing_is_null: boolean;
+        };
+        const init_data = duckdb.function_get_init_data(info) as {
+          done: boolean;
+        };
+        if (init_data.done) {
+          duckdb.data_chunk_set_size(output, 0);
+          return;
+        }
+        const vector = duckdb.data_chunk_get_vector(output, 0);
+        for (let i = 0; i < bind_data.count; i++) {
+          duckdb.vector_assign_string_element(
+            vector,
+            i,
+            `${bind_data.prefix}_${i}_p${bind_data.parameter_count}_m${bind_data.missing_is_null}`,
+          );
+        }
+        duckdb.data_chunk_set_size(output, bind_data.count);
+        init_data.done = true;
+      });
+      duckdb.register_table_function(connection, table_function);
+      duckdb.destroy_table_function_sync(table_function);
+
+      const result = await duckdb.query(
+        connection,
+        "select * from my_func(2, prefix => 'row')",
+      );
+      await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 2,
+        columns: [
+          { name: 'my_column', logicalType: { typeId: duckdb.Type.VARCHAR } },
+        ],
+        chunks: [
+          {
+            rowCount: 2,
+            vectors: [
+              data(
+                16,
+                [true, true],
+                ['row_0_p1_mtrue', 'row_1_p1_mtrue'],
+              ),
+            ],
+          },
+        ],
+      });
+    });
+  });
+
+  test('extra info is available to bind, init and the main function', async () => {
+    await withConnection(async (connection) => {
+      const seen: string[] = [];
+      const table_function = duckdb.create_table_function();
+      duckdb.table_function_set_name(table_function, 'my_func');
+      duckdb.table_function_set_extra_info(table_function, {
+        'token': 'extra_info',
+      });
+      duckdb.table_function_set_bind(table_function, (info) => {
+        seen.push(
+          `bind:${(duckdb.bind_get_extra_info(info) as { token: string }).token}`,
+        );
+        const client_context = duckdb.table_function_get_client_context(info);
+        seen.push(
+          `context:${duckdb.client_context_get_connection_id(client_context) > 0}`,
+        );
+        const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
+        duckdb.bind_add_result_column(info, 'my_column', varchar_type);
+        duckdb.bind_set_bind_data(info, { 'token': 'bind_data' });
+      });
+      duckdb.table_function_set_init(table_function, (info) => {
+        seen.push(
+          `init:${(duckdb.init_get_extra_info(info) as { token: string }).token}`,
+        );
+        seen.push(
+          `init_bind_data:${(duckdb.init_get_bind_data(info) as { token: string }).token}`,
+        );
+        duckdb.init_set_init_data(info, { 'done': false });
+      });
+      duckdb.table_function_set_function(table_function, (info, output) => {
+        seen.push(
+          `main:${(duckdb.function_get_extra_info(info) as { token: string }).token}`,
+        );
+        duckdb.data_chunk_set_size(output, 0);
+      });
+      duckdb.register_table_function(connection, table_function);
+      duckdb.destroy_table_function_sync(table_function);
+
+      await duckdb.query(connection, 'select * from my_func()');
+      expect(seen).toStrictEqual([
+        'bind:extra_info',
+        'context:true',
+        'init:extra_info',
+        'init_bind_data:bind_data',
+        'main:extra_info',
+      ]);
+    });
+  });
+
+  test('projection pushdown reports the projected columns', async () => {
+    await withConnection(async (connection) => {
+      let projected: number[] | undefined;
+      const table_function = duckdb.create_table_function();
+      duckdb.table_function_set_name(table_function, 'my_func');
+      duckdb.table_function_supports_projection_pushdown(table_function, true);
+      duckdb.table_function_set_bind(table_function, (info) => {
+        const varchar_type = duckdb.create_logical_type(duckdb.Type.VARCHAR);
+        duckdb.bind_add_result_column(info, 'a', varchar_type);
+        duckdb.bind_add_result_column(info, 'b', varchar_type);
+        duckdb.bind_add_result_column(info, 'c', varchar_type);
+        duckdb.bind_set_bind_data(info, {});
+      });
+      duckdb.table_function_set_init(table_function, (info) => {
+        const column_count = duckdb.init_get_column_count(info);
+        projected = [];
+        for (let i = 0; i < column_count; i++) {
+          projected.push(duckdb.init_get_column_index(info, i));
+        }
+        duckdb.init_set_init_data(info, { 'done': false });
+      });
+      duckdb.table_function_set_function(table_function, (_info, output) => {
+        duckdb.data_chunk_set_size(output, 0);
+      });
+      duckdb.register_table_function(connection, table_function);
+      duckdb.destroy_table_function_sync(table_function);
+
+      // Only column b is selected, so that is all init should be told about.
+      await duckdb.query(connection, 'select b from my_func()');
+      expect(projected).toStrictEqual([1]);
+    });
+  });
+
+  test('max threads can be set from init', async () => {
+    await withConnection(async (connection) => {
+      registerFunction(connection, {
+        rowCount: duckdb.vector_size() * 2,
+        initFunction: (info) => {
+          duckdb.init_set_max_threads(info, 4);
+          duckdb.init_set_init_data(info, { 'next_row': 0 });
+        },
+      });
+      const result = await duckdb.query(
+        connection,
+        'select count(*) as n from my_func()',
+      );
+      const chunk = await duckdb.fetch_chunk(result);
+      const vector = duckdb.data_chunk_get_vector(chunk!, 0);
+      const countData = duckdb.vector_get_data(vector, 8);
+      expect(new DataView(countData.buffer).getBigInt64(0, true)).toBe(
+        BigInt(duckdb.vector_size() * 2),
+      );
+    });
+  });
 });

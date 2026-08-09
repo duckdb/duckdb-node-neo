@@ -303,11 +303,23 @@ public:
       InstanceMethod("table_function_set_local_init", &DuckDBNodeAddon::table_function_set_local_init),
       InstanceMethod("table_function_set_function", &DuckDBNodeAddon::table_function_set_function),
       InstanceMethod("register_table_function", &DuckDBNodeAddon::register_table_function),
+      InstanceMethod("bind_get_extra_info", &DuckDBNodeAddon::bind_get_extra_info),
+      InstanceMethod("table_function_get_client_context", &DuckDBNodeAddon::table_function_get_client_context),
       InstanceMethod("bind_add_result_column", &DuckDBNodeAddon::bind_add_result_column),
+      InstanceMethod("bind_get_parameter_count", &DuckDBNodeAddon::bind_get_parameter_count),
+      InstanceMethod("bind_get_parameter", &DuckDBNodeAddon::bind_get_parameter),
+      InstanceMethod("bind_get_named_parameter", &DuckDBNodeAddon::bind_get_named_parameter),
+      InstanceMethod("bind_set_cardinality", &DuckDBNodeAddon::bind_set_cardinality),
       InstanceMethod("bind_set_bind_data", &DuckDBNodeAddon::bind_set_bind_data),
       InstanceMethod("bind_set_error", &DuckDBNodeAddon::bind_set_error),
+      InstanceMethod("init_get_extra_info", &DuckDBNodeAddon::init_get_extra_info),
+      InstanceMethod("init_get_bind_data", &DuckDBNodeAddon::init_get_bind_data),
       InstanceMethod("init_set_init_data", &DuckDBNodeAddon::init_set_init_data),
+      InstanceMethod("init_get_column_count", &DuckDBNodeAddon::init_get_column_count),
+      InstanceMethod("init_get_column_index", &DuckDBNodeAddon::init_get_column_index),
+      InstanceMethod("init_set_max_threads", &DuckDBNodeAddon::init_set_max_threads),
       InstanceMethod("init_set_error", &DuckDBNodeAddon::init_set_error),
+      InstanceMethod("function_get_extra_info", &DuckDBNodeAddon::function_get_extra_info),
       InstanceMethod("function_get_bind_data", &DuckDBNodeAddon::function_get_bind_data),
       InstanceMethod("function_get_init_data", &DuckDBNodeAddon::function_get_init_data),
       InstanceMethod("function_get_local_init_data", &DuckDBNodeAddon::function_get_local_init_data),
@@ -3398,10 +3410,29 @@ private:
   }
 
   // DUCKDB_C_API void *duckdb_bind_get_extra_info(duckdb_bind_info info);
-  // TODO bind info
+  // function bind_get_extra_info(bind_info: TableFunctionBindInfo): object | undefined
+  Napi::Value bind_get_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetTableFunctionBindInfoFromExternal(env, info[0]);
+    auto internal_extra_info = GetTableFunctionInternalExtraInfoFromBindInfo(bind_info);
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
+      return env.Undefined();
+    }
+    return internal_extra_info->user_extra_info_ref->ref.Value();
+  }
 
   // DUCKDB_C_API void duckdb_table_function_get_client_context(duckdb_bind_info info, duckdb_client_context *out_context);
-  // TODO bind info
+  // function table_function_get_client_context(bind_info: TableFunctionBindInfo): ClientContext
+  Napi::Value table_function_get_client_context(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetTableFunctionBindInfoFromExternal(env, info[0]);
+    duckdb_client_context client_context;
+    duckdb_table_function_get_client_context(bind_info, &client_context);
+    if (!client_context) {
+      throw Napi::Error::New(env, "Failed to get client context");
+    }
+    return CreateExternalForClientContext(env, client_context);
+  }
 
   // DUCKDB_C_API void duckdb_bind_add_result_column(duckdb_bind_info info, const char *name, duckdb_logical_type type);
   // function bind_add_result_column(bind_info: TableFunctionBindInfo, name: string, logical_type: LogicalType): void
@@ -3415,13 +3446,40 @@ private:
   }
 
   // DUCKDB_C_API idx_t duckdb_bind_get_parameter_count(duckdb_bind_info info);
-  // TODO bind info
+  // function bind_get_parameter_count(bind_info: TableFunctionBindInfo): number
+  Napi::Value bind_get_parameter_count(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetTableFunctionBindInfoFromExternal(env, info[0]);
+    auto parameter_count = duckdb_bind_get_parameter_count(bind_info);
+    return Napi::Number::New(env, parameter_count);
+  }
 
   // DUCKDB_C_API duckdb_value duckdb_bind_get_parameter(duckdb_bind_info info, idx_t index);
-  // TODO bind info
+  // function bind_get_parameter(bind_info: TableFunctionBindInfo, index: number): Value
+  Napi::Value bind_get_parameter(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetTableFunctionBindInfoFromExternal(env, info[0]);
+    auto index = info[1].As<Napi::Number>().Uint32Value();
+    auto value = duckdb_bind_get_parameter(bind_info, index);
+    if (!value) {
+      throw Napi::Error::New(env, "Failed to get parameter");
+    }
+    return CreateExternalForValue(env, value);
+  }
 
   // DUCKDB_C_API duckdb_value duckdb_bind_get_named_parameter(duckdb_bind_info info, const char *name);
-  // TODO bind info
+  // function bind_get_named_parameter(bind_info: TableFunctionBindInfo, name: string): Value | null
+  Napi::Value bind_get_named_parameter(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetTableFunctionBindInfoFromExternal(env, info[0]);
+    std::string name = info[1].As<Napi::String>();
+    auto value = duckdb_bind_get_named_parameter(bind_info, name.c_str());
+    if (!value) {
+      // The C API returns null when no parameter with this name was supplied.
+      return env.Null();
+    }
+    return CreateExternalForValue(env, value);
+  }
 
   // DUCKDB_C_API void duckdb_bind_set_bind_data(duckdb_bind_info info, void *bind_data, duckdb_delete_callback_t destroy);
   // function bind_set_bind_data(bind_info: TableFunctionBindInfo, bind_data: object): void
@@ -3436,7 +3494,17 @@ private:
   }
 
   // DUCKDB_C_API void duckdb_bind_set_cardinality(duckdb_bind_info info, idx_t cardinality, bool is_exact);
-  // TODO bind info
+  // function bind_set_cardinality(bind_info: TableFunctionBindInfo, cardinality: number, is_exact: boolean): void
+  Napi::Value bind_set_cardinality(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetTableFunctionBindInfoFromExternal(env, info[0]);
+    // Read as 64 bits: unlike a chunk size or a column count, a cardinality
+    // estimate can exceed what fits in 32.
+    auto cardinality = info[1].As<Napi::Number>().Int64Value();
+    auto is_exact = info[2].As<Napi::Boolean>().Value();
+    duckdb_bind_set_cardinality(bind_info, cardinality, is_exact);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_bind_set_error(duckdb_bind_info info, const char *error);
   // function bind_set_error(bind_info: TableFunctionBindInfo, error: string): void
@@ -3449,10 +3517,28 @@ private:
   }
 
   // DUCKDB_C_API void *duckdb_init_get_extra_info(duckdb_init_info info);
-  // TODO init info
+  // function init_get_extra_info(init_info: TableFunctionInitInfo): object | undefined
+  Napi::Value init_get_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetTableFunctionInitInfoFromExternal(env, info[0]);
+    auto internal_extra_info = GetTableFunctionInternalExtraInfoFromInitInfo(init_info);
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
+      return env.Undefined();
+    }
+    return internal_extra_info->user_extra_info_ref->ref.Value();
+  }
 
   // DUCKDB_C_API void *duckdb_init_get_bind_data(duckdb_init_info info);
-  // TODO init info
+  // function init_get_bind_data(init_info: TableFunctionInitInfo): object | undefined
+  Napi::Value init_get_bind_data(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetTableFunctionInitInfoFromExternal(env, info[0]);
+    auto internal_bind_data = reinterpret_cast<TableFunctionInternalBindData*>(duckdb_init_get_bind_data(init_info));
+    if (!internal_bind_data || !internal_bind_data->user_bind_data_ref) {
+      return env.Undefined();
+    }
+    return internal_bind_data->user_bind_data_ref->ref.Value();
+  }
 
   // DUCKDB_C_API void duckdb_init_set_init_data(duckdb_init_info info, void *init_data, duckdb_delete_callback_t destroy);
   // function init_set_init_data(init_info: TableFunctionInitInfo, init_data: object): void
@@ -3467,13 +3553,33 @@ private:
   }
 
   // DUCKDB_C_API idx_t duckdb_init_get_column_count(duckdb_init_info info);
-  // TODO init info
+  // function init_get_column_count(init_info: TableFunctionInitInfo): number
+  Napi::Value init_get_column_count(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetTableFunctionInitInfoFromExternal(env, info[0]);
+    auto column_count = duckdb_init_get_column_count(init_info);
+    return Napi::Number::New(env, column_count);
+  }
 
   // DUCKDB_C_API idx_t duckdb_init_get_column_index(duckdb_init_info info, idx_t column_index);
-  // TODO init info
+  // function init_get_column_index(init_info: TableFunctionInitInfo, column_index: number): number
+  Napi::Value init_get_column_index(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetTableFunctionInitInfoFromExternal(env, info[0]);
+    auto column_index = info[1].As<Napi::Number>().Uint32Value();
+    auto index = duckdb_init_get_column_index(init_info, column_index);
+    return Napi::Number::New(env, index);
+  }
 
   // DUCKDB_C_API void duckdb_init_set_max_threads(duckdb_init_info info, idx_t max_threads);
-  // TODO init info
+  // function init_set_max_threads(init_info: TableFunctionInitInfo, max_threads: number): void
+  Napi::Value init_set_max_threads(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetTableFunctionInitInfoFromExternal(env, info[0]);
+    auto max_threads = info[1].As<Napi::Number>().Uint32Value();
+    duckdb_init_set_max_threads(init_info, max_threads);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_init_set_error(duckdb_init_info info, const char *error);
   // function init_set_error(init_info: TableFunctionInitInfo, error: string): void
@@ -3486,7 +3592,16 @@ private:
   }
 
   // DUCKDB_C_API void *duckdb_function_get_extra_info(duckdb_function_info info);
-  // TODO function info
+  // function function_get_extra_info(function_info: TableFunctionInfo): object | undefined
+  Napi::Value function_get_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto function_info = GetTableFunctionInfoFromExternal(env, info[0]);
+    auto internal_extra_info = GetTableFunctionInternalExtraInfoFromFunctionInfo(function_info);
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
+      return env.Undefined();
+    }
+    return internal_extra_info->user_extra_info_ref->ref.Value();
+  }
 
   // DUCKDB_C_API void *duckdb_function_get_bind_data(duckdb_function_info info);
   // function function_get_bind_data(function_info: TableFunctionInfo): object | undefined
@@ -4444,10 +4559,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 546 DUCKDB_C_API
-    271 function
+    304 function
      25 not exposed
      41 deprecated
-    209 TODO
+    176 TODO
         8 arrow
         5 error data
         2 utf8
@@ -4461,10 +4576,6 @@ NODE_API_ADDON(DuckDBNodeAddon)
         3 selection vector
        12 aggregate function
         4 aggregate function set
-       12 table function
-        9 bind info
-        7 init info
-        5 function info
         4 replacement scan
         5 profiling info
         1 appender create query
