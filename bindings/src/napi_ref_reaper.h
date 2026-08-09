@@ -78,6 +78,13 @@ public:
     );
     // Reaping references should not by itself keep the process alive.
     tsfn.Unref(env);
+    // Release the thread-safe function from an env cleanup hook rather than only
+    // from ~DuckDBNodeAddon. An unreleased thread-safe function keeps its env
+    // from finishing teardown, and the addon destructor runs as part of that
+    // teardown, so relying on it alone deadlocks: the env waits for a release
+    // that only happens once the env has torn down. A worker thread then never
+    // exits. Cleanup hooks run before that point, which breaks the cycle.
+    env.AddCleanupHook([this]() { Shutdown(); });
   }
 
   bool OnJSThread() const {
