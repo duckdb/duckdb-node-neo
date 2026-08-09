@@ -91,6 +91,15 @@ public:
     return std::this_thread::get_id() == js_thread_id;
   }
 
+  // Whether the env is still usable. Goes false from the env cleanup hook below,
+  // which Node runs before finalizers, so anything destroyed by a finalizer can
+  // consult this to find out whether the N-API objects it owns have already been
+  // torn down. Scalar function extra info uses it to avoid releasing thread-safe
+  // functions Node has already destroyed.
+  bool EnvIsAlive() const {
+    return alive;
+  }
+
   // Called on the JS thread when the addon is torn down.
   void Shutdown() {
     std::lock_guard<std::mutex> lock(mutex);

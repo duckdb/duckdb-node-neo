@@ -345,9 +345,20 @@ struct ScalarFunctionInternalExtraInfo {
   std::unique_ptr<ScalarFunctionMainTSFN> main_tsfn;
   std::shared_ptr<ManagedObjectReference> user_extra_info_ref;
 
-  ScalarFunctionInternalExtraInfo() {}
+  // Held to answer one question: is the env still alive? See the destructor.
+  std::shared_ptr<NapiRefReaper> env_state;
+
+  explicit ScalarFunctionInternalExtraInfo(std::shared_ptr<NapiRefReaper> env_state_in)
+    : env_state(std::move(env_state_in)) {}
 
   ~ScalarFunctionInternalExtraInfo() {
+    // Once the env has begun tearing down, Node has already destroyed these
+    // thread-safe functions, and releasing them again is a use-after-free. Node
+    // runs env cleanup hooks before finalizers, so this is accurate by the time
+    // this destructor runs from one.
+    if (!env_state || !env_state->EnvIsAlive()) {
+      return;
+    }
     if (bool(bind_tsfn)) {
       bind_tsfn->Release();
     }
@@ -356,11 +367,20 @@ struct ScalarFunctionInternalExtraInfo {
     }
   }
 
+  // Thread-safe functions are created referenced, which keeps the event loop
+  // alive for as long as they exist. These are only released when this extra
+  // info is destroyed, which needs the scalar function to be unregistered and
+  // its handle destroyed -- so a registered scalar function would otherwise stop
+  // its process (or its worker thread) from ever exiting. Unreferencing them is
+  // safe: a call in flight is always inside a query, and the async worker
+  // running that query keeps the loop alive on its own.
+
   void SetBindFunction(Napi::Env env, Napi::Function func) {
     if (bool(bind_tsfn)) {
       bind_tsfn->Release();
     }
     bind_tsfn = std::make_unique<ScalarFunctionBindTSFN>(ScalarFunctionBindTSFN::New(env, func, "ScalarFunctionBind", 0, 1));
+    bind_tsfn->Unref(env);
   }
 
   void SetMainFunction(Napi::Env env, Napi::Function func) {
@@ -368,6 +388,7 @@ struct ScalarFunctionInternalExtraInfo {
       main_tsfn->Release();
     }
     main_tsfn = std::make_unique<ScalarFunctionMainTSFN>(ScalarFunctionMainTSFN::New(env, func, "ScalarFunctionMain", 0, 1));
+    main_tsfn->Unref(env);
   }
 
   void SetUserExtraInfo(const std::shared_ptr<NapiRefReaper> &reaper, Napi::Object user_extra_info) {
@@ -390,9 +411,9 @@ struct ScalarFunctionHolder {
     duckdb_destroy_scalar_function(&scalar_function);
   }
 
-  ScalarFunctionInternalExtraInfo *EnsureInternalExtraInfo() {
+  ScalarFunctionInternalExtraInfo *EnsureInternalExtraInfo(const std::shared_ptr<NapiRefReaper> &env_state) {
     if (!internal_extra_info) {
-      internal_extra_info = new ScalarFunctionInternalExtraInfo();
+      internal_extra_info = new ScalarFunctionInternalExtraInfo(env_state);
       duckdb_scalar_function_set_extra_info(scalar_function, internal_extra_info, reinterpret_cast<duckdb_delete_callback_t>(DeleteScalarFunctionInternalExtraInfo));
     }
     return internal_extra_info;
