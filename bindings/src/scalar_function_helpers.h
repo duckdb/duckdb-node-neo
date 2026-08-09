@@ -2,6 +2,7 @@
 
 #include "externals.h"
 #include "duckdb_thread_callback.h"
+#include "type_tags.h"
 #include "napi_ref_reaper.h"
 #include <memory>
 
@@ -11,10 +12,6 @@
 // external: the object behind that external is ScalarFunctionHolder, which owns
 // family-specific state and so does not belong in externals.h. Later function
 // families should follow the same shape.
-
-static const napi_type_tag ScalarFunctionTypeTag = {
-  0x95D48B7051D14994, 0x9F883D7DF5DEA86D
-};
 
 // Callbacks
 
