@@ -3040,10 +3040,10 @@ private:
   }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_bind_data(duckdb_bind_info info, void *bind_data, duckdb_delete_callback_t destroy);
-  // function scalar_function_set_bind_data(info: BindInfo, bind_data: object): void
+  // function scalar_function_set_bind_data(info: ScalarFunctionBindInfo, bind_data: object): void
   Napi::Value scalar_function_set_bind_data(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto bind_info = GetBindInfoFromExternal(env, info[0]);
+    auto bind_info = GetScalarFunctionBindInfoFromExternal(env, info[0]);
     auto user_bind_data = info[1].As<Napi::Object>();
     auto internal_bind_data = new ScalarFunctionInternalBindData();
     internal_bind_data->SetUserBindData(ref_reaper, user_bind_data);
@@ -3056,10 +3056,10 @@ private:
   // not exposed: handled by scalar_function_set_bind_data
 
   // DUCKDB_C_API void duckdb_scalar_function_bind_set_error(duckdb_bind_info info, const char *error);
-  // function scalar_function_bind_set_error(bind_info: BindInfo, error: string): void
+  // function scalar_function_bind_set_error(bind_info: ScalarFunctionBindInfo, error: string): void
   Napi::Value scalar_function_bind_set_error(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto bind_info = GetBindInfoFromExternal(env, info[0]);
+    auto bind_info = GetScalarFunctionBindInfoFromExternal(env, info[0]);
     std::string error = info[1].As<Napi::String>();
     duckdb_scalar_function_bind_set_error(bind_info, error.c_str());
     return env.Undefined();
@@ -3090,10 +3090,10 @@ private:
   }
 
   // DUCKDB_C_API void *duckdb_scalar_function_get_extra_info(duckdb_function_info info);
-  // function scalar_function_get_extra_info(function_info: FunctionInfo): object | undefined
+  // function scalar_function_get_extra_info(function_info: ScalarFunctionInfo): object | undefined
   Napi::Value scalar_function_get_extra_info(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto function_info = GetFunctionInfoFromExternal(env, info[0]);
+    auto function_info = GetScalarFunctionInfoFromExternal(env, info[0]);
     auto internal_extra_info = GetScalarFunctionInternalExtraInfoFromFunctionInfo(function_info);
     if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
       return env.Undefined();
@@ -3102,10 +3102,10 @@ private:
   }
 
   // DUCKDB_C_API void *duckdb_scalar_function_bind_get_extra_info(duckdb_bind_info info);
-  // function scalar_function_bind_get_extra_info(bind_info: BindInfo): object | undefined
+  // function scalar_function_bind_get_extra_info(bind_info: ScalarFunctionBindInfo): object | undefined
   Napi::Value scalar_function_bind_get_extra_info(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto bind_info = GetBindInfoFromExternal(env, info[0]);
+    auto bind_info = GetScalarFunctionBindInfoFromExternal(env, info[0]);
     auto internal_extra_info = GetScalarFunctionInternalExtraInfoFromBindInfo(bind_info);
     if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
       return env.Undefined();
@@ -3114,10 +3114,10 @@ private:
   }
 
   // DUCKDB_C_API void *duckdb_scalar_function_get_bind_data(duckdb_function_info info);
-  // function scalar_function_get_bind_data(function_info: FunctionInfo): object | undefined
+  // function scalar_function_get_bind_data(function_info: ScalarFunctionInfo): object | undefined
   Napi::Value scalar_function_get_bind_data(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto function_info = GetFunctionInfoFromExternal(env, info[0]);
+    auto function_info = GetScalarFunctionInfoFromExternal(env, info[0]);
     auto internal_bind_data = reinterpret_cast<ScalarFunctionInternalBindData*>(duckdb_scalar_function_get_bind_data(function_info));
     if (!internal_bind_data || !internal_bind_data->user_bind_data_ref) {
       return env.Undefined();
@@ -3126,10 +3126,10 @@ private:
   }
 
   // DUCKDB_C_API void duckdb_scalar_function_get_client_context(duckdb_bind_info info, duckdb_client_context *out_context);
-  // function scalar_function_get_client_context(bind_info: BindInfo): ClientContext
+  // function scalar_function_get_client_context(bind_info: ScalarFunctionBindInfo): ClientContext
   Napi::Value scalar_function_get_client_context(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto bind_info = GetBindInfoFromExternal(env, info[0]);
+    auto bind_info = GetScalarFunctionBindInfoFromExternal(env, info[0]);
     duckdb_client_context client_context;
     duckdb_scalar_function_get_client_context(bind_info, &client_context);
     if (!client_context) {
@@ -3139,10 +3139,10 @@ private:
   }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_error(duckdb_function_info info, const char *error);
-  // function scalar_function_set_error(function_info: FunctionInfo, error: string): void
+  // function scalar_function_set_error(function_info: ScalarFunctionInfo, error: string): void
   Napi::Value scalar_function_set_error(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto function_info = GetFunctionInfoFromExternal(env, info[0]);
+    auto function_info = GetScalarFunctionInfoFromExternal(env, info[0]);
     std::string error = info[1].As<Napi::String>();
     duckdb_scalar_function_set_error(function_info, error.c_str());
     return env.Undefined();

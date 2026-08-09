@@ -183,13 +183,45 @@ export interface TimestampParts {
   time: TimeParts;
 }
 
-export interface BindInfo {
+// The C API reuses one opaque handle type for bind info, init info and function
+// info across function families, but the struct behind each handle differs per
+// family and is reinterpret_cast with no check. Passing one family's handle to
+// another family's accessor corrupts memory rather than failing, so each family
+// gets its own type here, and its own runtime type tag in the bindings.
+//
+// __duckdb_type records the underlying C type; __duckdb_function_kind is what
+// keeps the families from being assignable to one another.
+
+export interface ScalarFunctionBindInfo {
   __duckdb_type: 'duckdb_bind_info';
+  __duckdb_function_kind: 'scalar_function';
 }
 
-export interface FunctionInfo {
+export interface ScalarFunctionInfo {
   __duckdb_type: 'duckdb_function_info';
+  __duckdb_function_kind: 'scalar_function';
 }
+
+export interface TableFunctionBindInfo {
+  __duckdb_type: 'duckdb_bind_info';
+  __duckdb_function_kind: 'table_function';
+}
+
+export interface TableFunctionInitInfo {
+  __duckdb_type: 'duckdb_init_info';
+  __duckdb_function_kind: 'table_function';
+}
+
+export interface TableFunctionInfo {
+  __duckdb_type: 'duckdb_function_info';
+  __duckdb_function_kind: 'table_function';
+}
+
+/** @deprecated Renamed to ScalarFunctionBindInfo. */
+export type BindInfo = ScalarFunctionBindInfo;
+
+/** @deprecated Renamed to ScalarFunctionInfo. */
+export type FunctionInfo = ScalarFunctionInfo;
 
 export interface Vector {
   __duckdb_type: 'duckdb_vector';
@@ -273,8 +305,8 @@ export interface ExtractedStatementsAndCount {
   statement_count: number;
 }
 
-export type ScalarFunctionBindFunction = (info: BindInfo) => void;
-export type ScalarFunctionMainFunction = (info: FunctionInfo, input: DataChunk, output: Vector) => void;
+export type ScalarFunctionBindFunction = (info: ScalarFunctionBindInfo) => void;
+export type ScalarFunctionMainFunction = (info: ScalarFunctionInfo, input: DataChunk, output: Vector) => void;
 
 // Functions
 
@@ -1110,13 +1142,13 @@ export function scalar_function_set_extra_info(scalar_function: ScalarFunction, 
 export function scalar_function_set_bind(scalar_function: ScalarFunction, func: ScalarFunctionBindFunction): void;
 
 // DUCKDB_C_API void duckdb_scalar_function_set_bind_data(duckdb_bind_info info, void *bind_data, duckdb_delete_callback_t destroy);
-export function scalar_function_set_bind_data(info: BindInfo, bind_data: object): void;
+export function scalar_function_set_bind_data(info: ScalarFunctionBindInfo, bind_data: object): void;
 
 // DUCKDB_C_API void duckdb_scalar_function_set_bind_data_copy(duckdb_bind_info info, duckdb_copy_callback_t copy);
 // not exposed: handled by scalar_function_set_bind_data
 
 // DUCKDB_C_API void duckdb_scalar_function_bind_set_error(duckdb_bind_info info, const char *error);
-export function scalar_function_bind_set_error(bind_info: BindInfo, error: string): void;
+export function scalar_function_bind_set_error(bind_info: ScalarFunctionBindInfo, error: string): void;
 
 // DUCKDB_C_API void duckdb_scalar_function_set_function(duckdb_scalar_function scalar_function, duckdb_scalar_function_t function);
 export function scalar_function_set_function(scalar_function: ScalarFunction, func: ScalarFunctionMainFunction): void;
@@ -1125,19 +1157,19 @@ export function scalar_function_set_function(scalar_function: ScalarFunction, fu
 export function register_scalar_function(connection: Connection, scalar_function: ScalarFunction): void;
 
 // DUCKDB_C_API void *duckdb_scalar_function_get_extra_info(duckdb_function_info info);
-export function scalar_function_get_extra_info(function_info: FunctionInfo): object | undefined;
+export function scalar_function_get_extra_info(function_info: ScalarFunctionInfo): object | undefined;
 
 // DUCKDB_C_API void *duckdb_scalar_function_bind_get_extra_info(duckdb_bind_info info);
-export function scalar_function_bind_get_extra_info(bind_info: BindInfo): object | undefined;
+export function scalar_function_bind_get_extra_info(bind_info: ScalarFunctionBindInfo): object | undefined;
 
 // DUCKDB_C_API void *duckdb_scalar_function_get_bind_data(duckdb_function_info info);
-export function scalar_function_get_bind_data(function_info: FunctionInfo): object | undefined;
+export function scalar_function_get_bind_data(function_info: ScalarFunctionInfo): object | undefined;
 
 // DUCKDB_C_API void duckdb_scalar_function_get_client_context(duckdb_bind_info info, duckdb_client_context *out_context);
-export function scalar_function_get_client_context(bind_info: BindInfo): ClientContext;
+export function scalar_function_get_client_context(bind_info: ScalarFunctionBindInfo): ClientContext;
 
 // DUCKDB_C_API void duckdb_scalar_function_set_error(duckdb_function_info info, const char *error);
-export function scalar_function_set_error(function_info: FunctionInfo, error: string): void;
+export function scalar_function_set_error(function_info: ScalarFunctionInfo, error: string): void;
 
 // DUCKDB_C_API duckdb_scalar_function_set duckdb_create_scalar_function_set(const char *name);
 // DUCKDB_C_API void duckdb_destroy_scalar_function_set(duckdb_scalar_function_set *scalar_function_set);

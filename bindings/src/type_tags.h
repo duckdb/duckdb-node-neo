@@ -3,7 +3,13 @@
 #include "napi_setup.h"
 
 // Type tags for the externals that cross the boundary, in one place so that the
-// full set is visible and no value is used twice. The externals themselves live
+// full set is visible and no value is used twice.
+//
+// Note that bind info, init info and function info get a tag per function family.
+// The C API reuses one opaque handle type for each of them across scalar, table
+// and later function families, but the structs behind those handles are unrelated
+// and are reinterpret_cast without any check, so mixing them corrupts memory
+// rather than failing. Separate tags turn that into a thrown error. The externals themselves live
 // with what they wrap: generic ones in externals.h, and family-specific ones --
 // whose object owns family state -- in that family's header.
 //
@@ -15,10 +21,6 @@
 
 inline constexpr napi_type_tag AppenderTypeTag = {
   0x32E0AB3B83F74A89, 0xB785905D92D54996
-};
-
-inline constexpr napi_type_tag BindInfoTypeTag = {
-  0x9922F8468F9A43C0, 0xB2573B112B9600D8
 };
 
 inline constexpr napi_type_tag ClientContextTypeTag = {
@@ -45,10 +47,6 @@ inline constexpr napi_type_tag ExtractedStatementsTypeTag = {
   0x59288E1C60C44EEB, 0xBFA35376EE0F04DD
 };
 
-inline constexpr napi_type_tag FunctionInfoTypeTag = {
-  0xB0E6739D698048EA, 0x9E79734E3E137AC3
-};
-
 inline constexpr napi_type_tag InstanceCacheTypeTag = {
   0x2F3346E30FB5457C, 0xB9201EE5112EEF9F
 };
@@ -69,8 +67,32 @@ inline constexpr napi_type_tag ResultTypeTag = {
   0x08F7FE3AE12345E5, 0x8733310DC29372D9
 };
 
+inline constexpr napi_type_tag ScalarFunctionBindInfoTypeTag = {
+  0x9922F8468F9A43C0, 0xB2573B112B9600D8
+};
+
+inline constexpr napi_type_tag ScalarFunctionInfoTypeTag = {
+  0xB0E6739D698048EA, 0x9E79734E3E137AC3
+};
+
 inline constexpr napi_type_tag ScalarFunctionTypeTag = {
   0x95D48B7051D14994, 0x9F883D7DF5DEA86D
+};
+
+inline constexpr napi_type_tag TableFunctionBindInfoTypeTag = {
+  0xFF9280FBDC3341E3, 0xAE7F563D67540007
+};
+
+inline constexpr napi_type_tag TableFunctionInfoTypeTag = {
+  0xA8CFE12055EE470C, 0xB37877D9FDD36A98
+};
+
+inline constexpr napi_type_tag TableFunctionInitInfoTypeTag = {
+  0x45B24025B7B443D9, 0xA2978778FE81AD51
+};
+
+inline constexpr napi_type_tag TableFunctionTypeTag = {
+  0xBECF7A8CEBA84520, 0xBFC47C84A51544EF
 };
 
 inline constexpr napi_type_tag ValueTypeTag = {
