@@ -95,7 +95,6 @@ export enum Type {
   VARIANT = 41,
 }
 
-
 // Types (no explicit destroy)
 
 export interface Date_ {
@@ -311,6 +310,10 @@ export interface ExtractedStatementsAndCount {
 
 export type ScalarFunctionBindFunction = (info: ScalarFunctionBindInfo) => void;
 export type ScalarFunctionMainFunction = (info: ScalarFunctionInfo, input: DataChunk, output: Vector) => void;
+
+export type TableFunctionBindFunction = (info: TableFunctionBindInfo) => void;
+export type TableFunctionInitFunction = (info: TableFunctionInitInfo) => void;
+export type TableFunctionMainFunction = (info: TableFunctionInfo, output: DataChunk) => void;
 
 // Functions
 
@@ -1232,9 +1235,17 @@ export function table_function_add_named_parameter(table_function: TableFunction
 export function table_function_set_extra_info(table_function: TableFunction, extra_info: object): void;
 
 // DUCKDB_C_API void duckdb_table_function_set_bind(duckdb_table_function table_function, duckdb_table_function_bind_t bind);
+export function table_function_set_bind(table_function: TableFunction, func: TableFunctionBindFunction): void;
+
 // DUCKDB_C_API void duckdb_table_function_set_init(duckdb_table_function table_function, duckdb_table_function_init_t init);
+export function table_function_set_init(table_function: TableFunction, func: TableFunctionInitFunction): void;
+
 // DUCKDB_C_API void duckdb_table_function_set_local_init(duckdb_table_function table_function, duckdb_table_function_init_t init);
+export function table_function_set_local_init(table_function: TableFunction, func: TableFunctionInitFunction): void;
+
 // DUCKDB_C_API void duckdb_table_function_set_function(duckdb_table_function table_function, duckdb_table_function_t function);
+export function table_function_set_function(table_function: TableFunction, func: TableFunctionMainFunction): void;
+
 // DUCKDB_C_API void duckdb_table_function_supports_projection_pushdown(duckdb_table_function table_function, bool pushdown);
 export function table_function_supports_projection_pushdown(table_function: TableFunction, pushdown: boolean): void;
 
@@ -1244,26 +1255,41 @@ export function register_table_function(connection: Connection, table_function: 
 // DUCKDB_C_API void *duckdb_bind_get_extra_info(duckdb_bind_info info);
 // DUCKDB_C_API void duckdb_table_function_get_client_context(duckdb_bind_info info, duckdb_client_context *out_context);
 // DUCKDB_C_API void duckdb_bind_add_result_column(duckdb_bind_info info, const char *name, duckdb_logical_type type);
+export function bind_add_result_column(bind_info: TableFunctionBindInfo, name: string, logical_type: LogicalType): void;
+
 // DUCKDB_C_API idx_t duckdb_bind_get_parameter_count(duckdb_bind_info info);
 // DUCKDB_C_API duckdb_value duckdb_bind_get_parameter(duckdb_bind_info info, idx_t index);
 // DUCKDB_C_API duckdb_value duckdb_bind_get_named_parameter(duckdb_bind_info info, const char *name);
 // DUCKDB_C_API void duckdb_bind_set_bind_data(duckdb_bind_info info, void *bind_data, duckdb_delete_callback_t destroy);
+export function bind_set_bind_data(bind_info: TableFunctionBindInfo, bind_data: object): void;
+
 // DUCKDB_C_API void duckdb_bind_set_cardinality(duckdb_bind_info info, idx_t cardinality, bool is_exact);
 // DUCKDB_C_API void duckdb_bind_set_error(duckdb_bind_info info, const char *error);
+export function bind_set_error(bind_info: TableFunctionBindInfo, error: string): void;
 
 // DUCKDB_C_API void *duckdb_init_get_extra_info(duckdb_init_info info);
 // DUCKDB_C_API void *duckdb_init_get_bind_data(duckdb_init_info info);
 // DUCKDB_C_API void duckdb_init_set_init_data(duckdb_init_info info, void *init_data, duckdb_delete_callback_t destroy);
+export function init_set_init_data(init_info: TableFunctionInitInfo, init_data: object): void;
+
 // DUCKDB_C_API idx_t duckdb_init_get_column_count(duckdb_init_info info);
 // DUCKDB_C_API idx_t duckdb_init_get_column_index(duckdb_init_info info, idx_t column_index);
 // DUCKDB_C_API void duckdb_init_set_max_threads(duckdb_init_info info, idx_t max_threads);
 // DUCKDB_C_API void duckdb_init_set_error(duckdb_init_info info, const char *error);
+export function init_set_error(init_info: TableFunctionInitInfo, error: string): void;
 
 // DUCKDB_C_API void *duckdb_function_get_extra_info(duckdb_function_info info);
 // DUCKDB_C_API void *duckdb_function_get_bind_data(duckdb_function_info info);
+export function function_get_bind_data(function_info: TableFunctionInfo): object | undefined;
+
 // DUCKDB_C_API void *duckdb_function_get_init_data(duckdb_function_info info);
+export function function_get_init_data(function_info: TableFunctionInfo): object | undefined;
+
 // DUCKDB_C_API void *duckdb_function_get_local_init_data(duckdb_function_info info);
+export function function_get_local_init_data(function_info: TableFunctionInfo): object | undefined;
+
 // DUCKDB_C_API void duckdb_function_set_error(duckdb_function_info info, const char *error);
+export function function_set_error(function_info: TableFunctionInfo, error: string): void;
 
 // DUCKDB_C_API void duckdb_add_replacement_scan(duckdb_database db, duckdb_replacement_callback_t replacement, void *extra_data, duckdb_delete_callback_t delete_callback);
 // DUCKDB_C_API void duckdb_replacement_scan_set_function_name(duckdb_replacement_scan_info info, const char *function_name);
