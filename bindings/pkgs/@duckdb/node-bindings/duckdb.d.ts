@@ -1057,8 +1057,10 @@ export function data_chunk_get_size(chunk: DataChunk): number;
 export function data_chunk_set_size(chunk: DataChunk, size: number): void;
 
 // DUCKDB_C_API duckdb_vector duckdb_create_vector(duckdb_logical_type type, idx_t capacity);
+export function create_vector(logical_type: LogicalType, capacity: number): Vector;
 
 // DUCKDB_C_API void duckdb_destroy_vector(duckdb_vector *vector);
+// not exposed: destroyed in finalizer
 
 // DUCKDB_C_API duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector);
 export function vector_get_column_type(vector: Vector): LogicalType;
@@ -1103,6 +1105,7 @@ export function array_vector_get_child(vector: Vector): Vector;
 // DUCKDB_C_API void duckdb_vector_copy_sel(duckdb_vector src, duckdb_vector dst, duckdb_selection_vector sel, idx_t src_count, idx_t src_offset, idx_t dst_offset);
 
 // DUCKDB_C_API void duckdb_vector_reference_value(duckdb_vector vector, duckdb_value value);
+export function vector_reference_value(vector: Vector, value: Value): void;
 
 // DUCKDB_C_API void duckdb_vector_reference_vector(duckdb_vector to_vector, duckdb_vector from_vector);
 

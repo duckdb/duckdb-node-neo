@@ -254,6 +254,8 @@ public:
       InstanceMethod("data_chunk_get_size", &DuckDBNodeAddon::data_chunk_get_size),
       InstanceMethod("data_chunk_set_size", &DuckDBNodeAddon::data_chunk_set_size),
 
+      InstanceMethod("create_vector", &DuckDBNodeAddon::create_vector),
+      InstanceMethod("vector_reference_value", &DuckDBNodeAddon::vector_reference_value),
       InstanceMethod("vector_get_column_type", &DuckDBNodeAddon::vector_get_column_type),
       InstanceMethod("vector_get_data", &DuckDBNodeAddon::vector_get_data),
       InstanceMethod("vector_get_validity", &DuckDBNodeAddon::vector_get_validity),
@@ -2790,10 +2792,20 @@ private:
   }
 
   // DUCKDB_C_API duckdb_vector duckdb_create_vector(duckdb_logical_type type, idx_t capacity);
-  // TODO vector creation
+  // function create_vector(logical_type: LogicalType, capacity: number): Vector
+  Napi::Value create_vector(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
+    auto capacity = info[1].As<Napi::Number>().Uint32Value();
+    auto vector = duckdb_create_vector(logical_type, capacity);
+    if (!vector) {
+      throw Napi::Error::New(env, "Failed to create vector");
+    }
+    return CreateExternalForVector(env, vector);
+  }
 
   // DUCKDB_C_API void duckdb_destroy_vector(duckdb_vector *vector);
-  // TODO vector creation
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API duckdb_logical_type duckdb_vector_get_column_type(duckdb_vector vector);
   // function vector_get_column_type(vector: Vector): LogicalType
@@ -2929,7 +2941,14 @@ private:
   // TODO vector manipulation
 
   // DUCKDB_C_API void duckdb_vector_reference_value(duckdb_vector vector, duckdb_value value);
-  // TODO vector manipulation
+  // function vector_reference_value(vector: Vector, value: Value): void
+  Napi::Value vector_reference_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto vector = GetVectorFromExternal(env, info[0]);
+    auto value = GetValueFromExternal(env, info[1]);
+    duckdb_vector_reference_value(vector, value);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_vector_reference_vector(duckdb_vector to_vector, duckdb_vector from_vector);
   // TODO vector manipulation
@@ -4559,17 +4578,16 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 546 DUCKDB_C_API
-    304 function
-     25 not exposed
+    306 function
+     26 not exposed
      41 deprecated
-    176 TODO
+    173 TODO
         8 arrow
         5 error data
         2 utf8
         1 value to string
         1 register logical type
-        2 vector creation
-        4 vector manipulation
+        3 vector manipulation
         4 scalar function set
         2 scalar function expression
         7 scalar function init

@@ -263,8 +263,23 @@ inline duckdb_value GetValueFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_value>(env, ValueTypeTag, value, "Invalid value argument");
 }
 
+inline void FinalizeVector(Napi::BasicEnv, duckdb_vector vector) {
+  if (vector) {
+    duckdb_destroy_vector(&vector);
+    vector = nullptr;
+  }
+}
+
+// A vector created in its own right, which owns its memory and is destroyed when
+// it is collected. Contrast with the borrowed form below.
+inline Napi::External<_duckdb_vector> CreateExternalForVector(Napi::Env env, duckdb_vector vector) {
+  return CreateExternal<_duckdb_vector>(env, VectorTypeTag, vector, FinalizeVector);
+}
+
 inline Napi::External<_duckdb_vector> CreateExternalForVectorWithoutFinalizer(Napi::Env env, duckdb_vector vector) {
-  // Vectors live as long as their containing data chunk; they cannot be explicitly destroyed.
+  // A vector belonging to a data chunk lives as long as that chunk and must not
+  // be destroyed on its own. Both forms share a type tag, since either can be
+  // passed wherever a vector is accepted; only ownership differs.
   return CreateExternalWithoutFinalizer<_duckdb_vector>(env, VectorTypeTag, vector);
 }
 
