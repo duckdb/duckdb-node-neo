@@ -37,6 +37,10 @@ export class DuckDBDataChunk {
       throw new Error(`A data chunk cannot have more than ${maxRowCount} rows`);
     }
     duckdb.data_chunk_set_size(this.chunk, count);
+    // Cached vectors were built for the previous row count, so they are the
+    // wrong size now. This matters most for a table function's output chunk,
+    // which arrives empty and is sized by the function on every call.
+    this.vectors.length = 0;
   }
   public getColumnVector(columnIndex: number): DuckDBVector {
     if (this.vectors[columnIndex]) {

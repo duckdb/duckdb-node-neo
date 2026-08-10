@@ -1,14 +1,14 @@
 import duckdb from '@duckdb/node-bindings';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
-import { DuckDBFunctionInfo } from './DuckDBFunctionInfo';
+import { DuckDBScalarFunctionInfo } from './DuckDBScalarFunctionInfo';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBVector } from './DuckDBVector';
-import { DuckDBBindInfo } from './DuckDBBindInfo';
+import { DuckDBScalarFunctionBindInfo } from './DuckDBScalarFunctionBindInfo';
 
-export type DuckDBScalarBindFunction = (bindInfo: DuckDBBindInfo) => void;
+export type DuckDBScalarBindFunction = (bindInfo: DuckDBScalarFunctionBindInfo) => void;
 
 export type DuckDBScalarMainFunction = (
-  functionInfo: DuckDBFunctionInfo,
+  functionInfo: DuckDBScalarFunctionInfo,
   inputDataChunk: DuckDBDataChunk,
   outputVector: DuckDBVector,
 ) => void;
@@ -78,7 +78,7 @@ export class DuckDBScalarFunction {
 
   public setBindFunction(bindFunction: DuckDBScalarBindFunction) {
     duckdb.scalar_function_set_bind(this.scalar_function, (info) => {
-      const bindInfo = new DuckDBBindInfo(info);
+      const bindInfo = new DuckDBScalarFunctionBindInfo(info);
       bindFunction(bindInfo);
     });
   }
@@ -87,7 +87,7 @@ export class DuckDBScalarFunction {
     duckdb.scalar_function_set_function(
       this.scalar_function,
       (info, input, output) => {
-        const functionInfo = new DuckDBFunctionInfo(info);
+        const functionInfo = new DuckDBScalarFunctionInfo(info);
         const inputDataChunk = new DuckDBDataChunk(input);
         const outputVector = DuckDBVector.create(
           output,
