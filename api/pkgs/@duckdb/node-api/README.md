@@ -905,6 +905,54 @@ const rows = reader.getRows();
 // [ [ 5 ] ]
 ```
 
+### Table Functions
+
+```ts
+connection.registerTableFunction(
+  DuckDBTableFunction.create({
+    name: 'my_range',
+    parameterTypes: [INTEGER],
+    bindFunction: (info) => {
+      const count = info.getParameter(0) as number;
+      info.addResultColumn('n', INTEGER);
+      info.setBindData({ count });
+    },
+    initFunction: (info) => {
+      info.setInitData({ nextRow: 0 });
+    },
+    mainFunction: (info, output) => {
+      const { count } = info.bindData as { count: number };
+      const initData = info.initData as { nextRow: number };
+      const chunkSize = Math.min(2048, count - initData.nextRow);
+      // Set the row count before writing: that is what sizes the vectors.
+      // A row count of zero reports that the scan is finished.
+      output.rowCount = chunkSize;
+      if (chunkSize > 0) {
+        const column = output.getColumnVector(0);
+        for (let i = 0; i < chunkSize; i++) {
+          column.setItem(i, initData.nextRow + i);
+        }
+        column.flush();
+        initData.nextRow += chunkSize;
+      }
+    },
+  })
+);
+const reader = await connection.runAndReadAll('select * from my_range(3)');
+const rows = reader.getRows();
+// [ [ 0 ], [ 1 ], [ 2 ] ]
+```
+
+The main function is called repeatedly until it reports a row count of zero.
+Bind data is read-only during the scan; use init data to track progress. Setting
+`supportsProjectionPushdown: true` makes DuckDB report the columns actually
+selected, which init can read with `getColumnIndexes`.
+
+For a scan that runs on several threads, set `maxThreads` from the init function
+and give each thread its own state with `localInitFunction`; the main function
+reads it with `localInitData`. Callbacks are always run on the JS thread, so they
+are serialized even when DuckDB scans in parallel.
+
 ### Extract Statements
 
 ```ts

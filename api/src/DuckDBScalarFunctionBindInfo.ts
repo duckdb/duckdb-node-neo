@@ -1,9 +1,9 @@
 import duckdb from '@duckdb/node-bindings';
 import { DuckDBClientContext } from './DuckDBClientContext';
 
-export class DuckDBBindInfo {
-  private readonly bind_info: duckdb.BindInfo;
-  constructor(bind_info: duckdb.BindInfo) {
+export class DuckDBScalarFunctionBindInfo {
+  private readonly bind_info: duckdb.ScalarFunctionBindInfo;
+  constructor(bind_info: duckdb.ScalarFunctionBindInfo) {
     this.bind_info = bind_info;
   }
   public get clientContext(): DuckDBClientContext {
@@ -27,3 +27,8 @@ export class DuckDBBindInfo {
     duckdb.scalar_function_bind_set_error(this.bind_info, error);
   }
 }
+
+/** @deprecated Renamed to DuckDBScalarFunctionBindInfo. */
+export const DuckDBBindInfo = DuckDBScalarFunctionBindInfo;
+/** @deprecated Renamed to DuckDBScalarFunctionBindInfo. */
+export type DuckDBBindInfo = DuckDBScalarFunctionBindInfo;

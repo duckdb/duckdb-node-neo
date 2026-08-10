@@ -10,6 +10,7 @@ import { DuckDBPreparedStatementWeakRefCollection } from './DuckDBPreparedStatem
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
 import { DuckDBScalarFunction } from './DuckDBScalarFunction';
+import { DuckDBTableFunction } from './DuckDBTableFunction';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBValue } from './values';
 
@@ -297,6 +298,12 @@ export class DuckDBConnection {
         schema ?? null,
         table
       )
+    );
+  }
+  public registerTableFunction(tableFunction: DuckDBTableFunction) {
+    duckdb.register_table_function(
+      this.connection,
+      tableFunction.table_function
     );
   }
   public registerScalarFunction(scalarFunction: DuckDBScalarFunction) {

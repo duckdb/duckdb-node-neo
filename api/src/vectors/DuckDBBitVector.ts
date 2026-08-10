@@ -8,7 +8,7 @@ import {
 import { DuckDBVector } from './DuckDBVector';
 import { DuckDBValidity } from './DuckDBValidity';
 import {
-  getStringBytes,
+  getBuffer,
   vectorData,
 } from './dataAccessors';
 
@@ -59,7 +59,10 @@ export class DuckDBBitVector extends DuckDBVector<DuckDBBitValue> {
     if (!this.validity.itemValid(itemIndex)) {
       return null;
     }
-    const bytes = getStringBytes(this.dataView, itemIndex * 16);
+    // getBuffer rather than getStringBytes: the latter returns a view into the
+    // vector's memory for payloads of twelve bytes or fewer, and the value it is
+    // handed to keeps that reference, so it would dangle once the vector goes.
+    const bytes = getBuffer(this.dataView, itemIndex * 16);
     return bytes ? new DuckDBBitValue(bytes) : null;
   }
   public override setItem(itemIndex: number, value: DuckDBBitValue | null) {
