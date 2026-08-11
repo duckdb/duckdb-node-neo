@@ -43,6 +43,29 @@ export class DuckDBUBigIntVector extends DuckDBVector<bigint> {
   public override getItem(itemIndex: number): bigint | null {
     return this.validity.itemValid(itemIndex) ? this.items[itemIndex] : null;
   }
+  public override flatReadArray() {
+    return this.items;
+  }
+  public override getValidity() {
+    return this.validity;
+  }
+  public override appendTo(
+    target: (bigint | null)[],
+    targetOffset: number
+  ): void {
+    const items = this.items;
+    const n = items.length;
+    const validity = this.validity;
+    if (validity.allValid()) {
+      for (let i = 0; i < n; i++) {
+        target[targetOffset + i] = items[i];
+      }
+    } else {
+      for (let i = 0; i < n; i++) {
+        target[targetOffset + i] = validity.itemValid(i) ? items[i] : null;
+      }
+    }
+  }
   public override setItem(itemIndex: number, value: bigint | null) {
     if (value != null) {
       this.items[itemIndex] = value;
