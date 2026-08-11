@@ -1,6 +1,6 @@
 {
   "name": "@duckdb/node-bindings",
-  "version": "1.5.5-r.3",
+  "version": "1.5.5-r.4",
   "license": "MIT",
   "main": "./duckdb.js",
   "types": "./duckdb.d.ts",
