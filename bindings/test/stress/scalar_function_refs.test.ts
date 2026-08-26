@@ -6,9 +6,9 @@ import { withConnection } from '../utils/withConnection';
 import { withDatabase } from '../utils/withDatabase';
 
 // These tests exercise the lifetime of the Napi::ObjectReferences held for
-// user-supplied extra info and bind data (see src/napi_ref_reaper.h). They are
-// slower and less deterministic than the main suite, so they are excluded from
-// `pnpm test` and run with `pnpm test:stress`.
+// user-supplied extra info, bind data, and scalar function init state (see
+// src/napi_ref_reaper.h). They are slower and less deterministic than the main
+// suite, so they are excluded from `pnpm test` and run with `pnpm test:stress`.
 //
 // To check the invariant these tests are protecting -- that a reference is only
 // ever destroyed on the JS thread -- build with instrumentation enabled and run
@@ -62,6 +62,23 @@ function registerCheckedFunction(
       'bind_data_token': `bind_data_${name}`,
     });
   });
+  duckdb.scalar_function_set_init(scalar_function, (info) => {
+    const bind_data = duckdb.scalar_function_init_get_bind_data(info) as {
+      bind_data_token: string;
+    };
+    const extra_info = duckdb.scalar_function_init_get_extra_info(info) as {
+      extra_info_token: string;
+    };
+    if (bind_data?.bind_data_token !== `bind_data_${name}`) {
+      throw new Error(`bind data corrupted during init of ${name}`);
+    }
+    if (extra_info?.extra_info_token !== `extra_info_${name}`) {
+      throw new Error(`extra info corrupted during init of ${name}`);
+    }
+    duckdb.scalar_function_init_set_state(info, {
+      'state_token': `state_${name}`,
+    });
+  });
   duckdb.scalar_function_set_function(
     scalar_function,
     (info, input, output) => {
@@ -75,11 +92,17 @@ function registerCheckedFunction(
       const extra_info = duckdb.scalar_function_get_extra_info(info) as {
         extra_info_token: string;
       };
+      const state = duckdb.scalar_function_get_state(info) as {
+        state_token: string;
+      };
       if (bind_data?.bind_data_token !== `bind_data_${name}`) {
         throw new Error(`bind data corrupted in ${name}`);
       }
       if (extra_info?.extra_info_token !== `extra_info_${name}`) {
         throw new Error(`extra info corrupted in ${name}`);
+      }
+      if (state?.state_token !== `state_${name}`) {
+        throw new Error(`state corrupted in ${name}`);
       }
       const rowCount = duckdb.data_chunk_get_size(input);
       for (let i = 0; i < rowCount; i++) {
@@ -93,7 +116,7 @@ function registerCheckedFunction(
 }
 
 suite('scalar function reference lifetime', () => {
-  test('bind data and extra info survive garbage collection', async () => {
+  test('bind data, extra info, and init state survive garbage collection', async () => {
     await withConnection(async (connection) => {
       const fn = registerCheckedFunction(connection, 'my_func', {
         gcInMainFunction: true,
@@ -106,9 +129,10 @@ suite('scalar function reference lifetime', () => {
     });
   });
 
-  // Note that only bind data is destroyed off the JS thread here. Extra info is
-  // owned by the catalog entry and released at disconnect/close, both of which
-  // run on the JS thread, so it always takes the reaper's inline path.
+  // Note that bind data and init state can be destroyed off the JS thread here.
+  // Extra info is owned by the catalog entry and released at disconnect/close,
+  // both of which run on the JS thread, so it always takes the reaper's inline
+  // path.
   test('many registered functions under GC pressure', async () => {
     await withConnection(async (connection) => {
       for (let i = 0; i < 100; i++) {
