@@ -338,6 +338,63 @@ suite('scalar functions', () => {
       expect(seen_states.size).toBe(1);
     });
   });
+  test('init runs once per worker thread', async () => {
+    await withConnection(async (connection) => {
+      const thread_count = 4;
+      await duckdb.query(connection, `set threads = ${thread_count}`);
+      // Create enough row groups for every configured worker to enter the
+      // scalar function's parallel execution pipeline.
+      await duckdb.query(
+        connection,
+        'create table parallel_input as select i from range(1000000) r(i)',
+      );
+
+      const scalar_function = duckdb.create_scalar_function();
+      duckdb.scalar_function_set_name(scalar_function, 'my_parallel_func');
+      const bigint_type = duckdb.create_logical_type(duckdb.Type.BIGINT);
+      duckdb.scalar_function_add_parameter(scalar_function, bigint_type);
+      duckdb.scalar_function_set_return_type(scalar_function, bigint_type);
+      duckdb.scalar_function_set_volatile(scalar_function);
+
+      let init_calls = 0;
+      duckdb.scalar_function_set_init(scalar_function, (info) => {
+        init_calls++;
+        duckdb.scalar_function_init_set_state(info, { id: init_calls });
+      });
+
+      const seen_states = new Set<object>();
+      duckdb.scalar_function_set_function(
+        scalar_function,
+        (info, input, output) => {
+          const state = duckdb.scalar_function_get_state(info);
+          if (!state) {
+            throw new Error('missing scalar function init state');
+          }
+          seen_states.add(state);
+          const row_count = duckdb.data_chunk_get_size(input);
+          const output_buffer = new BigInt64Array(row_count);
+          output_buffer.fill(1n);
+          duckdb.copy_data_to_vector(
+            output,
+            0,
+            output_buffer.buffer,
+            0,
+            output_buffer.byteLength,
+          );
+        },
+      );
+      duckdb.register_scalar_function(connection, scalar_function);
+      duckdb.destroy_scalar_function_sync(scalar_function);
+
+      await duckdb.query(
+        connection,
+        'select sum(my_parallel_func(i)) from parallel_input',
+      );
+
+      expect(init_calls).toBe(thread_count);
+      expect(seen_states.size).toBe(thread_count);
+    });
+  });
   test('error handling (exception in init func)', async () => {
     await withConnection(async (connection) => {
       const scalar_function = duckdb.create_scalar_function();
