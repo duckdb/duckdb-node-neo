@@ -196,6 +196,11 @@ export interface ScalarFunctionBindInfo {
   __duckdb_function_kind: 'scalar_function';
 }
 
+export interface ScalarFunctionInitInfo {
+  __duckdb_type: 'duckdb_init_info';
+  __duckdb_function_kind: 'scalar_function';
+}
+
 export interface ScalarFunctionInfo {
   __duckdb_type: 'duckdb_function_info';
   __duckdb_function_kind: 'scalar_function';
@@ -309,6 +314,7 @@ export interface ExtractedStatementsAndCount {
 }
 
 export type ScalarFunctionBindFunction = (info: ScalarFunctionBindInfo) => void;
+export type ScalarFunctionInitFunction = (info: ScalarFunctionInitInfo) => void;
 export type ScalarFunctionMainFunction = (info: ScalarFunctionInfo, input: DataChunk, output: Vector) => void;
 
 export type TableFunctionBindFunction = (info: TableFunctionBindInfo) => void;
@@ -1190,12 +1196,25 @@ export function scalar_function_set_error(function_info: ScalarFunctionInfo, err
 // DUCKDB_C_API duckdb_expression duckdb_scalar_function_bind_get_argument(duckdb_bind_info info, idx_t index);
 
 // DUCKDB_C_API void *duckdb_scalar_function_get_state(duckdb_function_info info);
+export function scalar_function_get_state(function_info: ScalarFunctionInfo): object | undefined;
+
 // DUCKDB_C_API void duckdb_scalar_function_set_init(duckdb_scalar_function scalar_function, duckdb_scalar_function_init_t init);
+export function scalar_function_set_init(scalar_function: ScalarFunction, func: ScalarFunctionInitFunction): void;
+
 // DUCKDB_C_API void duckdb_scalar_function_init_set_error(duckdb_init_info info, const char *error);
+export function scalar_function_init_set_error(init_info: ScalarFunctionInitInfo, error: string): void;
+
 // DUCKDB_C_API void duckdb_scalar_function_init_set_state(duckdb_init_info info, void *state, duckdb_delete_callback_t destroy);
+export function scalar_function_init_set_state(init_info: ScalarFunctionInitInfo, state: object): void;
+
 // DUCKDB_C_API void duckdb_scalar_function_init_get_client_context(duckdb_init_info info, duckdb_client_context *out_context);
+export function scalar_function_init_get_client_context(init_info: ScalarFunctionInitInfo): ClientContext;
+
 // DUCKDB_C_API void *duckdb_scalar_function_init_get_bind_data(duckdb_init_info info);
+export function scalar_function_init_get_bind_data(init_info: ScalarFunctionInitInfo): object | undefined;
+
 // DUCKDB_C_API void *duckdb_scalar_function_init_get_extra_info(duckdb_init_info info);
+export function scalar_function_init_get_extra_info(init_info: ScalarFunctionInitInfo): object | undefined;
 
 // DUCKDB_C_API duckdb_selection_vector duckdb_create_selection_vector(idx_t size);
 // DUCKDB_C_API void duckdb_destroy_selection_vector(duckdb_selection_vector sel);

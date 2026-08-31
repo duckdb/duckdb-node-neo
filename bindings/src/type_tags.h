@@ -75,6 +75,10 @@ inline constexpr napi_type_tag ScalarFunctionInfoTypeTag = {
   0xB0E6739D698048EA, 0x9E79734E3E137AC3
 };
 
+inline constexpr napi_type_tag ScalarFunctionInitInfoTypeTag = {
+  0x66C20B7EDFBB42FB, 0xB183E571F8924220
+};
+
 inline constexpr napi_type_tag ScalarFunctionTypeTag = {
   0x95D48B7051D14994, 0x9F883D7DF5DEA86D
 };

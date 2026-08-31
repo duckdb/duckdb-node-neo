@@ -292,6 +292,13 @@ public:
       InstanceMethod("scalar_function_get_bind_data", &DuckDBNodeAddon::scalar_function_get_bind_data),
       InstanceMethod("scalar_function_get_client_context", &DuckDBNodeAddon::scalar_function_get_client_context),
       InstanceMethod("scalar_function_set_error", &DuckDBNodeAddon::scalar_function_set_error),
+      InstanceMethod("scalar_function_get_state", &DuckDBNodeAddon::scalar_function_get_state),
+      InstanceMethod("scalar_function_set_init", &DuckDBNodeAddon::scalar_function_set_init),
+      InstanceMethod("scalar_function_init_set_error", &DuckDBNodeAddon::scalar_function_init_set_error),
+      InstanceMethod("scalar_function_init_set_state", &DuckDBNodeAddon::scalar_function_init_set_state),
+      InstanceMethod("scalar_function_init_get_client_context", &DuckDBNodeAddon::scalar_function_init_get_client_context),
+      InstanceMethod("scalar_function_init_get_bind_data", &DuckDBNodeAddon::scalar_function_init_get_bind_data),
+      InstanceMethod("scalar_function_init_get_extra_info", &DuckDBNodeAddon::scalar_function_init_get_extra_info),
 
       InstanceMethod("create_table_function", &DuckDBNodeAddon::create_table_function),
       InstanceMethod("destroy_table_function_sync", &DuckDBNodeAddon::destroy_table_function_sync),
@@ -3221,25 +3228,87 @@ private:
   // TODO scalar function expression
 
   // DUCKDB_C_API void *duckdb_scalar_function_get_state(duckdb_function_info info);
-  // TODO scalar function init
+  // function scalar_function_get_state(function_info: ScalarFunctionInfo): object | undefined
+  Napi::Value scalar_function_get_state(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto function_info = GetScalarFunctionInfoFromExternal(env, info[0]);
+    auto internal_state = reinterpret_cast<ScalarFunctionInternalState*>(duckdb_scalar_function_get_state(function_info));
+    if (!internal_state || !internal_state->user_state_ref) {
+      return env.Undefined();
+    }
+    return internal_state->user_state_ref->ref.Value();
+  }
 
   // DUCKDB_C_API void duckdb_scalar_function_set_init(duckdb_scalar_function scalar_function, duckdb_scalar_function_init_t init);
-  // TODO scalar function init
+  // function scalar_function_set_init(scalar_function: ScalarFunction, func: ScalarFunctionInitFunction): void
+  Napi::Value scalar_function_set_init(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetScalarFunctionHolderFromExternal(env, info[0]);
+    auto func = info[1].As<Napi::Function>();
+    holder->EnsureInternalExtraInfo(ref_reaper);
+    holder->internal_extra_info->SetInitFunction(env, func);
+    duckdb_scalar_function_set_init(holder->scalar_function, &ScalarFunctionInitFunction);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_scalar_function_init_set_error(duckdb_init_info info, const char *error);
-  // TODO scalar function init
+  // function scalar_function_init_set_error(init_info: ScalarFunctionInitInfo, error: string): void
+  Napi::Value scalar_function_init_set_error(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetScalarFunctionInitInfoFromExternal(env, info[0]);
+    std::string error = info[1].As<Napi::String>();
+    duckdb_scalar_function_init_set_error(init_info, error.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_scalar_function_init_set_state(duckdb_init_info info, void *state, duckdb_delete_callback_t destroy);
-  // TODO scalar function init
+  // function scalar_function_init_set_state(init_info: ScalarFunctionInitInfo, state: object): void
+  Napi::Value scalar_function_init_set_state(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetScalarFunctionInitInfoFromExternal(env, info[0]);
+    auto user_state = info[1].As<Napi::Object>();
+    auto internal_state = new ScalarFunctionInternalState();
+    internal_state->SetUserState(ref_reaper, user_state);
+    duckdb_scalar_function_init_set_state(init_info, internal_state, reinterpret_cast<duckdb_delete_callback_t>(DeleteScalarFunctionInternalState));
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_scalar_function_init_get_client_context(duckdb_init_info info, duckdb_client_context *out_context);
-  // TODO scalar function init
+  // function scalar_function_init_get_client_context(init_info: ScalarFunctionInitInfo): ClientContext
+  Napi::Value scalar_function_init_get_client_context(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetScalarFunctionInitInfoFromExternal(env, info[0]);
+    duckdb_client_context client_context;
+    duckdb_scalar_function_init_get_client_context(init_info, &client_context);
+    if (!client_context) {
+      throw Napi::Error::New(env, "Failed to get client context");
+    }
+    return CreateExternalForClientContext(env, client_context);
+  }
 
   // DUCKDB_C_API void *duckdb_scalar_function_init_get_bind_data(duckdb_init_info info);
-  // TODO scalar function init
+  // function scalar_function_init_get_bind_data(init_info: ScalarFunctionInitInfo): object | undefined
+  Napi::Value scalar_function_init_get_bind_data(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetScalarFunctionInitInfoFromExternal(env, info[0]);
+    auto internal_bind_data = reinterpret_cast<ScalarFunctionInternalBindData*>(duckdb_scalar_function_init_get_bind_data(init_info));
+    if (!internal_bind_data || !internal_bind_data->user_bind_data_ref) {
+      return env.Undefined();
+    }
+    return internal_bind_data->user_bind_data_ref->ref.Value();
+  }
 
   // DUCKDB_C_API void *duckdb_scalar_function_init_get_extra_info(duckdb_init_info info);
-  // TODO scalar function init
+  // function scalar_function_init_get_extra_info(init_info: ScalarFunctionInitInfo): object | undefined
+  Napi::Value scalar_function_init_get_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetScalarFunctionInitInfoFromExternal(env, info[0]);
+    auto internal_extra_info = GetScalarFunctionInternalExtraInfoFromInitInfo(init_info);
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
+      return env.Undefined();
+    }
+    return internal_extra_info->user_extra_info_ref->ref.Value();
+  }
 
   // DUCKDB_C_API duckdb_selection_vector duckdb_create_selection_vector(idx_t size);
   // TODO selection vector
@@ -4578,10 +4647,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 546 DUCKDB_C_API
-    306 function
+    313 function
      26 not exposed
      41 deprecated
-    173 TODO
+    166 TODO
         8 arrow
         5 error data
         2 utf8
@@ -4590,7 +4659,6 @@ NODE_API_ADDON(DuckDBNodeAddon)
         3 vector manipulation
         4 scalar function set
         2 scalar function expression
-        7 scalar function init
         3 selection vector
        12 aggregate function
         4 aggregate function set

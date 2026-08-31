@@ -32,8 +32,8 @@ const deadlineMs = 25000;
 const testTimeoutMs = 40000; // Above deadlineMs, so the diagnostic below wins.
 
 // Each worker registers a scalar function, checks on every invocation that its
-// extra info and bind data are intact, then closes everything and reports how
-// many times it was called.
+// extra info, bind data, and init state are intact, then closes everything and
+// reports how many times it was called.
 const worker_source = `
   const { parentPort, workerData } = require('node:worker_threads');
   const duckdb = require(workerData.bindings_path);
@@ -51,12 +51,24 @@ const worker_source = `
     duckdb.scalar_function_set_bind(fn, (info) => {
       duckdb.scalar_function_set_bind_data(info, { token: 'bind_data' });
     });
+    let initCalls = 0;
+    duckdb.scalar_function_set_init(fn, (info) => {
+      initCalls++;
+      duckdb.scalar_function_init_set_state(info, { token: 'init_state' });
+    });
     let calls = 0;
+    const seenStates = new Set();
     duckdb.scalar_function_set_function(fn, (info, input, output) => {
       calls++;
       const bind_data = duckdb.scalar_function_get_bind_data(info);
       const extra_info = duckdb.scalar_function_get_extra_info(info);
-      if (bind_data.token !== 'bind_data' || extra_info.token !== 'extra_info') {
+      const init_state = duckdb.scalar_function_get_state(info);
+      seenStates.add(init_state);
+      if (
+        bind_data.token !== 'bind_data' ||
+        extra_info.token !== 'extra_info' ||
+        init_state.token !== 'init_state'
+      ) {
         throw new Error('reference corrupted in worker');
       }
       const rowCount = duckdb.data_chunk_get_size(input);
@@ -71,7 +83,7 @@ const worker_source = `
     }
     duckdb.disconnect_sync(connection);
     duckdb.close_sync(db);
-    parentPort.postMessage({ calls });
+    parentPort.postMessage({ calls, initCalls, seenStates: seenStates.size });
   })().catch((e) => {
     parentPort.postMessage({ error: String((e && e.message) || e) });
   });
@@ -79,6 +91,8 @@ const worker_source = `
 
 interface WorkerOutcome {
   calls?: number;
+  initCalls?: number;
+  seenStates?: number;
   error?: string;
 }
 
@@ -148,6 +162,8 @@ suite('worker threads', () => {
         for (const result of results) {
           expect(result.error).toBeUndefined();
           expect(result.calls).toBe(queries_per_worker * chunks_per_query);
+          expect(result.initCalls).toBeGreaterThanOrEqual(queries_per_worker);
+          expect(result.seenStates).toBe(result.initCalls);
         }
       } finally {
         if (timer) {

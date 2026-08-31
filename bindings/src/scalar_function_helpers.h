@@ -31,6 +31,14 @@ inline duckdb_bind_info GetScalarFunctionBindInfoFromExternal(Napi::Env env, Nap
   return GetDataFromExternal<_duckdb_bind_info>(env, ScalarFunctionBindInfoTypeTag, value, "Invalid scalar function bind info argument");
 }
 
+inline Napi::External<_duckdb_init_info> CreateExternalForScalarFunctionInitInfo(Napi::Env env, duckdb_init_info init_info) {
+  return CreateExternalWithoutFinalizer<_duckdb_init_info>(env, ScalarFunctionInitInfoTypeTag, init_info);
+}
+
+inline duckdb_init_info GetScalarFunctionInitInfoFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_init_info>(env, ScalarFunctionInitInfoTypeTag, value, "Invalid scalar function init info argument");
+}
+
 inline Napi::External<_duckdb_function_info> CreateExternalForScalarFunctionInfo(Napi::Env env, duckdb_function_info function_info) {
   return CreateExternalWithoutFinalizer<_duckdb_function_info>(env, ScalarFunctionInfoTypeTag, function_info);
 }
@@ -59,6 +67,27 @@ struct ScalarFunctionBindCallbackTraits {
 
   static void SetError(const Payload &payload, const char *message) {
     duckdb_scalar_function_bind_set_error(payload, message);
+  }
+};
+
+struct ScalarFunctionInitCallbackTraits {
+  using Payload = duckdb_init_info;
+
+  static const char *ResourceName() {
+    return "ScalarFunctionInit";
+  }
+
+  static void Call(Napi::Env env, Napi::Function callback, const Payload &payload) {
+    callback.Call(
+      env.Undefined(),
+      {
+        CreateExternalForScalarFunctionInitInfo(env, payload)
+      }
+    );
+  }
+
+  static void SetError(const Payload &payload, const char *message) {
+    duckdb_scalar_function_init_set_error(payload, message);
   }
 };
 
@@ -93,14 +122,19 @@ struct ScalarFunctionMainCallbackTraits {
 
 struct ScalarFunctionInternalExtraInfo {
   DuckDBThreadCallback<ScalarFunctionBindCallbackTraits> bind_callback;
+  DuckDBThreadCallback<ScalarFunctionInitCallbackTraits> init_callback;
   DuckDBThreadCallback<ScalarFunctionMainCallbackTraits> main_callback;
   std::shared_ptr<ManagedObjectReference> user_extra_info_ref;
 
   explicit ScalarFunctionInternalExtraInfo(const std::shared_ptr<NapiRefReaper> &env_state)
-    : bind_callback(env_state), main_callback(env_state) {}
+    : bind_callback(env_state), init_callback(env_state), main_callback(env_state) {}
 
   void SetBindFunction(Napi::Env env, Napi::Function func) {
     bind_callback.Set(env, func);
+  }
+
+  void SetInitFunction(Napi::Env env, Napi::Function func) {
+    init_callback.Set(env, func);
   }
 
   void SetMainFunction(Napi::Env env, Napi::Function func) {
@@ -193,6 +227,22 @@ inline ScalarFunctionInternalBindData *CopyScalarFunctionInternalBindData(Scalar
   return new_internal_bind_data;
 }
 
+// State
+
+struct ScalarFunctionInternalState {
+  std::shared_ptr<ManagedObjectReference> user_state_ref;
+
+  void SetUserState(const std::shared_ptr<NapiRefReaper> &reaper, Napi::Object user_state) {
+    user_state_ref = user_state.IsUndefined() ? nullptr : MakeManagedObjectReference(reaper, user_state);
+  }
+};
+
+// State is local to a DuckDB worker thread, and DuckDB can destroy it on that
+// thread. The managed reference routes its N-API cleanup back to the JS thread.
+inline void DeleteScalarFunctionInternalState(ScalarFunctionInternalState *internal_state) {
+  delete internal_state;
+}
+
 // Entry points handed to DuckDB
 
 inline ScalarFunctionInternalExtraInfo *GetScalarFunctionInternalExtraInfoFromBindInfo(duckdb_bind_info bind_info) {
@@ -201,6 +251,14 @@ inline ScalarFunctionInternalExtraInfo *GetScalarFunctionInternalExtraInfoFromBi
 
 inline void ScalarFunctionBindFunction(duckdb_bind_info info) {
   GetScalarFunctionInternalExtraInfoFromBindInfo(info)->bind_callback.Invoke(info);
+}
+
+inline ScalarFunctionInternalExtraInfo *GetScalarFunctionInternalExtraInfoFromInitInfo(duckdb_init_info init_info) {
+  return reinterpret_cast<ScalarFunctionInternalExtraInfo*>(duckdb_scalar_function_init_get_extra_info(init_info));
+}
+
+inline void ScalarFunctionInitFunction(duckdb_init_info info) {
+  GetScalarFunctionInternalExtraInfoFromInitInfo(info)->init_callback.Invoke(info);
 }
 
 inline ScalarFunctionInternalExtraInfo *GetScalarFunctionInternalExtraInfoFromFunctionInfo(duckdb_function_info function_info) {

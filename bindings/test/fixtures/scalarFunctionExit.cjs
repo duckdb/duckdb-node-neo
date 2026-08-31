@@ -27,12 +27,16 @@ async function main() {
   duckdb.scalar_function_set_bind(scalar_function, (info) => {
     duckdb.scalar_function_set_bind_data(info, { 'token': 'bind_data' });
   });
+  duckdb.scalar_function_set_init(scalar_function, (info) => {
+    duckdb.scalar_function_init_set_state(info, { 'token': 'state' });
+  });
   duckdb.scalar_function_set_function(
     scalar_function,
-    (_info, input, output) => {
+    (info, input, output) => {
+      const state = duckdb.scalar_function_get_state(info);
       const rowCount = duckdb.data_chunk_get_size(input);
       for (let i = 0; i < rowCount; i++) {
-        duckdb.vector_assign_string_element(output, i, 'ok');
+        duckdb.vector_assign_string_element(output, i, state.token);
       }
     },
   );
