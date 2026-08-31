@@ -7,7 +7,13 @@ truth (currently DuckDB 1.5.5, **546** functions, 48 of them deprecated).
 ```bash
 python3 tools/capi-coverage/fetch_clients.py     # shallow-clone the other five clients
 python3 tools/capi-coverage/build_coverage.py    # writes capi_coverage.{csv,json}
+python3 tools/capi-coverage/summarize_gaps.py    # writes GAPS.md from the CSV
 ```
+
+[GAPS.md](GAPS.md) is the shareable, human-readable view: the non-deprecated functions
+Node Neo hasn't exposed that at least one other client has, read as a signal of what has
+proven useful elsewhere. It is generated and dated, so re-run `summarize_gaps.py` whenever
+the CSV is rebuilt rather than editing it by hand.
 
 `fetch_clients.py` is safe to re-run: it updates existing checkouts in place. The `clients/`
 checkout and `capi_coverage.json` are gitignored; `capi_coverage.csv` is left trackable so that
@@ -73,7 +79,7 @@ Node Neo accounting file, or where the two disagree on exposure — currently ze
   onto one name (`duckdb_open` and `duckdb_open_ext` are both `Startup.DuckDBOpen`), so it
   slightly over-reports for those.
 - `wrapper` detection is textual; a function reached only via a macro or generated shim is missed.
-- Each client tracks its own DuckDB version, so some gaps are just lag rather than choices. At
-  the time of writing C# was on 1.5.3, and Julia's `api.jl` was generated against 1.5.4 (it
-  carries two symbols, `duckdb_create_timestamp_tz_ns` and `duckdb_get_timestamp_tz_ns`, that
-  aren't in 1.5.5).
+- Each client tracks its own DuckDB version, so some gaps are just lag rather than choices.
+  GAPS.md records the exact revision compared for each. Julia's `api.jl` in particular is
+  generated against whichever release it last synced to, and has carried symbols
+  (`duckdb_create_timestamp_tz_ns`, `duckdb_get_timestamp_tz_ns`) that no longer exist in 1.5.5.
