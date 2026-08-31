@@ -11,8 +11,9 @@ python3 tools/capi-coverage/summarize_gaps.py    # writes GAPS.md from the CSV
 ```
 
 [GAPS.md](GAPS.md) is the shareable, human-readable view: the non-deprecated functions
-Node Neo hasn't exposed that at least one other client has. It is generated and dated, so
-re-run `summarize_gaps.py` whenever the CSV is rebuilt rather than editing it by hand.
+Node Neo hasn't exposed that at least one other client has, read as a signal of what has
+proven useful elsewhere. It is generated and dated, so re-run `summarize_gaps.py` whenever
+the CSV is rebuilt rather than editing it by hand.
 
 `fetch_clients.py` is safe to re-run: it updates existing checkouts in place. The `clients/`
 checkout and `capi_coverage.json` are gitignored; `capi_coverage.csv` is left trackable so that

@@ -140,44 +140,68 @@ def main():
   w("- it is **not deprecated** in the C API, and")
   w("- Node Neo has **not deliberately skipped** it (`destroyed in finalizer`,")
   w("  `consolidated into open`, and similar), and")
-  w("- **at least one other C-API-based client does expose it** — so it is demonstrably")
-  w("  bindable, and there is a reference implementation to work from.")
+  w("- **at least one other C-API-based client exposes it**.")
   w("")
-  w("In Node Neo's own accounting those are exactly the functions marked `TODO:`, which is")
-  w("what this document reports. Functions no client exposes are listed separately at the")
-  w("end: they are unbuilt C API surface generally, not somewhere Node Neo trails its peers.")
+  w("In Node Neo's own accounting those are exactly the functions marked `TODO:`.")
   w("")
-  w("\"Exposed by another client\" is read differently per client, because the six do not")
-  w("share an architecture. Go and C# hand-write a selective binding layer, so a binding")
-  w("existing there is a real signal. Rust (`libduckdb-sys`) and Julia (`src/api.jl`)")
-  w("auto-generate a complete one, and Swift publishes no raw C layer at all — for those")
-  w("three only use from the idiomatic layer counts.")
+  w("That third condition is a **usefulness signal**: another client having surfaced a")
+  w("function means someone had a concrete reason to want it. It is not a claim that the")
+  w("function is easy or even sensible to bind in Node Neo — that varies by language, and")
+  w("some of these will be wrong for a JS API. Weigh the signal by its breadth: a function")
+  w("several clients expose is better evidence of demand than one only a single client does.")
+  w("")
+  w("Functions no client exposes are listed separately at the end. They carry no signal")
+  w("either way — they are unbuilt C API surface generally, rather than somewhere Node Neo")
+  w("trails its peers.")
+  w("")
+  w("Which layer counts as \"exposes\" differs by client, because the six do not share an")
+  w("architecture. Go and C# hand-write a selective binding layer, so a binding there is a")
+  w("deliberate choice and is the signal. Rust (`libduckdb-sys`) and Julia (`src/api.jl`)")
+  w("auto-generate a complete binding layer, and Swift publishes no raw C layer at all — for")
+  w("those three only use from the idiomatic layer means anything.")
   w("")
 
   w("## Where Node Neo stands")
   w("")
-  w("| Client | Tier | Binding layer | Bindings | Excl. deprecated |")
-  w("|---|---|---|---:|---:|")
+  w("Both layers are shown, because which one carries meaning differs by client. In each")
+  w("other client's row the **bold** figure is the one this document reads as that client")
+  w("exposing a function; Node Neo is the subject of the comparison, so neither of its")
+  w("columns is a signal.")
+  w("")
+  w("| Client | Tier | Binding layer | Bindings | Bindings excl. deprecated | Idiomatic layer |")
+  w("|---|---|---|---:|---:|---:|")
   for key, label, tier, kind in clients:
     bound = sum(1 for r in rows if truthy(r, key + "_binding"))
     bound_live = sum(1 for r in live if truthy(r, key + "_binding"))
+    wrapped = sum(1 for r in rows if truthy(r, key + "_wrapper"))
     note = {
-      "hand-written": "hand-written",
-      "generated": "generated (complete by construction)",
+      "hand-written": "hand-written, selective",
+      "generated": "generated, complete by construction",
       "none": "none published",
     }[kind]
+
+    def cell(n, total, emphasise):
+      text = str(n) + "/" + str(total) + " (" + str(round(100 * n / total)) + "%)"
+      return "**" + text + "**" if emphasise else text
+
+    # Node Neo is the subject of the comparison, so neither column is "its signal".
+    binding_is_signal = kind == "hand-written" and key != "node_neo"
+    wrapper_is_signal = kind != "hand-written"
+
     if kind == "none":
-      cells = "n/a | n/a"
+      binding_cells = "n/a | n/a"
     else:
-      cells = (
-        str(bound) + "/" + str(len(rows)) + " (" + str(round(100 * bound / len(rows))) + "%)"
-        + " | " + str(bound_live) + "/" + str(len(live))
-        + " (" + str(round(100 * bound_live / len(live))) + "%)"
+      binding_cells = (
+        cell(bound, len(rows), binding_is_signal)
+        + " | "
+        + cell(bound_live, len(live), False)
       )
-    w("| " + label + " | " + tier + " | " + note + " | " + cells + " |")
+    w("| " + label + " | " + tier + " | " + note + " | " + binding_cells + " | "
+      + cell(wrapped, len(rows), wrapper_is_signal) + " |")
   w("")
-  w("Only the hand-written rows are comparable to each other; the generated ones sit at")
-  w("100% by construction and say nothing about intent.")
+  w("Only the hand-written binding layers are comparable to one another; the generated ones")
+  w("sit at 100% by construction and say nothing about intent, which is why the idiomatic")
+  w("column is what counts for Rust, Julia and Swift.")
   w("")
 
   nn_todo = len(todo)
@@ -200,22 +224,39 @@ def main():
     w("| " + area + " | " + str(len(group)) + " | " + listing + " |")
   w("")
 
-  solo = collections.defaultdict(list)
-  for area, group in by_area.items():
-    who = set()
-    for row in group:
-      who.update(covered_by(row))
-    if len(who) == 1:
-      solo[who.pop()].append((area, len(group)))
-  if solo:
-    w("### Areas with a single reference implementation")
+  w("### How strong the signal is")
+  w("")
+  w("How many other clients expose each gap. More clients means better evidence that the")
+  w("function is worth having, not that it is more urgent or more tractable.")
+  w("")
+  breadth = collections.Counter(len(covered_by(r)) for r in gaps)
+  w("| Exposed by | Gaps |")
+  w("|---|---:|")
+  for count in sorted(breadth, reverse=True):
+    label = "1 client" if count == 1 else str(count) + " clients"
+    w("| " + label + " | " + str(breadth[count]) + " |")
+  w("")
+
+  single = [r for r in gaps if len(covered_by(r)) == 1]
+  if single:
+    who = collections.Counter(covered_by(r)[0] for r in single)
+    dominant, dominant_n = who.most_common(1)[0]
+    w("Most gaps rest on a single client — " + str(len(single)) + " of " + str(len(gaps))
+      + ", and " + str(dominant_n) + " of those on " + dominant + " alone. Those are the")
+    w("weakest evidence in the table: one project's judgement, made for one language's")
+    w("users. The multi-client rows are the better-evidenced ones.")
     w("")
-    for client, areas in sorted(solo.items(), key=lambda kv: -sum(n for _, n in kv[1])):
-      total = sum(n for _, n in areas)
-      names = ", ".join(a for a, _ in sorted(areas, key=lambda x: -x[1]))
-      plural = " area: " if len(areas) == 1 else " areas: "
-      w("- **" + client + " only** — " + str(total) + " functions across "
-        + str(len(areas)) + plural + names)
+
+  strong = [r for r in gaps if len(covered_by(r)) >= 3]
+  if strong:
+    w("Gaps exposed by three or more clients:")
+    w("")
+    w("| Function | Area | Exposed by |")
+    w("|---|---|---|")
+    for row in sorted(strong, key=lambda r: (r["node_neo_reason"], int(r["header_line"]))):
+      w("| `" + row["function"] + "` | "
+        + row["node_neo_reason"][len("TODO:"):].strip() + " | "
+        + ", ".join(covered_by(row)) + " |")
     w("")
 
   w("### Function detail")

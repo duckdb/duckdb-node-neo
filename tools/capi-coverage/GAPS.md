@@ -13,32 +13,45 @@ A **gap** is a C API function that Node Neo does not expose, where:
 - it is **not deprecated** in the C API, and
 - Node Neo has **not deliberately skipped** it (`destroyed in finalizer`,
   `consolidated into open`, and similar), and
-- **at least one other C-API-based client does expose it** — so it is demonstrably
-  bindable, and there is a reference implementation to work from.
+- **at least one other C-API-based client exposes it**.
 
-In Node Neo's own accounting those are exactly the functions marked `TODO:`, which is
-what this document reports. Functions no client exposes are listed separately at the
-end: they are unbuilt C API surface generally, not somewhere Node Neo trails its peers.
+In Node Neo's own accounting those are exactly the functions marked `TODO:`.
 
-"Exposed by another client" is read differently per client, because the six do not
-share an architecture. Go and C# hand-write a selective binding layer, so a binding
-existing there is a real signal. Rust (`libduckdb-sys`) and Julia (`src/api.jl`)
-auto-generate a complete one, and Swift publishes no raw C layer at all — for those
-three only use from the idiomatic layer counts.
+That third condition is a **usefulness signal**: another client having surfaced a
+function means someone had a concrete reason to want it. It is not a claim that the
+function is easy or even sensible to bind in Node Neo — that varies by language, and
+some of these will be wrong for a JS API. Weigh the signal by its breadth: a function
+several clients expose is better evidence of demand than one only a single client does.
+
+Functions no client exposes are listed separately at the end. They carry no signal
+either way — they are unbuilt C API surface generally, rather than somewhere Node Neo
+trails its peers.
+
+Which layer counts as "exposes" differs by client, because the six do not share an
+architecture. Go and C# hand-write a selective binding layer, so a binding there is a
+deliberate choice and is the signal. Rust (`libduckdb-sys`) and Julia (`src/api.jl`)
+auto-generate a complete binding layer, and Swift publishes no raw C layer at all — for
+those three only use from the idiomatic layer means anything.
 
 ## Where Node Neo stands
 
-| Client | Tier | Binding layer | Bindings | Excl. deprecated |
-|---|---|---|---:|---:|
-| Node Neo | primary | hand-written | 306/546 (56%) | 300/498 (60%) |
-| Go | primary | hand-written | 374/546 (68%) | 359/498 (72%) |
-| Rust | primary | generated (complete by construction) | 546/546 (100%) | 498/498 (100%) |
-| C# | secondary | hand-written | 282/546 (52%) | 256/498 (51%) |
-| Swift | tertiary | none published | n/a | n/a |
-| Julia | tertiary | generated (complete by construction) | 546/546 (100%) | 498/498 (100%) |
+Both layers are shown, because which one carries meaning differs by client. In each
+other client's row the **bold** figure is the one this document reads as that client
+exposing a function; Node Neo is the subject of the comparison, so neither of its
+columns is a signal.
 
-Only the hand-written rows are comparable to each other; the generated ones sit at
-100% by construction and say nothing about intent.
+| Client | Tier | Binding layer | Bindings | Bindings excl. deprecated | Idiomatic layer |
+|---|---|---|---:|---:|---:|
+| Node Neo | primary | hand-written, selective | 306/546 (56%) | 300/498 (60%) | 259/546 (47%) |
+| Go | primary | hand-written, selective | **374/546 (68%)** | 359/498 (72%) | 271/546 (50%) |
+| Rust | primary | generated, complete by construction | 546/546 (100%) | 498/498 (100%) | **217/546 (40%)** |
+| C# | secondary | hand-written, selective | **282/546 (52%)** | 256/498 (51%) | 163/546 (30%) |
+| Swift | tertiary | none published | n/a | n/a | **105/546 (19%)** |
+| Julia | tertiary | generated, complete by construction | 546/546 (100%) | 498/498 (100%) | **182/546 (33%)** |
+
+Only the hand-written binding layers are comparable to one another; the generated ones
+sit at 100% by construction and say nothing about intent, which is why the idiomatic
+column is what counts for Rust, Julia and Swift.
 
 Node Neo's 173 unexposed-but-wanted functions split into **68 gaps** (below) and **105 that no client has bound**.
 
@@ -69,10 +82,34 @@ Ordered by size. "Exposed by" counts how many functions in that area each client
 | register logical type | 1 | Go 1 |
 | value to string | 1 | Go 1 |
 
-### Areas with a single reference implementation
+### How strong the signal is
 
-- **Go only** — 31 functions across 10 areas: table description, log storage, expression, vector manipulation, selection vector, utf8, scalar function expression, value to string, register logical type, appender create query
-- **Julia only** — 6 functions across 1 area: tasks
+How many other clients expose each gap. More clients means better evidence that the
+function is worth having, not that it is more urgent or more tractable.
+
+| Exposed by | Gaps |
+|---|---:|
+| 3 clients | 9 |
+| 2 clients | 17 |
+| 1 client | 42 |
+
+Most gaps rest on a single client — 42 of 68, and 36 of those on Go alone. Those are the
+weakest evidence in the table: one project's judgement, made for one language's
+users. The multi-client rows are the better-evidenced ones.
+
+Gaps exposed by three or more clients:
+
+| Function | Area | Exposed by |
+|---|---|---|
+| `duckdb_appender_error_data` | appender error data | Go, C#, Rust |
+| `duckdb_destroy_arrow_options` | arrow | Go, C#, Rust |
+| `duckdb_result_get_arrow_options` | arrow | Go, C#, Rust |
+| `duckdb_to_arrow_schema` | arrow | Go, C#, Rust |
+| `duckdb_data_chunk_to_arrow` | arrow | Go, C#, Rust |
+| `duckdb_destroy_error_data` | error data | Go, C#, Rust |
+| `duckdb_error_data_error_type` | error data | Go, C#, Rust |
+| `duckdb_error_data_message` | error data | Go, C#, Rust |
+| `duckdb_error_data_has_error` | error data | Go, C#, Rust |
 
 ### Function detail
 
