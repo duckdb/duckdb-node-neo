@@ -340,13 +340,14 @@ suite('scalar functions', () => {
   });
   test('init runs once per worker thread', async () => {
     await withConnection(async (connection) => {
+      const row_group_size = 122_880;
       const thread_count = 4;
+      const row_group_margin = 2;
+      const rows = row_group_size * thread_count * row_group_margin;
       await duckdb.query(connection, `set threads = ${thread_count}`);
-      // Create enough row groups for every configured worker to enter the
-      // scalar function's parallel execution pipeline.
       await duckdb.query(
         connection,
-        'create table parallel_input as select i from range(1000000) r(i)',
+        `create table parallel_input as select i from range(${rows}) r(i)`,
       );
 
       const scalar_function = duckdb.create_scalar_function();
