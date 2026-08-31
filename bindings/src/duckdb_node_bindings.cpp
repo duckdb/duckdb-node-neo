@@ -332,6 +332,7 @@ public:
       InstanceMethod("appender_column_count", &DuckDBNodeAddon::appender_column_count),
       InstanceMethod("appender_column_type", &DuckDBNodeAddon::appender_column_type),
       InstanceMethod("appender_flush_sync", &DuckDBNodeAddon::appender_flush_sync),
+      InstanceMethod("appender_clear", &DuckDBNodeAddon::appender_clear),
       InstanceMethod("appender_close_sync", &DuckDBNodeAddon::appender_close_sync),
       InstanceMethod("appender_end_row", &DuckDBNodeAddon::appender_end_row),
       InstanceMethod("append_default", &DuckDBNodeAddon::append_default),
@@ -3793,7 +3794,15 @@ private:
   }
 
   // DUCKDB_C_API duckdb_state duckdb_appender_clear(duckdb_appender appender);
-  // TODO appender clear
+  // function appender_clear(appender: Appender): void
+  Napi::Value appender_clear(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto appender = GetAppenderFromExternal(env, info[0]);
+    if (duckdb_appender_clear(appender)) {
+      throw Napi::Error::New(env, duckdb_appender_error(appender));
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_appender_close(duckdb_appender appender);
   // function appender_close(appender: Appender): void

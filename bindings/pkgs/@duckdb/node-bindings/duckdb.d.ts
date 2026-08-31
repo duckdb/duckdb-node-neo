@@ -1354,6 +1354,7 @@ export function appender_column_type(appender: Appender, column_index: number): 
 export function appender_flush_sync(appender: Appender): void;
 
 // DUCKDB_C_API duckdb_state duckdb_appender_clear(duckdb_appender appender);
+export function appender_clear(appender: Appender): void;
 
 // DUCKDB_C_API duckdb_state duckdb_appender_close(duckdb_appender appender);
 export function appender_close_sync(appender: Appender): void;

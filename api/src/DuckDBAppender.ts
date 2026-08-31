@@ -61,6 +61,9 @@ export class DuckDBAppender {
   public flushSync() {
     duckdb.appender_flush_sync(this.appender);
   }
+  public clear() {
+    duckdb.appender_clear(this.appender);
+  }
   public get columnCount(): number {
     return duckdb.appender_column_count(this.appender);
   }
