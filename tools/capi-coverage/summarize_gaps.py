@@ -6,7 +6,10 @@ Run after build_coverage.py:
 
 A "gap" is a C API function that Node Neo does not expose, that is not deprecated and
 not deliberately skipped, and that at least one other C-API-based client does expose.
-In Node Neo's own accounting those are exactly the functions marked `TODO:`.
+
+Node Neo marks every unexposed function that is neither deprecated nor deliberately
+skipped as `TODO:`, whatever other clients do, so gaps are a subset of the TODOs. The
+rest of the TODOs -- the ones no client exposes -- are reported separately.
 """
 
 import collections
@@ -16,6 +19,7 @@ import os
 import re
 import subprocess
 import sys
+import textwrap
 
 out_dir = os.path.dirname(os.path.abspath(__file__))
 csv_path = os.path.join(out_dir, "capi_coverage.csv")
@@ -123,6 +127,12 @@ def main():
   L = []
   w = L.append
 
+  def para(text):
+    """Emit a prose paragraph, wrapped so interpolated numbers can't leave ragged lines."""
+    for line in textwrap.wrap(" ".join(text.split()), width=88):
+      w(line)
+    w("")
+
   w("# Node Neo C API coverage gaps")
   w("")
   w("_Generated " + today + " against DuckDB " + duckdb_version() + " ("
@@ -142,17 +152,19 @@ def main():
   w("  `consolidated into open`, and similar), and")
   w("- **at least one other C-API-based client exposes it**.")
   w("")
-  w("In Node Neo's own accounting those are exactly the functions marked `TODO:`.")
-  w("")
-  w("That third condition is a **usefulness signal**: another client having surfaced a")
+  para(
+    "Node Neo marks every unexposed function meeting the first two conditions as `TODO:`,"
+    " whatever other clients do, so gaps are a **subset** of the TODO list: of its "
+    + str(len(todo)) + " TODOs, " + str(len(gaps)) + " are gaps and the other "
+    + str(len(unclaimed)) + " are functions no client exposes. Those are listed at the"
+    " end and are no less wanted — they simply carry no signal either way, because nobody"
+    " has built them."
+  )
+  w("The third condition is a **usefulness signal**: another client having surfaced a")
   w("function means someone had a concrete reason to want it. It is not a claim that the")
   w("function is easy or even sensible to bind in Node Neo — that varies by language, and")
   w("some of these will be wrong for a JS API. Weigh the signal by its breadth: a function")
   w("several clients expose is better evidence of demand than one only a single client does.")
-  w("")
-  w("Functions no client exposes are listed separately at the end. They carry no signal")
-  w("either way — they are unbuilt C API surface generally, rather than somewhere Node Neo")
-  w("trails its peers.")
   w("")
   w("Which layer counts as \"exposes\" differs by client, because the six do not share an")
   w("architecture. Go and C# hand-write a selective binding layer, so a binding there is a")
@@ -204,12 +216,6 @@ def main():
   w("column is what counts for Rust, Julia and Swift.")
   w("")
 
-  nn_todo = len(todo)
-  w("Node Neo's " + str(nn_todo) + " unexposed-but-wanted functions split into **"
-    + str(len(gaps)) + " gaps** (below) and **" + str(len(unclaimed))
-    + " that no client has bound**.")
-  w("")
-
   w("## The gaps — " + str(len(gaps)) + " functions across " + str(len(by_area)) + " areas")
   w("")
   w("Ordered by size. \"Exposed by\" counts how many functions in that area each client has.")
@@ -241,11 +247,12 @@ def main():
   if single:
     who = collections.Counter(covered_by(r)[0] for r in single)
     dominant, dominant_n = who.most_common(1)[0]
-    w("Most gaps rest on a single client — " + str(len(single)) + " of " + str(len(gaps))
-      + ", and " + str(dominant_n) + " of those on " + dominant + " alone. Those are the")
-    w("weakest evidence in the table: one project's judgement, made for one language's")
-    w("users. The multi-client rows are the better-evidenced ones.")
-    w("")
+    para(
+      "Most gaps rest on a single client — " + str(len(single)) + " of " + str(len(gaps))
+      + ", and " + str(dominant_n) + " of those on " + dominant + " alone. Those are the"
+      " weakest evidence here: one project's judgement, made for one language's users."
+      " The multi-client rows are the better-evidenced ones."
+    )
 
   strong = [r for r in gaps if len(covered_by(r)) >= 3]
   if strong:
@@ -270,10 +277,11 @@ def main():
       w("| `" + row["function"] + "` | " + ", ".join(covered_by(row)) + " |")
     w("")
 
-  w("## Not a gap: unclaimed by every client — " + str(len(unclaimed)) + " functions")
+  w("## The rest of the TODO list — " + str(len(unclaimed)) + " functions no client exposes")
   w("")
-  w("Node Neo does not expose these, but neither does any other client. Being behind here")
-  w("means being level with everyone, which is a different prioritisation signal.")
+  w("These are also on Node Neo's TODO list, and are just as wanted or unwanted as anything")
+  w("above; they simply carry no signal from other clients, because none has exposed them")
+  w("either. Being behind here means being level with everyone.")
   w("")
   w("| Area | Functions |")
   w("|---|---:|")

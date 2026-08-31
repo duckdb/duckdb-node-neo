@@ -15,17 +15,17 @@ A **gap** is a C API function that Node Neo does not expose, where:
   `consolidated into open`, and similar), and
 - **at least one other C-API-based client exposes it**.
 
-In Node Neo's own accounting those are exactly the functions marked `TODO:`.
+Node Neo marks every unexposed function meeting the first two conditions as `TODO:`,
+whatever other clients do, so gaps are a **subset** of the TODO list: of its 173 TODOs,
+68 are gaps and the other 105 are functions no client exposes. Those are listed at the
+end and are no less wanted — they simply carry no signal either way, because nobody has
+built them.
 
-That third condition is a **usefulness signal**: another client having surfaced a
+The third condition is a **usefulness signal**: another client having surfaced a
 function means someone had a concrete reason to want it. It is not a claim that the
 function is easy or even sensible to bind in Node Neo — that varies by language, and
 some of these will be wrong for a JS API. Weigh the signal by its breadth: a function
 several clients expose is better evidence of demand than one only a single client does.
-
-Functions no client exposes are listed separately at the end. They carry no signal
-either way — they are unbuilt C API surface generally, rather than somewhere Node Neo
-trails its peers.
 
 Which layer counts as "exposes" differs by client, because the six do not share an
 architecture. Go and C# hand-write a selective binding layer, so a binding there is a
@@ -52,8 +52,6 @@ columns is a signal.
 Only the hand-written binding layers are comparable to one another; the generated ones
 sit at 100% by construction and say nothing about intent, which is why the idiomatic
 column is what counts for Rust, Julia and Swift.
-
-Node Neo's 173 unexposed-but-wanted functions split into **68 gaps** (below) and **105 that no client has bound**.
 
 ## The gaps — 68 functions across 20 areas
 
@@ -94,8 +92,8 @@ function is worth having, not that it is more urgent or more tractable.
 | 1 client | 42 |
 
 Most gaps rest on a single client — 42 of 68, and 36 of those on Go alone. Those are the
-weakest evidence in the table: one project's judgement, made for one language's
-users. The multi-client rows are the better-evidenced ones.
+weakest evidence here: one project's judgement, made for one language's users. The
+multi-client rows are the better-evidenced ones.
 
 Gaps exposed by three or more clients:
 
@@ -281,10 +279,11 @@ Gaps exposed by three or more clients:
 |---|---|
 | `duckdb_value_to_string` | Go |
 
-## Not a gap: unclaimed by every client — 105 functions
+## The rest of the TODO list — 105 functions no client exposes
 
-Node Neo does not expose these, but neither does any other client. Being behind here
-means being level with everyone, which is a different prioritisation signal.
+These are also on Node Neo's TODO list, and are just as wanted or unwanted as anything
+above; they simply carry no signal from other clients, because none has exposed them
+either. Being behind here means being level with everyone.
 
 | Area | Functions |
 |---|---:|
