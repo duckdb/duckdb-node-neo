@@ -1,11 +1,16 @@
 import duckdb from '@duckdb/node-bindings';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
+import { DuckDBScalarFunctionBindInfo } from './DuckDBScalarFunctionBindInfo';
 import { DuckDBScalarFunctionInfo } from './DuckDBScalarFunctionInfo';
+import { DuckDBScalarFunctionInitInfo } from './DuckDBScalarFunctionInitInfo';
 import { DuckDBType } from './DuckDBType';
 import { DuckDBVector } from './DuckDBVector';
-import { DuckDBScalarFunctionBindInfo } from './DuckDBScalarFunctionBindInfo';
 
 export type DuckDBScalarBindFunction = (bindInfo: DuckDBScalarFunctionBindInfo) => void;
+
+export type DuckDBScalarInitFunction = (
+  initInfo: DuckDBScalarFunctionInitInfo,
+) => void;
 
 export type DuckDBScalarMainFunction = (
   functionInfo: DuckDBScalarFunctionInfo,
@@ -23,6 +28,7 @@ export class DuckDBScalarFunction {
   public static create({
     name,
     bindFunction,
+    initFunction,
     mainFunction,
     returnType,
     parameterTypes,
@@ -33,6 +39,7 @@ export class DuckDBScalarFunction {
   }: {
     name: string;
     bindFunction?: DuckDBScalarBindFunction;
+    initFunction?: DuckDBScalarInitFunction;
     mainFunction: DuckDBScalarMainFunction;
     returnType: DuckDBType;
     parameterTypes?: readonly DuckDBType[];
@@ -45,6 +52,9 @@ export class DuckDBScalarFunction {
     scalarFunction.setName(name);
     if (bindFunction) {
       scalarFunction.setBindFunction(bindFunction);
+    }
+    if (initFunction) {
+      scalarFunction.setInitFunction(initFunction);
     }
     scalarFunction.setMainFunction(mainFunction);
     scalarFunction.setReturnType(returnType);
@@ -80,6 +90,12 @@ export class DuckDBScalarFunction {
     duckdb.scalar_function_set_bind(this.scalar_function, (info) => {
       const bindInfo = new DuckDBScalarFunctionBindInfo(info);
       bindFunction(bindInfo);
+    });
+  }
+
+  public setInitFunction(initFunction: DuckDBScalarInitFunction) {
+    duckdb.scalar_function_set_init(this.scalar_function, (info) => {
+      initFunction(new DuckDBScalarFunctionInitInfo(info));
     });
   }
 

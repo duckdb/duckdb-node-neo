@@ -23,6 +23,7 @@ export * from './DuckDBResultReader';
 export * from './DuckDBScalarFunction';
 export * from './DuckDBScalarFunctionBindInfo';
 export * from './DuckDBScalarFunctionInfo';
+export * from './DuckDBScalarFunctionInitInfo';
 export * from './DuckDBTableFunction';
 export * from './DuckDBTableFunctionBindInfo';
 export * from './DuckDBTableFunctionInfo';

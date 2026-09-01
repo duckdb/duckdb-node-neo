@@ -17,6 +17,12 @@ export class DuckDBScalarFunctionInfo {
   public getExtraInfo(): object | undefined {
     return duckdb.scalar_function_get_extra_info(this.function_info);
   }
+  public get state(): object | undefined {
+    return this.getState();
+  }
+  public getState(): object | undefined {
+    return duckdb.scalar_function_get_state(this.function_info);
+  }
   public setError(error: string) {
     duckdb.scalar_function_set_error(this.function_info, error);
   }

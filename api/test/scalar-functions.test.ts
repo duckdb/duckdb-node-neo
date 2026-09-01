@@ -1,5 +1,6 @@
 import { assert, beforeAll, describe, test } from 'vitest';
 import {
+  BIGINT,
   DuckDBValue,
   INTEGER,
   VARCHAR,
@@ -131,6 +132,96 @@ describe('scalar functions', () => {
           })}`,
         ],
       });
+    });
+  });
+
+  test('scalar function (init state)', async () => {
+    await withConnection(async (connection) => {
+      await connection.run('set threads = 1');
+      const extraInfo = { start: 5n };
+      const bindData = { limit: 5005n };
+      let initCalls = 0;
+      let mainCalls = 0;
+      const seenStates = new Set<object>();
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_counter',
+          bindFunction: (info) => {
+            info.setBindData(bindData);
+          },
+          initFunction: (info) => {
+            initCalls++;
+            assert.strictEqual(info.extraInfo, extraInfo);
+            assert.strictEqual(info.bindData, bindData);
+            assert.isAbove(info.clientContext.connectionId, 0);
+            info.setState({ next: extraInfo.start });
+          },
+          mainFunction: (info, input, output) => {
+            mainCalls++;
+            const state = info.state as { next: bigint };
+            seenStates.add(state);
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+              output.setItem(rowIndex, state.next);
+              state.next++;
+            }
+            output.flush();
+          },
+          returnType: BIGINT,
+          parameterTypes: [BIGINT],
+          volatile: true,
+          extraInfo,
+        }),
+      );
+      const reader = await connection.runAndReadAll(`
+        select count(*) as row_count, min(value) as min_value, max(value) as max_value
+        from (select my_counter(i) as value from range(5000) r(i))
+      `);
+      assert.deepEqual(reader.getRows(), [[5000n, 5n, 5004n]]);
+      assert.equal(initCalls, 1);
+      assert.isAbove(mainCalls, 1);
+      assert.equal(seenStates.size, 1);
+    });
+  });
+
+  test('scalar function (error handling: exception in init func)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          initFunction: () => {
+            throw new Error('my_init_error');
+          },
+          mainFunction: (_info, _input, _output) => {},
+          returnType: VARCHAR,
+        }),
+      );
+      try {
+        await connection.run('select my_func()');
+        assert.fail('should throw');
+      } catch (err) {
+        assert.deepEqual(err, new Error('Invalid Input Error: my_init_error'));
+      }
+    });
+  });
+
+  test('scalar function (error handling: setError in init func)', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'my_func',
+          initFunction: (info) => {
+            info.setError('my_init_error');
+          },
+          mainFunction: (_info, _input, _output) => {},
+          returnType: VARCHAR,
+        }),
+      );
+      try {
+        await connection.run('select my_func()');
+        assert.fail('should throw');
+      } catch (err) {
+        assert.deepEqual(err, new Error('Invalid Input Error: my_init_error'));
+      }
     });
   });
 
