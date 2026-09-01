@@ -905,6 +905,11 @@ const rows = reader.getRows();
 // [ [ 5 ] ]
 ```
 
+An optional `initFunction` can set state once per DuckDB worker thread with
+`info.setState(...)`. The main function can read that object from `info.state`.
+The init info also exposes the scalar function's client context, bind data, and
+extra info, and can report errors with `info.setError(...)`.
+
 ### Table Functions
 
 ```ts
