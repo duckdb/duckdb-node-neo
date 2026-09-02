@@ -85,35 +85,6 @@ describe('appender', () => {
       );
     }
   });
-  test('clear discards unflushed rows and resets the appender', async () => {
-    await withConnection(async (connection) => {
-      await connection.run('create table target(i integer)');
-      const appender = await connection.createAppender('target');
-
-      appender.appendInteger(11);
-      appender.endRow();
-      appender.flushSync();
-
-      appender.appendInteger(22);
-      appender.endRow();
-      appender.appendInteger(33);
-      appender.clear();
-
-      appender.appendInteger(44);
-      appender.endRow();
-      appender.closeSync();
-
-      const result = await connection.run('from target');
-      const resultChunk = await result.fetchChunk();
-      const expectedValues: number[] = [11, 44];
-      assert.isDefined(resultChunk);
-      if (resultChunk) {
-        assert.equal(resultChunk.columnCount, 1);
-        assert.equal(resultChunk.rowCount, 2);
-        assertValues(resultChunk, 0, DuckDBIntegerVector, expectedValues);
-      }
-    });
-  });
   test('write integer vector', () => {
     const chunk = DuckDBDataChunk.create([INTEGER], 3);
     const vector = chunk.getColumnVector(0) as DuckDBIntegerVector;
@@ -728,6 +699,35 @@ describe('appender', () => {
         assertValues(resultChunk, 51, DuckDBStructVector, columns[51]); // struct_of_fixed_array
         assertValues(resultChunk, 52, DuckDBArrayVector, columns[52]); // fixed_array_of_int_list
         assertValues(resultChunk, 53, DuckDBListVector, columns[53]); // list_of_fixed_int_array
+      }
+    });
+  });
+  test('clear discards unflushed rows and resets the appender', async () => {
+    await withConnection(async (connection) => {
+      await connection.run('create table target(i integer)');
+      const appender = await connection.createAppender('target');
+
+      appender.appendInteger(11);
+      appender.endRow();
+      appender.flushSync();
+
+      appender.appendInteger(22);
+      appender.endRow();
+      appender.appendInteger(33);
+      appender.clear();
+
+      appender.appendInteger(44);
+      appender.endRow();
+      appender.closeSync();
+
+      const result = await connection.run('from target');
+      const resultChunk = await result.fetchChunk();
+      const expectedValues: number[] = [11, 44];
+      assert.isDefined(resultChunk);
+      if (resultChunk) {
+        assert.equal(resultChunk.columnCount, 1);
+        assert.equal(resultChunk.rowCount, 2);
+        assertValues(resultChunk, 0, DuckDBIntegerVector, expectedValues);
       }
     });
   });
