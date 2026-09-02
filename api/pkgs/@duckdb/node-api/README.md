@@ -905,10 +905,32 @@ const rows = reader.getRows();
 // [ [ 5 ] ]
 ```
 
-An optional `initFunction` can set state once per DuckDB worker thread with
-`info.setState(...)`. The main function can read that object from `info.state`.
-The init info also exposes the scalar function's client context, bind data, and
-extra info, and can report errors with `info.setError(...)`.
+An optional `initFunction` runs once per DuckDB worker thread, giving each thread
+its own state:
+
+```ts
+connection.registerScalarFunction(
+  DuckDBScalarFunction.create({
+    name: 'my_counter',
+    initFunction: (initInfo) => {
+      initInfo.setState({ next: 0 });
+    },
+    mainFunction: (functionInfo, input, output) => {
+      const state = functionInfo.state as { next: number };
+      for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+        output.setItem(rowIndex, state.next++);
+      }
+      output.flush();
+    },
+    returnType: INTEGER,
+  })
+);
+```
+
+Note that this is per-thread state, unlike a table function's `initData`, which is
+shared across the scan. Init info also exposes the client context, bind data, and
+extra info, and reports errors with `setError`. Callbacks are always run on the JS
+thread, so they are serialized even when DuckDB evaluates in parallel.
 
 ### Table Functions
 
