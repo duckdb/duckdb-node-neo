@@ -905,6 +905,43 @@ const rows = reader.getRows();
 // [ [ 5 ] ]
 ```
 
+An optional `initFunction` runs once per DuckDB worker thread, giving each thread
+its own state:
+
+```ts
+connection.registerScalarFunction(
+  DuckDBScalarFunction.create({
+    name: 'my_counter',
+    initFunction: (initInfo) => {
+      initInfo.setState({ next: 0 });
+    },
+    mainFunction: (functionInfo, input, output) => {
+      const state = functionInfo.state as { next: number };
+      for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+        output.setItem(rowIndex, state.next++);
+      }
+      output.flush();
+    },
+    returnType: INTEGER,
+    volatile: true,
+  })
+);
+const reader = await connection.runAndReadAll(
+  'select my_counter() from range(3)'
+);
+const rows = reader.getRows();
+// [ [ 0 ], [ 1 ], [ 2 ] ]
+```
+
+Marking the function `volatile` is required whenever its result depends on init
+state rather than only on its arguments: without it, DuckDB may treat the call as
+constant and evaluate it just once.
+
+Note that this is per-thread state, unlike a table function's `initData`, which is
+shared across the scan. Init info also exposes the client context, bind data, and
+extra info, and reports errors with `setError`. Callbacks are always run on the JS
+thread, so they are serialized even when DuckDB evaluates in parallel.
+
 ### Table Functions
 
 ```ts
