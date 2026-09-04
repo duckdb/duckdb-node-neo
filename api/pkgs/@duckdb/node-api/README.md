@@ -923,9 +923,19 @@ connection.registerScalarFunction(
       output.flush();
     },
     returnType: INTEGER,
+    volatile: true,
   })
 );
+const reader = await connection.runAndReadAll(
+  'select my_counter() from range(3)'
+);
+const rows = reader.getRows();
+// [ [ 0 ], [ 1 ], [ 2 ] ]
 ```
+
+Marking the function `volatile` is required whenever its result depends on init
+state rather than only on its arguments: without it, DuckDB may treat the call as
+constant and evaluate it just once.
 
 Note that this is per-thread state, unlike a table function's `initData`, which is
 shared across the scan. Init info also exposes the client context, bind data, and
