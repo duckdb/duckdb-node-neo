@@ -446,22 +446,28 @@ What this lands on:
 Same principle as V1 — mirror the C API, and deviate only for memory management, error handling and
 out parameters, as the V1 mapping already does. The places where "as feasible" will be tested:
 
-- **Multiple out-params.** V1's out-params are nearly all single, and collapse to a return value.
-  V2 has calls that produce two: `statement_bind` yields both a result schema and a parameter
-  schema, `result_step` yields both a chunk and a status. These need an object return, which is a
-  new shape for the bindings.
-- **Owned versus borrowed.** V2 documents this per out-param and enforces it — destroying a
-  borrowed handle aborts. So ownership becomes a property the accounting has to record per function,
-  since it decides whether the external gets a finalizer at all, and borrowed handles need their
-  parent pinned for their lifetime.
+- **Multiple out-params — precedented, just more common.** V1 already has this and already answers
+  it: `duckdb_get_config_flag(index, out_name, out_description)` maps to
+  `get_config_flag(index): ConfigFlag`, an object return. V2 needs the same treatment more often —
+  `statement_bind` yields a result schema and a parameter schema, `result_step` a chunk and a status
+  — but the shape is established, not new.
+- **Owned versus borrowed — also precedented, and the mechanism already exists.** `externals.h`
+  carries both `CreateExternalFor<X>` and `CreateExternalFor<X>WithoutFinalizer` for data chunks and
+  logical types, plus holder structs for connections and databases. What changes under V2 is
+  pervasiveness and enforcement: the C API documents ownership per out-param and aborts if a
+  borrowed handle is destroyed, so this becomes something the accounting should record per function
+  rather than something inferred per call site.
 - **The `_with_connection` / `_with_context` pairs.** 37 value constructors exist in both forms, and
   the same split runs through data chunks, column data collections and the type constructors. A 1:1
   mapping exposes both; whether the TS layer keeps them as two functions or one with a union-typed
-  first argument is the first real judgement call.
-- **`create_environment`.** The header says "call once at program start," which reads like
-  addon-owned state rather than something a caller threads through every open. V1 has one precedent
-  for this shape — `duckdb_open` is marked *consolidated into open* — so there is a convention to
-  follow either way.
+  first argument is the open judgement call.
+- **`create_environment` maps onto the instance-cache pattern.** Not addon-owned state: the
+  precedent is `DuckDBInstanceCache`, which the bindings expose 1:1 as `create_instance_cache()`
+  while the API layer supplies a lazily-created `singleton` that `DuckDBInstance.fromCache()` routes
+  through — and nothing stops a caller constructing more than one. A V2 environment gets the same
+  shape: constructible for advanced use, with one auto-created default that ordinary opens go
+  through. The one difference is that V1's cache is optional (`DuckDBInstance.create` bypasses it)
+  whereas `duckdb_v2_open` requires an environment, so the default is implicit rather than opt-in.
 
 ### API: one package, V2 classes under a `v2` subpath
 
@@ -471,11 +477,12 @@ unnecessary weight and would stop a consumer migrating one call site at a time; 
 the existing V1 classes over the V2 bindings, which the differences between the two C APIs would
 make awkward — the survey's §8, §9 and §10 are the reason.
 
-Note that neither package has an `exports` map today; both use plain `main`/`types`. Adding one to
-get `@duckdb/node-api/v2` also closes the package, so any consumer currently deep-importing
-`@duckdb/node-api/lib/…` would break unless `./lib/*` is mapped through deliberately.
+Neither package has an `exports` map today; both use plain `main`/`types`. Adding one to get
+`@duckdb/node-api/v2` also closes the package to deep imports — which is intended. `index.ts`
+already exports only what is meant to be referenced externally, and deep references were never
+supported; if something turns out to be needed, the answer is to export it explicitly.
 
-### One hazard that partial migration creates
+### A known limitation to document: one file, both APIs
 
 Because the point of a `v2` subpath is to let a consumer migrate incrementally, both APIs will run
 in one process — and a database file opened through both is **not** detected. Measured against the
@@ -492,9 +499,13 @@ v2 open twice (control): refused with RESOURCE_IN_USE (code 3001)
 
 V2 detects its own double-open, because `duckdb_v2_open` rejects a file "already open under the same
 environment" — but a V1 database of the same file is not under that environment, and V1's own
-deduplication only happens through an explicit instance cache. So this is not a regression; it is a
-pre-existing footgun that partial migration makes much easier to reach, since the two halves of one
-app would each naturally open "their" database. Question 5 below.
+deduplication only happens through an explicit instance cache.
+
+Not a blocker (Jeff, 2026-09-05): the same footgun exists today, since V1's plain `duckdb_open`
+never deduplicated either. It needs documenting rather than solving. Worth writing down because
+partial migration makes it easier to reach than it is today — the two halves of one app would each
+naturally open "their" database — so the `v2` path's docs should say that a file should be opened
+through one API or the other, not both.
 
 ## Open questions
 
@@ -503,7 +514,8 @@ For us:
 1. What replaces `DuckDBMaterializedResult` when every result is a live cursor holding a
    transaction open? The V2 classes need an answer before the first of them is written.
 2. Do the `_with_connection` / `_with_context` pairs stay two functions in TypeScript, or collapse
-   into one with a union-typed first argument?
+   into one with a union-typed first argument? The same question covers data chunks, column data
+   collections and the type constructors.
 
 For the DuckDB team:
 
@@ -512,9 +524,6 @@ For the DuckDB team:
    than hand-roll RAII over the C surface.
 4. Is an appender planned for V2, or is `column_data_collection` the intended replacement? If the
    latter, what is the intended path for appending to an *existing* table?
-5. Should a V2 environment and V1's instance cache share a file registry? Opening one file through
-   both APIs in one process is currently undetected (see above), and a client shipping both
-   surfaces at once cannot fix that from its side.
-6. Are the date/time/decimal/hugeint conversion helpers intentionally omitted?
-7. Is V1 expected to stay supported through the 2.x line, or is 2.0 the start of a deprecation
+5. Are the date/time/decimal/hugeint conversion helpers intentionally omitted?
+6. Is V1 expected to stay supported through the 2.x line, or is 2.0 the start of a deprecation
    window?
