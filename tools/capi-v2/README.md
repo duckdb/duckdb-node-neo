@@ -37,6 +37,11 @@ cd tools/capi-v2 && cc -std=c11 -I libduckdb-v2 smoke_v2.c -L libduckdb-v2 -lduc
     -Wl,-rpath,@loader_path/libduckdb-v2 -o smoke_v2 && ./smoke_v2
 ```
 
+`smoke_v2.c` opens an in-memory database, runs a query and reads a chunk back through V2 — the
+shortest illustration of the calling convention the bindings have to adopt. `coexist_probe.c`
+builds the same way, and checks whether one database file opened through both V1 and V2 is
+detected.
+
 ## Headline findings
 
 **V1 survives 2.0 intact.** Comparing the V1 header we build against with the V1 header on the
@@ -47,9 +52,11 @@ V1 symbols alongside all 527 V2 symbols from one library. So DuckDB 2.0 is not a
 migration, and V1 and V2 can be mixed within one addon — which makes an incremental,
 module-by-module migration possible rather than a big-bang rewrite.
 
-The one thing that does break on day one is our own signature check: `checkFunctionSignatures.mjs`
-compares declaration text exactly, so those thirteen `(void)` edits will fail the build until
-`bindingsSigs.json` / `headerSigs.json` / `typeDefsSigs.json` are regenerated.
+The one thing that notices is our own signature check: `checkFunctionSignatures.mjs` compares
+declaration text exactly, so those thirteen `(void)` edits make it report a mismatch until
+`bindingsSigs.json` / `headerSigs.json` / `typeDefsSigs.json` are regenerated. It warns rather than
+exits non-zero, and nothing invokes it — not `pnpm run build`, not CI — so this is a manual step
+that will not announce itself.
 
 **The preview binaries exist, under a different naming scheme.** The install page only links the
 CLI, and `duckdb-binaries-<platform>.zip` (the 1.4/1.5 preview convention) 404s for
@@ -407,25 +414,107 @@ Ordered by what it would cost us:
 - `column_data_collection` — build a set of chunks and register it as a table via a replacement
   scan. Not an appender, but a bulk-load path with no V1 equivalent.
 
+## Migration approach
+
+Decided (Jeff, 2026-09-05). This settles the first two of the open questions below; the third stays
+open.
+
+### Bindings: V2 alongside V1, in the same package and binary
+
+`@duckdb/node-bindings` gains the V2 surface next to the V1 one, in the same addon. One `libduckdb`
+already exports both symbol sets, so this needs no second binary and no second native package. V1
+goes away only if and when the C API deprecates it, which is not expected soon.
+
+What this lands on:
+
+- **The accounting convention extends to V2.** Every C API function appears in
+  `duckdb_node_bindings.cpp` and `duckdb.d.ts` as a `// DUCKDB_C_API …` block followed by an
+  implementation or a reason. V2 declarations get the same treatment. Since every V2 name is
+  prefixed `duckdb_v2_`, the two surfaces separate cleanly by name — `capi-coverage/node_neo.py`
+  and `build_coverage.py` intersect against the canonical V1 list and are unaffected.
+- **`checkFunctionSignatures.mjs` needs to become two-header aware.** It reads one header, one
+  `.d.ts` and one `.cpp`, and compares the three lists for exact equality; a second header's worth of
+  declarations in the latter two would read as a mismatch. Worth wiring into `pnpm run build` at the
+  same time — it currently only warns, and nothing runs it, which is a thin guard for a surface that
+  is about to double.
+- **The fetch scripts need `duckdb_v2.h`.** `fetch_libduckdb_*.py` extracts `duckdb.h` and the
+  library from each release zip; the release workflow already zips `duckdb_v2.h` beside `duckdb.h`,
+  so this is one more entry in each `files` list.
+
+### Bindings shape: near 1:1, deviating where the language demands
+
+Same principle as V1 — mirror the C API, and deviate only for memory management, error handling and
+out parameters, as the V1 mapping already does. The places where "as feasible" will be tested:
+
+- **Multiple out-params.** V1's out-params are nearly all single, and collapse to a return value.
+  V2 has calls that produce two: `statement_bind` yields both a result schema and a parameter
+  schema, `result_step` yields both a chunk and a status. These need an object return, which is a
+  new shape for the bindings.
+- **Owned versus borrowed.** V2 documents this per out-param and enforces it — destroying a
+  borrowed handle aborts. So ownership becomes a property the accounting has to record per function,
+  since it decides whether the external gets a finalizer at all, and borrowed handles need their
+  parent pinned for their lifetime.
+- **The `_with_connection` / `_with_context` pairs.** 37 value constructors exist in both forms, and
+  the same split runs through data chunks, column data collections and the type constructors. A 1:1
+  mapping exposes both; whether the TS layer keeps them as two functions or one with a union-typed
+  first argument is the first real judgement call.
+- **`create_environment`.** The header says "call once at program start," which reads like
+  addon-owned state rather than something a caller threads through every open. V1 has one precedent
+  for this shape — `duckdb_open` is marked *consolidated into open* — so there is a convention to
+  follow either way.
+
+### API: one package, V2 classes under a `v2` subpath
+
+`@duckdb/node-api` gains a second set of classes for V2, exported from a `v2` path alongside the
+existing ones. Rejected alternatives: a separate `@duckdb/node-api-v2` package, which is
+unnecessary weight and would stop a consumer migrating one call site at a time; and reimplementing
+the existing V1 classes over the V2 bindings, which the differences between the two C APIs would
+make awkward — the survey's §8, §9 and §10 are the reason.
+
+Note that neither package has an `exports` map today; both use plain `main`/`types`. Adding one to
+get `@duckdb/node-api/v2` also closes the package, so any consumer currently deep-importing
+`@duckdb/node-api/lib/…` would break unless `./lib/*` is mapped through deliberately.
+
+### One hazard that partial migration creates
+
+Because the point of a `v2` subpath is to let a consumer migrate incrementally, both APIs will run
+in one process — and a database file opened through both is **not** detected. Measured against the
+preview build:
+
+```
+v1 open:                 ok
+v1 open again:           ok (no conflict reported)
+v2 open same file:       ok (NOT detected)
+v2 open twice (control): refused with RESOURCE_IN_USE (code 3001)
+```
+
+(`coexist_probe.c`, run against the preview build.)
+
+V2 detects its own double-open, because `duckdb_v2_open` rejects a file "already open under the same
+environment" — but a V1 database of the same file is not under that environment, and V1's own
+deduplication only happens through an explicit instance cache. So this is not a regression; it is a
+pre-existing footgun that partial migration makes much easier to reach, since the two halves of one
+app would each naturally open "their" database. Question 5 below.
+
 ## Open questions
 
 For us:
 
-1. Incremental or all-at-once? Both surfaces are in one library, so per-module migration behind a
-   stable `duckdb.d.ts` is possible — but mixed ownership models in one addon is its own risk.
-2. Does `@duckdb/node-bindings` stay a 1:1 C API mirror? V2's shape (out-params, error handles,
-   borrowed views) is further from idiomatic TypeScript than V1's, so a literal mirror may be the
-   wrong target for the first time.
-3. What replaces `DuckDBMaterializedResult` when every result is a live cursor holding a
-   transaction open?
+1. What replaces `DuckDBMaterializedResult` when every result is a live cursor holding a
+   transaction open? The V2 classes need an answer before the first of them is written.
+2. Do the `_with_connection` / `_with_context` pairs stay two functions in TypeScript, or collapse
+   into one with a union-typed first argument?
 
 For the DuckDB team:
 
-4. Is `duckdb_cpp.hpp` going to be shipped in the release headers? It is referenced in all three
+3. Is `duckdb_cpp.hpp` going to be shipped in the release headers? It is referenced in all three
    PRs but is not in `src/include/` on the branch. As a C++ addon we would rather consume that
    than hand-roll RAII over the C surface.
-5. Is an appender planned for V2, or is `column_data_collection` the intended replacement? If the
+4. Is an appender planned for V2, or is `column_data_collection` the intended replacement? If the
    latter, what is the intended path for appending to an *existing* table?
+5. Should a V2 environment and V1's instance cache share a file registry? Opening one file through
+   both APIs in one process is currently undetected (see above), and a client shipping both
+   surfaces at once cannot fix that from its side.
 6. Are the date/time/decimal/hugeint conversion helpers intentionally omitted?
 7. Is V1 expected to stay supported through the 2.x line, or is 2.0 the start of a deprecation
    window?
