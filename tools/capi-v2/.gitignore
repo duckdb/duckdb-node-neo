@@ -1,0 +1,4 @@
+.headers/
+libduckdb-v2/
+smoke_v2
+__pycache__
