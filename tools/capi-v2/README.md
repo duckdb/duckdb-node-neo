@@ -416,8 +416,7 @@ Ordered by what it would cost us:
 
 ## Migration approach
 
-Decided (Jeff, 2026-09-05). This settles the first two of the open questions below; the third stays
-open.
+Decided (Jeff, 2026-09-05). Everything still open is a question for the DuckDB team, not for us.
 
 ### Bindings: V2 alongside V1, in the same package and binary
 
@@ -482,6 +481,35 @@ Neither package has an `exports` map today; both use plain `main`/`types`. Addin
 already exports only what is meant to be referenced externally, and deep references were never
 supported; if something turns out to be needed, the answer is to export it explicitly.
 
+### Results: no materialized result class
+
+The V2 C API has no materialized result, so the V2 API layer does not have one either.
+`DuckDBMaterializedResult` is a thin subclass adding exactly three members — `rowCount`,
+`chunkCount` and `getChunk(i)` — each backed by a V1-only function (`duckdb_row_count`,
+`duckdb_result_chunk_count`, `duckdb_result_get_chunk`) with no V2 counterpart. `createResult`'s
+branch on `duckdb_result_is_streaming` likewise has nothing left to decide, since every V2 result
+streams. Both go away.
+
+Materializing stays available as helpers over the streaming result — which is what we already do.
+`DuckDBResultReader` accumulates chunks through `readAll()` / `readUntil(n)`, tracks
+`currentRowCount` and `done`, and layers `getRows` / `getColumns` and the converters on top, all
+over the streaming `DuckDBResult` base rather than over the materialized subclass. That pattern
+carries over unchanged in shape.
+
+One knock-on: `rowsChanged` is a synchronous getter today, straight from `duckdb_rows_changed`. V2
+reports it out of `duckdb_v2_result_drain(result, &out_rows_changed, err)`, which consumes the
+stream — so it becomes an async, state-changing call rather than a property.
+
+### Value construction: keep both the connection and context forms
+
+Keep `_with_connection` and `_with_context` as two functions rather than collapsing them into one
+with a union-typed first argument. That follows the 1:1 principle, gives tighter types, and the two
+forms likely belong to different scenarios in practice: a connection is what an external caller
+holds, while a context is what arrives inside a bind / init / exec scope — and the header is
+explicit that catalog-touching context calls belong in bind-phase callbacks rather than exec-phase
+worker callbacks. Worth staying flexible: if the implementation turns up a concrete reason to
+collapse them, revisit.
+
 ### A known limitation to document: one file, both APIs
 
 Because the point of a `v2` subpath is to let a consumer migrate incrementally, both APIs will run
@@ -507,23 +535,13 @@ partial migration makes it easier to reach than it is today — the two halves o
 naturally open "their" database — so the `v2` path's docs should say that a file should be opened
 through one API or the other, not both.
 
-## Open questions
+## Open questions for the DuckDB team
 
-For us:
-
-1. What replaces `DuckDBMaterializedResult` when every result is a live cursor holding a
-   transaction open? The V2 classes need an answer before the first of them is written.
-2. Do the `_with_connection` / `_with_context` pairs stay two functions in TypeScript, or collapse
-   into one with a union-typed first argument? The same question covers data chunks, column data
-   collections and the type constructors.
-
-For the DuckDB team:
-
-3. Is `duckdb_cpp.hpp` going to be shipped in the release headers? It is referenced in all three
+1. Is `duckdb_cpp.hpp` going to be shipped in the release headers? It is referenced in all three
    PRs but is not in `src/include/` on the branch. As a C++ addon we would rather consume that
    than hand-roll RAII over the C surface.
-4. Is an appender planned for V2, or is `column_data_collection` the intended replacement? If the
+2. Is an appender planned for V2, or is `column_data_collection` the intended replacement? If the
    latter, what is the intended path for appending to an *existing* table?
-5. Are the date/time/decimal/hugeint conversion helpers intentionally omitted?
-6. Is V1 expected to stay supported through the 2.x line, or is 2.0 the start of a deprecation
+3. Are the date/time/decimal/hugeint conversion helpers intentionally omitted?
+4. Is V1 expected to stay supported through the 2.x line, or is 2.0 the start of a deprecation
    window?
