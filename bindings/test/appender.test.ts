@@ -79,6 +79,43 @@ suite('appender', () => {
       });
     });
   });
+  test('clear discards unflushed rows and resets the appender', async () => {
+    await withConnection(async (connection) => {
+      await duckdb.query(
+        connection,
+        'create table appender_target(i integer)'
+      );
+      const appender = duckdb.appender_create_ext(
+        connection,
+        'memory',
+        'main',
+        'appender_target'
+      );
+
+      duckdb.append_int32(appender, 11);
+      duckdb.appender_end_row(appender);
+      duckdb.appender_flush_sync(appender);
+
+      duckdb.append_int32(appender, 22);
+      duckdb.appender_end_row(appender);
+      duckdb.append_int32(appender, 33);
+      duckdb.appender_clear(appender);
+
+      duckdb.append_int32(appender, 44);
+      duckdb.appender_end_row(appender);
+      duckdb.appender_close_sync(appender);
+
+      const result = await duckdb.query(connection, 'from appender_target');
+      await expectResult(result, {
+        chunkCount: 1,
+        rowCount: 2,
+        columns: [{ name: 'i', logicalType: INTEGER }],
+        chunks: [
+          { rowCount: 2, vectors: [data(4, [true, true], [11, 44])] },
+        ],
+      });
+    });
+  });
   test('multiple columns', async () => {
     await withConnection(async (connection) => {
       const createResult = await duckdb.query(

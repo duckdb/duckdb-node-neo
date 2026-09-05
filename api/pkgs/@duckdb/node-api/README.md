@@ -839,11 +839,13 @@ appender.appendInteger(42);
 appender.appendVarchar('duck');
 appender.endRow();
 
+appender.flushSync();
+
 appender.appendInteger(123);
 appender.appendVarchar('mallard');
 appender.endRow();
 
-appender.flushSync();
+appender.clear(); // discards the unflushed 'mallard' row
 
 appender.appendInteger(17);
 appender.appendVarchar('goose');
