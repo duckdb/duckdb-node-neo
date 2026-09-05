@@ -4656,10 +4656,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 546 DUCKDB_C_API
-    313 function
+    314 function
      26 not exposed
      41 deprecated
-    166 TODO
+    165 TODO
         8 arrow
         5 error data
         2 utf8
@@ -4675,7 +4675,6 @@ NODE_API_ADDON(DuckDBNodeAddon)
         5 profiling info
         1 appender create query
         1 appender error data
-        1 appender clear
         2 appender columns
         1 appender default
         8 table description
