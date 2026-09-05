@@ -1,6 +1,6 @@
 # Node Neo C API coverage gaps
 
-_Generated 2026-08-31 against DuckDB 1.5.5 (546 `DUCKDB_C_API` functions)._
+_Generated 2026-08-30 against DuckDB 1.5.5 (546 `DUCKDB_C_API` functions)._
 
 This is a generated summary of [capi_coverage.csv](capi_coverage.csv). Regenerate both
 with `build_coverage.py` then `summarize_gaps.py`; see [README.md](README.md) for how
@@ -16,8 +16,8 @@ A **gap** is a C API function that Node Neo does not expose, where:
 - **at least one other C-API-based client exposes it**.
 
 Node Neo marks every unexposed function meeting the first two conditions as `TODO:`,
-whatever other clients do, so gaps are a **subset** of the TODO list: of its 172 TODOs,
-67 are gaps and the other 105 are functions no client exposes. Those are listed at the
+whatever other clients do, so gaps are a **subset** of the TODO list: of its 173 TODOs,
+68 are gaps and the other 105 are functions no client exposes. Those are listed at the
 end and are no less wanted — they simply carry no signal either way, because nobody has
 built them.
 
@@ -42,7 +42,7 @@ columns is a signal.
 
 | Client | Tier | Binding layer | Bindings | Bindings excl. deprecated | Idiomatic layer |
 |---|---|---|---:|---:|---:|
-| Node Neo | primary | hand-written, selective | 307/546 (56%) | 301/498 (60%) | 260/546 (48%) |
+| Node Neo | primary | hand-written, selective | 306/546 (56%) | 300/498 (60%) | 259/546 (47%) |
 | Go | primary | hand-written, selective | **374/546 (68%)** | 359/498 (72%) | 271/546 (50%) |
 | Rust | primary | generated, complete by construction | 546/546 (100%) | 498/498 (100%) | **217/546 (40%)** |
 | C# | secondary | hand-written, selective | **282/546 (52%)** | 256/498 (51%) | 163/546 (30%) |
@@ -53,7 +53,7 @@ Only the hand-written binding layers are comparable to one another; the generate
 sit at 100% by construction and say nothing about intent, which is why the idiomatic
 column is what counts for Rust, Julia and Swift.
 
-## The gaps — 67 functions across 19 areas
+## The gaps — 68 functions across 20 areas
 
 Ordered by size. "Exposed by" counts how many functions in that area each client has.
 
@@ -73,6 +73,7 @@ Ordered by size. "Exposed by" counts how many functions in that area each client
 | appender columns | 2 | Go 2, Rust 2 |
 | scalar function expression | 2 | Go 2 |
 | utf8 | 2 | Go 2 |
+| appender clear | 1 | Go 1, C# 1 |
 | appender create query | 1 | Go 1 |
 | appender default | 1 | Go 1, C# 1 |
 | appender error data | 1 | Go 1, C# 1, Rust 1 |
@@ -87,10 +88,10 @@ function is worth having, not that it is more urgent or more tractable.
 | Exposed by | Gaps |
 |---|---:|
 | 3 clients | 9 |
-| 2 clients | 16 |
+| 2 clients | 17 |
 | 1 client | 42 |
 
-Most gaps rest on a single client — 42 of 67, and 36 of those on Go alone. Those are the
+Most gaps rest on a single client — 42 of 68, and 36 of those on Go alone. Those are the
 weakest evidence here: one project's judgement, made for one language's users. The
 multi-client rows are the better-evidenced ones.
 
@@ -241,6 +242,12 @@ Gaps exposed by three or more clients:
 |---|---|
 | `duckdb_valid_utf8_check` | Go |
 | `duckdb_unsafe_vector_assign_string_element_len` | Go |
+
+#### appender clear (1)
+
+| Function | Exposed by |
+|---|---|
+| `duckdb_appender_clear` | Go, C# |
 
 #### appender create query (1)
 
