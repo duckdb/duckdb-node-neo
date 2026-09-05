@@ -456,11 +456,13 @@ What this lands on:
   implementation or a reason. V2 declarations get the same treatment. Since every V2 name is
   prefixed `duckdb_v2_`, the two surfaces separate cleanly by name — `capi-coverage/node_neo.py`
   and `build_coverage.py` intersect against the canonical V1 list and are unaffected.
-- **`checkFunctionSignatures.mjs` needs to become two-header aware.** It reads one header, one
-  `.d.ts` and one `.cpp`, and compares the three lists for exact equality; a second header's worth of
-  declarations in the latter two would read as a mismatch. Worth wiring into `pnpm run build` at the
-  same time — it currently only warns, and nothing runs it, which is a thin guard for a surface that
-  is about to double.
+- **`checkFunctionSignatures.mjs` needs to become two-header aware** — and its guard tracking needs
+  updating regardless of V2, because the 2.0 V1 header rewrote those guards; see
+  [Deprecation is a compile switch](#deprecation-is-a-compile-switch-not-a-warning). It reads one
+  header, one `.d.ts` and one `.cpp`, and compares the three lists for exact equality; a second
+  header's worth of declarations in the latter two would read as a mismatch. Worth wiring into
+  `pnpm run build` at the same time — it currently only warns, and nothing runs it, which is a thin
+  guard for a surface that is about to double.
 - **The fetch scripts need `duckdb_v2.h`.** `fetch_libduckdb_*.py` extracts `duckdb.h` and the
   library from each release zip; the release workflow already zips `duckdb_v2.h` beside `duckdb.h`,
   so this is one more entry in each `files` list.
@@ -621,8 +623,44 @@ Real choices, deliberately not made yet, each with the thing that should trigger
 | Whether to build the V2 bindings on `duckdb_cpp`, borrow its patterns, or ignore it | `duckdb_cpp` actually shipping in a release; it is not required either way |
 | Whether any conversion helpers are worth keeping native rather than reimplementing in TypeScript | Only if upstream ships some after all — otherwise TypeScript, which is the better choice regardless |
 
-## Still open
+## Deprecation is a compile switch, not a warning
 
-1. **Is 2.0's V1 deprecation documentation, or `DUCKDB_DEPRECATED` attributes on the declarations?**
-   If the latter, our build starts emitting a warning per V1 call — 314 of them — the moment we
-   upgrade. Cheap to ask, unpleasant to discover. *(DuckDB team.)*
+Answered from the headers rather than by asking. 2.0's V1 header expresses deprecation as
+*conditional inclusion*, the way `DUCKDB_API_NO_DEPRECATED` always did — so a deprecated V1 will not
+put a warning on any of our 314 call sites:
+
+- `DUCKDB_DEPRECATED` (the `__attribute__((deprecated))` macro) is defined in both headers and
+  applied to nothing.
+- Deprecated declarations sit inside `#if (DUCKDB_API_VERSION_BELOW(1, 0, 0) ||
+  DUCKDB_API_ALLOW_DEPRECATED)`. `DUCKDB_API_ALLOW_DEPRECATED` defaults to 1, and back-derives from
+  the legacy `DUCKDB_API_NO_DEPRECATED` for consumers who define that instead. `duckdb_v2.h` carries
+  the same switch under `DUCKDB_V2_API_ALLOW_DEPRECATED`, with the same default and the same
+  back-derivation.
+- Node Neo defines neither switch, so the defaults apply and everything compiles in. If 2.0 marks V1
+  deprecated wholesale, the fix is at most defining `DUCKDB_API_ALLOW_DEPRECATED 1` explicitly.
+
+New in 2.0's V1 header: **every** declaration is now wrapped in a
+`DUCKDB_API_VERSION_AT_LEAST(major, minor, patch)` guard, with the targeted version defaulting to
+1.5.6 and settable by defining all three of `DUCKDB_API_VERSION_MAJOR` / `_MINOR` / `_PATCH`. That is
+how a consumer pins an older surface, and it is the likeliest shape for V1's own retirement: a switch
+to flip, not a diagnostic to suppress.
+
+### Two consequences for our tooling
+
+The guard rewrite is invisible at the C level and load-bearing for the two things that parse these
+headers:
+
+1. **`checkFunctionSignatures.mjs` needs its guard tracking updated.** It recognizes exactly
+   `#ifndef DUCKDB_API_NO_DEPRECATED` and `#ifndef DUCKDB_NO_EXTENSION_FUNCTIONS`, and stamps each
+   extracted signature with an `ifndef` field. The 1.5.5 header has 9 such blocks; the 2.0 header has
+   1, in the preamble, and guards declarations with `#if DUCKDB_API_VERSION_AT_LEAST(…)` instead. So
+   header signatures come out unstamped while the accounting comments in `duckdb_node_bindings.cpp`
+   and `duckdb.d.ts` still carry their `// #ifndef DUCKDB_API_NO_DEPRECATED` markers — a mismatch on
+   top of the thirteen `(void)` edits, and one that regenerating the `*Sigs.json` files alone will
+   not settle.
+2. **`capi-coverage`'s deprecated flag is now resting on prose.** `capi_functions.py` derives it from
+   three signals: guard depth, `DEPRECATION NOTICE` in the doc comment, and `**DEPRECATED**`. Against
+   the 2.0 header the guard signal contributes nothing, and the doc-text fallback carries all 48 on
+   its own. It still reports exactly the same 48 functions, so nothing is broken — but it is right
+   for the wrong reason, and would silently drop to zero if that prose were ever reworded. Worth
+   teaching it the new guard form while the reason is fresh.
