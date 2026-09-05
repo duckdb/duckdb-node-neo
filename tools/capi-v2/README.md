@@ -44,13 +44,18 @@ detected.
 
 ## Headline findings
 
-**V1 survives 2.0 intact.** Comparing the V1 header we build against with the V1 header on the
-2.0 branch: zero functions removed, two added (`duckdb_create_timestamp_tz_ns`,
-`duckdb_get_timestamp_tz_ns`), and thirteen "signature changes" that are all the cosmetic
-`()` → `(void)`. Nothing is marked `DUCKDB_DEPRECATED`. The preview `libduckdb` exports all 546
-V1 symbols alongside all 527 V2 symbols from one library. So DuckDB 2.0 is not a forced
-migration, and V1 and V2 can be mixed within one addon — which makes an incremental,
-module-by-module migration possible rather than a big-bang rewrite.
+**V1 keeps working in 2.0, but the clock is now running.** Comparing the V1 header we build against
+with the V1 header on the 2.0 branch: zero functions removed, two added
+(`duckdb_create_timestamp_tz_ns`, `duckdb_get_timestamp_tz_ns`), and thirteen "signature changes"
+that are all the cosmetic `()` → `(void)`. Nothing in the header carries `DUCKDB_DEPRECATED` — the
+macro is defined but never applied. The preview `libduckdb` exports all 546 V1 symbols alongside all
+527 V2 symbols from one library, so V1 and V2 can be mixed inside one addon, and an incremental,
+module-by-module migration is possible rather than a big-bang rewrite.
+
+What the header does not show is the schedule. Per the DuckDB team (maxxen, 2026-09-05): **V1 is
+deprecated in 2.0 and probably removed entirely in 3.0, likely about a year out.** So 2.0 is not a
+forced migration, but it is the start of a fixed window rather than an open-ended coexistence — see
+[Migration approach](#migration-approach).
 
 The one thing that notices is our own signature check: `checkFunctionSignatures.mjs` compares
 declaration text exactly, so those thirteen `(void)` edits make it report a mismatch until
@@ -79,20 +84,25 @@ fetch scripts need more than a URL swap when 2.0 releases. The release workflow 
 the surface. Roughly: a third of what Node Neo uses maps mechanically, a third needs restructuring
 around new call sequences, and a third has no counterpart yet.
 
-**The appender is not in V2.** Node Neo exposes 31 appender functions and both packages have
-appender APIs and test suites. Nothing in `duckdb_v2.h` matches. `column_data_collection` plus
-`replacement_scan_set_collection` covers bulk data creation, but not "insert these rows into an
-existing table", which is what the appender is for.
+**The appender is not in V2, and is not coming.** Node Neo exposes 31 appender functions and both
+packages have appender APIs and test suites. Nothing in `duckdb_v2.h` matches, and per the DuckDB
+team (maxxen, 2026-09-05) that is deliberate: "probably not, this can now be implemented client-side
+using columndatacollections and replacement scans/table functions." So this becomes work we own — a
+V2 `DuckDBAppender` built on `column_data_collection` plus `replacement_scan_set_collection`, rather
+than a thin wrapper over C functions. Note the shape difference that makes it more than a rename: a
+collection surfaced through a replacement scan is a *virtual table*, so appending to an *existing*
+table means an `INSERT INTO … SELECT * FROM` over it, not a direct append.
 
 **One class of hazard in our function-info handling goes away.** V2 gives every function family its
 own info-handle type (`duckdb_v2_scalar_function_bind_info_handle`,
 `duckdb_v2_table_function_exec_info_handle`, and so on), where V1 shares one `duckdb_function_info`
 across all of them. `type_tags.h` stays either way — a tag is the only thing that distinguishes one
 `Napi::External` from another at runtime — but the six function-info tags stop carrying extra load;
-see §12. And a `duckdb_cpp.hpp` "stable C++ API" over V2 is mentioned in all three PRs; it
-is not in `src/include/` on the branch and is not in the packaged headers, but as a C++ N-API
-addon we would be its natural consumer, so it is worth asking about before hand-writing RAII
-wrappers over the C surface.
+see §12. Separately, the `duckdb_cpp` "stable C++ API" over V2, mentioned in all three PRs, turns out
+to live at `tools/cpp/` rather than `src/include/`, which is why it is not in the packaged headers.
+The team expects to add it to the release tarballs "soon", along with a CMake module for
+`FetchContent` (maxxen, 2026-09-05). As a C++ N-API addon we are its natural consumer — see
+[Migration approach](#migration-approach) for what that would take.
 
 ## The two surfaces, side by side
 
@@ -387,11 +397,16 @@ Function registration also picks up a `function_signature` object (`add_paramete
 
 Ordered by what it would cost us:
 
-- **Appender** (31 exposed functions, `DuckDBAppender.ts`, two test suites). No counterpart.
+- **Appender** (31 exposed functions, `DuckDBAppender.ts`, two test suites). No counterpart, and
+  none planned — see the headline finding. We reimplement it over `column_data_collection`.
 - **Date / time / timestamp / hugeint / decimal conversion helpers** (19 exposed functions, all of
-  them). `duckdb_from_date`, `duckdb_to_timestamp`, `duckdb_double_to_decimal` and the rest have
-  no V2 equivalent. These are pure computation, so we could reimplement them in TypeScript or keep
-  calling the V1 versions, but it is worth asking whether their absence is deliberate.
+  them). `duckdb_from_date`, `duckdb_to_timestamp`, `duckdb_double_to_decimal` and the rest have no
+  V2 equivalent, and still none as of the latest branch fetch — the header contains no `static
+  inline` helpers at all. The omission is deliberate: the team is "trying to avoid *convenience*
+  functions", and expects clients to implement them, though some may yet ship as inline functions in
+  the header or as documentation (maxxen, 2026-09-05, hedged — worth re-checking near release). For
+  us these are pure computation over plain structs, so TypeScript implementations are
+  straightforward, and would remove 19 native round-trips in the process.
 - **`duckdb_vector_size`**, and the malloc/free helpers.
 - **Profiling info** (not exposed today).
 - **Task / threading control** — `duckdb_execute_tasks` and friends (not exposed today).
@@ -421,8 +436,13 @@ Decided (Jeff, 2026-09-05). Everything still open is a question for the DuckDB t
 ### Bindings: V2 alongside V1, in the same package and binary
 
 `@duckdb/node-bindings` gains the V2 surface next to the V1 one, in the same addon. One `libduckdb`
-already exports both symbol sets, so this needs no second binary and no second native package. V1
-goes away only if and when the C API deprecates it, which is not expected soon.
+already exports both symbol sets, so this needs no second binary and no second native package.
+
+The schedule for retiring V1 is now known: deprecated in 2.0, probably removed in 3.0, roughly a
+year out (maxxen, 2026-09-05). Side-by-side is exactly the shape a year-long transition wants — but
+it is a window, not an open-ended arrangement, so the V2 API needs to be complete enough for
+consumers to finish migrating before 3.0, and our own V1 removal has a target rather than a
+condition.
 
 What this lands on:
 
@@ -481,6 +501,28 @@ Neither package has an `exports` map today; both use plain `main`/`types`. Addin
 already exports only what is meant to be referenced externally, and deep references were never
 supported; if something turns out to be needed, the answer is to export it explicitly.
 
+### The C++ API over V2: worth consuming, with two caveats
+
+`duckdb_cpp` is the obvious thing for a C++ N-API addon to build on: it throws instead of returning
+error codes, and its handles are move-only with documented owning/borrowed semantics — exactly the
+boilerplate §2 and §5 describe. Consuming it would not change the TypeScript surface at all; it
+changes how `duckdb_node_bindings.cpp` is written, so it is orthogonal to the 1:1 mapping decision.
+
+Two things to know before planning around it:
+
+- **It is not header-only**, despite the description. `tools/cpp/duckdb_cpp.hpp` is 5,703 lines of
+  declarations that do not include `duckdb_v2.h` at all, and `tools/cpp/duckdb_cpp.cpp` is 5,742
+  lines of implementation that includes both `duckdb_v2.h` and `duckdb_extension_v2.h`. Consuming it
+  means adding that `.cpp` to `sources` in `binding.gyp` — fine in itself, but it means the release
+  tarball has to ship the source file too, not just the header. The CMake module the team mentions
+  does not help us: node-gyp is not CMake, and `FetchContent` has no equivalent here.
+- **Exceptions are fine.** `duckdb_cpp` reports every failure by throwing, and `binding.gyp` already
+  builds against `node_addon_api_except_all`, so C++ exceptions are enabled and the addon already
+  converts them at the boundary. No build-configuration change needed.
+
+Not a decision yet — it turns on the tarball question below. Worth settling before the V2 bindings
+are far along, since retrofitting is more work than starting on it.
+
 ### Results: no materialized result class
 
 The V2 C API has no materialized result, so the V2 API layer does not have one either.
@@ -535,13 +577,31 @@ partial migration makes it easier to reach than it is today — the two halves o
 naturally open "their" database — so the `v2` path's docs should say that a file should be opened
 through one API or the other, not both.
 
-## Open questions for the DuckDB team
+## Answers from the DuckDB team
 
-1. Is `duckdb_cpp.hpp` going to be shipped in the release headers? It is referenced in all three
-   PRs but is not in `src/include/` on the branch. As a C++ addon we would rather consume that
-   than hand-roll RAII over the C surface.
-2. Is an appender planned for V2, or is `column_data_collection` the intended replacement? If the
-   latter, what is the intended path for appending to an *existing* table?
-3. Are the date/time/decimal/hugeint conversion helpers intentionally omitted?
-4. Is V1 expected to stay supported through the 2.x line, or is 2.0 the start of a deprecation
-   window?
+Asked 2026-09-05; answered by maxxen the same day. Paraphrased, with what each one lands on.
+
+| Question | Answer | Lands on |
+|---|---|---|
+| Will there be an appender equivalent? | "Probably not" — implement client-side over column data collections plus replacement scans / table functions; `duckdb_cpp` has an example. | We own a V2 appender. Not a wrapper — a collection behind a replacement scan is a virtual table, so appending to an existing table is `INSERT INTO … SELECT * FROM`. |
+| What about the V1 date/time/decimal/hugeint conversion helpers? | Some may be; the team is "trying to avoid *convenience* functions" and expects clients to implement them, but they may ship as inline header functions or as docs. | We implement them in TypeScript. Hedged, so re-check near release. |
+| Will V1 be deprecated and retired? When? | "v1 will be deprecated in 2.0, and probably removed entirely in 3.0 (likely another year out)." | Side-by-side is a ~1-year window, not indefinite. |
+| Will `duckdb_cpp` ship in 2.0? | Currently core-repo only; "most likely" added to the release tarballs soon, plus a proper CMake module for `FetchContent`. | Promising but uncommitted, and the CMake half does not help node-gyp. |
+
+## Open questions
+
+Follow-ups these answers raise, roughly in the order they will matter:
+
+1. **Will the release tarball ship `duckdb_cpp.cpp`, not just `duckdb_cpp.hpp`?** The API is
+   header-plus-source, and node-gyp cannot consume the planned CMake module. Both files in the
+   tarball is what we need. *(DuckDB team.)*
+2. **Is 2.0's V1 deprecation documentation, or `DUCKDB_DEPRECATED` attributes on the declarations?**
+   If the latter, our build starts emitting a warning per V1 call — 314 of them — the moment we
+   upgrade, which is worth knowing before it happens rather than after. *(DuckDB team.)*
+3. **Which conversion helpers, specifically, survive?** The answer was hedged; the current header has
+   none, and no `static inline` helpers at all. Determines how much we reimplement. *(DuckDB team.)*
+4. **Do we build the V2 bindings on `duckdb_cpp` or on the raw C surface?** Turns on question 1.
+   Worth settling early — retrofitting is more work than starting on it. *(Us.)*
+5. **How much of the V2 API has to exist before 3.0?** Consumers need to finish migrating inside the
+   window, which makes the appender reimplementation and anything else V1-only into scheduled work
+   rather than open-ended. *(Us.)*
