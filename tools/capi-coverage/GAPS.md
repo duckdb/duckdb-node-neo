@@ -295,7 +295,7 @@ Each client tracks its own DuckDB version, so some gaps are release lag rather t
 a decision.
 
 - Go (duckdb/duckdb-go-bindings) — 4628e33 on 2026-08-26
-- Rust (duckdb/duckdb-rs) — 199547d on 2026-08-28
+- Rust (duckdb/duckdb-rs) — 8c5daf8 on 2026-09-02
 - C# (Giorgi/DuckDB.NET) — e56cdb8 on 2026-08-28
 - Swift (duckdb/duckdb-swift) — 2bc1adc on 2026-07-22
 - Julia (duckdb/DuckDB.jl) — 0c11cb7 on 2026-07-24
