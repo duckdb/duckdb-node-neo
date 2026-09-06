@@ -456,13 +456,19 @@ What this lands on:
   implementation or a reason. V2 declarations get the same treatment. Since every V2 name is
   prefixed `duckdb_v2_`, the two surfaces separate cleanly by name — `capi-coverage/node_neo.py`
   and `build_coverage.py` intersect against the canonical V1 list and are unaffected.
-- **`checkFunctionSignatures.mjs` needs to become two-header aware** — and its guard tracking needs
-  updating regardless of V2, because the 2.0 V1 header rewrote those guards; see
-  [Deprecation is a compile switch](#deprecation-is-a-compile-switch-not-a-warning). It reads one
-  header, one `.d.ts` and one `.cpp`, and compares the three lists for exact equality; a second
-  header's worth of declarations in the latter two would read as a mismatch. Worth wiring into
-  `pnpm run build` at the same time — it currently only warns, and nothing runs it, which is a thin
-  guard for a surface that is about to double.
+- **`checkFunctionSignatures.mjs` still needs to become two-header aware.** Its guard tracking is
+  already done — see [Deprecation is a compile switch](#deprecation-is-a-compile-switch-not-a-warning)
+  — but that was the V1-side half. The script still hardcodes one header
+  (`libduckdb/duckdb.h`), one `.d.ts` and one `.cpp`, and compares the three lists for *exact ordered
+  equality*. Reading `duckdb_v2.h` too is the easy part; the part that cannot be settled yet is where
+  the V2 accounting lives, because ordered equality means the answer has to be decided rather than
+  guessed: one `duckdb.d.ts` carrying both surfaces or a second file, one `.cpp` or two, three
+  `*Sigs.json` files or six, and — if any of those stay shared — which header's declarations come
+  first. Those follow from how the V2 surface is laid out in the bindings package, so this waits on
+  that rather than on 2.0.
+- **Worth wiring the check into `pnpm run build` while it is being touched.** It only warns and
+  nothing invokes it — not the build, not CI — which is thin cover for a surface about to double.
+  Independent of everything above, and doable now.
 - **The fetch scripts need `duckdb_v2.h`.** `fetch_libduckdb_*.py` extracts `duckdb.h` and the
   library from each release zip; the release workflow already zips `duckdb_v2.h` beside `duckdb.h`,
   so this is one more entry in each `files` list.
@@ -667,22 +673,26 @@ New in 2.0's V1 header: **every** declaration is now wrapped in a
 how a consumer pins an older surface, and it is the likeliest shape for V1's own retirement: a switch
 to flip, not a diagnostic to suppress.
 
-### Two consequences for our tooling
+### Two consequences for our tooling — both now handled
 
-The guard rewrite is invisible at the C level and load-bearing for the two things that parse these
-headers:
+The guard rewrite is invisible at the C level and was load-bearing for the two things that parse
+these headers. Both were fixed in this branch; recorded here because the reasoning is not obvious
+from the diff.
 
-1. **`checkFunctionSignatures.mjs` needs its guard tracking updated.** It recognizes exactly
+1. **`checkFunctionSignatures.mjs` guard tracking.** It recognized exactly
    `#ifndef DUCKDB_API_NO_DEPRECATED` and `#ifndef DUCKDB_NO_EXTENSION_FUNCTIONS`, and stamps each
    extracted signature with an `ifndef` field. The 1.5.5 header has 9 such blocks; the 2.0 header has
-   1, in the preamble, and guards declarations with `#if DUCKDB_API_VERSION_AT_LEAST(…)` instead. So
-   header signatures come out unstamped while the accounting comments in `duckdb_node_bindings.cpp`
-   and `duckdb.d.ts` still carry their `// #ifndef DUCKDB_API_NO_DEPRECATED` markers — a mismatch on
-   top of the thirteen `(void)` edits, and one that regenerating the `*Sigs.json` files alone will
-   not settle.
-2. **`capi-coverage`'s deprecated flag is now resting on prose.** `capi_functions.py` derives it from
+   1, in the preamble, and guards declarations with `#if DUCKDB_API_VERSION_AT_LEAST(…)` instead — so
+   header signatures came out unstamped while the accounting comments in `duckdb_node_bindings.cpp`
+   and `duckdb.d.ts` still carried their `// #ifndef DUCKDB_API_NO_DEPRECATED` markers, a mismatch on
+   top of the thirteen `(void)` edits that regenerating the `*Sigs.json` files alone would not have
+   settled. It now accepts both spellings and stamps both with the legacy name, so those markers need
+   no rewriting. Note this is only the V1-side fix: making the script read `duckdb_v2.h` as well is
+   still outstanding, and is discussed under [Migration approach](#migration-approach).
+2. **`capi-coverage`'s deprecated flag was resting on prose.** `capi_functions.py` derives it from
    three signals: guard depth, `DEPRECATION NOTICE` in the doc comment, and `**DEPRECATED**`. Against
-   the 2.0 header the guard signal contributes nothing, and the doc-text fallback carries all 48 on
-   its own. It still reports exactly the same 48 functions, so nothing is broken — but it is right
-   for the wrong reason, and would silently drop to zero if that prose were ever reworded. Worth
-   teaching it the new guard form while the reason is fresh.
+   the 2.0 header the guard signal contributed nothing, and the doc-text fallback carried all 48 on
+   its own — the same 48, so nothing was broken, but right for the wrong reason, and it would have
+   dropped to zero silently if that prose were ever reworded. It now recognizes the new guard form
+   too, so the guard carries all 48 against both headers and the fallback is back to being a
+   fallback.
