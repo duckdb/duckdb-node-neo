@@ -623,6 +623,28 @@ Real choices, deliberately not made yet, each with the thing that should trigger
 | Whether to build the V2 bindings on `duckdb_cpp`, borrow its patterns, or ignore it | `duckdb_cpp` actually shipping in a release; it is not required either way |
 | Whether any conversion helpers are worth keeping native rather than reimplementing in TypeScript | Only if upstream ships some after all — otherwise TypeScript, which is the better choice regardless |
 
+## When 2.0 ships
+
+Everything here was measured on 2026-09-05 against a branch all three PRs describe as still moving.
+Before acting on any of it:
+
+1. **Re-run `compare_api.py --fetch`** and compare against the counts in this document — 546 V1
+   shipped, 548 V1 on branch, 527 V2, 314 exposed. Read the V1 drift block first: it should still say
+   0 removed, 2 added, 13 signature changes. Anything else there changes the headline finding.
+2. **Point `fetch_libduckdb_*.py` at the release and add `duckdb_v2.h` to each `files` list.** The
+   release zips carry both headers — verified from `.github/workflows/Main.yml`, which zips
+   `duckdb_v2.h` beside `duckdb.h`. `fetch_libduckdb_v2.py` here is preview-only, since the preview
+   ships tarballs rather than zips, and can be retired at that point.
+3. **Regenerate the three `*Sigs.json` files.** The guard handling is already 2.0-ready, so the only
+   diff should be the 2 added functions and the 13 `()` → `(void)` edits. Anything beyond that is
+   worth reading before accepting.
+4. **Re-check the three things the team hedged on**: whether any conversion helpers shipped after all
+   (the header had none, and no `static inline` helpers at all), whether `duckdb_cpp.hpp` *and*
+   `duckdb_cpp.cpp` are in the release artifacts, and whether V1's deprecation is the compile switch
+   this document predicts rather than an attribute.
+5. **Re-read the V2 module list.** V2 grew across three PRs and more were expected, so new modules
+   are likelier than changed ones — and a new module may close a gap this document records as open.
+
 ## Deprecation is a compile switch, not a warning
 
 Answered from the headers rather than by asking. 2.0's V1 header expresses deprecation as
