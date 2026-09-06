@@ -53,6 +53,10 @@ export class DuckDBTimestampVector extends DuckDBVector<DuckDBTimestampValue> {
     value: DuckDBTimestampValue | null
   ) {
     if (value != null) {
+      // Checked inline for bulk-write throughput; see dataAccessors.ts.
+      if (BigInt.asIntN(64, value.micros) !== value.micros) {
+        throw new Error(`bigint out of int64 range`);
+      }
       this.items[itemIndex] = value.micros;
       this.validity.setItemValid(itemIndex, true);
     } else {

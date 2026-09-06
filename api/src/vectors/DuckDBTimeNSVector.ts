@@ -50,6 +50,10 @@ export class DuckDBTimeNSVector extends DuckDBVector<DuckDBTimeNSValue> {
   }
   public override setItem(itemIndex: number, value: DuckDBTimeNSValue | null) {
     if (value != null) {
+      // Checked inline for bulk-write throughput; see dataAccessors.ts.
+      if (BigInt.asIntN(64, value.nanos) !== value.nanos) {
+        throw new Error(`bigint out of int64 range`);
+      }
       this.items[itemIndex] = value.nanos;
       this.validity.setItemValid(itemIndex, true);
     } else {
