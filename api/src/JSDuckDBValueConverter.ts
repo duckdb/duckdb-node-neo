@@ -1,6 +1,6 @@
 import { createDuckDBValueConverter } from './createDuckDBValueConverter';
 import { DuckDBTypeId } from './DuckDBTypeId';
-import { DuckDBValueConverter } from './DuckDBValueConverter';
+import { DuckDBValueConverterFor } from './DuckDBValueConverter';
 import {
   arrayFromArrayValue,
   arrayFromListValue,
@@ -29,8 +29,11 @@ import {
   unsupportedConverter,
 } from './DuckDBValueConverters';
 import { JS } from './JS';
+import { JSTypeForTypeId } from './JSTypeForTypeId';
 
-const JSConvertersByTypeId: Record<DuckDBTypeId, DuckDBValueConverter<JS>> = {
+const JSConvertersByTypeId: {
+  [Id in DuckDBTypeId]: DuckDBValueConverterFor<JSTypeForTypeId[Id], JS>;
+} = {
   [DuckDBTypeId.INVALID]: unsupportedConverter,
   [DuckDBTypeId.BOOLEAN]: booleanFromValue,
   [DuckDBTypeId.TINYINT]: numberFromValue,
@@ -76,4 +79,4 @@ const JSConvertersByTypeId: Record<DuckDBTypeId, DuckDBValueConverter<JS>> = {
 };
 
 export const JSDuckDBValueConverter =
-  createDuckDBValueConverter(JSConvertersByTypeId);
+  createDuckDBValueConverter<JS>(JSConvertersByTypeId);
