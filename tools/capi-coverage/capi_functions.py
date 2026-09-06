@@ -56,8 +56,18 @@ def capi_functions(path=None):
   functions = []
   section = None
   group = None
-  # Deprecated declarations sit inside `#ifndef DUCKDB_API_NO_DEPRECATED`. Track the
-  # full #if stack so nested unrelated conditionals pop correctly.
+  # Deprecated declarations sit behind a guard the header spells two ways. Through
+  # 1.5.x it is `#ifndef DUCKDB_API_NO_DEPRECATED`; from 2.0 the same declarations
+  # sit under `#if (DUCKDB_API_VERSION_BELOW(x, y, z) || DUCKDB_API_ALLOW_DEPRECATED)`,
+  # optionally ANDed with a DUCKDB_API_VERSION_AT_LEAST clause. Both forms are
+  # recognized so the flag survives the 2.0 upgrade, and so it keeps coming from the
+  # guard rather than falling through to the doc-comment text below.
+  #
+  # The `defined(` exclusion skips the preamble that *sets* the switch
+  # (`#if !defined(DUCKDB_API_ALLOW_DEPRECATED)` / `#ifdef DUCKDB_API_NO_DEPRECATED`);
+  # those guard a #define, not declarations.
+  #
+  # Track the full #if stack so nested unrelated conditionals pop correctly.
   if_stack = []
   deprecated_depth = 0
 
@@ -67,7 +77,10 @@ def capi_functions(path=None):
     stripped = line.strip()
 
     if stripped.startswith("#if"):
-      is_deprecated_guard = "DUCKDB_API_NO_DEPRECATED" in stripped
+      is_deprecated_guard = "defined(" not in stripped and (
+        stripped.startswith("#ifndef DUCKDB_API_NO_DEPRECATED")
+        or "DUCKDB_API_ALLOW_DEPRECATED" in stripped
+      )
       if_stack.append(is_deprecated_guard)
       if is_deprecated_guard:
         deprecated_depth += 1
