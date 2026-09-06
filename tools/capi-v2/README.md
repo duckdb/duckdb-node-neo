@@ -466,9 +466,13 @@ What this lands on:
   `*Sigs.json` files or six, and — if any of those stay shared — which header's declarations come
   first. Those follow from how the V2 surface is laid out in the bindings package, so this waits on
   that rather than on 2.0.
-- **Worth wiring the check into `pnpm run build` while it is being touched.** It only warns and
-  nothing invokes it — not the build, not CI — which is thin cover for a surface about to double.
-  Independent of everything above, and doable now.
+- **The signature check could be wired into `pnpm run build` — as a warning, never a failure**
+  (Jeff, 2026-09-05). It only warns today, and nothing invokes it, so a mismatch goes unnoticed. The
+  value of surfacing it during the build is as a reminder to add the accounting placeholders for
+  newly declared functions; the value of *not* failing is that a DuckDB upgrade stays a minimal
+  change — bump the header, add placeholders carrying a `TODO: <area>` reason, implement later. A
+  blocking check would invert that, forcing implementation before the version bump could land. Not
+  scheduled; recorded so the "should it gate CI?" question does not get reopened.
 - **The fetch scripts need `duckdb_v2.h`.** `fetch_libduckdb_*.py` extracts `duckdb.h` and the
   library from each release zip; the release workflow already zips `duckdb_v2.h` beside `duckdb.h`,
   so this is one more entry in each `files` list.
