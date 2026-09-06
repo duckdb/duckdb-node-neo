@@ -1,6 +1,6 @@
 import { createDuckDBValueConverter } from './createDuckDBValueConverter';
 import { DuckDBTypeId } from './DuckDBTypeId';
-import { DuckDBValueConverter } from './DuckDBValueConverter';
+import { DuckDBValueConverterFor } from './DuckDBValueConverter';
 import {
   arrayFromArrayValue,
   arrayFromListValue,
@@ -17,11 +17,11 @@ import {
   unsupportedConverter,
 } from './DuckDBValueConverters';
 import { Json } from './Json';
+import { JsonTypeForTypeId } from './JsonTypeForTypeId';
 
-const JsonConvertersByTypeId: Record<
-  DuckDBTypeId,
-  DuckDBValueConverter<Json>
-> = {
+const JsonConvertersByTypeId: {
+  [Id in DuckDBTypeId]: DuckDBValueConverterFor<JsonTypeForTypeId[Id], Json>;
+} = {
   [DuckDBTypeId.INVALID]: unsupportedConverter,
   [DuckDBTypeId.BOOLEAN]: booleanFromValue,
   [DuckDBTypeId.TINYINT]: numberFromValue,
@@ -66,6 +66,6 @@ const JsonConvertersByTypeId: Record<
   [DuckDBTypeId.VARIANT]: fromVariantValue,
 };
 
-export const JsonDuckDBValueConverter = createDuckDBValueConverter(
+export const JsonDuckDBValueConverter = createDuckDBValueConverter<Json>(
   JsonConvertersByTypeId
 );
