@@ -42,6 +42,13 @@ export class DuckDBIntegerVector extends DuckDBVector<number> {
   }
   public setItem(itemIndex: number, value: number | null) {
     if (value != null) {
+      // Checked inline for bulk-write throughput; see dataAccessors.ts.
+      if (!Number.isInteger(value)) {
+        throw new Error(`number is not an integer`);
+      }
+      if (value < -2147483648 || value > 2147483647) {
+        throw new Error(`number out of int32 range`);
+      }
       this.items[itemIndex] = value;
       this.validity.setItemValid(itemIndex, true);
     } else {

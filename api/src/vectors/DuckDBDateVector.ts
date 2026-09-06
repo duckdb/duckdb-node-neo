@@ -47,6 +47,13 @@ export class DuckDBDateVector extends DuckDBVector<DuckDBDateValue> {
   }
   public override setItem(itemIndex: number, value: DuckDBDateValue | null) {
     if (value != null) {
+      // Checked inline for bulk-write throughput; see dataAccessors.ts.
+      if (!Number.isInteger(value.days)) {
+        throw new Error(`number is not an integer`);
+      }
+      if (value.days < -2147483648 || value.days > 2147483647) {
+        throw new Error(`number out of int32 range`);
+      }
       this.items[itemIndex] = value.days;
       this.validity.setItemValid(itemIndex, true);
     } else {

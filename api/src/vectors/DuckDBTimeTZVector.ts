@@ -50,6 +50,10 @@ export class DuckDBTimeTZVector extends DuckDBVector<DuckDBTimeTZValue> {
   }
   public override setItem(itemIndex: number, value: DuckDBTimeTZValue | null) {
     if (value != null) {
+      // Checked inline for bulk-write throughput; see dataAccessors.ts.
+      if (BigInt.asUintN(64, value.bits) !== value.bits) {
+        throw new Error(`bigint out of uint64 range`);
+      }
       this.items[itemIndex] = value.bits;
       this.validity.setItemValid(itemIndex, true);
     } else {

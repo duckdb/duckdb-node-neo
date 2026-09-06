@@ -45,6 +45,10 @@ export class DuckDBBigIntVector extends DuckDBVector<bigint> {
   }
   public override setItem(itemIndex: number, value: bigint | null) {
     if (value != null) {
+      // Checked inline for bulk-write throughput; see dataAccessors.ts.
+      if (BigInt.asIntN(64, value) !== value) {
+        throw new Error(`bigint out of int64 range`);
+      }
       this.items[itemIndex] = value;
       this.validity.setItemValid(itemIndex, true);
     } else {

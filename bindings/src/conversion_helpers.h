@@ -2,7 +2,10 @@
 
 #include "napi_setup.h"
 #include "duckdb.h"
+#include <cmath>
 #include <cstddef>
+#include <limits>
+#include <string>
 
 // Napi helpers
 
@@ -10,6 +13,52 @@ inline Napi::Reference<Napi::Value> MakeValueRef(Napi::Value value) {
   return value.IsUndefined()
     ? Napi::Reference<Napi::Value>() 
     : Napi::Reference<Napi::Value>::New(value, 1);
+}
+
+// Conversion from JS numbers to fixed-width integers
+
+// Napi's Int32Value and Uint32Value implement the JS ToInt32 and ToUint32
+// operations, which wrap out-of-range values modulo 2^32 and truncate fractional
+// ones. Using them for data values would silently store something other than what
+// the caller supplied, so convert through these instead, which reject any input
+// that doesn't fit exactly. (The BigInt conversions below reject in the same way,
+// via their lossless flags.) The struct-from-object converters pass a value_name so
+// the error names the offending field, as "micros out of int64 range" already does.
+template <typename T>
+inline T GetIntegerFromNumber(Napi::Env env, Napi::Number number, const char *type_name, const char *value_name) {
+  auto value = number.DoubleValue();
+  if (!std::isfinite(value) || value != std::trunc(value)) {
+    throw Napi::Error::New(env, std::string(value_name) + " is not an integer");
+  }
+  if (value < static_cast<double>(std::numeric_limits<T>::min()) ||
+      value > static_cast<double>(std::numeric_limits<T>::max())) {
+    throw Napi::Error::New(env, std::string(value_name) + " out of " + type_name + " range");
+  }
+  return static_cast<T>(value);
+}
+
+inline int8_t GetInt8FromNumber(Napi::Env env, Napi::Number number, const char *value_name = "number") {
+  return GetIntegerFromNumber<int8_t>(env, number, "int8", value_name);
+}
+
+inline int16_t GetInt16FromNumber(Napi::Env env, Napi::Number number, const char *value_name = "number") {
+  return GetIntegerFromNumber<int16_t>(env, number, "int16", value_name);
+}
+
+inline int32_t GetInt32FromNumber(Napi::Env env, Napi::Number number, const char *value_name = "number") {
+  return GetIntegerFromNumber<int32_t>(env, number, "int32", value_name);
+}
+
+inline uint8_t GetUInt8FromNumber(Napi::Env env, Napi::Number number, const char *value_name = "number") {
+  return GetIntegerFromNumber<uint8_t>(env, number, "uint8", value_name);
+}
+
+inline uint16_t GetUInt16FromNumber(Napi::Env env, Napi::Number number, const char *value_name = "number") {
+  return GetIntegerFromNumber<uint16_t>(env, number, "uint16", value_name);
+}
+
+inline uint32_t GetUInt32FromNumber(Napi::Env env, Napi::Number number, const char *value_name = "number") {
+  return GetIntegerFromNumber<uint32_t>(env, number, "uint32", value_name);
 }
 
 // Conversion betweeen structs and objects
@@ -20,8 +69,8 @@ inline Napi::Object MakeDateObject(Napi::Env env, duckdb_date date) {
   return date_obj;
 }
 
-inline duckdb_date GetDateFromObject(Napi::Object date_obj) {
-  auto days = date_obj.Get("days").As<Napi::Number>().Int32Value();
+inline duckdb_date GetDateFromObject(Napi::Env env, Napi::Object date_obj) {
+  auto days = GetInt32FromNumber(env, date_obj.Get("days").As<Napi::Number>(), "days");
   return { days };
 }
 
@@ -33,10 +82,10 @@ inline Napi::Object MakeDatePartsObject(Napi::Env env, duckdb_date_struct date_p
   return date_parts_obj;
 }
 
-inline duckdb_date_struct GetDatePartsFromObject(Napi::Object date_parts_obj) {
-  int32_t year = date_parts_obj.Get("year").As<Napi::Number>().Int32Value();
-  int8_t month = date_parts_obj.Get("month").As<Napi::Number>().Int32Value();
-  int8_t day = date_parts_obj.Get("day").As<Napi::Number>().Int32Value();
+inline duckdb_date_struct GetDatePartsFromObject(Napi::Env env, Napi::Object date_parts_obj) {
+  int32_t year = GetInt32FromNumber(env, date_parts_obj.Get("year").As<Napi::Number>(), "year");
+  int8_t month = GetInt8FromNumber(env, date_parts_obj.Get("month").As<Napi::Number>(), "month");
+  int8_t day = GetInt8FromNumber(env, date_parts_obj.Get("day").As<Napi::Number>(), "day");
   return { year, month, day };
 }
 
@@ -64,11 +113,11 @@ inline Napi::Object MakeTimePartsObject(Napi::Env env, duckdb_time_struct time_p
   return time_parts_obj;
 }
 
-inline duckdb_time_struct GetTimePartsFromObject(Napi::Object time_parts_obj) {
-  int8_t hour = time_parts_obj.Get("hour").As<Napi::Number>().Int32Value();
-  int8_t min = time_parts_obj.Get("min").As<Napi::Number>().Int32Value();
-  int8_t sec = time_parts_obj.Get("sec").As<Napi::Number>().Int32Value();
-  int32_t micros = time_parts_obj.Get("micros").As<Napi::Number>().Int32Value();
+inline duckdb_time_struct GetTimePartsFromObject(Napi::Env env, Napi::Object time_parts_obj) {
+  int8_t hour = GetInt8FromNumber(env, time_parts_obj.Get("hour").As<Napi::Number>(), "hour");
+  int8_t min = GetInt8FromNumber(env, time_parts_obj.Get("min").As<Napi::Number>(), "min");
+  int8_t sec = GetInt8FromNumber(env, time_parts_obj.Get("sec").As<Napi::Number>(), "sec");
+  int32_t micros = GetInt32FromNumber(env, time_parts_obj.Get("micros").As<Napi::Number>(), "micros");
   return { hour, min, sec, micros };
 }
 
@@ -178,9 +227,9 @@ inline Napi::Object MakeTimestampPartsObject(Napi::Env env, duckdb_timestamp_str
   return timestamp_parts_obj;
 }
 
-inline duckdb_timestamp_struct GetTimestampPartsFromObject(Napi::Object timestamp_parts_obj) {
-  auto date = GetDatePartsFromObject(timestamp_parts_obj.Get("date").As<Napi::Object>());
-  auto time = GetTimePartsFromObject(timestamp_parts_obj.Get("time").As<Napi::Object>());
+inline duckdb_timestamp_struct GetTimestampPartsFromObject(Napi::Env env, Napi::Object timestamp_parts_obj) {
+  auto date = GetDatePartsFromObject(env, timestamp_parts_obj.Get("date").As<Napi::Object>());
+  auto time = GetTimePartsFromObject(env, timestamp_parts_obj.Get("time").As<Napi::Object>());
   return { date, time };
 }
 
@@ -193,8 +242,8 @@ inline Napi::Object MakeIntervalObject(Napi::Env env, duckdb_interval interval) 
 }
 
 inline duckdb_interval GetIntervalFromObject(Napi::Env env, Napi::Object interval_obj) {
-  int32_t months = interval_obj.Get("months").As<Napi::Number>().Int32Value();
-  int32_t days = interval_obj.Get("days").As<Napi::Number>().Int32Value();
+  int32_t months = GetInt32FromNumber(env, interval_obj.Get("months").As<Napi::Number>(), "months");
+  int32_t days = GetInt32FromNumber(env, interval_obj.Get("days").As<Napi::Number>(), "days");
   bool lossless;
   int64_t micros = interval_obj.Get("micros").As<Napi::BigInt>().Int64Value(&lossless);
   if (!lossless) {
@@ -328,8 +377,8 @@ inline Napi::Object MakeDecimalObject(Napi::Env env, duckdb_decimal decimal) {
 }
 
 inline duckdb_decimal GetDecimalFromObject(Napi::Env env, Napi::Object decimal_obj) {
-  uint8_t width = decimal_obj.Get("width").As<Napi::Number>().Uint32Value();
-  uint8_t scale = decimal_obj.Get("scale").As<Napi::Number>().Uint32Value();
+  uint8_t width = GetUInt8FromNumber(env, decimal_obj.Get("width").As<Napi::Number>(), "width");
+  uint8_t scale = GetUInt8FromNumber(env, decimal_obj.Get("scale").As<Napi::Number>(), "scale");
   auto value = GetHugeIntFromBigInt(env, decimal_obj.Get("value").As<Napi::BigInt>());
   return { width, scale, value };
 }

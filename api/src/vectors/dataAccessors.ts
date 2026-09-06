@@ -170,39 +170,131 @@ export function makeGetBoolean(): (dataView: DataView, offset: number) => boolea
 
 export const getBoolean = makeGetBoolean();
 
+// Range checks for fixed-width integers
+
+// Writing a number to a DataView applies the JS ToInt32 and ToUint32 operations,
+// which wrap out-of-range values modulo the type's width and truncate fractional
+// ones; writing a bigint wraps in the same way. Doing that for data values would
+// silently store something other than what the caller supplied, so the setters
+// below check first. See duckdb/duckdb-node-neo#469.
+//
+// The vectors backed by a typed array rather than a DataView repeat these checks
+// inline instead of calling them: they sit in the inner loop of every bulk write,
+// and calling across a module boundary there costs about 20% of write throughput.
+// Keep the two in sync; api/test/integer-ranges.test.ts checks every bound.
+
+function checkUInt8(value: number): number {
+  if (!Number.isInteger(value)) {
+    throw new Error(`number is not an integer`);
+  }
+  if (value < 0 || value > 255) {
+    throw new Error(`number out of uint8 range`);
+  }
+  return value;
+}
+
+function checkInt16(value: number): number {
+  if (!Number.isInteger(value)) {
+    throw new Error(`number is not an integer`);
+  }
+  if (value < -32768 || value > 32767) {
+    throw new Error(`number out of int16 range`);
+  }
+  return value;
+}
+
+function checkUInt16(value: number): number {
+  if (!Number.isInteger(value)) {
+    throw new Error(`number is not an integer`);
+  }
+  if (value < 0 || value > 65535) {
+    throw new Error(`number out of uint16 range`);
+  }
+  return value;
+}
+
+function checkInt32(value: number): number {
+  if (!Number.isInteger(value)) {
+    throw new Error(`number is not an integer`);
+  }
+  if (value < -2147483648 || value > 2147483647) {
+    throw new Error(`number out of int32 range`);
+  }
+  return value;
+}
+
+function checkUInt32(value: number): number {
+  if (!Number.isInteger(value)) {
+    throw new Error(`number is not an integer`);
+  }
+  if (value < 0 || value > 4294967295) {
+    throw new Error(`number out of uint32 range`);
+  }
+  return value;
+}
+
+function checkInt64(value: bigint): bigint {
+  if (BigInt.asIntN(64, value) !== value) {
+    throw new Error(`bigint out of int64 range`);
+  }
+  return value;
+}
+
+function checkUInt64(value: bigint): bigint {
+  if (BigInt.asUintN(64, value) !== value) {
+    throw new Error(`bigint out of uint64 range`);
+  }
+  return value;
+}
+
+function checkInt128(value: bigint): bigint {
+  if (BigInt.asIntN(128, value) !== value) {
+    throw new Error(`bigint out of int128 range`);
+  }
+  return value;
+}
+
+function checkUInt128(value: bigint): bigint {
+  if (BigInt.asUintN(128, value) !== value) {
+    throw new Error(`bigint out of uint128 range`);
+  }
+  return value;
+}
+
 // function setInt8(dataView: DataView, offset: number, value: number) {
 //   dataView.setInt8(offset, value);
 // }
 
 export function setUInt8(dataView: DataView, offset: number, value: number) {
-  dataView.setUint8(offset, value);
+  dataView.setUint8(offset, checkUInt8(value));
 }
 
 export function setInt16(dataView: DataView, offset: number, value: number) {
-  dataView.setInt16(offset, value, littleEndian);
+  dataView.setInt16(offset, checkInt16(value), littleEndian);
 }
 
 export function setUInt16(dataView: DataView, offset: number, value: number) {
-  dataView.setUint16(offset, value, littleEndian);
+  dataView.setUint16(offset, checkUInt16(value), littleEndian);
 }
 
 export function setInt32(dataView: DataView, offset: number, value: number) {
-  dataView.setInt32(offset, value, littleEndian);
+  dataView.setInt32(offset, checkInt32(value), littleEndian);
 }
 
 export function setUInt32(dataView: DataView, offset: number, value: number) {
-  dataView.setUint32(offset, value, littleEndian);
+  dataView.setUint32(offset, checkUInt32(value), littleEndian);
 }
 
 export function setInt64(dataView: DataView, offset: number, value: bigint) {
-  dataView.setBigInt64(offset, value, littleEndian);
+  dataView.setBigInt64(offset, checkInt64(value), littleEndian);
 }
 
 export function setUInt64(dataView: DataView, offset: number, value: bigint) {
-  dataView.setBigUint64(offset, value, littleEndian);
+  dataView.setBigUint64(offset, checkUInt64(value), littleEndian);
 }
 
 export function setInt128(dataView: DataView, offset: number, value: bigint) {
+  checkInt128(value);
   const lower = BigInt.asUintN(64, value);
   const upper = BigInt.asIntN(64, value >> BigInt(64));
   dataView.setBigUint64(offset, lower, littleEndian);
@@ -210,6 +302,7 @@ export function setInt128(dataView: DataView, offset: number, value: bigint) {
 }
 
 export function setUInt128(dataView: DataView, offset: number, value: bigint) {
+  checkUInt128(value);
   const lower = BigInt.asUintN(64, value);
   const upper = BigInt.asUintN(64, value >> BigInt(64));
   dataView.setBigUint64(offset, lower, littleEndian);

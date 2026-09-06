@@ -858,7 +858,7 @@ private:
   Napi::Value from_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto date_obj = info[0].As<Napi::Object>();
-    auto date = GetDateFromObject(date_obj);
+    auto date = GetDateFromObject(env, date_obj);
     auto date_parts = duckdb_from_date(date);
     return MakeDatePartsObject(env, date_parts);
   }
@@ -868,7 +868,7 @@ private:
   Napi::Value to_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto date_parts_obj = info[0].As<Napi::Object>();
-    auto date_parts = GetDatePartsFromObject(date_parts_obj);
+    auto date_parts = GetDatePartsFromObject(env, date_parts_obj);
     auto date = duckdb_to_date(date_parts);
     return MakeDateObject(env, date);
   }
@@ -878,7 +878,7 @@ private:
   Napi::Value is_finite_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto date_obj = info[0].As<Napi::Object>();
-    auto date = GetDateFromObject(date_obj);
+    auto date = GetDateFromObject(env, date_obj);
     auto is_finite = duckdb_is_finite_date(date);
     return Napi::Boolean::New(env, is_finite);
   }
@@ -918,7 +918,7 @@ private:
   Napi::Value to_time(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto time_parts_obj = info[0].As<Napi::Object>();
-    auto time_parts = GetTimePartsFromObject(time_parts_obj);
+    auto time_parts = GetTimePartsFromObject(env, time_parts_obj);
     auto time = duckdb_to_time(time_parts);
     return MakeTimeObject(env, time);
   }
@@ -938,7 +938,7 @@ private:
   Napi::Value to_timestamp(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto timestamp_parts_obj = info[0].As<Napi::Object>();
-    auto timestamp_parts = GetTimestampPartsFromObject(timestamp_parts_obj);
+    auto timestamp_parts = GetTimestampPartsFromObject(env, timestamp_parts_obj);
     auto timestamp = duckdb_to_timestamp(timestamp_parts);
     return MakeTimestampObject(env, timestamp);
   }
@@ -1222,7 +1222,7 @@ private:
     auto env = info.Env();
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
-    auto value = info[2].As<Napi::Number>().Int32Value();
+    auto value = GetInt8FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_int8(prepared_statement, index, value)) {
       throw Napi::Error::New(env, "Failed to bind int8");
     }
@@ -1235,7 +1235,7 @@ private:
     auto env = info.Env();
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
-    auto value = info[2].As<Napi::Number>().Int32Value();
+    auto value = GetInt16FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_int16(prepared_statement, index, value)) {
       throw Napi::Error::New(env, "Failed to bind int16");
     }
@@ -1248,7 +1248,7 @@ private:
     auto env = info.Env();
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
-    auto value = info[2].As<Napi::Number>().Int32Value();
+    auto value = GetInt32FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_int32(prepared_statement, index, value)) {
       throw Napi::Error::New(env, "Failed to bind int32");
     }
@@ -1317,7 +1317,7 @@ private:
     auto env = info.Env();
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
-    auto value = info[2].As<Napi::Number>().Uint32Value();
+    auto value = GetUInt8FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_uint8(prepared_statement, index, value)) {
       throw Napi::Error::New(env, "Failed to bind uint8");
     }
@@ -1330,7 +1330,7 @@ private:
     auto env = info.Env();
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
-    auto value = info[2].As<Napi::Number>().Uint32Value();
+    auto value = GetUInt16FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_uint16(prepared_statement, index, value)) {
       throw Napi::Error::New(env, "Failed to bind uint16");
     }
@@ -1343,7 +1343,7 @@ private:
     auto env = info.Env();
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
-    auto value = info[2].As<Napi::Number>().Uint32Value();
+    auto value = GetUInt32FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_uint32(prepared_statement, index, value)) {
       throw Napi::Error::New(env, "Failed to bind uint32");
     }
@@ -1399,7 +1399,7 @@ private:
     auto env = info.Env();
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
-    auto value = GetDateFromObject(info[2].As<Napi::Object>());
+    auto value = GetDateFromObject(env, info[2].As<Napi::Object>());
     if (duckdb_bind_date(prepared_statement, index, value)) {
       throw Napi::Error::New(env, "Failed to bind date");
     }
@@ -1669,7 +1669,7 @@ private:
   // function create_int8(input: number): Value
   Napi::Value create_int8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto input = info[0].As<Napi::Number>().Int32Value();
+    auto input = GetInt8FromNumber(env, info[0].As<Napi::Number>());
     auto value = duckdb_create_int8(input);
     return CreateExternalForValue(env, value);
   }
@@ -1678,7 +1678,7 @@ private:
   // function create_uint8(input: number): Value
   Napi::Value create_uint8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto input = info[0].As<Napi::Number>().Uint32Value();
+    auto input = GetUInt8FromNumber(env, info[0].As<Napi::Number>());
     auto value = duckdb_create_uint8(input);
     return CreateExternalForValue(env, value);
   }
@@ -1687,7 +1687,7 @@ private:
   // function create_int16(input: number): Value
   Napi::Value create_int16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto input = info[0].As<Napi::Number>().Int32Value();
+    auto input = GetInt16FromNumber(env, info[0].As<Napi::Number>());
     auto value = duckdb_create_int16(input);
     return CreateExternalForValue(env, value);
   }
@@ -1696,7 +1696,7 @@ private:
   // function create_uint16(input: number): Value
   Napi::Value create_uint16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto input = info[0].As<Napi::Number>().Uint32Value();
+    auto input = GetUInt16FromNumber(env, info[0].As<Napi::Number>());
     auto value = duckdb_create_uint16(input);
     return CreateExternalForValue(env, value);
   }
@@ -1705,7 +1705,7 @@ private:
   // function create_int32(input: number): Value
   Napi::Value create_int32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto input = info[0].As<Napi::Number>().Int32Value();
+    auto input = GetInt32FromNumber(env, info[0].As<Napi::Number>());
     auto value = duckdb_create_int32(input);
     return CreateExternalForValue(env, value);
   }
@@ -1714,7 +1714,7 @@ private:
   // function create_uint32(input: number): Value
   Napi::Value create_uint32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto input = info[0].As<Napi::Number>().Uint32Value();
+    auto input = GetUInt32FromNumber(env, info[0].As<Napi::Number>());
     auto value = duckdb_create_uint32(input);
     return CreateExternalForValue(env, value);
   }
@@ -1808,7 +1808,7 @@ private:
   // function create_date(input: Date_): Value
   Napi::Value create_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto input = GetDateFromObject(info[0].As<Napi::Object>());
+    auto input = GetDateFromObject(env, info[0].As<Napi::Object>());
     auto value = duckdb_create_date(input);
     return CreateExternalForValue(env, value);
   }
@@ -2382,7 +2382,7 @@ private:
   Napi::Value create_enum_value(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto logical_type = GetLogicalTypeFromExternal(env, info[0]);
-    auto input_value = info[1].As<Napi::Number>().Uint32Value();
+    auto input_value = GetUInt32FromNumber(env, info[1].As<Napi::Number>());
     auto value = duckdb_create_enum_value(logical_type, input_value);
     if (!value) {
       throw Napi::Error::New(env, "Failed to create enum value");
@@ -3938,7 +3938,7 @@ private:
   Napi::Value append_int8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
-    auto int8_value = info[1].As<Napi::Number>().Int32Value();
+    auto int8_value = GetInt8FromNumber(env, info[1].As<Napi::Number>());
     if (duckdb_append_int8(appender, int8_value)) {
       throw Napi::Error::New(env, duckdb_appender_error(appender));
     }
@@ -3950,7 +3950,7 @@ private:
   Napi::Value append_int16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
-    auto int16_value = info[1].As<Napi::Number>().Int32Value();
+    auto int16_value = GetInt16FromNumber(env, info[1].As<Napi::Number>());
     if (duckdb_append_int16(appender, int16_value)) {
       throw Napi::Error::New(env, duckdb_appender_error(appender));
     }
@@ -3962,7 +3962,7 @@ private:
   Napi::Value append_int32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
-    auto int32_value = info[1].As<Napi::Number>().Int32Value();
+    auto int32_value = GetInt32FromNumber(env, info[1].As<Napi::Number>());
     if (duckdb_append_int32(appender, int32_value)) {
       throw Napi::Error::New(env, duckdb_appender_error(appender));
     }
@@ -4003,7 +4003,7 @@ private:
   Napi::Value append_uint8(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
-    auto uint8_value = info[1].As<Napi::Number>().Uint32Value();
+    auto uint8_value = GetUInt8FromNumber(env, info[1].As<Napi::Number>());
     if (duckdb_append_uint8(appender, uint8_value)) {
       throw Napi::Error::New(env, duckdb_appender_error(appender));
     }
@@ -4015,7 +4015,7 @@ private:
   Napi::Value append_uint16(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
-    auto uint16_value = info[1].As<Napi::Number>().Uint32Value();
+    auto uint16_value = GetUInt16FromNumber(env, info[1].As<Napi::Number>());
     if (duckdb_append_uint16(appender, uint16_value)) {
       throw Napi::Error::New(env, duckdb_appender_error(appender));
     }
@@ -4027,7 +4027,7 @@ private:
   Napi::Value append_uint32(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
-    auto uint32_value = info[1].As<Napi::Number>().Uint32Value();
+    auto uint32_value = GetUInt32FromNumber(env, info[1].As<Napi::Number>());
     if (duckdb_append_uint32(appender, uint32_value)) {
       throw Napi::Error::New(env, duckdb_appender_error(appender));
     }
@@ -4092,7 +4092,7 @@ private:
   Napi::Value append_date(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto appender = GetAppenderFromExternal(env, info[0]);
-    auto date_value = GetDateFromObject(info[1].As<Napi::Object>());
+    auto date_value = GetDateFromObject(env, info[1].As<Napi::Object>());
     if (duckdb_append_date(appender, date_value)) {
       throw Napi::Error::New(env, duckdb_appender_error(appender));
     }
