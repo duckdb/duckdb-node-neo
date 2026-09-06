@@ -467,12 +467,15 @@ What this lands on:
   first. Those follow from how the V2 surface is laid out in the bindings package, so this waits on
   that rather than on 2.0.
 - **The signature check could be wired into `pnpm run build` — as a warning, never a failure**
-  (Jeff, 2026-09-05). It only warns today, and nothing invokes it, so a mismatch goes unnoticed. The
-  value of surfacing it during the build is as a reminder to add the accounting placeholders for
-  newly declared functions; the value of *not* failing is that a DuckDB upgrade stays a minimal
-  change — bump the header, add placeholders carrying a `TODO: <area>` reason, implement later. A
-  blocking check would invert that, forcing implementation before the version bump could land. Not
-  scheduled; recorded so the "should it gate CI?" question does not get reopened.
+  (Jeff, 2026-09-05). It only warns today, and nothing invokes it, so a mismatch goes unnoticed.
+
+  A DuckDB version bump is *just* the bump: nothing else is required to land it. If the new version
+  declares functions we have not accounted for, the check starts warning, and it keeps warning until
+  a separate later change adds the `// DUCKDB_C_API …` placeholders with a `TODO: <area>` reason.
+  Implementation is later still. So the warning is not a nag inside one change — it is a reminder
+  that persists across changes until someone picks the work up, which is precisely why it should not
+  fail: a blocking check would drag both of those later steps into the version bump. Not scheduled;
+  recorded so the "should it gate CI?" question does not get reopened.
 - **The fetch scripts need `duckdb_v2.h`.** `fetch_libduckdb_*.py` extracts `duckdb.h` and the
   library from each release zip; the release workflow already zips `duckdb_v2.h` beside `duckdb.h`,
   so this is one more entry in each `files` list.
