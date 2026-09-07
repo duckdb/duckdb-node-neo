@@ -1,6 +1,6 @@
 # Node Neo C API coverage gaps
 
-_Generated 2026-09-05 against DuckDB 1.5.5 (546 `DUCKDB_C_API` functions)._
+_Generated 2026-09-07 against DuckDB 1.5.5 (546 `DUCKDB_C_API` functions)._
 
 This is a generated summary of [capi_coverage.csv](capi_coverage.csv). Regenerate both
 with `build_coverage.py` then `summarize_gaps.py`; see [README.md](README.md) for how
@@ -292,9 +292,11 @@ either. Being behind here means being level with everyone.
 ## Client revisions compared
 
 Each client tracks its own DuckDB version, so some gaps are release lag rather than
-a decision.
+a decision. Go appears twice: its binding signal comes from the raw bindings repo and
+its wrapper signal from the driver, so either can move coverage on its own.
 
-- Go (duckdb/duckdb-go-bindings) — 4628e33 on 2026-08-26
+- Go bindings (duckdb/duckdb-go-bindings) — 4628e33 on 2026-08-26
+- Go driver (duckdb/duckdb-go) — d64b84e on 2026-09-02
 - Rust (duckdb/duckdb-rs) — 8c5daf8 on 2026-09-02
 - C# (Giorgi/DuckDB.NET) — e56cdb8 on 2026-08-28
 - Swift (duckdb/duckdb-swift) — 2bc1adc on 2026-07-22

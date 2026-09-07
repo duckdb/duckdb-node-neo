@@ -49,8 +49,12 @@ clients = [
   ("julia", "Julia", "tertiary", "generated"),
 ]
 
+# Go is the one client split across two repositories, and both feed the dataset: the
+# binding signal comes from the raw bindings, the wrapper signal from the driver. Both
+# are listed so a coverage change can be traced to whichever one moved.
 repo_labels = {
-  "duckdb-go-bindings": "Go (duckdb/duckdb-go-bindings)",
+  "duckdb-go-bindings": "Go bindings (duckdb/duckdb-go-bindings)",
+  "duckdb-go": "Go driver (duckdb/duckdb-go)",
   "duckdb-rs": "Rust (duckdb/duckdb-rs)",
   "DuckDB.NET": "C# (Giorgi/DuckDB.NET)",
   "duckdb-swift": "Swift (duckdb/duckdb-swift)",
@@ -294,7 +298,8 @@ def main():
     w("## Client revisions compared")
     w("")
     w("Each client tracks its own DuckDB version, so some gaps are release lag rather than")
-    w("a decision.")
+    w("a decision. Go appears twice: its binding signal comes from the raw bindings repo and")
+    w("its wrapper signal from the driver, so either can move coverage on its own.")
     w("")
     for label, rev in revisions:
       w("- " + label + " — " + rev)
