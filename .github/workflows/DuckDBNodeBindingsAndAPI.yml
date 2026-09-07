@@ -1,6 +1,20 @@
 name: DuckDB Node Bindings & API
 on:
   pull_request:
+    # Skip the whole matrix for changes CI cannot exercise. A denylist rather than a
+    # `paths:` allowlist, so that anything new is covered by default and only what is
+    # named here is exempt.
+    #
+    # These patterns match from the repo root, so `README.md` and `LICENSE` are the
+    # top-level files only -- the READMEs under api/pkgs and bindings/pkgs are package
+    # content that npm publishes, and changes to those still run the matrix.
+    #
+    # The run is skipped only when *every* changed file matches, so a PR touching both
+    # tools/ and api/ still gets full CI.
+    paths-ignore:
+      - 'tools/**'
+      - 'README.md'
+      - 'LICENSE'
   workflow_dispatch:
     inputs:
       publish:
