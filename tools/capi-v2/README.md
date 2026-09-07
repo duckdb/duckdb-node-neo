@@ -94,7 +94,9 @@ bulk append — not the V1 shape: an explicit appender class is one option, help
 `INSERT INTO … SELECT * FROM` over a replacement-scanned collection are another, and that choice
 belongs to whoever builds this part of the V2 API rather than to this survey. Worth knowing going in:
 a collection surfaced through a replacement scan is a *virtual table*, which is why appending to an
-*existing* table is a statement rather than a direct append.
+*existing* table is a statement rather than a direct append. See
+[How bulk append works without an appender](#how-bulk-append-works-without-an-appender) for the
+mechanism and its sharp edges.
 
 **One class of hazard in our function-info handling goes away.** V2 gives every function family its
 own info-handle type (`duckdb_v2_scalar_function_bind_info_handle`,
@@ -626,13 +628,92 @@ clearest case of the last).
 
 `compare_api.py` is the natural place to measure that as the V2 bindings land.
 
+## How bulk append works without an appender
+
+Context for the first deferred decision below. This is what the replacement is actually made of, so
+the shape question can be answered on evidence rather than from the function names.
+
+### Column data collection
+
+A buffer-managed set of data chunks sharing one fixed set of column types: append chunks in, scan
+them back out in order. DuckDB owns the memory and **spills to disk** when the rows outgrow it, so a
+collection can hold far more than RAM. It knows nothing about tables — it is purely a buffer.
+
+- It must not be scanned while it is being appended to, or the reverse.
+- It must not be appended to concurrently. For parallel producers, fill one collection per thread
+  and `combine` them at the end, which consumes the source.
+- Scanning *is* parallel: a shared scan state coordinates work while per-thread worker states track
+  progress. Scans are zero-copy, so a scanned chunk is valid only until that worker state's next
+  scan call.
+
+### Replacement scan, as the bridge to SQL
+
+A callback that fires during query planning for **each table reference the catalog could not
+resolve**. It claims the name one of three mutually exclusive ways — `set_function_name`,
+`set_subquery`, or `set_collection`.
+
+`set_collection` is the one that matters here: *read this collection instead*. Columns default to
+`col1..colN`, or can be named. It is connection-scoped, so invisible to every other connection, and
+the collection is **borrowed, not copied** — the caller keeps ownership and must keep it alive.
+
+Note that no scan *function* is involved: `set_collection` is a built-in claim form, so there are no
+bind / init / exec callbacks and no thread handling to write.
+
+### The appender that falls out of that
+
+1. Create a collection with the target table's column types.
+2. Register a connection-scoped replacement scan claiming a unique buffer name, pointing at it.
+3. Append chunks into the collection — no database contact at all.
+4. Flush by executing `INSERT INTO target (cols…) SELECT * FROM <buffer_name>`, then clear.
+
+**Where table functions fit instead.** A replacement scan hooks an *unresolved name*
+(`FROM my_buffer`); a table function is an *explicit call* (`FROM my_fn(args)`). For appending, the
+buffer should look like a table, so the replacement scan is the natural fit. Table functions are the
+answer when arguments are wanted, or a general SQL-callable producer.
+
+### Upstream ships a reference implementation
+
+`tools/cpp/duckdb_cpp.{hpp,cpp}` in the DuckDB repo contains a working `Appender` class built on the
+public V2 API alone, with two constructors — one targeting a table, one taking an arbitrary query.
+This is the example the DuckDB team pointed at, and it is worth reading before designing ours.
+
+### The sharp edges
+
+These are the parts that should drive the design, and none of them are visible from the function
+list:
+
+- **Replacement scans cannot be unregistered.** Every appender permanently leaves a scan on its
+  connection. Upstream's own guidance is to create appenders once and reuse them rather than one per
+  batch; its destructor nulls the collection behind a `shared_ptr` so the orphaned scan *declines*
+  from then on. This is the awkward one for a JS API, where a `DuckDBAppender` that is simply
+  garbage-collected would still leave a registration behind.
+- **The borrow outlives the obvious scope.** A prepared statement over the claimed name captures the
+  borrow *in its plan* — `prepared_statement_reuses_plan()` returns true, so later executions never
+  consult the callback again. Clearing or destroying the collection while such a statement is alive
+  means reading freed memory.
+- **Column resolution is a bind, not an execute.** The table-targeting constructor parses
+  `SELECT * FROM <table>` and binds it to get names and types without reading a row — a use of
+  `statement_bind` worth copying.
+- **Generated columns need the query form.** The table form lists every column, and the engine
+  refuses an INSERT that names a generated one.
+- **Flush error semantics are deliberate.** Rows are kept on `RESOURCE_IN_USE` and
+  `RUNTIME_INTERRUPT` so the flush can be retried, and dropped on anything else so a retry does not
+  re-run a failing statement over the same rows.
+
+### Net versus the V1 appender
+
+More capable: the flush does not have to be a plain INSERT, so a column subset, `ON CONFLICT`, or a
+buffer-driven UPDATE or MERGE all become reachable, and the buffer spills to disk rather than being
+memory-bound. The cost is ownership — the lifetime rules, the error semantics and that registration
+leak all become ours.
+
 ## Deferred decisions
 
 Real choices, deliberately not made yet, each with the thing that should trigger it:
 
 | Decision | Trigger |
 |---|---|
-| What shape bulk append takes — an appender class, or helpers driving `INSERT INTO … SELECT * FROM` over a replacement-scanned collection | Building that part of the V2 API |
+| What shape bulk append takes — an appender class, or helpers driving `INSERT INTO … SELECT * FROM` over a replacement-scanned collection (see [how it works](#how-bulk-append-works-without-an-appender)) | Building that part of the V2 API |
 | Whether to build the V2 bindings on `duckdb_cpp`, borrow its patterns, or ignore it | `duckdb_cpp` actually shipping in a release; it is not required either way |
 | Whether any conversion helpers are worth keeping native rather than reimplementing in TypeScript | Only if upstream ships some after all — otherwise TypeScript, which is the better choice regardless |
 
