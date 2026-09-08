@@ -700,6 +700,35 @@ list:
   `RUNTIME_INTERRUPT` so the flush can be retried, and dropped on anything else so a retry does not
   re-run a failing statement over the same rows.
 
+### VARIANT is read-only in a vector
+
+One thing on our side of the line does not survive the move, and it is worth knowing before the
+shape question is answered: **a data chunk cannot carry a VARIANT column.**
+
+`DuckDBVariantVector.setItem` throws for a non-null value, and is a deliberate no-op for `null` so
+that a containing struct or list can iterate every child while reading. `flush` is a no-op for the
+same reason. Nothing ever initializes that vector's memory, so appending a chunk built over a
+VARIANT column hands DuckDB uninitialized memory — which crashes the process rather than raising.
+Measured on 2026-09-07 against the current build, with both a null and a non-null value:
+
+```ts
+const chunk = DuckDBDataChunk.create([INTEGER, VARIANT]);
+chunk.setRows([[5, null]]);
+appender.appendDataChunk(chunk);   // native crash
+```
+
+On V1 this is a gap rather than a wall, because the per-value path works: `appendVariant`,
+`appendValue(v, VARIANT)`, `bindValue(…, VARIANT)` and a SQL `::variant` cast all write one, with
+`typeForValue` inferring a scalar's type when no hint is given and nested content requiring both a
+wrapper and a type (`variantValue(structValue({k: 'n'}), STRUCT({k: VARCHAR}))`).
+
+Under V2 there is no per-value path to fall back to. Bulk append *is* chunks into a collection, so
+until the vector can write, VARIANT is unwritable in bulk. That turns a known gap into a
+prerequisite, which is why it is in the deferred decisions below rather than left implicit.
+
+The crash itself should be fixed on V1 regardless — a public call should raise, not abort — and
+independently of whether the vector ever learns to write.
+
 ### Net versus the V1 appender
 
 More capable: the flush does not have to be a plain INSERT, so a column subset, `ON CONFLICT`, or a
@@ -716,6 +745,7 @@ Real choices, deliberately not made yet, each with the thing that should trigger
 | What shape bulk append takes — an appender class, or helpers driving `INSERT INTO … SELECT * FROM` over a replacement-scanned collection (see [how it works](#how-bulk-append-works-without-an-appender)) | Building that part of the V2 API |
 | Whether to build the V2 bindings on `duckdb_cpp`, borrow its patterns, or ignore it | `duckdb_cpp` actually shipping in a release; it is not required either way |
 | Whether any conversion helpers are worth keeping native rather than reimplementing in TypeScript | Only if upstream ships some after all — otherwise TypeScript, which is the better choice regardless |
+| Whether `DuckDBVariantVector` gains write support, or VARIANT stays outside bulk append (see [VARIANT is read-only in a vector](#variant-is-read-only-in-a-vector)) | Building bulk append in V2. Optional on V1, where `appendVariant` is a working per-value fallback; V2 has no appender, so the chunk path is the only one and VARIANT would be unwritable in bulk without it |
 
 ## When 2.0 ships
 
