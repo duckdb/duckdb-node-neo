@@ -1,6 +1,11 @@
+import {
+  compileConvertingRowObjectBuilderSafe,
+  compileRowObjectBuilderSafe,
+  ConvertingRowObjectBuilder,
+  RowObjectBuilder,
+} from './compileRowObjectBuilder';
 import { convertColumnsFromChunks } from './convertColumnsFromChunks';
 import { convertColumnsObjectFromChunks } from './convertColumnsObjectFromChunks';
-import { convertRowObjectsFromChunks } from './convertRowObjectsFromChunks';
 import { convertRowsFromChunks } from './convertRowsFromChunks';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
@@ -11,7 +16,6 @@ import { DuckDBValueConverter } from './DuckDBValueConverter';
 import { ResultReturnType, StatementType } from './enums';
 import { getColumnsFromChunks } from './getColumnsFromChunks';
 import { getColumnsObjectFromChunks } from './getColumnsObjectFromChunks';
-import { getRowObjectsFromChunks } from './getRowObjectsFromChunks';
 import { getRowsFromChunks } from './getRowsFromChunks';
 import { JS } from './JS';
 import { JSDuckDBValueConverter } from './JSDuckDBValueConverter';
@@ -31,6 +35,10 @@ export class DuckDBResultReader {
   private readonly chunkSizeRuns: ChunkSizeRun[];
   private currentRowCount_: number;
   private done_: boolean;
+  // Column names are stable across all chunks of a result, so the row-object builders
+  // are compiled lazily once per reader and reused across chunks and repeated calls.
+  private rowObjectBuilder_?: RowObjectBuilder;
+  private convertingRowObjectBuilder_?: ConvertingRowObjectBuilder<unknown>;
 
   constructor(result: DuckDBResult) {
     this.result = result;
@@ -252,17 +260,43 @@ export class DuckDBResultReader {
   }
 
   public getRowObjects(): Record<string, DuckDBValue>[] {
-    return getRowObjectsFromChunks(this.chunks, this.deduplicatedColumnNames());
+    const rowObjects: Record<string, DuckDBValue>[] = [];
+    if (this.chunks.length === 0) {
+      return rowObjects;
+    }
+    if (!this.rowObjectBuilder_) {
+      // Column types are stable across chunks; compile once from the first chunk's
+      // flat-read flags and reuse across chunks and repeated calls.
+      this.rowObjectBuilder_ = compileRowObjectBuilderSafe(
+        this.deduplicatedColumnNames(),
+        this.chunks[0].getFlatFlags()
+      );
+    }
+    const builder = this.rowObjectBuilder_;
+    for (const chunk of this.chunks) {
+      chunk.appendToRowObjectsWithBuilder(builder, rowObjects);
+    }
+    return rowObjects;
   }
 
   public convertRowObjects<T>(
     converter: DuckDBValueConverter<T>
   ): Record<string, T | null>[] {
-    return convertRowObjectsFromChunks(
-      this.chunks,
-      this.deduplicatedColumnNames(),
-      converter
-    );
+    // The converting builder is converter-agnostic (the converter is passed at call
+    // time), so a single compiled builder is cached regardless of which converter runs.
+    if (!this.convertingRowObjectBuilder_) {
+      this.convertingRowObjectBuilder_ =
+        compileConvertingRowObjectBuilderSafe<unknown>(
+          this.deduplicatedColumnNames()
+        );
+    }
+    const builder = this
+      .convertingRowObjectBuilder_ as ConvertingRowObjectBuilder<T>;
+    const rowObjects: Record<string, T | null>[] = [];
+    for (const chunk of this.chunks) {
+      chunk.convertToRowObjectsWithBuilder(builder, converter, rowObjects);
+    }
+    return rowObjects;
   }
 
   public getRowObjectsJS(): Record<string, JS>[] {

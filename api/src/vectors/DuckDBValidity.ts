@@ -1,5 +1,11 @@
 import duckdb from '@duckdb/node-bindings';
 
+// Flat numeric vectors already read their data through native-endian typed arrays
+// (e.g. `new Int32Array(buffer)`), so the library effectively requires a little-endian
+// platform. On such platforms a byte view of the validity bitmap can be bit-tested with
+// fast Number ops instead of per-cell BigInt math.
+const littleEndian = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
+
 // This version of DuckDBValidity is almost 10x slower.
 // class DuckDBValidity {
 //   private readonly validity_pointer: ddb.uint64_pointer;
@@ -22,6 +28,7 @@ import duckdb from '@duckdb/node-bindings';
 
 export class DuckDBValidity {
   private data: BigUint64Array | null;
+  private dataBytes: Uint8Array | null;
   private readonly offset: number;
   private readonly itemCount: number;
   private constructor(
@@ -30,6 +37,7 @@ export class DuckDBValidity {
     itemCount: number
   ) {
     this.data = data;
+    this.dataBytes = null;
     this.offset = offset;
     this.itemCount = itemCount;
   }
@@ -49,15 +57,52 @@ export class DuckDBValidity {
     );
     return new DuckDBValidity(bigints, 0, itemCount);
   }
+  /**
+   * True when no validity buffer is present, meaning every item is valid. Lets bulk
+   * readers skip the per-item validity check entirely on the common all-valid path.
+   */
+  public allValid(): boolean {
+    return this.data === null;
+  }
+  /**
+   * Validity bitmap as a byte view (little-endian platforms only), or null when all
+   * items are valid. Used by the compiled row builder to inline the bit test with
+   * Number ops. Paired with {@link bitOffset}.
+   */
+  public bytesLE(): Uint8Array | null {
+    if (!this.data || !littleEndian) {
+      return null;
+    }
+    let bytes = this.dataBytes;
+    if (!bytes) {
+      bytes = new Uint8Array(
+        this.data.buffer,
+        this.data.byteOffset,
+        this.data.byteLength
+      );
+      this.dataBytes = bytes;
+    }
+    return bytes;
+  }
+  public bitOffset(): number {
+    return this.offset;
+  }
   public itemValid(itemIndex: number): boolean {
-    if (!this.data) {
+    const data = this.data;
+    if (!data) {
       return true;
     }
     const bit = this.offset + itemIndex;
-    return (
-      (this.data[Math.floor(bit / 64)] & (BigInt(1) << BigInt(bit % 64))) !==
-      BigInt(0)
-    );
+    if (littleEndian) {
+      // Byte-granular Number bit test; avoids per-cell BigInt math.
+      let bytes = this.dataBytes;
+      if (!bytes) {
+        bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+        this.dataBytes = bytes;
+      }
+      return (bytes[bit >> 3] & (1 << (bit & 7))) !== 0;
+    }
+    return (data[Math.floor(bit / 64)] & (BigInt(1) << BigInt(bit % 64))) !== 0n;
   }
   public setItemValid(itemIndex: number, valid: boolean) {
     if (!this.data && !valid) {

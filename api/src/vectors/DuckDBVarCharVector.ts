@@ -5,18 +5,24 @@ import {
 import { DuckDBVector } from './DuckDBVector';
 import { DuckDBValidity } from './DuckDBValidity';
 import {
-  getString,
+  decodeUtf8,
+  textDecoder,
   vectorData,
 } from './dataAccessors';
 
 export class DuckDBVarCharVector extends DuckDBVector<string> {
   private readonly dataView: DataView;
+  // Byte view over the same range as dataView, so inline strings can be decoded without
+  // allocating a per-cell subarray. `bytes[i]` aligns with `dataView` offset `i`.
+  private readonly bytes: Uint8Array;
   private readonly validity: DuckDBValidity;
   private readonly vector: duckdb.Vector;
   private readonly itemOffset: number;
   private readonly _itemCount: number;
-  private readonly itemCache: (string | null | undefined)[];
-  private readonly itemCacheDirty: boolean[];
+  // Allocated lazily, only when setItem is used (the appender write path). Read paths
+  // decode on demand and never populate it, avoiding per-cell array read/write/growth.
+  private itemCache: (string | null | undefined)[] | undefined;
+  private itemCacheDirty: boolean[] | undefined;
   constructor(
     dataView: DataView,
     validity: DuckDBValidity,
@@ -26,12 +32,17 @@ export class DuckDBVarCharVector extends DuckDBVector<string> {
   ) {
     super();
     this.dataView = dataView;
+    this.bytes = new Uint8Array(
+      dataView.buffer,
+      dataView.byteOffset,
+      dataView.byteLength
+    );
     this.validity = validity;
     this.vector = vector;
     this.itemOffset = itemOffset;
     this._itemCount = itemCount;
-    this.itemCache = [];
-    this.itemCacheDirty = [];
+    this.itemCache = undefined;
+    this.itemCacheDirty = undefined;
   }
   static fromRawVector(
     vector: duckdb.Vector,
@@ -52,34 +63,58 @@ export class DuckDBVarCharVector extends DuckDBVector<string> {
   public override get itemCount(): number {
     return this._itemCount;
   }
-  public override getItem(itemIndex: number): string | null {
-    const cachedItem = this.itemCache[itemIndex];
-    if (cachedItem !== undefined) {
-      return cachedItem;
+  private decode(itemIndex: number): string {
+    const offset = itemIndex * 16;
+    const lengthInBytes = this.dataView.getUint32(offset, true);
+    if (lengthInBytes <= 12) {
+      // Inline string: data lives in the buffer right after the 4-byte length.
+      return decodeUtf8(this.bytes, offset + 4, lengthInBytes);
     }
-    const item = this.validity.itemValid(itemIndex)
-      ? getString(this.dataView, itemIndex * 16)
-      : null;
-    this.itemCache[itemIndex] = item;
-    return item;
+    // Long string: data lives in native memory behind a pointer at offset + 8.
+    const stringBytes = duckdb.get_data_from_pointer(
+      this.dataView.buffer as ArrayBuffer,
+      this.dataView.byteOffset + offset + 8,
+      lengthInBytes
+    );
+    return textDecoder.decode(stringBytes);
+  }
+  public override getItem(itemIndex: number): string | null {
+    const itemCache = this.itemCache;
+    if (itemCache !== undefined) {
+      const cachedItem = itemCache[itemIndex];
+      if (cachedItem !== undefined) {
+        return cachedItem;
+      }
+    }
+    return this.validity.itemValid(itemIndex) ? this.decode(itemIndex) : null;
   }
   public setItem(itemIndex: number, value: string | null) {
-    this.itemCache[itemIndex] = value;
+    let itemCache = this.itemCache;
+    if (itemCache === undefined) {
+      itemCache = [];
+      this.itemCache = itemCache;
+      this.itemCacheDirty = [];
+    }
+    itemCache[itemIndex] = value;
     this.validity.setItemValid(itemIndex, value != null);
-    this.itemCacheDirty[itemIndex] = true;
+    this.itemCacheDirty![itemIndex] = true;
   }
   public flush() {
-    for (let itemIndex = 0; itemIndex < this._itemCount; itemIndex++) {
-      if (this.itemCacheDirty[itemIndex]) {
-        const cachedItem = this.itemCache[itemIndex];
-        if (cachedItem !== undefined && cachedItem !== null) {
-          duckdb.vector_assign_string_element(
-            this.vector,
-            this.itemOffset + itemIndex,
-            cachedItem
-          );
+    const itemCache = this.itemCache;
+    const itemCacheDirty = this.itemCacheDirty;
+    if (itemCache !== undefined && itemCacheDirty !== undefined) {
+      for (let itemIndex = 0; itemIndex < this._itemCount; itemIndex++) {
+        if (itemCacheDirty[itemIndex]) {
+          const cachedItem = itemCache[itemIndex];
+          if (cachedItem !== undefined && cachedItem !== null) {
+            duckdb.vector_assign_string_element(
+              this.vector,
+              this.itemOffset + itemIndex,
+              cachedItem
+            );
+          }
+          itemCacheDirty[itemIndex] = false;
         }
-        this.itemCacheDirty[itemIndex] = false;
       }
     }
     this.validity.flush(this.vector);
