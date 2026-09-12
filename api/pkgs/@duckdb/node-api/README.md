@@ -209,6 +209,38 @@ These are:
 | `UNION` | `unionValue` |
 | `UUID` | `uuidValue` |
 
+Alternatively, `jsToDuckDBValue` converts a plain JS value to the form
+a given DuckDB type expects, so these functions need not be called
+directly:
+
+```ts
+import { jsToDuckDBValue, DATE, TIMESTAMP_MS } from '@duckdb/node-api';
+
+jsToDuckDBValue(new Date('2024-01-15T12:34:56.789Z'), TIMESTAMP_MS);
+// same as timestampMillisValue(1705322096789n)
+
+jsToDuckDBValue(new Date('2024-01-15T00:00:00.000Z'), DATE);
+// same as dateValue(19737)
+
+jsToDuckDBValue(null, DATE); // null, for any type
+```
+
+It is generic over the type, so a statically known one checks its input:
+
+```ts
+jsToDuckDBValue(new Date(), TIMESTAMP); // ok
+jsToDuckDBValue(new Date(), INTEGER);   // rejected at compile time
+```
+
+What each type accepts is given by `JSInputTypeForTypeId`, and by
+`JSInputTypeFor` when keyed by a `DuckDBType`. These are wider than
+what is read back where a second spelling is unambiguous: `BIGINT` and
+the wider integers accept `number` as well as `bigint`, and `DECIMAL`
+accepts either a double or a raw scaled `bigint`.
+
+The result is a `DuckDBValue`, which is what `appendValue`,
+`bindValue`, and `setRows` all accept.
+
 ### Stream Results
 
 Streaming results evaluate lazily when rows are read.
@@ -563,6 +595,45 @@ const columnNameAndTypeObjects = reader.columnNameAndTypeObjectsJson();
 // ]
 ```
 
+### Infer JS Types from DuckDB Types
+
+The mapping each converter applies is also available at the type level.
+`JSTypeFor` gives the JS type that `getRowsJS` and the other `JS` methods
+produce for a given DuckDB type; `JsonTypeFor` does the same for the `Json`
+methods.
+
+```ts
+import {
+  JSTypeFor,
+  JsonTypeFor,
+  DuckDBBigIntType,
+  DuckDBIntegerType,
+  DuckDBTimestampTZType,
+} from '@duckdb/node-api';
+
+type A = JSTypeFor<DuckDBIntegerType>;     // number
+type B = JSTypeFor<DuckDBBigIntType>;      // bigint
+type C = JSTypeFor<DuckDBTimestampTZType>; // Date
+
+type D = JsonTypeFor<DuckDBBigIntType>;      // string
+type E = JsonTypeFor<DuckDBTimestampTZType>; // string
+```
+
+The two differ wherever a value has no lossless JSON form: 64-bit and
+wider integers, temporal types, `DECIMAL`, `BLOB`, `BIT` and `GEOMETRY`
+render as strings, and `FLOAT` and `DOUBLE` widen to `number | string`
+so that Infinity and NaN survive.
+
+Both are also available keyed by type id, as `JSTypeForTypeId` and
+`JsonTypeForTypeId`, which is the form to use when the id is what you have:
+
+```ts
+type F = JSTypeForTypeId[DuckDBTypeId.INTEGER]; // number
+```
+
+These describe non-NULL values. Since any column can be NULL, a value read
+from one is `JSTypeFor<T> | null`.
+
 ### Fetch Chunks
 
 Fetch all chunks:
@@ -597,7 +668,8 @@ Get chunk data:
 ```ts
 const rows = chunk.getRows();
 
-const rowObjects = chunk.getRowObjects(result.deduplicatedColumnNames());
+const rowObjects =
+  chunk.getRowObjects(result.deduplicatedColumnNames());
 
 const columns = chunk.getColumns();
 
@@ -881,6 +953,87 @@ appender.flushSync();
 
 See "Specifying Values" above for how to supply values to the appender.
 
+### Append Data Chunk of JS Values
+
+`setRowsConverted` and `setColumnsConverted` fill a data chunk from
+values in another representation, converting on the way in.
+`JSToDuckDBValueConverter` converts from plain JS, so a `Date` can be
+written to a `TIMESTAMP` column without constructing a
+`DuckDBTimestampValue` first:
+
+```ts
+import {
+  DuckDBDataChunk,
+  JSToDuckDBValueConverter,
+  INTEGER,
+  TIMESTAMP,
+  VARCHAR,
+} from '@duckdb/node-api';
+
+await connection.run(
+  `create or replace table target_table(
+    i integer, v varchar, t timestamp
+  )`
+);
+
+const appender = await connection.createAppender('target_table');
+
+const chunk = DuckDBDataChunk.create([INTEGER, VARCHAR, TIMESTAMP]);
+chunk.setRowsConverted(
+  [
+    [42, 'duck', new Date('2024-01-15T12:34:56.000Z')],
+    [123, 'mallard', null],
+  ],
+  JSToDuckDBValueConverter
+);
+
+appender.appendDataChunk(chunk);
+appender.flushSync();
+```
+
+The column types come from the chunk, so no types are passed to the
+converter. `setColumnValuesConverted` does the same for a single
+column.
+
+### Buffer Rows Into Data Chunks
+
+`DuckDBDataChunkWriter` accumulates rows and emits them as filled data
+chunks, for callers producing a row at a time. `forAppender` takes the
+column types from the appender:
+
+```ts
+import {
+  DuckDBDataChunkWriter,
+  JSToDuckDBValueConverter,
+} from '@duckdb/node-api';
+
+await connection.run(
+  `create or replace table target_table(i integer, v varchar)`
+);
+
+const appender = await connection.createAppender('target_table');
+
+const writer = DuckDBDataChunkWriter.forAppender(appender, {
+  converter: JSToDuckDBValueConverter,
+});
+
+writer.appendRow([42, 'duck']);
+writer.appendRow([123, 'mallard']);
+writer.appendRow([17, 'goose']);
+
+// Emits the buffered rows. The last chunk is usually a partial one.
+writer.flush();
+appender.closeSync();
+```
+
+A chunk is emitted every `rowsPerDataChunk` rows, which defaults to the
+DuckDB vector size. Omit the converter to write `DuckDBValue`s instead.
+Rows are copied as they are appended, so the same array can be reused
+across calls.
+
+Callers who already have rows in chunk-sized batches do not need a writer;
+filling a data chunk directly, as above, avoids the buffering.
+
 ### Scalar Functions
 
 ```ts
@@ -963,7 +1116,8 @@ connection.registerTableFunction(
       const { count } = info.bindData as { count: number };
       const initData = info.initData as { nextRow: number };
       const chunkSize = Math.min(2048, count - initData.nextRow);
-      // Set the row count before writing: that is what sizes the vectors.
+      // Set the row count before writing: that is what sizes the
+      // vectors.
       // A row count of zero reports that the scan is finished.
       output.rowCount = chunkSize;
       if (chunkSize > 0) {
@@ -977,7 +1131,8 @@ connection.registerTableFunction(
     },
   })
 );
-const reader = await connection.runAndReadAll('select * from my_range(3)');
+const reader =
+  await connection.runAndReadAll('select * from my_range(3)');
 const rows = reader.getRows();
 // [ [ 0 ], [ 1 ], [ 2 ] ]
 ```
@@ -1105,8 +1260,9 @@ const reader = await connection.streamAndReadAll(sql, values, types);
 const reader = await connection.streamAndReadUntil(sql, targetRowCount);
 const reader =
   await connection.streamAndReadUntil(sql, targetRowCount, values);
-const reader =
-  await connection.streamAndReadUntil(sql, targetRowCount, values, types);
+const reader = await connection.streamAndReadUntil(
+  sql, targetRowCount, values, types
+);
 
 // Prepared Statements
 
@@ -1117,7 +1273,8 @@ const prepared = await connection.prepare(sql);
 prepared.bind(values);
 prepared.bind(values, types);
 
-// Run the prepared statement. These mirror the methods on the connection.
+// Run the prepared statement. These mirror the methods on the
+// connection.
 const result = prepared.run();
 
 const reader = prepared.runAndRead();
@@ -1137,11 +1294,11 @@ const pending = await connection.start(sql);
 const pending = await connection.start(sql, values);
 const pending = await connection.start(sql, values, types);
 
-// The methods beginning with "startThenRead" provide some, but not full,
-// cooperative multithreading. They use pending results to split processing
-// into short tasks, but they fully materialize the result, which can
-// take some time (and memory). For full cooperative multithreading,
-// see the "startStreamThenRead" methods below.
+// The methods beginning with "startThenRead" provide some, but not
+// full, cooperative multithreading. They use pending results to split
+// processing into short tasks, but they fully materialize the result,
+// which can take some time (and memory). For full cooperative
+// multithreading, see the "startStreamThenRead" methods below.
 const reader = await connection.startThenRead(sql);
 const reader = await connection.startThenRead(sql, values);
 const reader = await connection.startThenRead(sql, values, types);
@@ -1153,8 +1310,9 @@ const reader = await connection.startThenReadAll(sql, values, types);
 const reader = await connection.startThenReadUntil(sql, targetRowCount);
 const reader =
   await connection.startThenReadUntil(sql, targetRowCount, values);
-const reader =
-  await connection.startThenReadUntil(sql, targetRowCount, values, types);
+const reader = await connection.startThenReadUntil(
+  sql, targetRowCount, values, types
+);
 
 // Create a pending, streaming result.
 const pending = await connection.startStream(sql);
@@ -1177,8 +1335,9 @@ const reader =
 
 const reader =
   await connection.startStreamThenReadUntil(sql, targetRowCount);
-const reader =
-  await connection.startStreamThenReadUntil(sql, targetRowCount, values);
+const reader = await connection.startStreamThenReadUntil(
+  sql, targetRowCount, values
+);
 const reader = await connection.startStreamThenReadUntil(
   sql, targetRowCount, values, types);
 
