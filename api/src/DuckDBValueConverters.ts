@@ -21,6 +21,7 @@ import {
   DuckDBMapValue,
   DuckDBStructValue,
   DuckDBTimeTZValue,
+  DuckDBTimeNSValue,
   DuckDBTimeValue,
   DuckDBTimestampMillisecondsValue,
   DuckDBTimestampNanosecondsValue,
@@ -112,6 +113,13 @@ export function bigintFromTimeValue(value: DuckDBValue): bigint {
     return value.micros;
   }
   throw new Error(`Expected DuckDBTimeValue`);
+}
+
+export function bigintFromTimeNSValue(value: DuckDBValue): bigint {
+  if (value instanceof DuckDBTimeNSValue) {
+    return value.nanos;
+  }
+  throw new Error(`Expected DuckDBTimeNSValue`);
 }
 
 export function dateFromTimestampValue(value: DuckDBValue): Date {
