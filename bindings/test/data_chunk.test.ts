@@ -14,6 +14,24 @@ suite('data chunk', () => {
     const vec1 = duckdb.data_chunk_get_vector(chunk, 1);
     expectLogicalType(duckdb.vector_get_column_type(vec1), VARCHAR);
   });
+  test('create with an unsupported column type', () => {
+    // duckdb_create_data_chunk returns null for a type it will not accept,
+    // rather than reporting the refusal. Wrapping that null would hand JS a
+    // handle that reads as zero columns and crashes on first real use.
+    const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
+    const variant_type = duckdb.create_logical_type(duckdb.Type.VARIANT);
+    expect(() => duckdb.create_data_chunk([variant_type])).toThrowError(
+      'Failed to create data chunk. One or more column types are not supported.'
+    );
+    expect(() =>
+      duckdb.create_data_chunk([int_type, variant_type])
+    ).toThrowError('Failed to create data chunk');
+  });
+  test('create with no column types', () => {
+    // Zero columns is a legitimate chunk, not a refusal.
+    const chunk = duckdb.create_data_chunk([]);
+    expect(duckdb.data_chunk_get_column_count(chunk)).toBe(0);
+  });
   test('change size', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
     const chunk = duckdb.create_data_chunk([int_type]);

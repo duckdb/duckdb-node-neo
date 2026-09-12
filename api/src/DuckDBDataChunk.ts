@@ -14,9 +14,22 @@ export class DuckDBDataChunk {
     types: readonly DuckDBType[],
     rowCount?: number
   ): DuckDBDataChunk {
-    const chunk = new DuckDBDataChunk(
-      duckdb.create_data_chunk(types.map((t) => t.toLogicalType().logical_type))
-    );
+    let chunk: DuckDBDataChunk;
+    try {
+      chunk = new DuckDBDataChunk(
+        duckdb.create_data_chunk(
+          types.map((t) => t.toLogicalType().logical_type)
+        )
+      );
+    } catch (cause) {
+      // The binding knows the chunk was refused but not which type did it, so
+      // name them here. Zero columns is a legitimate chunk, so there is
+      // nothing to check on the way out; only the refusal is an error.
+      throw new Error(
+        `Cannot create a data chunk with these column types: ${types.join(', ')}`,
+        { cause }
+      );
+    }
     if (rowCount != undefined) {
       chunk.rowCount = rowCount;
     }

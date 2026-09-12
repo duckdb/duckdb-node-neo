@@ -2746,6 +2746,13 @@ private:
       types[i] = GetLogicalTypeFromExternal(env, types_array.Get(i));
     }
     auto data_chunk = duckdb_create_data_chunk(types.data(), types_count);
+    // Returns null for a column type it will not accept (VARIANT, for one),
+    // rather than reporting the refusal. Wrapping that null would hand JS a
+    // handle that looks like an empty chunk -- duckdb_data_chunk_get_column_count
+    // reads it as zero columns -- and crashes on first real use.
+    if (!data_chunk) {
+      throw Napi::Error::New(env, "Failed to create data chunk. One or more column types are not supported.");
+    }
     return CreateExternalForDataChunk(env, data_chunk);
   }
 
