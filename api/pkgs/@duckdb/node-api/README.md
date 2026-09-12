@@ -668,7 +668,8 @@ Get chunk data:
 ```ts
 const rows = chunk.getRows();
 
-const rowObjects = chunk.getRowObjects(result.deduplicatedColumnNames());
+const rowObjects =
+  chunk.getRowObjects(result.deduplicatedColumnNames());
 
 const columns = chunk.getColumns();
 
@@ -1115,7 +1116,8 @@ connection.registerTableFunction(
       const { count } = info.bindData as { count: number };
       const initData = info.initData as { nextRow: number };
       const chunkSize = Math.min(2048, count - initData.nextRow);
-      // Set the row count before writing: that is what sizes the vectors.
+      // Set the row count before writing: that is what sizes the
+      // vectors.
       // A row count of zero reports that the scan is finished.
       output.rowCount = chunkSize;
       if (chunkSize > 0) {
@@ -1129,7 +1131,8 @@ connection.registerTableFunction(
     },
   })
 );
-const reader = await connection.runAndReadAll('select * from my_range(3)');
+const reader =
+  await connection.runAndReadAll('select * from my_range(3)');
 const rows = reader.getRows();
 // [ [ 0 ], [ 1 ], [ 2 ] ]
 ```
@@ -1257,8 +1260,9 @@ const reader = await connection.streamAndReadAll(sql, values, types);
 const reader = await connection.streamAndReadUntil(sql, targetRowCount);
 const reader =
   await connection.streamAndReadUntil(sql, targetRowCount, values);
-const reader =
-  await connection.streamAndReadUntil(sql, targetRowCount, values, types);
+const reader = await connection.streamAndReadUntil(
+  sql, targetRowCount, values, types
+);
 
 // Prepared Statements
 
@@ -1269,7 +1273,8 @@ const prepared = await connection.prepare(sql);
 prepared.bind(values);
 prepared.bind(values, types);
 
-// Run the prepared statement. These mirror the methods on the connection.
+// Run the prepared statement. These mirror the methods on the
+// connection.
 const result = prepared.run();
 
 const reader = prepared.runAndRead();
@@ -1289,11 +1294,11 @@ const pending = await connection.start(sql);
 const pending = await connection.start(sql, values);
 const pending = await connection.start(sql, values, types);
 
-// The methods beginning with "startThenRead" provide some, but not full,
-// cooperative multithreading. They use pending results to split processing
-// into short tasks, but they fully materialize the result, which can
-// take some time (and memory). For full cooperative multithreading,
-// see the "startStreamThenRead" methods below.
+// The methods beginning with "startThenRead" provide some, but not
+// full, cooperative multithreading. They use pending results to split
+// processing into short tasks, but they fully materialize the result,
+// which can take some time (and memory). For full cooperative
+// multithreading, see the "startStreamThenRead" methods below.
 const reader = await connection.startThenRead(sql);
 const reader = await connection.startThenRead(sql, values);
 const reader = await connection.startThenRead(sql, values, types);
@@ -1305,8 +1310,9 @@ const reader = await connection.startThenReadAll(sql, values, types);
 const reader = await connection.startThenReadUntil(sql, targetRowCount);
 const reader =
   await connection.startThenReadUntil(sql, targetRowCount, values);
-const reader =
-  await connection.startThenReadUntil(sql, targetRowCount, values, types);
+const reader = await connection.startThenReadUntil(
+  sql, targetRowCount, values, types
+);
 
 // Create a pending, streaming result.
 const pending = await connection.startStream(sql);
@@ -1329,8 +1335,9 @@ const reader =
 
 const reader =
   await connection.startStreamThenReadUntil(sql, targetRowCount);
-const reader =
-  await connection.startStreamThenReadUntil(sql, targetRowCount, values);
+const reader = await connection.startStreamThenReadUntil(
+  sql, targetRowCount, values
+);
 const reader = await connection.startStreamThenReadUntil(
   sql, targetRowCount, values, types);
 
