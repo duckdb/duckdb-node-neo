@@ -21,6 +21,7 @@ import {
   SMALLINT,
   STRUCT,
   TIME,
+  TIME_NS,
   TIMESTAMP,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
@@ -137,6 +138,12 @@ export function createTestJSData(): ColumnData[] {
       TIME,
       [`'${TIME.min}'`, `'${TIME.max}'`, 'null'],
       [TIME.min.micros, TIME.max.micros, null]
+    ),
+    col(
+      'time_ns',
+      TIME_NS,
+      [`'${TIME_NS.min}'`, `'${TIME_NS.max}'`, 'null'],
+      [TIME_NS.min.nanos, TIME_NS.max.nanos, null]
     ),
     col(
       'timestamp',

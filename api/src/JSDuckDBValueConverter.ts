@@ -5,6 +5,7 @@ import {
   arrayFromArrayValue,
   arrayFromListValue,
   bigintFromBigIntValue,
+  bigintFromTimeNSValue,
   bigintFromTimeValue,
   booleanFromValue,
   bytesFromBitValue,
@@ -73,7 +74,7 @@ const JSConvertersByTypeId: {
   [DuckDBTypeId.SQLNULL]: nullConverter,
   [DuckDBTypeId.STRING_LITERAL]: unsupportedConverter,
   [DuckDBTypeId.INTEGER_LITERAL]: unsupportedConverter,
-  [DuckDBTypeId.TIME_NS]: bigintFromTimeValue,
+  [DuckDBTypeId.TIME_NS]: bigintFromTimeNSValue,
   [DuckDBTypeId.GEOMETRY]: bytesFromGeometryValue,
   [DuckDBTypeId.VARIANT]: fromVariantValue,
 };
