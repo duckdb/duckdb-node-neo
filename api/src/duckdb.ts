@@ -10,6 +10,7 @@ export * from './DuckDBAppender';
 export * from './DuckDBClientContext';
 export * from './DuckDBConnection';
 export * from './DuckDBDataChunk';
+export * from './DuckDBDataChunkWriter';
 export * from './DuckDBExtractedStatements';
 export * from './DuckDBInstance';
 export * from './DuckDBInstanceCache';
