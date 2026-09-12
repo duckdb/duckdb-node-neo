@@ -55,6 +55,21 @@ export class DuckDBDataChunk {
     // which arrives empty and is sized by the function on every call.
     this.vectors.length = 0;
   }
+  /**
+   * Refuses a column count that does not match the chunk's.
+   *
+   * A short array would leave the remaining vectors never written and never
+   * flushed while the chunk reports a non-zero row count, and reading or
+   * appending it then crashes the process instead of raising.
+   */
+  private assertColumnCount(count: number) {
+    const columnCount = this.columnCount;
+    if (count !== columnCount) {
+      throw new Error(
+        `Provided number of columns (${count}) does not match chunk column count (${columnCount})`
+      );
+    }
+  }
   public getColumnVector(columnIndex: number): DuckDBVector {
     if (this.vectors[columnIndex]) {
       return this.vectors[columnIndex];
@@ -150,6 +165,7 @@ export class DuckDBDataChunk {
     return convertedColumns;
   }
   public setColumns(columns: readonly (readonly DuckDBValue[])[]) {
+    this.assertColumnCount(columns.length);
     if (columns.length > 0) {
       this.rowCount = columns[0].length;
     }
