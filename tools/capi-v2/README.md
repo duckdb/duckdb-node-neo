@@ -20,6 +20,14 @@ Both PR descriptions carry the same caveat — nothing is set in stone, more fol
 expected — so treat every count below as a snapshot. `compare_api.py` re-derives all of them
 from the headers.
 
+The preview artifacts are **rebuilt in place under the same tag**, so a local `libduckdb-v2/` goes
+stale without changing its name or URL. Between 2026-09-05 and 2026-09-12 the osx-universal
+tarball moved from 38,600,129 to 38,950,606 bytes and the dylib grew about a megabyte, while
+`duckdb_v2.h` stayed byte-for-byte identical and every function count below stayed put — an
+implementation rebuild, not a surface change. Re-run `fetch_libduckdb_v2.py` before trusting a
+measurement taken against a copy you did not just fetch; a probe that disagrees with what is
+recorded here may be measuring a different build rather than a changed answer.
+
 Companion to [`../capi-coverage`](../capi-coverage/README.md), which measures Node Neo against the
 other five C-API clients. `compare_api.py` reuses that tool's `capi_functions.py` (the canonical
 V1 function list) and `node_neo.py` (our exposure of it, and the recorded reason for each
@@ -41,6 +49,20 @@ cd tools/capi-v2 && cc -std=c11 -I libduckdb-v2 smoke_v2.c -L libduckdb-v2 -lduc
 shortest illustration of the calling convention the bindings have to adopt. `coexist_probe.c`
 builds the same way, and checks whether one database file opened through both V1 and V2 is
 detected.
+
+`chunk_probe.c` and `chunk_probe_v2.c` are a pair, asking the same question of each surface: will
+a data chunk take a VARIANT column? The V1 one builds against either library — the library we ship
+today, or the preview, which exports the V1 symbols too — which is how the answer is known to be
+the same on both sides of the 2.0 boundary. See
+[VARIANT in a data chunk](#variant-in-a-data-chunk-a-v1-defect-v2-does-not-inherit).
+
+```bash
+cd tools/capi-v2 && cc -std=c11 -I ../../bindings/libduckdb chunk_probe.c \
+    -L ../../bindings/libduckdb -lduckdb -Wl,-rpath,@loader_path/../../bindings/libduckdb \
+    -o chunk_probe && ./chunk_probe
+cd tools/capi-v2 && cc -std=c11 -I libduckdb-v2 chunk_probe_v2.c -L libduckdb-v2 -lduckdb \
+    -Wl,-rpath,@loader_path/libduckdb-v2 -o chunk_probe_v2 && ./chunk_probe_v2
+```
 
 ## Headline findings
 
@@ -700,40 +722,80 @@ list:
   `RUNTIME_INTERRUPT` so the flush can be retried, and dropped on anything else so a retry does not
   re-run a failing statement over the same rows.
 
-### VARIANT is read-only in a vector
+### VARIANT in a data chunk: a V1 defect V2 does not inherit
 
-One thing on our side of the line does not survive the move, and it is worth knowing before the
-shape question is answered: **a data chunk cannot carry a VARIANT column.**
+Worth knowing before the shape question is answered, because it runs the opposite way to the rest
+of this document: **V1 cannot put a VARIANT column in a data chunk, and V2 can.**
 
-`DuckDBVariantVector.setItem` throws for a non-null value, and is a deliberate no-op for `null` so
-that a containing struct or list can iterate every child while reading. `flush` is a no-op for the
-same reason. Nothing ever initializes that vector's memory, so appending a chunk built over a
-VARIANT column hands DuckDB uninitialized memory — which crashes the process rather than raising.
-Measured on 2026-09-07 against the current build, with both a null and a non-null value:
+`duckdb_create_data_chunk` will not accept a VARIANT logical type. The logical type itself builds
+fine — `duckdb_create_logical_type` returns it, type id 41 — and it is the chunk call that
+refuses. It refuses by **returning null**, not by reporting anything. Measured against libduckdb
+directly (`chunk_probe.c`), where the refusal is also all-or-nothing rather than partial:
 
-```ts
-const chunk = DuckDBDataChunk.create([INTEGER, VARIANT]);
-chunk.setRows([[5, null]]);
-appender.appendDataChunk(chunk);   // native crash
+```
+[INTEGER]            handle=non-NULL columns=1
+[VARIANT]            handle=NULL
+[INTEGER, VARIANT]   handle=NULL
+[] (zero types)      handle=non-NULL columns=0
 ```
 
-On V1 this is a gap rather than a wall, because the per-value path works: `appendVariant`,
+Note the last line: a chunk with no columns is a legitimate thing to create, so zero columns is
+not itself the signal. The null is.
+
+That distinction cost us a wrong diagnosis, and is worth keeping straight. A null handle read back
+through `duckdb_data_chunk_get_column_count` returns 0, so from JS the refusal *looks* like a
+chunk that merely came back empty. The binding passed the call straight through without inspecting
+the result, so that null reached JS wrapped in an External, where every subsequent call on it is a
+hazard — not only the append that happened to crash:
+
+```ts
+const chunk = DuckDBDataChunk.create([INTEGER, VARIANT]);  // null handle, no error
+chunk.setRows([[5, null]]);                                // writes nothing
+appender.appendDataChunk(chunk);                           // native crash
+```
+
+Fixed in [#487](https://github.com/duckdb/duckdb-node-neo/pull/487), in the binding, which is the
+only place the null is visible. This behaviour is unchanged in 2.0: the same probe relinked
+against the preview library returns null for the same inputs, so the V1 surface carries the defect
+across the boundary with it.
+
+On V1 it is a gap rather than a wall, because the per-value path works: `appendVariant`,
 `appendValue(v, VARIANT)`, `bindValue(…, VARIANT)` and a SQL `::variant` cast all write one, with
 `typeForValue` inferring a scalar's type when no hint is given and nested content requiring both a
 wrapper and a type (`variantValue(structValue({k: 'n'}), STRUCT({k: VARCHAR}))`).
 
-Under V2 there is no per-value path to fall back to. Bulk append *is* chunks into a collection, so
-until the vector can write, VARIANT is unwritable in bulk. That turns a known gap into a
-prerequisite, which is why it is in the deferred decisions below rather than left implicit.
+**V2 does not have the defect.** `duckdb_v2_data_chunk_create` takes a VARIANT column, and so does
+`duckdb_v2_column_data_collection_create_with_connection` — which is the one that matters, since
+the collection is what bulk append actually fills. Measured by `chunk_probe_v2.c` against the same
+preview library, borrowing the VARIANT logical type from a result schema because a context is only
+handed out inside callback scopes:
 
-The crash itself should be fixed on V1 regardless — a public call should raise, not abort — and
-independently of whether the vector ever learns to write.
+```
+[INTEGER]            -> code=0 chunk=non-NULL columns=1
+[VARIANT]            -> code=0 chunk=non-NULL columns=1
+[INTEGER, VARIANT]   -> code=0 chunk=non-NULL columns=2
+
+column data collection:
+[INTEGER, VARIANT]   -> code=0 collection=non-NULL
+```
+
+So this is not a V2 prerequisite and there is nothing to raise upstream. Losing the per-value
+appender does not cost us VARIANT.
+
+What it does do is move the remaining gap onto our side of the line. `DuckDBVariantVector` cannot
+write — `setItem` throws for a non-null value, and is a deliberate no-op for `null` so that a
+containing struct or list can iterate every child while reading. Under V1 that barely matters,
+since the per-value path is there to fall back on. Under V2 the collection is the only write path,
+so a VARIANT column in a bulk append needs that vector to learn to write. That is ours to
+implement whenever we want it, not a dependency to wait on — which is why it is not in the
+deferred decisions below.
 
 ### Net versus the V1 appender
 
 More capable: the flush does not have to be a plain INSERT, so a column subset, `ON CONFLICT`, or a
 buffer-driven UPDATE or MERGE all become reachable, and the buffer spills to disk rather than being
-memory-bound. The cost is ownership — the lifetime rules, the error semantics and that registration
+memory-bound. It also accepts a VARIANT column, which V1's own chunk path does not — see
+[VARIANT in a data chunk](#variant-in-a-data-chunk-a-v1-defect-v2-does-not-inherit). The cost is ownership — the lifetime rules, the error semantics and that registration
 leak all become ours.
 
 ## Deferred decisions
@@ -745,7 +807,6 @@ Real choices, deliberately not made yet, each with the thing that should trigger
 | What shape bulk append takes — an appender class, or helpers driving `INSERT INTO … SELECT * FROM` over a replacement-scanned collection (see [how it works](#how-bulk-append-works-without-an-appender)) | Building that part of the V2 API |
 | Whether to build the V2 bindings on `duckdb_cpp`, borrow its patterns, or ignore it | `duckdb_cpp` actually shipping in a release; it is not required either way |
 | Whether any conversion helpers are worth keeping native rather than reimplementing in TypeScript | Only if upstream ships some after all — otherwise TypeScript, which is the better choice regardless |
-| Whether `DuckDBVariantVector` gains write support, or VARIANT stays outside bulk append (see [VARIANT is read-only in a vector](#variant-is-read-only-in-a-vector)) | Building bulk append in V2. Optional on V1, where `appendVariant` is a working per-value fallback; V2 has no appender, so the chunk path is the only one and VARIANT would be unwritable in bulk without it |
 
 ## When 2.0 ships
 
