@@ -15,6 +15,47 @@ inline Napi::Reference<Napi::Value> MakeValueRef(Napi::Value value) {
     : Napi::Reference<Napi::Value>::New(value, 1);
 }
 
+// Bounds reporting for accessors indexed by position
+
+// An index past the end reaches the C API three ways, so which of these to use
+// depends on what the accessor being wrapped does with one.
+//
+// Most report it in the return value -- a null handle, or DUCKDB_TYPE_INVALID
+// -- either because duckdb.h says so or because testing shows it. Call the
+// accessor, test what came back, and use ThrowIndexOutOfRange, which fetches
+// the count only to build the message and so costs nothing when the call
+// succeeds.
+//
+// Some give nothing to test. duckdb_enum_dictionary_value reads out of bounds
+// and segfaults, and the struct and union accessors throw a C++ exception
+// across the C boundary, which is only catchable while the runtimes match.
+// Those need CheckIndexInRange before the call.
+//
+// So do the two whose sentinel is ambiguous: duckdb_prepared_statement_column_type
+// and duckdb_param_type document INVALID for an out-of-range index, but also
+// return it for a column whose type is still ambiguous and for a parameter
+// that is not yet bound.
+//
+// Parameters are numbered from one; columns and entries from zero.
+
+inline void ThrowIndexOutOfRange(Napi::Env env, uint64_t index, uint64_t count, const char *what) {
+  throw Napi::RangeError::New(env,
+    std::string(what) + " index " + std::to_string(index) + " is out of range (count: " +
+    std::to_string(count) + ")");
+}
+
+inline void CheckIndexInRange(Napi::Env env, uint64_t index, uint64_t count, const char *what) {
+  if (index >= count) {
+    ThrowIndexOutOfRange(env, index, count, what);
+  }
+}
+
+inline void CheckOneBasedIndexInRange(Napi::Env env, uint64_t index, uint64_t count, const char *what) {
+  if (index < 1 || index > count) {
+    ThrowIndexOutOfRange(env, index, count, what);
+  }
+}
+
 // Conversion from JS numbers to fixed-width integers
 
 // Napi's Int32Value and Uint32Value implement the JS ToInt32 and ToUint32
