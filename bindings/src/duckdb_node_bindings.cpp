@@ -1210,7 +1210,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetValueFromExternal(env, info[2]);
     if (duckdb_bind_value(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind value");
+      ThrowBindError(env, prepared_statement, "value");
     }
     return env.Undefined();
   }
@@ -1236,7 +1236,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = info[2].As<Napi::Boolean>();
     if (duckdb_bind_boolean(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind boolean");
+      ThrowBindError(env, prepared_statement, "boolean");
     }
     return env.Undefined();
   }
@@ -1249,7 +1249,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetInt8FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_int8(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind int8");
+      ThrowBindError(env, prepared_statement, "int8");
     }
     return env.Undefined();
   }
@@ -1262,7 +1262,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetInt16FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_int16(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind int16");
+      ThrowBindError(env, prepared_statement, "int16");
     }
     return env.Undefined();
   }
@@ -1275,7 +1275,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetInt32FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_int32(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind int32");
+      ThrowBindError(env, prepared_statement, "int32");
     }
     return env.Undefined();
   }
@@ -1292,7 +1292,7 @@ private:
       throw Napi::Error::New(env, "bigint out of int64 range");
     }
     if (duckdb_bind_int64(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind int64");
+      ThrowBindError(env, prepared_statement, "int64");
     }
     return env.Undefined();
   }
@@ -1305,7 +1305,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetHugeIntFromBigInt(env, info[2].As<Napi::BigInt>());
     if (duckdb_bind_hugeint(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind hugeint");
+      ThrowBindError(env, prepared_statement, "hugeint");
     }
     return env.Undefined();
   }
@@ -1318,7 +1318,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetUHugeIntFromBigInt(env, info[2].As<Napi::BigInt>());
     if (duckdb_bind_uhugeint(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind uhugeint");
+      ThrowBindError(env, prepared_statement, "uhugeint");
     }
     return env.Undefined();
   }
@@ -1331,7 +1331,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetDecimalFromObject(env, info[2].As<Napi::Object>());
     if (duckdb_bind_decimal(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind decimal");
+      ThrowBindError(env, prepared_statement, "decimal");
     }
     return env.Undefined();
   }
@@ -1344,7 +1344,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetUInt8FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_uint8(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind uint8");
+      ThrowBindError(env, prepared_statement, "uint8");
     }
     return env.Undefined();
   }
@@ -1357,7 +1357,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetUInt16FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_uint16(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind uint16");
+      ThrowBindError(env, prepared_statement, "uint16");
     }
     return env.Undefined();
   }
@@ -1370,7 +1370,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetUInt32FromNumber(env, info[2].As<Napi::Number>());
     if (duckdb_bind_uint32(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind uint32");
+      ThrowBindError(env, prepared_statement, "uint32");
     }
     return env.Undefined();
   }
@@ -1387,7 +1387,7 @@ private:
       throw Napi::Error::New(env, "bigint out of uint64 range");
     }
     if (duckdb_bind_uint64(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind uint64");
+      ThrowBindError(env, prepared_statement, "uint64");
     }
     return env.Undefined();
   }
@@ -1400,7 +1400,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = info[2].As<Napi::Number>().FloatValue();
     if (duckdb_bind_float(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind float");
+      ThrowBindError(env, prepared_statement, "float");
     }
     return env.Undefined();
   }
@@ -1413,7 +1413,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = info[2].As<Napi::Number>().DoubleValue();
     if (duckdb_bind_double(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind double");
+      ThrowBindError(env, prepared_statement, "double");
     }
     return env.Undefined();
   }
@@ -1426,7 +1426,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetDateFromObject(env, info[2].As<Napi::Object>());
     if (duckdb_bind_date(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind date");
+      ThrowBindError(env, prepared_statement, "date");
     }
     return env.Undefined();
   }
@@ -1439,7 +1439,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetTimeFromObject(env, info[2].As<Napi::Object>());
     if (duckdb_bind_time(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind time");
+      ThrowBindError(env, prepared_statement, "time");
     }
     return env.Undefined();
   }
@@ -1452,7 +1452,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetTimestampFromObject(env, info[2].As<Napi::Object>());
     if (duckdb_bind_timestamp(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind timestamp");
+      ThrowBindError(env, prepared_statement, "timestamp");
     }
     return env.Undefined();
   }
@@ -1465,7 +1465,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetTimestampFromObject(env, info[2].As<Napi::Object>());
     if (duckdb_bind_timestamp_tz(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind timestamp_tz");
+      ThrowBindError(env, prepared_statement, "timestamp_tz");
     }
     return env.Undefined();
   }
@@ -1478,7 +1478,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto value = GetIntervalFromObject(env, info[2].As<Napi::Object>());
     if (duckdb_bind_interval(prepared_statement, index, value)) {
-      throw Napi::Error::New(env, "Failed to bind interval");
+      ThrowBindError(env, prepared_statement, "interval");
     }
     return env.Undefined();
   }
@@ -1491,7 +1491,7 @@ private:
     auto index = info[1].As<Napi::Number>().Uint32Value();
     std::string value = info[2].As<Napi::String>();
     if (duckdb_bind_varchar_length(prepared_statement, index, value.c_str(), value.size())) {
-      throw Napi::Error::New(env, "Failed to bind varchar");
+      ThrowBindError(env, prepared_statement, "varchar");
     }
     return env.Undefined();
   }
@@ -1509,7 +1509,7 @@ private:
     auto data = reinterpret_cast<void*>(array.Data());
     auto length = array.ByteLength();
     if (duckdb_bind_blob(prepared_statement, index, data, length)) {
-      throw Napi::Error::New(env, "Failed to bind blob");
+      ThrowBindError(env, prepared_statement, "blob");
     }
     return env.Undefined();
   }
@@ -1521,7 +1521,7 @@ private:
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     if (duckdb_bind_null(prepared_statement, index)) {
-      throw Napi::Error::New(env, "Failed to bind null");
+      ThrowBindError(env, prepared_statement, "null");
     }
     return env.Undefined();
   }
@@ -2902,6 +2902,14 @@ private:
     auto env = info.Env();
     auto vector = GetVectorFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
+    // Not bounds-checked: the C API exposes no capacity for a vector, and the
+    // two candidates are both wrong. duckdb_vector_size() is the capacity of a
+    // vector in a data chunk but not of a list child vector, which
+    // list_vector_reserve grows past it, and list_vector_get_size is the
+    // current length rather than what is allocated. An index past the end
+    // writes past the vector's data. The api package derives this index from a
+    // loop bound, so it cannot reach that; a caller using the bindings
+    // directly must bound it themselves.
     std::string str = info[2].As<Napi::String>();
     auto size = str.size();
     // Use the _len variant to handle embedded null characters.
@@ -2915,6 +2923,14 @@ private:
     auto env = info.Env();
     auto vector = GetVectorFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
+    // Not bounds-checked: the C API exposes no capacity for a vector, and the
+    // two candidates are both wrong. duckdb_vector_size() is the capacity of a
+    // vector in a data chunk but not of a list child vector, which
+    // list_vector_reserve grows past it, and list_vector_get_size is the
+    // current length rather than what is allocated. An index past the end
+    // writes past the vector's data. The api package derives this index from a
+    // loop bound, so it cannot reach that; a caller using the bindings
+    // directly must bound it themselves.
     auto array = info[2].As<Napi::Uint8Array>();
     auto data = reinterpret_cast<const char *>(array.Data());
     auto length = array.ByteLength();
@@ -3013,8 +3029,15 @@ private:
   // function validity_row_is_valid(validity: Uint8Array | null, row_index: number): boolean
   Napi::Value validity_row_is_valid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto validity = info[0].IsNull() ? nullptr : reinterpret_cast<uint64_t*>(info[0].As<Napi::Uint8Array>().Data());
     auto row_index = info[1].As<Napi::Number>().Uint32Value();
+    // Unlike the setters, this one takes a null mask, meaning every row is
+    // valid. There is no buffer then, so nothing to bound.
+    uint64_t *validity = nullptr;
+    if (!info[0].IsNull()) {
+      auto mask = info[0].As<Napi::Uint8Array>();
+      CheckValidityRowInRange(env, mask, row_index);
+      validity = reinterpret_cast<uint64_t*>(mask.Data());
+    }
     auto valid = duckdb_validity_row_is_valid(validity, row_index);
     return Napi::Boolean::New(env, valid);
   }
@@ -3023,9 +3046,11 @@ private:
   // function validity_set_row_validity(validity: Uint8Array, row_index: number, valid: boolean): void
   Napi::Value validity_set_row_validity(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto validity = reinterpret_cast<uint64_t*>(info[0].As<Napi::Uint8Array>().Data());
+    auto mask = info[0].As<Napi::Uint8Array>();
     auto row_index = info[1].As<Napi::Number>().Uint32Value();
     auto valid = info[2].As<Napi::Boolean>();
+    CheckValidityRowInRange(env, mask, row_index);
+    auto validity = reinterpret_cast<uint64_t*>(mask.Data());
     duckdb_validity_set_row_validity(validity, row_index, valid);
     return env.Undefined();
   }
@@ -3034,8 +3059,10 @@ private:
   // function validity_set_row_invalid(validity: Uint8Array, row_index: number): void
   Napi::Value validity_set_row_invalid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto validity = reinterpret_cast<uint64_t*>(info[0].As<Napi::Uint8Array>().Data());
+    auto mask = info[0].As<Napi::Uint8Array>();
     auto row_index = info[1].As<Napi::Number>().Uint32Value();
+    CheckValidityRowInRange(env, mask, row_index);
+    auto validity = reinterpret_cast<uint64_t*>(mask.Data());
     duckdb_validity_set_row_invalid(validity, row_index);
     return env.Undefined();
   }
@@ -3044,8 +3071,10 @@ private:
   // function validity_set_row_valid(validity: Uint8Array, row_index: number): void
   Napi::Value validity_set_row_valid(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto validity = reinterpret_cast<uint64_t*>(info[0].As<Napi::Uint8Array>().Data());
+    auto mask = info[0].As<Napi::Uint8Array>();
     auto row_index = info[1].As<Napi::Number>().Uint32Value();
+    CheckValidityRowInRange(env, mask, row_index);
+    auto validity = reinterpret_cast<uint64_t*>(mask.Data());
     duckdb_validity_set_row_valid(validity, row_index);
     return env.Undefined();
   }

@@ -229,6 +229,24 @@ suite('prepared statements', () => {
       });
     });
   });
+  test('bind error reports which parameter', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await duckdb.prepare(
+        connection,
+        'select ?::integer, ?::integer'
+      );
+      // Parameters are 1-based, so 0 and 3 are both out of range. The error
+      // code alone supports no more than "Failed to bind"; the reason comes
+      // from duckdb_prepare_error.
+      expect(() => duckdb.bind_int32(prepared, 0, 42)).toThrowError(
+        'Can not bind to parameter number 0, statement only has 2 parameter(s)'
+      );
+      expect(() => duckdb.bind_int32(prepared, 3, 42)).toThrowError(
+        'Can not bind to parameter number 3, statement only has 2 parameter(s)'
+      );
+      expect(() => duckdb.bind_int32(prepared, 1, 42)).not.toThrow();
+    });
+  });
   test('bind primitive types', async () => {
     await withConnection(async (connection) => {
       const prepared = await duckdb.prepare(

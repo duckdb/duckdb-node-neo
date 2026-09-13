@@ -56,6 +56,37 @@ inline void CheckOneBasedIndexInRange(Napi::Env env, uint64_t index, uint64_t co
   }
 }
 
+// Bounds checking for validity masks
+
+// Call before handing a row index to any duckdb_validity_* function: they take
+// the mask as a bare pointer and index into it unchecked. The Uint8Array holds
+// eight rows per byte.
+inline void CheckValidityRowInRange(Napi::Env env, const Napi::Uint8Array &mask, uint64_t row_index) {
+  auto row_count = static_cast<uint64_t>(mask.ByteLength()) * 8;
+  if (row_index >= row_count) {
+    throw Napi::RangeError::New(env,
+      "row index " + std::to_string(row_index) + " is out of range for a validity mask of " +
+      std::to_string(mask.ByteLength()) + " bytes (" + std::to_string(row_count) + " rows)");
+  }
+}
+
+// Errors from binding a prepared statement parameter
+
+// Call when a duckdb_bind_* function reports failure. The code alone says only
+// that something failed, so this adds duckdb's own message, which names the
+// parameter. Only valid on the failure path: after a successful bind the error
+// still holds whatever failed before it.
+inline void ThrowBindError(Napi::Env env, duckdb_prepared_statement prepared_statement,
+                           const char *type_name) {
+  std::string message = std::string("Failed to bind ") + type_name;
+  auto error = duckdb_prepare_error(prepared_statement);
+  if (error) {
+    message += ": ";
+    message += error;
+  }
+  throw Napi::Error::New(env, message);
+}
+
 // Conversion from JS numbers to fixed-width integers
 
 // Napi's Int32Value and Uint32Value implement the JS ToInt32 and ToUint32
