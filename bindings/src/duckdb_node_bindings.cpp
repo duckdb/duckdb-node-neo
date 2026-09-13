@@ -627,6 +627,9 @@ private:
     auto result_ptr = GetResultFromExternal(env, info[0]);
     auto column_index = info[1].As<Napi::Number>().Uint32Value();
     auto column_name = duckdb_column_name(result_ptr, column_index);
+    if (!column_name) {
+      ThrowIndexOutOfRange(env, column_index, duckdb_column_count(result_ptr), "column");
+    }
     return Napi::String::New(env, column_name);
   }
 
@@ -637,6 +640,11 @@ private:
     auto result_ptr = GetResultFromExternal(env, info[0]);
     auto column_index = info[1].As<Napi::Number>().Uint32Value();
     auto column_type = duckdb_column_type(result_ptr, column_index);
+    // duckdb.h: INVALID means the column is out of range. A column of a
+    // successful result never has it otherwise.
+    if (column_type == DUCKDB_TYPE_INVALID) {
+      ThrowIndexOutOfRange(env, column_index, duckdb_column_count(result_ptr), "column");
+    }
     return Napi::Number::New(env, column_type);
   }
 
@@ -656,6 +664,9 @@ private:
     auto result_ptr = GetResultFromExternal(env, info[0]);
     auto column_index = info[1].As<Napi::Number>().Uint32Value();
     auto column_logical_type = duckdb_column_logical_type(result_ptr, column_index);
+    if (!column_logical_type) {
+      ThrowIndexOutOfRange(env, column_index, duckdb_column_count(result_ptr), "column");
+    }
     return CreateExternalForLogicalType(env, column_logical_type);
   }
 
@@ -1082,6 +1093,11 @@ private:
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
     auto parameter_name = duckdb_parameter_name(prepared_statement, index);
+    // duckdb.h: null means the index is out of range. Without this, the null
+    // reaches Napi::String::New and surfaces as "Error in native callback".
+    if (!parameter_name) {
+      ThrowIndexOutOfRange(env, index, duckdb_nparams(prepared_statement), "parameter");
+    }
     auto str = Napi::String::New(env, parameter_name);
     duckdb_free((void *)parameter_name);
     return str;
@@ -1093,6 +1109,10 @@ private:
     auto env = info.Env();
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
+    // Checked before the call rather than from the return value: duckdb.h says
+    // INVALID means out of range, but it is also what a parameter in range
+    // reports before it is bound, so it cannot tell the two apart.
+    CheckOneBasedIndexInRange(env, index, duckdb_nparams(prepared_statement), "parameter");
     auto type = duckdb_param_type(prepared_statement, index);
     return Napi::Number::New(env, type);
   }
@@ -1173,6 +1193,11 @@ private:
     auto env = info.Env();
     auto prepared_statement = GetPreparedStatementFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
+    // Checked before the call rather than from the return value: duckdb.h says
+    // INVALID means out of range, but it also comes back for a column in range
+    // whose type is still ambiguous, so it cannot tell the two apart.
+    CheckIndexInRange(env, index,
+      duckdb_prepared_statement_column_count(prepared_statement), "column");
     auto type = duckdb_prepared_statement_column_type(prepared_statement, index);
     return Napi::Number::New(env, type);
   }
@@ -2613,6 +2638,7 @@ private:
     auto env = info.Env();
     auto enum_logical_type = GetLogicalTypeFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
+    CheckIndexInRange(env, index, duckdb_enum_dictionary_size(enum_logical_type), "enum value");
     auto value = duckdb_enum_dictionary_value(enum_logical_type, index);
     auto str = Napi::String::New(env, value);
     duckdb_free(value);
@@ -2679,6 +2705,7 @@ private:
     auto env = info.Env();
     auto struct_logical_type = GetLogicalTypeFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
+    CheckIndexInRange(env, index, duckdb_struct_type_child_count(struct_logical_type), "struct entry");
     auto child_name = duckdb_struct_type_child_name(struct_logical_type, index);
     auto str = Napi::String::New(env, child_name);
     duckdb_free(child_name);
@@ -2691,6 +2718,7 @@ private:
     auto env = info.Env();
     auto struct_logical_type = GetLogicalTypeFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
+    CheckIndexInRange(env, index, duckdb_struct_type_child_count(struct_logical_type), "struct entry");
     auto child_logical_type = duckdb_struct_type_child_type(struct_logical_type, index);
     return CreateExternalForLogicalType(env, child_logical_type);
   }
@@ -2710,6 +2738,7 @@ private:
     auto env = info.Env();
     auto union_logical_type = GetLogicalTypeFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
+    CheckIndexInRange(env, index, duckdb_union_type_member_count(union_logical_type), "union member");
     auto member_name = duckdb_union_type_member_name(union_logical_type, index);
     auto str = Napi::String::New(env, member_name);
     duckdb_free(member_name);
@@ -2722,6 +2751,7 @@ private:
     auto env = info.Env();
     auto union_logical_type = GetLogicalTypeFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
+    CheckIndexInRange(env, index, duckdb_union_type_member_count(union_logical_type), "union member");
     auto member_logical_type = duckdb_union_type_member_type(union_logical_type, index);
     return CreateExternalForLogicalType(env, member_logical_type);
   }
@@ -2784,6 +2814,9 @@ private:
     auto chunk = GetDataChunkFromExternal(env, info[0]);
     auto column_index = info[1].As<Napi::Number>().Uint32Value();
     auto vector = duckdb_data_chunk_get_vector(chunk, column_index);
+    if (!vector) {
+      ThrowIndexOutOfRange(env, column_index, duckdb_data_chunk_get_column_count(chunk), "column");
+    }
     return CreateExternalForVectorWithoutFinalizer(env, vector);
   }
 
@@ -2936,6 +2969,14 @@ private:
     auto env = info.Env();
     auto vector = GetVectorFromExternal(env, info[0]);
     auto index = info[1].As<Napi::Number>().Uint32Value();
+    // Deliberately not bounds-checked, unlike the other indexed accessors. A
+    // vector does not carry a child count, so the check would have to
+    // materialize and destroy its logical type on every call -- about 30ns,
+    // against 3ns for the call it guards. Out of range is also not dangerous
+    // here: duckdb throws, node-addon-api catches it, and the caller gets "A
+    // native exception was thrown". Uninformative, but not a crash, and
+    // unreachable from the api package, whose only call site walks
+    // 0..struct_type_child_count.
     auto child = duckdb_struct_vector_get_child(vector, index);
     return CreateExternalForVectorWithoutFinalizer(env, child);
   }
@@ -3845,6 +3886,9 @@ private:
     auto appender = GetAppenderFromExternal(env, info[0]);
     auto column_index = info[1].As<Napi::Number>().Uint32Value();
     auto logical_type = duckdb_appender_column_type(appender, column_index);
+    if (!logical_type) {
+      ThrowIndexOutOfRange(env, column_index, duckdb_appender_column_count(appender), "column");
+    }
     return CreateExternalForLogicalType(env, logical_type);
   }
 
