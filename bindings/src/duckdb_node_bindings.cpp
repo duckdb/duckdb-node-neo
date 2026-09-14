@@ -368,6 +368,9 @@ public:
 
       InstanceMethod("fetch_chunk", &DuckDBNodeAddon::fetch_chunk),
 
+      InstanceMethod("client_context_get_catalog", &DuckDBNodeAddon::client_context_get_catalog),
+      InstanceMethod("catalog_get_type_name", &DuckDBNodeAddon::catalog_get_type_name),
+
       InstanceMethod("geometry_type_get_crs", &DuckDBNodeAddon::geometry_type_get_crs),
 
       InstanceMethod("get_data_from_pointer", &DuckDBNodeAddon::get_data_from_pointer),
@@ -4637,16 +4640,31 @@ private:
   // TODO copy function
 
   // DUCKDB_C_API duckdb_catalog duckdb_client_context_get_catalog(duckdb_client_context context, const char *catalog_name);
-  // TODO catalog
+  // function client_context_get_catalog(context: ClientContext, catalog_name: string): Catalog | null
+  Napi::Value client_context_get_catalog(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto context = GetClientContextFromExternal(env, info[0]);
+    std::string catalog_name = info[1].As<Napi::String>();
+    auto catalog = duckdb_client_context_get_catalog(context, catalog_name.c_str());
+    if (!catalog) {
+      return env.Null();
+    }
+    return CreateExternalForCatalog(env, catalog);
+  }
 
   // DUCKDB_C_API const char *duckdb_catalog_get_type_name(duckdb_catalog catalog);
-  // TODO catalog
+  // function catalog_get_type_name(catalog: Catalog): string
+  Napi::Value catalog_get_type_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto catalog = GetCatalogFromExternal(env, info[0]);
+    return Napi::String::New(env, duckdb_catalog_get_type_name(catalog));
+  }
 
   // DUCKDB_C_API duckdb_catalog_entry duckdb_catalog_get_entry(duckdb_catalog catalog, duckdb_client_context context, duckdb_catalog_entry_type entry_type, const char *schema_name, const char *entry_name);
   // TODO catalog
 
   // DUCKDB_C_API void duckdb_destroy_catalog(duckdb_catalog *catalog);
-  // TODO catalog
+  // not exposed: C API handle freed in finalizer
 
   // DUCKDB_C_API duckdb_catalog_entry_type duckdb_catalog_entry_get_type(duckdb_catalog_entry entry);
   // TODO catalog
@@ -4736,10 +4754,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 546 DUCKDB_C_API
-    314 function
-     26 not exposed
+    316 function
+     27 not exposed
      41 deprecated
-    165 TODO
+    162 TODO
         8 arrow
         5 error data
         2 utf8
@@ -4764,7 +4782,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
        16 file system
         9 config option
        36 copy function
-        7 catalog
+        4 catalog
         6 log storage
   3 ADDED
 ---
