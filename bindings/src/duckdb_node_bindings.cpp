@@ -4664,7 +4664,7 @@ private:
   // TODO catalog
 
   // DUCKDB_C_API void duckdb_destroy_catalog(duckdb_catalog *catalog);
-  // not exposed: C API handle freed in finalizer
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API duckdb_catalog_entry_type duckdb_catalog_entry_get_type(duckdb_catalog_entry entry);
   // TODO catalog

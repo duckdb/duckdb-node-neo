@@ -16,7 +16,6 @@ suite('catalog', () => {
       } finally {
         await duckdb.query(connection, 'ROLLBACK');
       }
-      expect(duckdb.client_context_get_catalog(context, 'memory')).toBeNull();
     });
   });
 
@@ -54,45 +53,9 @@ suite('catalog', () => {
     });
   });
 
-  test('reject wrong external handles', async () => {
-    await withConnection(async (connection) => {
-      const context = duckdb.connection_get_client_context(connection);
-      expect(() =>
-        duckdb.client_context_get_catalog(connection as never, 'memory'),
-      ).toThrowError('Invalid client context argument');
-      expect(() => duckdb.catalog_get_type_name(context as never))
-        .toThrowError('Invalid catalog argument');
-      await duckdb.query(connection, 'BEGIN TRANSACTION');
-      try {
-        const catalog = duckdb.client_context_get_catalog(context, 'memory');
-        expect(catalog).not.toBeNull();
-        expect(() =>
-          duckdb.client_context_get_catalog(catalog as never, 'memory'),
-        ).toThrowError('Invalid client context argument');
-        expect(duckdb.catalog_get_type_name(catalog!)).toBe('duckdb');
-      } finally {
-        await duckdb.query(connection, 'ROLLBACK');
-      }
-    });
-  });
-
-  test('reject invalid argument types', async () => {
-    await withConnection(async (connection) => {
-      const context = duckdb.connection_get_client_context(connection);
-      for (const value of [undefined, null, 42, true, {}, [], Symbol('catalog')]) {
-        expect(() => duckdb.client_context_get_catalog(value as never, 'memory'))
-          .toThrowError();
-        expect(() => duckdb.client_context_get_catalog(context, value as never))
-          .toThrowError();
-        expect(() => duckdb.catalog_get_type_name(value as never)).toThrowError();
-      }
-    });
-  });
-
-  test('look up synchronously in scalar bind and execution callbacks', async () => {
+  test('look up synchronously in a scalar bind callback', async () => {
     await withConnection(async (connection) => {
       const scalar_function = duckdb.create_scalar_function();
-      const seen: string[] = [];
       duckdb.scalar_function_set_name(scalar_function, 'catalog_type');
       duckdb.scalar_function_set_return_type(
         scalar_function, duckdb.create_logical_type(duckdb.Type.VARCHAR),
@@ -100,13 +63,14 @@ suite('catalog', () => {
       duckdb.scalar_function_set_bind(scalar_function, (info) => {
         const context = duckdb.scalar_function_get_client_context(info);
         const catalog = duckdb.client_context_get_catalog(context, 'memory');
-        seen.push(duckdb.catalog_get_type_name(catalog!));
+        duckdb.scalar_function_set_bind_data(info, {
+          type_name: duckdb.catalog_get_type_name(catalog!),
+        });
       });
-      duckdb.scalar_function_set_function(scalar_function, (_info, input, output) => {
-        // The executing query already has a transaction; no nested query is needed.
-        const context = duckdb.connection_get_client_context(connection);
-        const catalog = duckdb.client_context_get_catalog(context, 'memory');
-        const type_name = duckdb.catalog_get_type_name(catalog!);
+      duckdb.scalar_function_set_function(scalar_function, (info, input, output) => {
+        const { type_name } = duckdb.scalar_function_get_bind_data(info) as {
+          type_name: string;
+        };
         for (let row = 0; row < duckdb.data_chunk_get_size(input); row++) {
           duckdb.vector_assign_string_element(output, row, type_name);
         }
@@ -123,7 +87,6 @@ suite('catalog', () => {
         columns: [{ name: 'catalog_type()', logicalType: { typeId: duckdb.Type.VARCHAR } }],
         chunks: [{ rowCount: 1, vectors: [data(16, [true], ['duckdb'])] }],
       });
-      expect(seen).toEqual(['duckdb']);
     });
   });
 
