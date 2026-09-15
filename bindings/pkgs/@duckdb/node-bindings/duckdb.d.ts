@@ -237,6 +237,10 @@ export interface Appender {
   __duckdb_type: 'duckdb_appender';
 }
 
+export interface Catalog {
+  __duckdb_type: 'duckdb_catalog';
+}
+
 export interface ClientContext {
   __duckdb_type: 'duckdb_client_context';
 }
@@ -1595,7 +1599,11 @@ export function fetch_chunk(result: Result): Promise<DataChunk | null>;
 // DUCKDB_C_API duckdb_logical_type duckdb_table_function_bind_get_result_column_type(duckdb_bind_info info, idx_t col_idx);
 
 // DUCKDB_C_API duckdb_catalog duckdb_client_context_get_catalog(duckdb_client_context context, const char *catalog_name);
+export function client_context_get_catalog(context: ClientContext, catalog_name: string): Catalog | null;
+
 // DUCKDB_C_API const char *duckdb_catalog_get_type_name(duckdb_catalog catalog);
+export function catalog_get_type_name(catalog: Catalog): string;
+
 // DUCKDB_C_API duckdb_catalog_entry duckdb_catalog_get_entry(duckdb_catalog catalog, duckdb_client_context context, duckdb_catalog_entry_type entry_type, const char *schema_name, const char *entry_name);
 // DUCKDB_C_API void duckdb_destroy_catalog(duckdb_catalog *catalog);
 // DUCKDB_C_API duckdb_catalog_entry_type duckdb_catalog_entry_get_type(duckdb_catalog_entry entry);

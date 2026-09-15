@@ -44,6 +44,18 @@ inline duckdb_appender GetAppenderFromExternal(Napi::Env env, Napi::Value value)
   return GetDataFromExternal<_duckdb_appender>(env, AppenderTypeTag, value, "Invalid appender argument");
 }
 
+inline void FinalizeCatalog(Napi::BasicEnv, duckdb_catalog catalog) {
+  duckdb_destroy_catalog(&catalog);
+}
+
+inline Napi::External<_duckdb_catalog> CreateExternalForCatalog(Napi::Env env, duckdb_catalog catalog) {
+  return CreateExternal<_duckdb_catalog>(env, CatalogTypeTag, catalog, FinalizeCatalog);
+}
+
+inline duckdb_catalog GetCatalogFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_catalog>(env, CatalogTypeTag, value, "Invalid catalog argument");
+}
+
 inline void FinalizeClientContext(Napi::BasicEnv, duckdb_client_context client_context) {
   duckdb_destroy_client_context(&client_context);
 }
