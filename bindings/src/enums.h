@@ -10,6 +10,21 @@ inline void DefineEnumMember(Napi::Object enumObj, const char *key, uint32_t val
   enumObj.Set(value, key);
 }
 
+inline Napi::Object CreateCatalogEntryTypeEnum(Napi::Env env) {
+  auto catalogEntryTypeEnum = Napi::Object::New(env);
+  DefineEnumMember(catalogEntryTypeEnum, "INVALID", DUCKDB_CATALOG_ENTRY_TYPE_INVALID);
+  DefineEnumMember(catalogEntryTypeEnum, "TABLE", DUCKDB_CATALOG_ENTRY_TYPE_TABLE);
+  DefineEnumMember(catalogEntryTypeEnum, "SCHEMA", DUCKDB_CATALOG_ENTRY_TYPE_SCHEMA);
+  DefineEnumMember(catalogEntryTypeEnum, "VIEW", DUCKDB_CATALOG_ENTRY_TYPE_VIEW);
+  DefineEnumMember(catalogEntryTypeEnum, "INDEX", DUCKDB_CATALOG_ENTRY_TYPE_INDEX);
+  DefineEnumMember(catalogEntryTypeEnum, "PREPARED_STATEMENT", DUCKDB_CATALOG_ENTRY_TYPE_PREPARED_STATEMENT);
+  DefineEnumMember(catalogEntryTypeEnum, "SEQUENCE", DUCKDB_CATALOG_ENTRY_TYPE_SEQUENCE);
+  DefineEnumMember(catalogEntryTypeEnum, "COLLATION", DUCKDB_CATALOG_ENTRY_TYPE_COLLATION);
+  DefineEnumMember(catalogEntryTypeEnum, "TYPE", DUCKDB_CATALOG_ENTRY_TYPE_TYPE);
+  DefineEnumMember(catalogEntryTypeEnum, "DATABASE", DUCKDB_CATALOG_ENTRY_TYPE_DATABASE);
+  return catalogEntryTypeEnum;
+}
+
 inline Napi::Object CreatePendingStateEnum(Napi::Env env) {
   auto pendingStateEnum = Napi::Object::New(env);
   DefineEnumMember(pendingStateEnum, "RESULT_READY", 0);

@@ -2,6 +2,19 @@
 
 export const sizeof_bool: number;
 
+export enum CatalogEntryType {
+  INVALID = 0,
+  TABLE = 1,
+  SCHEMA = 2,
+  VIEW = 3,
+  INDEX = 4,
+  PREPARED_STATEMENT = 5,
+  SEQUENCE = 6,
+  COLLATION = 7,
+  TYPE = 8,
+  DATABASE = 9,
+}
+
 export enum PendingState {
   RESULT_READY = 0,
   RESULT_NOT_READY = 1,
@@ -239,6 +252,10 @@ export interface Appender {
 
 export interface Catalog {
   __duckdb_type: 'duckdb_catalog';
+}
+
+export interface CatalogEntry {
+  __duckdb_type: 'duckdb_catalog_entry';
 }
 
 export interface ClientContext {
@@ -1605,9 +1622,12 @@ export function client_context_get_catalog(context: ClientContext, catalog_name:
 export function catalog_get_type_name(catalog: Catalog): string;
 
 // DUCKDB_C_API duckdb_catalog_entry duckdb_catalog_get_entry(duckdb_catalog catalog, duckdb_client_context context, duckdb_catalog_entry_type entry_type, const char *schema_name, const char *entry_name);
+export function catalog_get_entry(catalog: Catalog, context: ClientContext, entry_type: CatalogEntryType, schema_name: string, entry_name: string): CatalogEntry | null;
 // DUCKDB_C_API void duckdb_destroy_catalog(duckdb_catalog *catalog);
 // DUCKDB_C_API duckdb_catalog_entry_type duckdb_catalog_entry_get_type(duckdb_catalog_entry entry);
+export function catalog_entry_get_type(entry: CatalogEntry): CatalogEntryType;
 // DUCKDB_C_API const char *duckdb_catalog_entry_get_name(duckdb_catalog_entry entry);
+export function catalog_entry_get_name(entry: CatalogEntry): string;
 // DUCKDB_C_API void duckdb_destroy_catalog_entry(duckdb_catalog_entry *entry);
 
 // DUCKDB_C_API duckdb_log_storage duckdb_create_log_storage();

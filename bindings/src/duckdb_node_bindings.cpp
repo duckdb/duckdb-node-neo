@@ -29,6 +29,7 @@ public:
     DefineAddon(exports, {
       InstanceValue("sizeof_bool", Napi::Number::New(env, sizeof(bool))),
 
+      InstanceValue("CatalogEntryType", CreateCatalogEntryTypeEnum(env)),
       InstanceValue("PendingState", CreatePendingStateEnum(env)),
       InstanceValue("ResultType", CreateResultTypeEnum(env)),
       InstanceValue("StatementType", CreateStatementTypeEnum(env)),
@@ -370,6 +371,9 @@ public:
 
       InstanceMethod("client_context_get_catalog", &DuckDBNodeAddon::client_context_get_catalog),
       InstanceMethod("catalog_get_type_name", &DuckDBNodeAddon::catalog_get_type_name),
+      InstanceMethod("catalog_get_entry", &DuckDBNodeAddon::catalog_get_entry),
+      InstanceMethod("catalog_entry_get_type", &DuckDBNodeAddon::catalog_entry_get_type),
+      InstanceMethod("catalog_entry_get_name", &DuckDBNodeAddon::catalog_entry_get_name),
 
       InstanceMethod("geometry_type_get_crs", &DuckDBNodeAddon::geometry_type_get_crs),
 
@@ -4661,19 +4665,49 @@ private:
   }
 
   // DUCKDB_C_API duckdb_catalog_entry duckdb_catalog_get_entry(duckdb_catalog catalog, duckdb_client_context context, duckdb_catalog_entry_type entry_type, const char *schema_name, const char *entry_name);
-  // TODO catalog
+  // function catalog_get_entry(catalog: Catalog, context: ClientContext, entry_type: CatalogEntryType, schema_name: string, entry_name: string): CatalogEntry | null
+  Napi::Value catalog_get_entry(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto catalog = GetCatalogFromExternal(env, info[0]);
+    auto context = GetClientContextFromExternal(env, info[1]);
+    auto entry_type = GetUInt32FromNumber(env, info[2].As<Napi::Number>(), "entry_type");
+    if (entry_type > DUCKDB_CATALOG_ENTRY_TYPE_DATABASE) {
+      throw Napi::RangeError::New(env, "Invalid catalog entry type");
+    }
+    std::string schema_name = info[3].As<Napi::String>();
+    std::string entry_name = info[4].As<Napi::String>();
+    if (schema_name.find('\0') != std::string::npos || entry_name.find('\0') != std::string::npos) {
+      throw Napi::Error::New(env, "Catalog entry names must not contain null bytes");
+    }
+    auto entry = duckdb_catalog_get_entry(catalog, context, static_cast<duckdb_catalog_entry_type>(entry_type),
+                                         schema_name.c_str(), entry_name.c_str());
+    if (!entry) {
+      return env.Null();
+    }
+    return CreateExternalForCatalogEntry(env, entry);
+  }
 
   // DUCKDB_C_API void duckdb_destroy_catalog(duckdb_catalog *catalog);
   // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API duckdb_catalog_entry_type duckdb_catalog_entry_get_type(duckdb_catalog_entry entry);
-  // TODO catalog
+  // function catalog_entry_get_type(entry: CatalogEntry): CatalogEntryType
+  Napi::Value catalog_entry_get_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto entry = GetCatalogEntryFromExternal(env, info[0]);
+    return Napi::Number::New(env, duckdb_catalog_entry_get_type(entry));
+  }
 
   // DUCKDB_C_API const char *duckdb_catalog_entry_get_name(duckdb_catalog_entry entry);
-  // TODO catalog
+  // function catalog_entry_get_name(entry: CatalogEntry): string
+  Napi::Value catalog_entry_get_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto entry = GetCatalogEntryFromExternal(env, info[0]);
+    return Napi::String::New(env, duckdb_catalog_entry_get_name(entry));
+  }
 
   // DUCKDB_C_API void duckdb_destroy_catalog_entry(duckdb_catalog_entry *entry);
-  // TODO catalog
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API duckdb_log_storage duckdb_create_log_storage();
   // TODO log storage
@@ -4754,10 +4788,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 546 DUCKDB_C_API
-    316 function
-     27 not exposed
+    319 function
+     28 not exposed
      41 deprecated
-    162 TODO
+    158 TODO
         8 arrow
         5 error data
         2 utf8
@@ -4782,7 +4816,6 @@ NODE_API_ADDON(DuckDBNodeAddon)
        16 file system
         9 config option
        36 copy function
-        4 catalog
         6 log storage
   3 ADDED
 ---
