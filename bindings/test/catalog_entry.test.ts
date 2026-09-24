@@ -67,22 +67,30 @@ suite('catalog entry', () => {
     });
   });
 
-  test('return null for missing schemas and entries', async () => {
+  test.each([
+    duckdb.CatalogEntryType.TABLE,
+    duckdb.CatalogEntryType.VIEW,
+    duckdb.CatalogEntryType.INDEX,
+    duckdb.CatalogEntryType.SEQUENCE,
+    duckdb.CatalogEntryType.COLLATION,
+    duckdb.CatalogEntryType.TYPE,
+  ])('return null for missing schemas and entries of supported category %i', async (entryType) => {
     await withCatalog((catalog, context) => {
-      expect(duckdb.catalog_get_entry(catalog, context, duckdb.CatalogEntryType.TABLE, 'missing_schema', 'test_table')).toBeNull();
-      expect(duckdb.catalog_get_entry(catalog, context, duckdb.CatalogEntryType.TABLE, 'main', 'missing_entry')).toBeNull();
-      expect(duckdb.catalog_get_entry(catalog, context, duckdb.CatalogEntryType.TABLE, 'main', '')).toBeNull();
+      expect(duckdb.catalog_get_entry(catalog, context, entryType, 'missing_schema', 'test_table')).toBeNull();
+      expect(duckdb.catalog_get_entry(catalog, context, entryType, 'main', 'missing_entry')).toBeNull();
+      expect(duckdb.catalog_get_entry(catalog, context, entryType, 'main', '')).toBeNull();
     });
   });
 
   test.each([
-    duckdb.CatalogEntryType.INVALID,
-    duckdb.CatalogEntryType.PREPARED_STATEMENT,
-    duckdb.CatalogEntryType.DATABASE,
-  ])('surface native errors for unsupported lookup category %i in a DuckDB schema', async (entryType) => {
+    ['INVALID', duckdb.CatalogEntryType.INVALID],
+    ['SCHEMA', duckdb.CatalogEntryType.SCHEMA],
+    ['PREPARED_STATEMENT', duckdb.CatalogEntryType.PREPARED_STATEMENT],
+    ['DATABASE', duckdb.CatalogEntryType.DATABASE],
+  ] as const)('describe unsupported lookup category %s in a DuckDB catalog', async (entryTypeName, entryType) => {
     await withCatalog((catalog, context) => {
       expect(() => duckdb.catalog_get_entry(catalog, context, entryType, 'main', 'test_table'))
-        .toThrowError(Error);
+        .toThrowError(new Error(`Catalog entry type ${entryTypeName} is not supported by duckdb catalog lookups`));
     });
   });
 

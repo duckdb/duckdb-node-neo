@@ -4679,6 +4679,26 @@ private:
     if (schema_name.find('\0') != std::string::npos || entry_name.find('\0') != std::string::npos) {
       throw Napi::Error::New(env, "Catalog entry names must not contain null bytes");
     }
+    const char *unsupported_type_name = nullptr;
+    switch (entry_type) {
+      case DUCKDB_CATALOG_ENTRY_TYPE_INVALID:
+        unsupported_type_name = "INVALID";
+        break;
+      case DUCKDB_CATALOG_ENTRY_TYPE_SCHEMA:
+        unsupported_type_name = "SCHEMA";
+        break;
+      case DUCKDB_CATALOG_ENTRY_TYPE_PREPARED_STATEMENT:
+        unsupported_type_name = "PREPARED_STATEMENT";
+        break;
+      case DUCKDB_CATALOG_ENTRY_TYPE_DATABASE:
+        unsupported_type_name = "DATABASE";
+        break;
+    }
+    // Extension catalogs may support different lookup categories.
+    if (unsupported_type_name && std::string(duckdb_catalog_get_type_name(catalog)) == "duckdb") {
+      throw Napi::Error::New(env, std::string("Catalog entry type ") + unsupported_type_name +
+                            " is not supported by duckdb catalog lookups");
+    }
     auto entry = duckdb_catalog_get_entry(catalog, context, static_cast<duckdb_catalog_entry_type>(entry_type),
                                          schema_name.c_str(), entry_name.c_str());
     if (!entry) {
