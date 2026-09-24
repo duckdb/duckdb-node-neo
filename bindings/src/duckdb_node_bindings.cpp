@@ -4739,7 +4739,7 @@ private:
     }
     std::string name = info[1].As<Napi::String>();
     duckdb_log_storage_set_name(holder->log_storage, name.c_str());
-    holder->has_name = true;
+    holder->has_name = !name.empty();
     return env.Undefined();
   }
 
@@ -4755,9 +4755,10 @@ private:
     if (holder->IsRegistered()) {
       throw Napi::Error::New(env, "Log storage has already been registered");
     }
-    if (holder->IsConfigured()) {
-      holder->PrepareRegistration();
+    if (!holder->IsConfigured()) {
+      throw Napi::Error::New(env, "Failed to register log storage");
     }
+    holder->PrepareRegistration();
     if (duckdb_register_log_storage(database, holder->log_storage)) {
       throw Napi::Error::New(env, "Failed to register log storage");
     }
