@@ -1,6 +1,7 @@
 import duckdb from '@duckdb/node-bindings';
 import { expect, suite, test } from 'vitest';
 import { withConnection } from './utils/withConnection';
+import { withDatabase } from './utils/withDatabase';
 
 suite('log storage', () => {
   test('registers a callback with extra data that survives handle destruction', async () => {
@@ -56,5 +57,29 @@ suite('log storage', () => {
       expect(entry?.level).toBe('INFO');
       expect(entry?.logType).toBeTruthy();
     });
+  });
+
+  test('rejects registering the same storage with another database', async () => {
+    await withDatabase({}, async (firstDatabase) => {
+      await withDatabase({}, async (secondDatabase) => {
+        const storage = duckdb.create_log_storage();
+        duckdb.log_storage_set_name(storage, 'single_registration_test');
+        duckdb.log_storage_set_write_log_entry(storage, () => {});
+
+        duckdb.register_log_storage(firstDatabase, storage);
+        expect(() =>
+          duckdb.register_log_storage(secondDatabase, storage),
+        ).toThrow('Log storage has already been registered');
+      });
+    });
+  });
+
+  test('rejects setting a callback after the storage is destroyed', () => {
+    const storage = duckdb.create_log_storage();
+    duckdb.destroy_log_storage_sync(storage);
+
+    expect(() =>
+      duckdb.log_storage_set_write_log_entry(storage, () => {}),
+    ).toThrow('Invalid log storage argument');
   });
 });
