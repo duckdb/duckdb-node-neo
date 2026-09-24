@@ -118,6 +118,7 @@ struct LogStorageHolder {
   LogStorageInternalExtraData *internal_extra_data = nullptr;
   bool has_name = false;
   bool has_write_log_entry = false;
+  bool registered = false;
 
   explicit LogStorageHolder(duckdb_log_storage log_storage_in): log_storage(log_storage_in) {}
 
@@ -137,6 +138,10 @@ struct LogStorageHolder {
     return internal_extra_data && has_name && has_write_log_entry;
   }
 
+  bool IsRegistered() const {
+    return registered;
+  }
+
   void PrepareRegistration() {
     internal_extra_data->AddReference();
   }
@@ -147,6 +152,7 @@ struct LogStorageHolder {
     // storage retains the reference added by PrepareRegistration.
     internal_extra_data->Release();
     internal_extra_data = nullptr;
+    registered = true;
   }
 };
 

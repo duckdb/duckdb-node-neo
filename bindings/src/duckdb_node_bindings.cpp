@@ -4705,6 +4705,9 @@ private:
   Napi::Value log_storage_set_write_log_entry(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto holder = GetLogStorageHolderFromExternal(env, info[0]);
+    if (!holder->log_storage) {
+      throw Napi::Error::New(env, "Invalid log storage argument");
+    }
     auto callback = info[1].As<Napi::Function>();
     auto internal_extra_data = holder->EnsureInternalExtraData(ref_reaper);
     internal_extra_data->SetWriteLogEntry(env, callback);
@@ -4718,6 +4721,9 @@ private:
   Napi::Value log_storage_set_extra_data(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto holder = GetLogStorageHolderFromExternal(env, info[0]);
+    if (!holder->log_storage) {
+      throw Napi::Error::New(env, "Invalid log storage argument");
+    }
     auto internal_extra_data = holder->EnsureInternalExtraData(ref_reaper);
     internal_extra_data->SetUserExtraData(info[1]);
     return env.Undefined();
@@ -4728,6 +4734,9 @@ private:
   Napi::Value log_storage_set_name(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto holder = GetLogStorageHolderFromExternal(env, info[0]);
+    if (!holder->log_storage) {
+      throw Napi::Error::New(env, "Invalid log storage argument");
+    }
     std::string name = info[1].As<Napi::String>();
     duckdb_log_storage_set_name(holder->log_storage, name.c_str());
     holder->has_name = true;
@@ -4740,6 +4749,9 @@ private:
     auto env = info.Env();
     auto database = GetDatabaseFromExternal(env, info[0]);
     auto holder = GetLogStorageHolderFromExternal(env, info[1]);
+    if (holder->IsRegistered()) {
+      throw Napi::Error::New(env, "Log storage has already been registered");
+    }
     if (holder->IsConfigured()) {
       holder->PrepareRegistration();
     }
