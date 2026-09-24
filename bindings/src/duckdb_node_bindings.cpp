@@ -4710,6 +4710,8 @@ private:
   // DUCKDB_C_API void duckdb_destroy_catalog(duckdb_catalog *catalog);
   // not exposed: destroyed in finalizer
 
+  // Entry accessors borrow transaction-owned data. Keeping the JS handle alive does not
+  // make access safe after COMMIT, ROLLBACK, or disconnect.
   // DUCKDB_C_API duckdb_catalog_entry_type duckdb_catalog_entry_get_type(duckdb_catalog_entry entry);
   // function catalog_entry_get_type(entry: CatalogEntry): CatalogEntryType
   Napi::Value catalog_entry_get_type(const Napi::CallbackInfo& info) {

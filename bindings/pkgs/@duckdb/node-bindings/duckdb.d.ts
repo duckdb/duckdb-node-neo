@@ -254,6 +254,10 @@ export interface Catalog {
   __duckdb_type: 'duckdb_catalog';
 }
 
+/**
+ * Valid only during the transaction that returned it. Access after COMMIT, ROLLBACK,
+ * or disconnect can read freed memory; retaining this handle does not extend its lifetime.
+ */
 export interface CatalogEntry {
   __duckdb_type: 'duckdb_catalog_entry';
 }
