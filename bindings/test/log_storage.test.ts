@@ -74,6 +74,19 @@ suite('log storage', () => {
     });
   });
 
+  test('rejects registering storage with a closed database', async () => {
+    await withDatabase({}, async (database) => {
+      const storage = duckdb.create_log_storage();
+      duckdb.log_storage_set_name(storage, 'closed_database_test');
+      duckdb.log_storage_set_write_log_entry(storage, () => {});
+      duckdb.close_sync(database);
+
+      expect(() => duckdb.register_log_storage(database, storage)).toThrow(
+        'Invalid database argument',
+      );
+    });
+  });
+
   test('rejects setting a callback after the storage is destroyed', () => {
     const storage = duckdb.create_log_storage();
     duckdb.destroy_log_storage_sync(storage);

@@ -4748,6 +4748,9 @@ private:
   Napi::Value register_log_storage(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto database = GetDatabaseFromExternal(env, info[0]);
+    if (!database) {
+      throw Napi::Error::New(env, "Invalid database argument");
+    }
     auto holder = GetLogStorageHolderFromExternal(env, info[1]);
     if (holder->IsRegistered()) {
       throw Napi::Error::New(env, "Log storage has already been registered");
