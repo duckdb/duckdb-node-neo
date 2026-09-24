@@ -59,6 +59,10 @@ inline constexpr napi_type_tag LogicalTypeTypeTag = {
   0x78AF202191ED4A23, 0x8093715369592A2B
 };
 
+inline constexpr napi_type_tag LogStorageTypeTag = {
+  0x239C381626E64741, 0x8156AF3797AEF273
+};
+
 inline constexpr napi_type_tag PendingResultTypeTag = {
   0x257E88ECE8294FEC, 0xB64963BBBD1DBB41
 };
