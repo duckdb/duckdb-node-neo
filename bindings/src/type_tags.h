@@ -27,6 +27,10 @@ inline constexpr napi_type_tag CatalogTypeTag = {
   0x7BAD224162BA408A, 0x910E8E34085DBE4A
 };
 
+inline constexpr napi_type_tag CatalogEntryTypeTag = {
+  0x7EC1EA4FDFA74308, 0x8E11B6D1670DA634
+};
+
 inline constexpr napi_type_tag ClientContextTypeTag = {
   0x1E1738782ED94232, 0x867B024D1858DF3A
 };

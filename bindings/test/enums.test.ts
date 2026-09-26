@@ -147,4 +147,27 @@ suite('enums', () => {
     expect(duckdb.Type[duckdb.Type.BIGNUM]).toBe('BIGNUM');
     expect(duckdb.Type[duckdb.Type.SQLNULL]).toBe('SQLNULL');
   });
+  test('CatalogEntryType', () => {
+    expect(duckdb.CatalogEntryType.INVALID).toBe(0);
+    expect(duckdb.CatalogEntryType.TABLE).toBe(1);
+    expect(duckdb.CatalogEntryType.SCHEMA).toBe(2);
+    expect(duckdb.CatalogEntryType.VIEW).toBe(3);
+    expect(duckdb.CatalogEntryType.INDEX).toBe(4);
+    expect(duckdb.CatalogEntryType.PREPARED_STATEMENT).toBe(5);
+    expect(duckdb.CatalogEntryType.SEQUENCE).toBe(6);
+    expect(duckdb.CatalogEntryType.COLLATION).toBe(7);
+    expect(duckdb.CatalogEntryType.TYPE).toBe(8);
+    expect(duckdb.CatalogEntryType.DATABASE).toBe(9);
+
+    expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.INVALID]).toBe('INVALID');
+    expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.TABLE]).toBe('TABLE');
+    expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.SCHEMA]).toBe('SCHEMA');
+    expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.VIEW]).toBe('VIEW');
+    expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.INDEX]).toBe('INDEX');
+    expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.PREPARED_STATEMENT]).toBe('PREPARED_STATEMENT');
+    expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.SEQUENCE]).toBe('SEQUENCE');
+    expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.COLLATION]).toBe('COLLATION');
+    expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.TYPE]).toBe('TYPE');
+    expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.DATABASE]).toBe('DATABASE');
+  });
 });

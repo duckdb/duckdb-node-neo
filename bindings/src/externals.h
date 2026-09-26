@@ -56,6 +56,18 @@ inline duckdb_catalog GetCatalogFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_catalog>(env, CatalogTypeTag, value, "Invalid catalog argument");
 }
 
+inline void FinalizeCatalogEntry(Napi::BasicEnv, duckdb_catalog_entry entry) {
+  duckdb_destroy_catalog_entry(&entry);
+}
+
+inline Napi::External<_duckdb_catalog_entry> CreateExternalForCatalogEntry(Napi::Env env, duckdb_catalog_entry entry) {
+  return CreateExternal<_duckdb_catalog_entry>(env, CatalogEntryTypeTag, entry, FinalizeCatalogEntry);
+}
+
+inline duckdb_catalog_entry GetCatalogEntryFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_catalog_entry>(env, CatalogEntryTypeTag, value, "Invalid catalog entry argument");
+}
+
 inline void FinalizeClientContext(Napi::BasicEnv, duckdb_client_context client_context) {
   duckdb_destroy_client_context(&client_context);
 }
