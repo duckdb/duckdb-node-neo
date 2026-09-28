@@ -504,6 +504,12 @@ protected:
 
   void Execute() override {
     data_chunk_ = duckdb_fetch_chunk(*result_ptr_);
+    if (auto error = duckdb_result_error(result_ptr_)) {
+      if (data_chunk_) {
+        duckdb_destroy_data_chunk(&data_chunk_);
+      }
+      SetError(error);
+    }
   }
 
   Napi::Value Result() override {
