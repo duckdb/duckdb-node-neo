@@ -2,6 +2,7 @@ import duckdb from '@duckdb/node-bindings';
 import { createConfig } from './createConfig';
 import { DuckDBConnection } from './DuckDBConnection';
 import { DuckDBInstanceCache } from './DuckDBInstanceCache';
+import { DuckDBLogStorage } from './DuckDBLogStorage';
 
 export class DuckDBInstance {
   private readonly db: duckdb.Database;
@@ -27,6 +28,10 @@ export class DuckDBInstance {
 
   public async connect(): Promise<DuckDBConnection> {
     return new DuckDBConnection(await duckdb.connect(this.db));
+  }
+
+  public registerLogStorage(logStorage: DuckDBLogStorage) {
+    duckdb.register_log_storage(this.db, logStorage.log_storage);
   }
 
   public closeSync() {

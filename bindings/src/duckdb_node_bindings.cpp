@@ -13,6 +13,7 @@
 #include "bindings_config.h"
 #include "conversion_helpers.h"
 #include "externals.h"
+#include "log_storage_helpers.h"
 #include "napi_ref_reaper.h"
 #include "scalar_function_helpers.h"
 #include "table_function_helpers.h"
@@ -374,6 +375,13 @@ public:
       InstanceMethod("catalog_get_entry", &DuckDBNodeAddon::catalog_get_entry),
       InstanceMethod("catalog_entry_get_type", &DuckDBNodeAddon::catalog_entry_get_type),
       InstanceMethod("catalog_entry_get_name", &DuckDBNodeAddon::catalog_entry_get_name),
+
+      InstanceMethod("create_log_storage", &DuckDBNodeAddon::create_log_storage),
+      InstanceMethod("destroy_log_storage_sync", &DuckDBNodeAddon::destroy_log_storage_sync),
+      InstanceMethod("log_storage_set_write_log_entry", &DuckDBNodeAddon::log_storage_set_write_log_entry),
+      InstanceMethod("log_storage_set_extra_data", &DuckDBNodeAddon::log_storage_set_extra_data),
+      InstanceMethod("log_storage_set_name", &DuckDBNodeAddon::log_storage_set_name),
+      InstanceMethod("register_log_storage", &DuckDBNodeAddon::register_log_storage),
 
       InstanceMethod("geometry_type_get_crs", &DuckDBNodeAddon::geometry_type_get_crs),
 
@@ -4732,22 +4740,87 @@ private:
   // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API duckdb_log_storage duckdb_create_log_storage();
-  // TODO log storage
+  // function create_log_storage(): LogStorage
+  Napi::Value create_log_storage(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    return CreateExternalForLogStorage(env, duckdb_create_log_storage());
+  }
 
   // DUCKDB_C_API void duckdb_destroy_log_storage(duckdb_log_storage *log_storage);
-  // TODO log storage
+  // function destroy_log_storage_sync(log_storage: LogStorage): void
+  Napi::Value destroy_log_storage_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetLogStorageHolderFromExternal(env, info[0]);
+    duckdb_destroy_log_storage(&holder->log_storage);
+    holder->internal_extra_data = nullptr;
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_log_storage_set_write_log_entry(duckdb_log_storage log_storage, duckdb_logger_write_log_entry_t function);
-  // TODO log storage
+  // function log_storage_set_write_log_entry(log_storage: LogStorage, func: WriteLogEntryFunction): void
+  Napi::Value log_storage_set_write_log_entry(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetLogStorageHolderFromExternal(env, info[0]);
+    if (!holder->log_storage) {
+      throw Napi::Error::New(env, "Invalid log storage argument");
+    }
+    auto callback = info[1].As<Napi::Function>();
+    auto internal_extra_data = holder->EnsureInternalExtraData(ref_reaper);
+    internal_extra_data->SetWriteLogEntry(env, callback);
+    duckdb_log_storage_set_write_log_entry(holder->log_storage, LogStorageWriteLogEntry);
+    holder->has_write_log_entry = true;
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_log_storage_set_extra_data(duckdb_log_storage log_storage, void *extra_data, duckdb_delete_callback_t delete_callback);
-  // TODO log storage
+  // function log_storage_set_extra_data(log_storage: LogStorage, extra_data?: object): void
+  Napi::Value log_storage_set_extra_data(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetLogStorageHolderFromExternal(env, info[0]);
+    if (!holder->log_storage) {
+      throw Napi::Error::New(env, "Invalid log storage argument");
+    }
+    auto internal_extra_data = holder->EnsureInternalExtraData(ref_reaper);
+    internal_extra_data->SetUserExtraData(info[1]);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_log_storage_set_name(duckdb_log_storage log_storage, const char *name);
-  // TODO log storage
+  // function log_storage_set_name(log_storage: LogStorage, name: string): void
+  Napi::Value log_storage_set_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetLogStorageHolderFromExternal(env, info[0]);
+    if (!holder->log_storage) {
+      throw Napi::Error::New(env, "Invalid log storage argument");
+    }
+    std::string name = info[1].As<Napi::String>();
+    duckdb_log_storage_set_name(holder->log_storage, name.c_str());
+    holder->has_name = !name.empty();
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_register_log_storage(duckdb_database database, duckdb_log_storage log_storage);
-  // TODO log storage
+  // function register_log_storage(database: Database, log_storage: LogStorage): void
+  Napi::Value register_log_storage(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto database = GetDatabaseFromExternal(env, info[0]);
+    if (!database) {
+      throw Napi::Error::New(env, "Invalid database argument");
+    }
+    auto holder = GetLogStorageHolderFromExternal(env, info[1]);
+    if (holder->IsRegistered()) {
+      throw Napi::Error::New(env, "Log storage has already been registered");
+    }
+    if (!holder->IsConfigured()) {
+      throw Napi::Error::New(env, "Failed to register log storage");
+    }
+    holder->PrepareRegistration();
+    if (duckdb_register_log_storage(database, holder->log_storage)) {
+      throw Napi::Error::New(env, "Failed to register log storage");
+    }
+    holder->CompleteRegistration();
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API char *duckdb_geometry_type_get_crs(duckdb_logical_type type);
   // function geometry_type_get_crs(logical_type: LogicalType): string | null

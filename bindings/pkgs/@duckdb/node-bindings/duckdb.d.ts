@@ -298,6 +298,10 @@ export interface LogicalType {
   __duckdb_type: 'duckdb_logical_type';
 }
 
+export interface LogStorage {
+  __duckdb_type: 'duckdb_log_storage';
+}
+
 export interface PendingResult {
   __duckdb_type: 'duckdb_pending_result';
 }
@@ -345,6 +349,14 @@ export type ScalarFunctionMainFunction = (info: ScalarFunctionInfo, input: DataC
 export type TableFunctionBindFunction = (info: TableFunctionBindInfo) => void;
 export type TableFunctionInitFunction = (info: TableFunctionInitInfo) => void;
 export type TableFunctionMainFunction = (info: TableFunctionInfo, output: DataChunk) => void;
+
+export type WriteLogEntryFunction = (
+  extraData: object | undefined,
+  timestamp: Timestamp,
+  level: string,
+  logType: string,
+  message: string,
+) => void;
 
 // Functions
 
@@ -1635,11 +1647,17 @@ export function catalog_entry_get_name(entry: CatalogEntry): string;
 // DUCKDB_C_API void duckdb_destroy_catalog_entry(duckdb_catalog_entry *entry);
 
 // DUCKDB_C_API duckdb_log_storage duckdb_create_log_storage();
+export function create_log_storage(): LogStorage;
 // DUCKDB_C_API void duckdb_destroy_log_storage(duckdb_log_storage *log_storage);
+export function destroy_log_storage_sync(log_storage: LogStorage): void;
 // DUCKDB_C_API void duckdb_log_storage_set_write_log_entry(duckdb_log_storage log_storage, duckdb_logger_write_log_entry_t function);
+export function log_storage_set_write_log_entry(log_storage: LogStorage, func: WriteLogEntryFunction): void;
 // DUCKDB_C_API void duckdb_log_storage_set_extra_data(duckdb_log_storage log_storage, void *extra_data, duckdb_delete_callback_t delete_callback);
+export function log_storage_set_extra_data(log_storage: LogStorage, extra_data?: object): void;
 // DUCKDB_C_API void duckdb_log_storage_set_name(duckdb_log_storage log_storage, const char *name);
+export function log_storage_set_name(log_storage: LogStorage, name: string): void;
 // DUCKDB_C_API duckdb_state duckdb_register_log_storage(duckdb_database database, duckdb_log_storage log_storage);
+export function register_log_storage(database: Database, log_storage: LogStorage): void;
 
 // DUCKDB_C_API char *duckdb_geometry_type_get_crs(duckdb_logical_type type);
 export function geometry_type_get_crs(logical_type: LogicalType): string | null;
