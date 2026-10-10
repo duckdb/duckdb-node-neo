@@ -1,8 +1,7 @@
 """Extract the canonical DUCKDB_C_API function list from bindings/libduckdb/duckdb.h.
 
 This is the source of truth every client is measured against. Yields one entry per
-function, carrying the `//---- Name ----//` group it sits in and whether the C API
-marks it deprecated.
+function, carrying the group it sits in and whether the C API marks it deprecated.
 """
 
 import os
@@ -21,6 +20,12 @@ section_rule = re.compile(r"^//={3}-{10,}={3}//$")
 # // Group Name
 # //----------------------------------------------------------------------------//
 group_rule = re.compile(r"^//-{20,}$")
+
+# From 1.5.6 the header is generated, and groups functions by module instead:
+# /* ============================================================================
+#  * MODULE: module_name
+#  * ============================================================================ */
+module_rule = re.compile(r"^ \* MODULE: (.*)$")
 
 
 def is_banner(lines, i, rule):
@@ -97,6 +102,10 @@ def capi_functions(path=None):
       group = banner_title(lines, i)
       i += 3
       continue
+
+    module = module_rule.match(line)
+    if module:
+      group = module.group(1).strip()
 
     if line.startswith("DUCKDB_C_API"):
       # Three declarations wrap their return type and name onto separate lines,
