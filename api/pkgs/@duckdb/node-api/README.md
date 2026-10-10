@@ -128,6 +128,40 @@ connection.closeSync();
 const result = await connection.run('from test_all_types()');
 ```
 
+### Look Up Catalog Entries
+
+```ts
+import { CatalogEntryType, DuckDBInstance } from '@duckdb/node-api';
+
+const instance = await DuckDBInstance.create();
+const connection = await instance.connect();
+try {
+  await connection.run('begin');
+  await connection.run('create view example as select 42 as i');
+
+  const catalog = connection.clientContext.getCatalog('memory')!;
+  console.log(catalog.typeName); // duckdb (backend type)
+  console.log(connection.clientContext.getCatalog('missing')); // null
+  console.log(catalog.getEntry(CatalogEntryType.TABLE, 'main', 'missing')); // null
+
+  const entry = catalog.getEntry(CatalogEntryType.TABLE, 'main', 'example')!;
+  await connection.run('rollback');
+  connection.disconnectSync();
+
+  console.log(entry.name); // example
+  console.log(CatalogEntryType[entry.type]); // VIEW (actual entry type)
+} finally {
+  connection.disconnectSync();
+  instance.closeSync();
+}
+```
+
+Use catalogs within an active transaction on an open connection; retaining
+wrappers does not extend either lifetime. `getEntry` copies name and type during
+lookup, so entry metadata remains readable after `COMMIT`, `ROLLBACK`, or
+disconnect. These snapshots do not track later catalog changes; use a fresh
+lookup in a valid transaction and connection for current metadata.
+
 ### Parameterize SQL
 
 ```ts
