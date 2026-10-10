@@ -44,6 +44,10 @@ name_rule = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 #      * ====... */
 module_rule = re.compile(r"^ \* MODULE: (.*)$")
 
+# V1 enumerators, e.g. `DUCKDB_TYPE_TIMESTAMP_TZ_NS = 42,`. New values can change
+# behavior without touching a single function signature.
+enumerator_rule = re.compile(r"^\s+(DUCKDB_[A-Z0-9_]+) = (-?\w+),?$", re.M)
+
 
 def fetch_headers():
   os.makedirs(cache_dir, exist_ok=True)
@@ -88,6 +92,11 @@ def v2_modules(path):
         break
     modules.setdefault(module, []).append(name)
   return modules
+
+
+def enumerators(path):
+  """Map V1 enumerator name -> value."""
+  return dict(enumerator_rule.findall(open(path, encoding="utf-8").read()))
 
 
 def v1_drift(shipped, on_branch, exposed):
@@ -151,6 +160,22 @@ def main():
 
   if v1_on_branch:
     v1_drift(v1_shipped, v1_on_branch, exposed)
+    enum_shipped = enumerators(os.path.join(here, "..", "..", "bindings", "libduckdb", "duckdb.h"))
+    enum_on_branch = enumerators(v1_branch_path)
+    enum_added = sorted(set(enum_on_branch) - set(enum_shipped))
+    enum_removed = sorted(set(enum_shipped) - set(enum_on_branch))
+    enum_changed = sorted(
+      name for name in set(enum_shipped) & set(enum_on_branch)
+      if enum_shipped[name] != enum_on_branch[name]
+    )
+    print(f"\nV1 enum drift into 2.0: {len(enum_removed)} removed, {len(enum_added)} added, "
+          f"{len(enum_changed)} renumbered")
+    for name in enum_removed:
+      print(f"  removed  {name}")
+    for name in enum_added:
+      print(f"  added    {name} = {enum_on_branch[name]}")
+    for name in enum_changed:
+      print(f"  changed  {name}: {enum_shipped[name]} -> {enum_on_branch[name]}")
 
   groups = {}
   for function in v1_functions:
