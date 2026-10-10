@@ -76,16 +76,18 @@ static void try_chunk(const char *label, duckdb_v2_logical_type_handle *types,
 int main(void) {
   duckdb_v2_error_info_handle err = NULL;
   duckdb_v2_environment_handle env = NULL;
-  duckdb_v2_database_handle db = NULL;
+  duckdb_v2_instance_handle instance = NULL;
   duckdb_v2_connection_handle conn = NULL;
   duckdb_v2_statement_iterator_handle it = NULL;
   duckdb_v2_sql_statement_handle st = NULL;
   duckdb_v2_result_handle res = NULL;
   duckdb_v2_schema_handle schema = NULL;
 
-  CHECK(duckdb_v2_create_environment(&env, &err));
-  CHECK(duckdb_v2_open(env, str(":memory:"), NULL, 0, &db, &err));
-  CHECK(duckdb_v2_connect(db, &conn, &err));
+  duckdb_v2_str memory = str(":memory:");
+  CHECK(duckdb_v2_environment_create(&env, &err));
+  CHECK(duckdb_v2_instance_create(env, &instance, &err));
+  CHECK(duckdb_v2_instance_attach(instance, &memory, NULL, NULL, true, &err));
+  CHECK(duckdb_v2_connection_create(instance, &conn, &err));
   CHECK(duckdb_v2_parse_sql(conn, "select 1 as i, 42::variant as v", &it, &err));
   CHECK(duckdb_v2_statement_iterator_next(it, &st, &err));
   CHECK(duckdb_v2_statement_execute(conn, st, NULL, NULL, 0, &res, &err));
