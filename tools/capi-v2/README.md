@@ -111,15 +111,17 @@ release a result (a `close()` / `Symbol.dispose`, or draining on the API side) a
 `RESOURCE_IN_USE` as something a caller can recognize. The same rule is native to V2 (§8), so the
 API shape chosen here carries over.
 
-**Our signature check has been warning on `main` since the 1.5.6 bump.** 1.5.6's `duckdb.h` uses
-the same generated layout as `duckdb_v2.h`: it carries the 2.0-style guards, the thirteen
-`()` → `(void)` edits, and a new declaration order (by module). `checkFunctionSignatures.mjs`
-compares declaration text *in order*, so it now reports both `.d.ts` and `.cpp` as mismatched, even
-though the three sets agree once `(void)` is normalized — no function is missing or extra. It warns
-rather than exits non-zero, and nothing invokes it, so nothing announced it. Settling it means
-reordering the `// DUCKDB_C_API …` blocks in `duckdb_node_bindings.cpp` and `duckdb.d.ts` to the new
-header order and taking the `(void)` edits, then regenerating the `*Sigs.json` files. That is a
-1.5.6 follow-up, not a 2.0 one, and the guard handling it needs was already done for 2.0.
+**Our signature check warned on `main` from the 1.5.6 bump until the accounting caught up.**
+1.5.6's `duckdb.h` uses the same generated layout as `duckdb_v2.h`: it carries the 2.0-style
+guards, the thirteen `()` → `(void)` edits, and a new declaration order (by module).
+`checkFunctionSignatures.mjs` compares declaration text *in order*, so it reported both `.d.ts` and
+`.cpp` as mismatched, even though the three sets agreed once `(void)` was normalized — no function
+was missing or extra. It warns rather than exits non-zero, and nothing invokes it, so nothing
+announced it. The `// DUCKDB_C_API …` blocks in `duckdb_node_bindings.cpp` and `duckdb.d.ts` now
+follow the 1.5.6 header order and take the `(void)` edits, and the check is clean again (546 of
+546). The script's guard handling needed no change, since it was already done for 2.0. The
+`// #ifndef DUCKDB_API_NO_DEPRECATED` markers kept their spelling but were regrouped: the 48
+deprecated functions now sit in 5 contiguous runs instead of 9.
 
 **The preview binaries exist, under a different naming scheme.** The install page only links the
 CLI, and `duckdb-binaries-<platform>.zip` (the 1.4/1.5 preview convention) 404s for
@@ -994,8 +996,8 @@ moving — and between the first survey and this one it moved a lot. Before acti
    `duckdb_v2.h` beside `duckdb.h`. `fetch_libduckdb_v2.py` here is preview-only, since the preview
    ships tarballs rather than zips, and can be retired at that point.
 3. **Regenerate the three `*Sigs.json` files.** The guard handling is already 2.0-ready, and the
-   `(void)` edits and module ordering arrive with 1.5.6, so once the accounting has caught up with
-   1.5.6 the only 2.0 diff should be the 2 added functions. Anything beyond that is worth reading
+   `(void)` edits and module ordering arrived with 1.5.6 and the accounting has caught up with
+   them, so the only 2.0 diff should be the 2 added functions. Anything beyond that is worth reading
    before accepting.
 4. **Re-check the three things the team hedged on**: whether any conversion helpers shipped after all
    (the header had none on 2026-10-10, and no `static inline` helpers at all), whether
