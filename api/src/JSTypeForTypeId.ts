@@ -67,6 +67,7 @@ export interface JSTypeForTypeId {
   [DuckDBTypeId.TIME_NS]: bigint;
   [DuckDBTypeId.GEOMETRY]: Uint8Array;
   [DuckDBTypeId.VARIANT]: JS | null;
+  [DuckDBTypeId.TIMESTAMP_TZ_NS]: Date;
 }
 
 /**

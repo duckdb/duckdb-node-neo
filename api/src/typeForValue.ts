@@ -23,6 +23,7 @@ import {
   TIMESTAMP_NS,
   TIMESTAMP_S,
   TIMESTAMPTZ,
+  TIMESTAMPTZ_NS,
   TIMETZ,
   TUPLE,
   UNION,
@@ -45,6 +46,7 @@ import {
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsValue,
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
@@ -116,6 +118,8 @@ export function typeForValue(value: DuckDBValue): DuckDBType {
           return TIMESTAMP_S;
         } else if (value instanceof DuckDBTimestampTZValue) {
           return TIMESTAMPTZ;
+        } else if (value instanceof DuckDBTimestampTZNanosecondsValue) {
+          return TIMESTAMPTZ_NS;
         } else if (value instanceof DuckDBTimestampValue) {
           return TIMESTAMP;
         } else if (value instanceof DuckDBTimeTZValue) {

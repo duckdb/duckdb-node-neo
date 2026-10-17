@@ -30,6 +30,7 @@ import {
   DuckDBTimestampNanosecondsType,
   DuckDBTimestampSecondsType,
   DuckDBTimestampTZType,
+  DuckDBTimestampTZNanosecondsType,
   DuckDBTimestampType,
   DuckDBTinyIntType,
   DuckDBType,
@@ -240,6 +241,8 @@ export class DuckDBLogicalType {
         throw new Error('Expected override');
       case DuckDBTypeId.VARIANT:
         return DuckDBVariantType.create(alias);
+      case DuckDBTypeId.TIMESTAMP_TZ_NS:
+        return DuckDBTimestampTZNanosecondsType.create(alias);
       default:
         throw new Error(`Unexpected type id: ${this.typeId}`);
     }

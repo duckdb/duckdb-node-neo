@@ -45,6 +45,7 @@ import { DuckDBTimestampMillisecondsVector } from './DuckDBTimestampMilliseconds
 import { DuckDBTimestampNanosecondsVector } from './DuckDBTimestampNanosecondsVector';
 import { DuckDBTimestampSecondsVector } from './DuckDBTimestampSecondsVector';
 import { DuckDBTimestampTZVector } from './DuckDBTimestampTZVector';
+import { DuckDBTimestampTZNanosecondsVector } from './DuckDBTimestampTZNanosecondsVector';
 import { DuckDBTimestampVector } from './DuckDBTimestampVector';
 import { DuckDBTinyIntVector } from './DuckDBTinyIntVector';
 import { DuckDBUBigIntVector } from './DuckDBUBigIntVector';
@@ -256,6 +257,8 @@ function createVector(
         return DuckDBGeometryVector.fromRawVector(vector, itemCount);
       case DuckDBTypeId.VARIANT:
         return DuckDBVariantVector.fromRawVector(vector, itemCount);
+      case DuckDBTypeId.TIMESTAMP_TZ_NS:
+        return DuckDBTimestampTZNanosecondsVector.fromRawVector(vector, itemCount);
       default:
         throw new Error(
           `Invalid type id: ${(vectorType as DuckDBType).typeId}`

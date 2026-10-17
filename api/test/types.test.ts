@@ -73,6 +73,7 @@ import {
   TIME,
   TIMESTAMP,
   TIMESTAMPTZ,
+  TIMESTAMPTZ_NS,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
   TIMESTAMP_S,
@@ -100,6 +101,7 @@ import {
   timeTZValue,
   timeValue,
   unionValue,
+  timestampTZNanosValue,
 } from '../src';
 import {
   createTestAllTypesColumnNameAndTypeObjects,
@@ -159,6 +161,7 @@ describe('types', () => {
     assert.equal(BIT.toString(), 'BIT');
     assert.equal(TIMETZ.toString(), 'TIME WITH TIME ZONE');
     assert.equal(TIMESTAMPTZ.toString(), 'TIMESTAMP WITH TIME ZONE');
+    assert.equal(TIMESTAMPTZ_NS.toString(), 'TIMESTAMPTZ_NS');
     assert.equal(ANY.toString(), 'ANY');
     assert.equal(BIGNUM.toString(), 'BIGNUM');
     assert.equal(SQLNULL.toString(), 'SQLNULL');
@@ -461,6 +464,8 @@ describe('types', () => {
     assert.equal(TIMESTAMP_NS.epoch.toString(), '1970-01-01 00:00:00');
     assert.equal(TIMESTAMP_NS.max.toString(), '2262-04-11 23:47:16.854775806');
     assert.equal(TIMESTAMP_NS.min.toString(), '1677-09-22 00:00:00');
+    assert.equal(TIMESTAMP_NS.posInf.toString(), 'infinity');
+    assert.equal(TIMESTAMP_NS.negInf.toString(), '-infinity');
 
     // timestamp seconds
     assert.equal(TIMESTAMP_S.epoch.toString(), '1970-01-01 00:00:00');
@@ -479,6 +484,16 @@ describe('types', () => {
     );
     assert.equal(TIMESTAMPTZ.posInf.toString(), 'infinity');
     assert.equal(TIMESTAMPTZ.negInf.toString(), '-infinity');
+
+    // timestamp tz ns
+    assert.equal(TIMESTAMPTZ_NS.epoch.toString(), '1969-12-31 18:30:00-05:30');
+    assert.equal(
+      TIMESTAMPTZ_NS.max.toString(),
+      '2262-04-11 18:17:16.854775806-05:30',
+    );
+    assert.equal(TIMESTAMPTZ_NS.min.toString(), '1677-09-21 18:30:00-05:30');
+    assert.equal(TIMESTAMPTZ_NS.posInf.toString(), 'infinity');
+    assert.equal(TIMESTAMPTZ_NS.negInf.toString(), '-infinity');
 
     // timestamp
     assert.equal(TIMESTAMP.epoch.toString(), '1970-01-01 00:00:00');
@@ -555,6 +570,78 @@ describe('types', () => {
     assert.isTrue(TIMESTAMP_NS.min.isFinite);
     assert.isFalse(TIMESTAMP_NS.posInf.isFinite);
     assert.isFalse(TIMESTAMP_NS.negInf.isFinite);
+  });
+  test('timestamptz_ns isFinite', () => {
+    assert.isTrue(TIMESTAMPTZ_NS.epoch.isFinite);
+    assert.isTrue(TIMESTAMPTZ_NS.max.isFinite);
+    assert.isTrue(TIMESTAMPTZ_NS.min.isFinite);
+    assert.isFalse(TIMESTAMPTZ_NS.posInf.isFinite);
+    assert.isFalse(TIMESTAMPTZ_NS.negInf.isFinite);
+  });
+  test('nanosecond timestamp infinities read as DuckDB prints them', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(`
+        select
+          'infinity'::timestamp_ns as ns_pos,
+          '-infinity'::timestamp_ns as ns_neg,
+          'infinity'::timestamptz_ns as tz_ns_pos,
+          '-infinity'::timestamptz_ns as tz_ns_neg,
+          'infinity'::timestamp_ns::varchar as ns_pos_text,
+          '-infinity'::timestamptz_ns::varchar as tz_ns_neg_text
+      `);
+      const [row] = reader.getRows();
+      assert.deepEqual(row.slice(0, 4), [
+        TIMESTAMP_NS.posInf,
+        TIMESTAMP_NS.negInf,
+        TIMESTAMPTZ_NS.posInf,
+        TIMESTAMPTZ_NS.negInf,
+      ]);
+      assert.deepEqual(reader.getRowsJson(), [
+        [
+          'infinity',
+          '-infinity',
+          'infinity',
+          '-infinity',
+          'infinity',
+          '-infinity',
+        ],
+      ]);
+      // A JS Date can't represent infinity.
+      for (const sql of [
+        `select 'infinity'::timestamp_ns`,
+        `select '-infinity'::timestamp_ns`,
+        `select 'infinity'::timestamptz_ns`,
+        `select '-infinity'::timestamptz_ns`,
+      ]) {
+        const infinity = await connection.runAndReadAll(sql);
+        assert.throws(() => infinity.getRowsJS(), /out of range for JS Date/);
+      }
+    });
+  });
+  test('TIMESTAMPTZ_NS binds, appends and converts', async () => {
+    // 2024-01-02 03:04:05.678901234 UTC
+    const value = timestampTZNanosValue(1704164645678901234n);
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare('select ? as t');
+      prepared.bindTimestampTZNanoseconds(1, value);
+      const reader = await prepared.runAndReadAll();
+      assert.deepEqual(reader.columnTypes(), [TIMESTAMPTZ_NS]);
+      assert.deepEqual(reader.getRows(), [[value]]);
+      assert.deepEqual(reader.getRowsJS(), [
+        [new Date('2024-01-02T03:04:05.678Z')],
+      ]);
+      assert.deepEqual(reader.getRowsJson(), [
+        ['2024-01-01 21:34:05.678901234-05:30'],
+      ]);
+
+      await connection.run('create table t (t TIMESTAMPTZ_NS)');
+      const appender = await connection.createAppender('t');
+      appender.appendTimestampTZNanoseconds(value);
+      appender.endRow();
+      appender.closeSync();
+      const appended = await connection.runAndReadAll('from t');
+      assert.deepEqual(appended.getRows(), [[value]]);
+    });
   });
   test('value conversion', () => {
     const dateParts: DateParts = { year: 2024, month: 6, day: 3 };

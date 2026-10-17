@@ -23,6 +23,7 @@ import {
   TIME,
   TIMESTAMP,
   TIMESTAMPTZ,
+  TIMESTAMPTZ_NS,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
   TIMESTAMP_S,
@@ -55,6 +56,7 @@ import {
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsValue,
   DuckDBTimestampValue,
   DuckDBUUIDValue,
   DuckDBValue,
@@ -137,6 +139,7 @@ enum VariantLogicalType {
   BIGNUM = 31,
   BITSTRING = 32,
   GEOMETRY = 33,
+  TIMESTAMP_NANOS_TZ = 34,
 }
 
 /** Physical STRUCT layout of a VARIANT column. Mirrors `LogicalType::VARIANT()`. */
@@ -361,6 +364,13 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
         return {
           value: new DuckDBTimestampTZValue(getInt64(view, byteOffset)),
           type: TIMESTAMPTZ,
+        };
+      case VariantLogicalType.TIMESTAMP_NANOS_TZ:
+        return {
+          value: new DuckDBTimestampTZNanosecondsValue(
+            getInt64(view, byteOffset)
+          ),
+          type: TIMESTAMPTZ_NS,
         };
       case VariantLogicalType.INTERVAL:
         return {

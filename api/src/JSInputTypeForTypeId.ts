@@ -89,6 +89,7 @@ export interface JSInputTypeForTypeId {
     | number
     | bigint
     | string;
+  [DuckDBTypeId.TIMESTAMP_TZ_NS]: Date;
 }
 
 /**

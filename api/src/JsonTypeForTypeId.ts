@@ -74,6 +74,7 @@ export interface JsonTypeForTypeId {
   [DuckDBTypeId.TIME_NS]: string;
   [DuckDBTypeId.GEOMETRY]: string;
   [DuckDBTypeId.VARIANT]: Json | null;
+  [DuckDBTypeId.TIMESTAMP_TZ_NS]: string;
 }
 
 /**

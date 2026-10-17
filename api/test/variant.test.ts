@@ -30,6 +30,7 @@ import {
   TIMESTAMP,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
+  TIMESTAMPTZ_NS,
   TIMESTAMP_S,
   TIMETZ,
   TINYINT,
@@ -59,6 +60,7 @@ import {
   unionValue,
   uuidValue,
   variantValue,
+  timestampTZNanosValue,
 } from '../src';
 import {
   assertColumns,
@@ -192,6 +194,18 @@ describe('VARIANT', () => {
       expect(timestampNanosValue(1704164645678901234n), TIMESTAMP_NS);
       expect(intervalValue(3, 4, BigInt(5 * 60 * 1_000_000)), INTERVAL);
       expect(uuidValue(0x00112233_4455_6677_8899_aabbccddeeffn), UUID);
+    });
+  });
+
+  test('TIMESTAMPTZ_NS decodes through VARIANT', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(
+        `select '2024-01-02 03:04:05.678901234+00'::TIMESTAMPTZ_NS::VARIANT as v`,
+      );
+      assert.deepStrictEqual(reader.getRowObjects()[0].v, variantValue(
+        timestampTZNanosValue(1704164645678901234n),
+        TIMESTAMPTZ_NS,
+      ));
     });
   });
 

@@ -28,6 +28,7 @@ import type { DuckDBTimestampMillisecondsType } from './DuckDBTimestampMilliseco
 import type { DuckDBTimestampNanosecondsType } from './DuckDBTimestampNanosecondsType';
 import type { DuckDBTimestampSecondsType } from './DuckDBTimestampSecondsType';
 import type { DuckDBTimestampTZType } from './DuckDBTimestampTZType';
+import type { DuckDBTimestampTZNanosecondsType } from './DuckDBTimestampTZNanosecondsType';
 import type { DuckDBTimestampType } from './DuckDBTimestampType';
 import type { DuckDBTinyIntType } from './DuckDBTinyIntType';
 import type { DuckDBUnionType } from './DuckDBUnionType';
@@ -81,4 +82,5 @@ export type DuckDBType =
   | DuckDBIntegerLiteralType
   | DuckDBTimeNSType
   | DuckDBGeometryType
-  | DuckDBVariantType;
+  | DuckDBVariantType
+  | DuckDBTimestampTZNanosecondsType;

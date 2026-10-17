@@ -30,6 +30,7 @@ export * from './DuckDBTimestampMillisecondsVector';
 export * from './DuckDBTimestampNanosecondsVector';
 export * from './DuckDBTimestampSecondsVector';
 export * from './DuckDBTimestampTZVector';
+export * from './DuckDBTimestampTZNanosecondsVector';
 export * from './DuckDBTimestampVector';
 export * from './DuckDBTinyIntVector';
 export * from './DuckDBTupleVector';

@@ -29,6 +29,7 @@ import {
   timestampNanosValueFromDate,
   timestampSecondsValueFromDate,
   timestampTZValueFromDate,
+  timestampTZNanosValueFromDate,
   timestampValueFromDate,
   unionValueFromObject,
   unwritableConverter,
@@ -88,6 +89,7 @@ const JSInputConvertersByTypeId: {
   [DuckDBTypeId.TIME_NS]: timeNSValueFromNanos,
   [DuckDBTypeId.GEOMETRY]: geometryValueFromBytes,
   [DuckDBTypeId.VARIANT]: variantValueFromJS,
+  [DuckDBTypeId.TIMESTAMP_TZ_NS]: timestampTZNanosValueFromDate,
 };
 
 /**

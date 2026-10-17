@@ -19,6 +19,7 @@ import {
   TIMESTAMP_NS,
   TIMESTAMP_S,
   TIMESTAMPTZ,
+  TIMESTAMPTZ_NS,
   TIMETZ,
   UUID,
   VARIANT,
@@ -40,6 +41,7 @@ import {
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsValue,
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
@@ -172,6 +174,12 @@ export class DuckDBPreparedStatement {
     value: DuckDBTimestampTZValue
   ) {
     this.bindValue(parameterIndex, value, TIMESTAMPTZ);
+  }
+  public bindTimestampTZNanoseconds(
+    parameterIndex: number,
+    value: DuckDBTimestampTZNanosecondsValue
+  ) {
+    this.bindValue(parameterIndex, value, TIMESTAMPTZ_NS);
   }
   public bindTimestampSeconds(
     parameterIndex: number,

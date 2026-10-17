@@ -219,13 +219,14 @@ export function getDuckDBTimestampStringFromDaysAndMicroseconds(
 
 export function getDuckDBTimestampStringFromDaysAndNanoseconds(
   days: bigint,
-  nanosecondsInDay: bigint
+  nanosecondsInDay: bigint,
+  timezonePart?: string
 ): string {
   // This conversion of BigInt to Number is safe, because the largest absolute value that `days` can has is 106751
   // which fits without loss of precision in a JS Number. (106751 = (2^63-1) / NANOSECONDS_PER_DAY)
   const dateStr = getDuckDBDateStringFromDays(Number(days));
   const timeStr = getDuckDBTimeStringFromNanosecondsInDay(nanosecondsInDay);
-  return `${dateStr} ${timeStr}`;
+  return `${dateStr} ${timeStr}${timezonePart ?? ''}`;
 }
 
 export function getDuckDBTimestampStringFromMicroseconds(
@@ -275,15 +276,34 @@ export function getDuckDBTimestampStringFromMilliseconds(
 }
 
 export function getDuckDBTimestampStringFromNanoseconds(
-  nanoseconds: bigint
+  nanoseconds: bigint,
+  timezoneOffsetInMinutes?: number
 ): string {
-  let days = nanoseconds / NANOSECONDS_PER_DAY;
-  let nanosecondsPart = nanoseconds % NANOSECONDS_PER_DAY;
+  // TIMESTAMP_NS and TIMESTAMPTZ_NS use the same infinity values as TIMESTAMP.
+  if (nanoseconds === NEGATIVE_INFINITY_TIMESTAMP) {
+    return '-infinity';
+  }
+  if (nanoseconds === POSITIVE_INFINITY_TIMESTAMP) {
+    return 'infinity';
+  }
+  const offsetNanoseconds =
+    timezoneOffsetInMinutes !== undefined
+      ? nanoseconds +
+        BigInt(timezoneOffsetInMinutes) *
+          NANOSECONDS_PER_SECOND *
+          SECONDS_PER_MINUTE
+      : nanoseconds;
+  let days = offsetNanoseconds / NANOSECONDS_PER_DAY;
+  let nanosecondsPart = offsetNanoseconds % NANOSECONDS_PER_DAY;
   if (nanosecondsPart < 0) {
     days--;
     nanosecondsPart += NANOSECONDS_PER_DAY;
   }
-  return getDuckDBTimestampStringFromDaysAndNanoseconds(days, nanosecondsPart);
+  return getDuckDBTimestampStringFromDaysAndNanoseconds(
+    days,
+    nanosecondsPart,
+    getTimezoneOffsetString(timezoneOffsetInMinutes)
+  );
 }
 
 // Assumes baseUnit can be pluralized by adding an 's'.
