@@ -21,6 +21,7 @@ suite('fetch errors', () => {
   test('rejects a late streaming error after delivering rows', async () => {
     await withConnection(async (connection) => {
       await duckdb.query(connection, 'SET threads = 1');
+      await duckdb.query(connection, "SET streaming_buffer_size = '1MB'");
       // Keep the error beyond the initial streaming execution buffer.
       const prepared = await duckdb.prepare(connection, `
         SELECT CASE WHEN i = 999999 THEN error('late-fetch-error') ELSE i END
