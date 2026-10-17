@@ -1749,6 +1749,11 @@ private:
   Napi::Value create_logical_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto type = static_cast<duckdb_type>(info[0].As<Napi::Number>().Uint32Value());
+    // duckdb_create_logical_type returns a VARIANT without its child types, and
+    // using it crashes; see https://github.com/duckdb/duckdb/issues/24680.
+    if (type == DUCKDB_TYPE_VARIANT) {
+      throw Napi::Error::New(env, "Cannot create a VARIANT logical type; see https://github.com/duckdb/duckdb/issues/24680");
+    }
     auto logical_type = duckdb_create_logical_type(type);
     return CreateExternalForLogicalType(env, logical_type);
   }

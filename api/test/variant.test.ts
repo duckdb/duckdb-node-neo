@@ -718,13 +718,12 @@ describe('VARIANT', () => {
   });
 
   test('heterogeneous LIST(VARIANT) cannot be bound directly', async () => {
-    // The C API's create_list_value rejects a list of values with
-    // heterogeneous physical types, so a decoded `LIST(VARIANT)` (which
-    // wraps each non-null element to preserve mixed types) cannot be
-    // bound back through a prepared statement. Pin the failure so we
-    // notice if the surface changes. The error wording originates in
-    // the native bindings — if it changes phrasing across DuckDB
-    // versions, update the regex.
+    // A decoded `LIST(VARIANT)` (which wraps each non-null element to
+    // preserve mixed types) is bound as a list value with a VARIANT element
+    // type. The C API cannot create a usable VARIANT type
+    // (https://github.com/duckdb/duckdb/issues/24680), so the bindings refuse
+    // to create one, and binding fails. Once DuckDB fixes that, this should
+    // bind and round-trip instead.
     await withConnection(async (connection) => {
       const r1 = await connection.runAndReadAll(
         `select '[1, "two"]'::JSON::VARIANT as v`,
@@ -735,7 +734,7 @@ describe('VARIANT', () => {
       const prepared = await connection.prepare(`select ?::VARIANT as v`);
       assert.throws(
         () => prepared.bindVariant(1, decoded),
-        /Failed to create (?:VARIANT value.*?Failed to create )?list value/,
+        /Cannot create a VARIANT logical type/,
       );
     });
   });

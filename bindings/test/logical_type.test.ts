@@ -10,6 +10,13 @@ suite('logical_type', () => {
     duckdb.logical_type_set_alias(int_type, 'my_logical_type');
     expect(duckdb.logical_type_get_alias(int_type)).toBe('my_logical_type');
   });
+  test('create VARIANT is refused', () => {
+    // See https://github.com/duckdb/duckdb/issues/24680. Once DuckDB fixes it,
+    // this should create a usable VARIANT type instead.
+    expect(() => duckdb.create_logical_type(duckdb.Type.VARIANT)).toThrowError(
+      'Cannot create a VARIANT logical type'
+    );
+  });
   test('array', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
     const array_type = duckdb.create_array_type(int_type, 3);
