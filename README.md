@@ -67,14 +67,11 @@ Change version in:
 ### Upgrade DuckDB Version
 
 Change version in:
-- `bindings/scripts/fetch_libduckdb_linux_amd64_musl.py`
-- `bindings/scripts/fetch_libduckdb_linux_amd64.py`
-- `bindings/scripts/fetch_libduckdb_linux_arm64_musl.py`
-- `bindings/scripts/fetch_libduckdb_linux_arm64.py`
-- `bindings/scripts/fetch_libduckdb_osx_universal.py`
-- `bindings/scripts/fetch_libduckdb_windows_amd64.py`
-- `bindings/scripts/fetch_libduckdb_windows_arm64.py`
+- `bindings/scripts/fetch_libduckdb.py` (`base_url`)
 - `bindings/test/constants.test.ts`
+
+Update the setting count and flag names in
+`bindings/test/config.test.ts`, which change with most DuckDB versions.
 
 Also change DuckDB version in package versions.
 
