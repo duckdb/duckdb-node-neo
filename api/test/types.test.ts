@@ -47,6 +47,7 @@ import {
   DuckDBTimestampNanosecondsVector,
   DuckDBTimestampSecondsVector,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsVector,
   DuckDBTimestampTZVector,
   DuckDBTimestampValue,
   DuckDBTimestampVector,
@@ -169,14 +170,14 @@ describe('types', () => {
   test('should support all data types', async () => {
     await withConnection(async (connection) => {
       const result = await connection.run(
-        'from test_all_types(use_large_enum=true)',
+        'select * from test_all_types(use_large_enum=true)',
       );
       assertColumns(result, createTestAllTypesColumnNameAndTypeObjects());
 
       const chunk = await result.fetchChunk();
       assert.isDefined(chunk);
       if (chunk) {
-        assert.strictEqual(chunk.columnCount, 56);
+        assert.strictEqual(chunk.columnCount, 59);
         assert.strictEqual(chunk.rowCount, 3);
 
         const testAllTypesColumns = createTestAllTypesColumns();
@@ -221,64 +222,72 @@ describe('types', () => {
           DuckDBTimestampTZVector,
           testAllTypesColumns[19],
         );
-        assertValues(chunk, 20, DuckDBFloatVector, testAllTypesColumns[20]);
-        assertValues(chunk, 21, DuckDBDoubleVector, testAllTypesColumns[21]);
-        assertValues(chunk, 22, DuckDBDecimal16Vector, testAllTypesColumns[22]);
-        assertValues(chunk, 23, DuckDBDecimal32Vector, testAllTypesColumns[23]);
-        assertValues(chunk, 24, DuckDBDecimal64Vector, testAllTypesColumns[24]);
         assertValues(
           chunk,
-          25,
-          DuckDBDecimal128Vector,
-          testAllTypesColumns[25],
+          20,
+          DuckDBTimestampTZNanosecondsVector,
+          testAllTypesColumns[20],
         );
-        assertValues(chunk, 26, DuckDBUUIDVector, testAllTypesColumns[26]);
-        assertValues(chunk, 27, DuckDBIntervalVector, testAllTypesColumns[27]);
-        assertValues(chunk, 28, DuckDBVarCharVector, testAllTypesColumns[28]);
-        assertValues(chunk, 29, DuckDBBlobVector, testAllTypesColumns[29]);
-        assertValues(chunk, 30, DuckDBBitVector, testAllTypesColumns[30]);
-        assertValues(chunk, 31, DuckDBEnum8Vector, testAllTypesColumns[31]);
-        assertValues(chunk, 32, DuckDBEnum16Vector, testAllTypesColumns[32]);
-        assertValues(chunk, 33, DuckDBEnum32Vector, testAllTypesColumns[33]);
+        assertValues(chunk, 21, DuckDBFloatVector, testAllTypesColumns[21]);
+        assertValues(chunk, 22, DuckDBDoubleVector, testAllTypesColumns[22]);
+        assertValues(chunk, 23, DuckDBDecimal16Vector, testAllTypesColumns[23]);
+        assertValues(chunk, 24, DuckDBDecimal32Vector, testAllTypesColumns[24]);
+        assertValues(chunk, 25, DuckDBDecimal64Vector, testAllTypesColumns[25]);
+        assertValues(
+          chunk,
+          26,
+          DuckDBDecimal128Vector,
+          testAllTypesColumns[26],
+        );
+        assertValues(chunk, 27, DuckDBUUIDVector, testAllTypesColumns[27]);
+        assertValues(chunk, 28, DuckDBIntervalVector, testAllTypesColumns[28]);
+        assertValues(chunk, 29, DuckDBVarCharVector, testAllTypesColumns[29]);
+        assertValues(chunk, 30, DuckDBBlobVector, testAllTypesColumns[30]);
+        assertValues(chunk, 31, DuckDBBitVector, testAllTypesColumns[31]);
+        assertValues(chunk, 32, DuckDBEnum8Vector, testAllTypesColumns[32]);
+        assertValues(chunk, 33, DuckDBEnum16Vector, testAllTypesColumns[33]);
+        assertValues(chunk, 34, DuckDBEnum32Vector, testAllTypesColumns[34]);
         // int_array
-        assertValues(chunk, 34, DuckDBListVector, testAllTypesColumns[34]);
-        // double_array
         assertValues(chunk, 35, DuckDBListVector, testAllTypesColumns[35]);
-        // date_array
+        // double_array
         assertValues(chunk, 36, DuckDBListVector, testAllTypesColumns[36]);
-        // timestamp_array
+        // date_array
         assertValues(chunk, 37, DuckDBListVector, testAllTypesColumns[37]);
-        // timestamptz_array
+        // timestamp_array
         assertValues(chunk, 38, DuckDBListVector, testAllTypesColumns[38]);
-        // varchar_array
+        // timestamptz_array
         assertValues(chunk, 39, DuckDBListVector, testAllTypesColumns[39]);
-        // nested_int_array
+        // varchar_array
         assertValues(chunk, 40, DuckDBListVector, testAllTypesColumns[40]);
-        assertValues(chunk, 41, DuckDBStructVector, testAllTypesColumns[41]);
-        // struct_of_arrays
+        // nested_int_array
+        assertValues(chunk, 41, DuckDBListVector, testAllTypesColumns[41]);
         assertValues(chunk, 42, DuckDBStructVector, testAllTypesColumns[42]);
+        // empty_struct
+        assertValues(chunk, 43, DuckDBStructVector, testAllTypesColumns[43]);
+        // struct_of_arrays
+        assertValues(chunk, 44, DuckDBStructVector, testAllTypesColumns[44]);
         // array_of_structs
-        assertValues(chunk, 43, DuckDBListVector, testAllTypesColumns[43]);
-        assertValues(chunk, 44, DuckDBMapVector, testAllTypesColumns[44]);
-        assertValues(chunk, 45, DuckDBUnionVector, testAllTypesColumns[45]);
+        assertValues(chunk, 45, DuckDBListVector, testAllTypesColumns[45]);
+        assertValues(chunk, 46, DuckDBMapVector, testAllTypesColumns[46]);
+        assertValues(chunk, 47, DuckDBUnionVector, testAllTypesColumns[47]);
         // fixed_int_array
-        assertValues(chunk, 46, DuckDBArrayVector, testAllTypesColumns[46]);
-        // fixed_varchar_array
-        assertValues(chunk, 47, DuckDBArrayVector, testAllTypesColumns[47]);
-        // fixed_nested_int_array
         assertValues(chunk, 48, DuckDBArrayVector, testAllTypesColumns[48]);
-        // fixed_nested_varchar_array
+        // fixed_varchar_array
         assertValues(chunk, 49, DuckDBArrayVector, testAllTypesColumns[49]);
-        // fixed_struct_array
+        // fixed_nested_int_array
         assertValues(chunk, 50, DuckDBArrayVector, testAllTypesColumns[50]);
-        // struct_of_fixed_array
-        assertValues(chunk, 51, DuckDBStructVector, testAllTypesColumns[51]);
-        // fixed_array_of_int_list
+        // fixed_nested_varchar_array
+        assertValues(chunk, 51, DuckDBArrayVector, testAllTypesColumns[51]);
+        // fixed_struct_array
         assertValues(chunk, 52, DuckDBArrayVector, testAllTypesColumns[52]);
+        // struct_of_fixed_array
+        assertValues(chunk, 53, DuckDBStructVector, testAllTypesColumns[53]);
+        // fixed_array_of_int_list
+        assertValues(chunk, 54, DuckDBArrayVector, testAllTypesColumns[54]);
         // list_of_fixed_int_array
-        assertValues(chunk, 53, DuckDBListVector, testAllTypesColumns[53]);
+        assertValues(chunk, 55, DuckDBListVector, testAllTypesColumns[55]);
         // time_ns
-        assertValues(chunk, 54, DuckDBTimeNSVector, testAllTypesColumns[54]);
+        assertValues(chunk, 56, DuckDBTimeNSVector, testAllTypesColumns[56]);
       }
     });
   });
