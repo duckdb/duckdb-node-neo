@@ -17,6 +17,7 @@ import {
   LIST,
   MAP,
   SMALLINT,
+  SQLNULL,
   STRUCT,
   TIME,
   TIMESTAMP,
@@ -384,7 +385,7 @@ suite('prepared statements', () => {
           { name: 'interval', logicalType: INTERVAL },
           { name: 'varchar', logicalType: VARCHAR },
           { name: 'blob', logicalType: BLOB },
-          { name: 'null', logicalType: INTEGER },
+          { name: 'null', logicalType: SQLNULL },
         ],
         chunks: [
           {

@@ -21,6 +21,7 @@ export * from './DuckDBIntervalVector';
 export * from './DuckDBListVector';
 export * from './DuckDBMapVector';
 export * from './DuckDBSmallIntVector';
+export * from './DuckDBSQLNullVector';
 export * from './DuckDBStructVector';
 export * from './DuckDBTimeNSVector';
 export * from './DuckDBTimeTZVector';

@@ -36,6 +36,7 @@ import {
   DuckDBListVector,
   DuckDBMapVector,
   DuckDBSmallIntVector,
+  DuckDBSQLNullVector,
   DuckDBStructVector,
   DuckDBTimeNSVector,
   DuckDBTimeTZValue,
@@ -625,6 +626,19 @@ describe('types', () => {
       const plainType = plain.columnTypes()[0];
       assert.ok(plainType instanceof DuckDBGeometryType);
       assert.strictEqual(plainType.crs, undefined);
+    });
+  });
+
+  test('SQLNULL columns', async () => {
+    await withConnection(async (connection) => {
+      const sql = `SELECT NULL AS n, [NULL] AS l`;
+      const result = await connection.run(sql);
+      assert.deepEqual(result.columnTypes(), [SQLNULL, LIST(SQLNULL)]);
+      const chunk = await result.fetchChunk();
+      assert.ok(chunk?.getColumnVector(0) instanceof DuckDBSQLNullVector);
+      const reader = await connection.runAndReadAll(sql);
+      assert.deepEqual(reader.getRowsJS(), [[null, [null]]]);
+      assert.deepEqual(reader.getRowsJson(), [[null, [null]]]);
     });
   });
 });

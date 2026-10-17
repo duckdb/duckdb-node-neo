@@ -20,6 +20,7 @@ import {
   DuckDBListVector,
   DuckDBMapVector,
   DuckDBPendingResultState,
+  DuckDBSQLNullVector,
   DuckDBStructVector,
   DuckDBTimeTZVector,
   DuckDBTimestampMillisecondsVector,
@@ -56,7 +57,6 @@ import {
   unionValue,
   uuidValue,
 } from '../src';
-import { replaceSqlNullWithInteger } from './util/replaceSqlNullWithInteger';
 import {
   ColumnNameAndType,
 } from './util/testAllTypes';
@@ -168,22 +168,13 @@ describe('prepared statements', () => {
 
       const result = await prepared.run();
 
-      // In the result, SQLNULL params get type INTEGER.
-      const expectedColumns = params.map((p) => {
-        const replacedType = replaceSqlNullWithInteger(p.type);
-        if (replacedType !== p.type) {
-          return { ...p, type: replacedType };
-        }
-        return p;
-      });
-
-      assertColumns(result, expectedColumns);
+      assertColumns(result, params);
 
       const chunk = await result.fetchChunk();
 
       assert.isDefined(chunk);
       if (chunk) {
-        assert.strictEqual(chunk.columnCount, expectedColumns.length);
+        assert.strictEqual(chunk.columnCount, params.length);
         assert.strictEqual(chunk.rowCount, 1);
         let i = 0;
         assertValues<boolean, DuckDBBooleanVector>(
@@ -246,12 +237,7 @@ describe('prepared statements', () => {
         assertValues(chunk, i++, DuckDBTimeTZVector, [TIMETZ.max]);
         assertValues(chunk, i++, DuckDBTimestampTZVector, [TIMESTAMPTZ.max]);
         assertValues(chunk, i++, DuckDBBigNumVector, [BIGNUM.max]);
-        assertValues<number, DuckDBIntegerVector>(
-          chunk,
-          i++,
-          DuckDBIntegerVector,
-          [null],
-        );
+        assertValues(chunk, i++, DuckDBSQLNullVector, [null]);
       }
     });
   });

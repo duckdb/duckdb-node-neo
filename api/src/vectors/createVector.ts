@@ -35,6 +35,7 @@ import { DuckDBIntervalVector } from './DuckDBIntervalVector';
 import { DuckDBListVector } from './DuckDBListVector';
 import { DuckDBMapVector } from './DuckDBMapVector';
 import { DuckDBSmallIntVector } from './DuckDBSmallIntVector';
+import { DuckDBSQLNullVector } from './DuckDBSQLNullVector';
 import { DuckDBStructVector } from './DuckDBStructVector';
 import { DuckDBTupleVector } from './DuckDBTupleVector';
 import { DuckDBTimeNSVector } from './DuckDBTimeNSVector';
@@ -244,7 +245,7 @@ function createVector(
       case DuckDBTypeId.BIGNUM:
         return DuckDBBigNumVector.fromRawVector(vector, itemCount);
       case DuckDBTypeId.SQLNULL:
-        throw new Error(`Invalid vector type: SQLNULL`);
+        return DuckDBSQLNullVector.fromRawVector(vector, itemCount);
       case DuckDBTypeId.STRING_LITERAL:
         throw new Error(`Invalid vector type: STRING_LITERAL`);
       case DuckDBTypeId.INTEGER_LITERAL:
