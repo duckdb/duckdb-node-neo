@@ -654,6 +654,20 @@ INSERT INTO cities VALUES
     ('US', 'New York City', 2010, 8175),
     ('US', 'New York City', 2020, 8772);
     `);
+      // Without an IN list, PIVOT expands into several statements, which
+      // cannot take parameters.
+      try {
+        await connection.runAndReadAll(
+          `FROM (PIVOT cities ON year USING sum(population)) WHERE country = $country`,
+          { country: 'US' },
+        );
+        assert.fail('should throw');
+      } catch (err) {
+        assert.include(
+          (err as Error).message,
+          'parameters are not supported for a statement that expands into several',
+        );
+      }
       const reader = await connection.runAndReadAll(
         `
 FROM (
