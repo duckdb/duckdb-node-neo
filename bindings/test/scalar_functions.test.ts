@@ -769,7 +769,7 @@ suite('scalar functions', () => {
               vectors: [data(16, [true], ['output_0_bind_data'])],
             },
           ],
-        });
+        }, prepared);
       }
     });
   });

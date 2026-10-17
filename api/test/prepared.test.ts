@@ -38,6 +38,7 @@ import {
   SMALLINT,
   SQLNULL,
   STRUCT,
+  StatementType,
   TIMESTAMPTZ,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
@@ -252,6 +253,51 @@ describe('prepared statements', () => {
           [null],
         );
       }
+    });
+  });
+  test('results report the type of the statement that was prepared', async () => {
+    await withConnection(async (connection) => {
+      await connection.run('create table t (i integer)');
+      const { SELECT, INSERT } = StatementType;
+
+      assert.equal(
+        (await connection.run('select ?::integer', [1])).statementType,
+        SELECT,
+      );
+      assert.equal(
+        (await connection.runAndReadAll('select ?::integer', [1])).statementType,
+        SELECT,
+      );
+      // Streams are closed so they don't block the connection on DuckDB 2.0.
+      const stream = await connection.stream('select 1');
+      assert.equal(stream.statementType, SELECT);
+      stream.closeSync();
+      assert.equal(
+        (await connection.streamAndReadAll('select 1')).statementType,
+        SELECT,
+      );
+      assert.equal(
+        (await (await connection.start('select 1')).getResult()).statementType,
+        SELECT,
+      );
+      assert.equal(
+        (await connection.startThenReadAll('select 1')).statementType,
+        SELECT,
+      );
+
+      const select = await connection.prepare('select 1');
+      assert.equal((await select.run()).statementType, SELECT);
+      const selectStream = await select.stream();
+      assert.equal(selectStream.statementType, SELECT);
+      selectStream.closeSync();
+      assert.equal((await select.start().getResult()).statementType, SELECT);
+      const pendingStream = await select.startStream().getResult();
+      assert.equal(pendingStream.statementType, SELECT);
+      pendingStream.closeSync();
+
+      const insert = await connection.prepare('insert into t values (?)');
+      insert.bindInteger(1, 1);
+      assert.equal((await insert.run()).statementType, INSERT);
     });
   });
   test('should support prepare statement bind with list', async () => {

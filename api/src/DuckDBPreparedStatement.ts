@@ -313,7 +313,8 @@ export class DuckDBPreparedStatement {
   }
   public async run(): Promise<DuckDBMaterializedResult> {
     return new DuckDBMaterializedResult(
-      await duckdb.execute_prepared(this.prepared_statement)
+      await duckdb.execute_prepared(this.prepared_statement),
+      this.statementType
     );
   }
   public async runAndRead(): Promise<DuckDBResultReader> {
@@ -333,7 +334,8 @@ export class DuckDBPreparedStatement {
   }
   public async stream(): Promise<DuckDBResult> {
     return new DuckDBResult(
-      await duckdb.execute_prepared_streaming(this.prepared_statement)
+      await duckdb.execute_prepared_streaming(this.prepared_statement),
+      this.statementType
     );
   }
   public async streamAndRead(): Promise<DuckDBResultReader> {
@@ -353,12 +355,14 @@ export class DuckDBPreparedStatement {
   }
   public start(): DuckDBPendingResult {
     return new DuckDBPendingResult(
-      duckdb.pending_prepared(this.prepared_statement)
+      duckdb.pending_prepared(this.prepared_statement),
+      this.statementType
     );
   }
   public startStream(): DuckDBPendingResult {
     return new DuckDBPendingResult(
-      duckdb.pending_prepared_streaming(this.prepared_statement)
+      duckdb.pending_prepared_streaming(this.prepared_statement),
+      this.statementType
     );
   }
 }

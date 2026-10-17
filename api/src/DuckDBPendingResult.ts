@@ -2,6 +2,7 @@ import duckdb from '@duckdb/node-bindings';
 import { createResult } from './createResult';
 import { DuckDBResult } from './DuckDBResult';
 import { DuckDBResultReader } from './DuckDBResultReader';
+import { StatementType } from './enums';
 import { sleep } from './sleep';
 
 // Values match similar enum in C API.
@@ -13,8 +14,16 @@ export enum DuckDBPendingResultState {
 
 export class DuckDBPendingResult {
   private readonly pending_result: duckdb.PendingResult;
-  constructor(pending_result: duckdb.PendingResult) {
+  private readonly preparedStatementType: StatementType | undefined;
+  /**
+   * `preparedStatementType` is passed on to the result; see `DuckDBResult`.
+   */
+  constructor(
+    pending_result: duckdb.PendingResult,
+    preparedStatementType?: StatementType
+  ) {
     this.pending_result = pending_result;
+    this.preparedStatementType = preparedStatementType;
   }
   /**
    * Destroys the pending result. On DuckDB 2.0, a pending result whose result
@@ -53,7 +62,10 @@ export class DuckDBPendingResult {
     }
   }
   public async getResult(): Promise<DuckDBResult> {
-    return createResult(await duckdb.execute_pending(this.pending_result));
+    return createResult(
+      await duckdb.execute_pending(this.pending_result),
+      this.preparedStatementType
+    );
   }
   public async read(): Promise<DuckDBResultReader> {
     return new DuckDBResultReader(await this.getResult());

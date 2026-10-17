@@ -30,10 +30,17 @@ interface ClosedResultMetadata {
 
 export class DuckDBResult {
   protected readonly result: duckdb.Result;
+  private readonly preparedStatementType: StatementType | undefined;
   private closedMetadata: ClosedResultMetadata | undefined;
 
-  constructor(result: duckdb.Result) {
+  /**
+   * `preparedStatementType` is the type of the prepared statement the result
+   * came from, if any. It is reported as the result's statement type when
+   * DuckDB reports EXECUTE instead.
+   */
+  constructor(result: duckdb.Result, preparedStatementType?: StatementType) {
     this.result = result;
+    this.preparedStatementType = preparedStatementType;
   }
 
   /**
@@ -78,7 +85,16 @@ export class DuckDBResult {
     if (this.closedMetadata) {
       return this.closedMetadata.statementType;
     }
-    return duckdb.result_statement_type(this.result);
+    const statementType = duckdb.result_statement_type(this.result);
+    // On DuckDB 2.0, results of prepared statements report EXECUTE; see
+    // https://github.com/duckdb/duckdb/issues/27415
+    if (
+      statementType === StatementType.EXECUTE &&
+      this.preparedStatementType !== undefined
+    ) {
+      return this.preparedStatementType;
+    }
+    return statementType;
   }
 
   public get columnCount(): number {
