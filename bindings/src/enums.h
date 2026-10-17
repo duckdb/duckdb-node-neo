@@ -123,5 +123,6 @@ inline Napi::Object CreateTypeEnum(Napi::Env env) {
   DefineEnumMember(typeEnum, "TIME_NS", 39);
   DefineEnumMember(typeEnum, "GEOMETRY", 40);
   DefineEnumMember(typeEnum, "VARIANT", 41);
+  DefineEnumMember(typeEnum, "TIMESTAMP_TZ_NS", 42);
   return typeEnum;
 }
