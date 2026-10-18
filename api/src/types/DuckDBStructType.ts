@@ -37,6 +37,9 @@ export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
     return this.entryTypes[this.entryIndexes[entryName]];
   }
   public toString(): string {
+    if (this.entryNames.length === 0) {
+      return 'STRUCT';
+    }
     const parts: string[] = [];
     for (let i = 0; i < this.entryNames.length; i++) {
       parts.push(
