@@ -199,6 +199,7 @@ These are:
 | `LIST` | `listValue` |
 | `MAP` | `mapValue` |
 | `STRUCT` | `structValue` |
+| `STRUCT` (unnamed, a tuple) | `tupleValue` |
 | `TIME` | `timeValue` |
 | `TIMETZ` | `timeTZValue` |
 | `TIMESTAMP` | `timestampValue` |
@@ -798,8 +799,13 @@ if (columnType.typeId === DuckDBTypeId.MAP) {
 }
 
 if (columnType.typeId === DuckDBTypeId.STRUCT) {
-  // { name1: value1, name2: value2, ... }
-  const structEntries = columnValue.entries;
+  if (columnType.isTuple) {
+    // An unnamed struct, such as (1, 'a'): items in entry order
+    const tupleItems = columnValue.items; // array of values
+  } else {
+    // { name1: value1, name2: value2, ... }
+    const structEntries = columnValue.entries;
+  }
   const structString = columnValue.toString();
 }
 

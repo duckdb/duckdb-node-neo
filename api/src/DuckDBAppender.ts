@@ -40,12 +40,14 @@ import {
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
+  DuckDBTupleValue,
   DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
   DuckDBVariantValue,
   listValue,
   structValue,
+  tupleValue,
 } from './values';
 
 export class DuckDBAppender {
@@ -172,6 +174,15 @@ export class DuckDBAppender {
   ) {
     this.appendValue(
       value instanceof DuckDBStructValue ? value : structValue(value),
+      type
+    );
+  }
+  public appendTuple(
+    value: DuckDBTupleValue | readonly DuckDBValue[],
+    type?: DuckDBStructType
+  ) {
+    this.appendValue(
+      value instanceof DuckDBTupleValue ? value : tupleValue(value),
       type
     );
   }

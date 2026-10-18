@@ -28,6 +28,7 @@ import {
   DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
   DuckDBTimestampValue,
+  DuckDBTupleValue,
   DuckDBUnionValue,
   DuckDBValue,
   DuckDBVariantValue,
@@ -267,6 +268,38 @@ export function objectFromStructValue<T>(
   throw new Error(`Expected DuckDBStructValue and DuckDBStructType`);
 }
 
+export function arrayFromTupleValue<T>(
+  value: DuckDBValue,
+  type: DuckDBType,
+  converter: DuckDBValueConverter<T>
+): (T | null)[] {
+  if (
+    value instanceof DuckDBTupleValue &&
+    type instanceof DuckDBStructType &&
+    type.isTuple
+  ) {
+    return value.items.map((item, i) =>
+      converter(item, type.entryTypes[i], converter)
+    );
+  }
+  throw new Error(`Expected DuckDBTupleValue and tuple DuckDBStructType`);
+}
+
+/**
+ * Converts a STRUCT value: a tuple (see `DuckDBStructType.isTuple`) to an
+ * array of its items, and a named struct to an object keyed by entry name.
+ */
+export function objectOrArrayFromStructValue<T>(
+  value: DuckDBValue,
+  type: DuckDBType,
+  converter: DuckDBValueConverter<T>
+): { [key: string]: T | null } | (T | null)[] {
+  if (value instanceof DuckDBTupleValue) {
+    return arrayFromTupleValue(value, type, converter);
+  }
+  return objectFromStructValue(value, type, converter);
+}
+
 export function objectArrayFromMapValue<T>(
   value: DuckDBValue,
   type: DuckDBType,
@@ -360,6 +393,11 @@ function convertVariantInner<T>(
       result[key] = convertVariantInner(value.entries[key], converter);
     }
     return result as unknown as T;
+  }
+  if (value instanceof DuckDBTupleValue) {
+    return value.items.map((item) =>
+      convertVariantInner(item, converter)
+    ) as unknown as T;
   }
   if (value instanceof DuckDBMapValue) {
     return value.entries.map((entry) => ({
