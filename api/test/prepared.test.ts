@@ -626,7 +626,7 @@ INSERT INTO cities VALUES
         `
 FROM (
   PIVOT cities
-  ON year
+  ON year IN (2000, 2010, 2020)
   USING sum(population)
 )
 WHERE country = $country
