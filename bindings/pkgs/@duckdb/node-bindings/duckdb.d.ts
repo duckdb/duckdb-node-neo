@@ -851,7 +851,7 @@ export function geometry_type_get_crs(logical_type: LogicalType): string | null;
 export function pending_prepared(prepared_statement: PreparedStatement): PendingResult;
 
 // DUCKDB_C_API void duckdb_destroy_pending(duckdb_pending_result *pending_result);
-// not exposed: destroyed in finalizer
+export function destroy_pending_sync(pending_result: PendingResult): void;
 
 // DUCKDB_C_API const char *duckdb_pending_error(duckdb_pending_result pending_result);
 export function pending_error(pending_result: PendingResult): string;
@@ -1011,7 +1011,7 @@ export function pending_prepared_streaming(prepared_statement: PreparedStatement
 export function query(connection: Connection, query: string): Promise<Result>;
 
 // DUCKDB_C_API void duckdb_destroy_result(duckdb_result *result);
-// not exposed: destroyed in finalizer
+export function destroy_result_sync(result: Result): void;
 
 // DUCKDB_C_API const char *duckdb_column_name(duckdb_result *result, idx_t col);
 export function column_name(result: Result, column_index: number): string;

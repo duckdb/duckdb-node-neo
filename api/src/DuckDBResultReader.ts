@@ -40,6 +40,14 @@ export class DuckDBResultReader {
     this.done_ = false;
   }
 
+  /**
+   * Closes the result being read; see `DuckDBResult.closeSync`. Rows already
+   * read and the column metadata stay available; reading more throws.
+   */
+  public closeSync() {
+    this.result.closeSync();
+  }
+
   public get returnType(): ResultReturnType {
     return this.result.returnType;
   }

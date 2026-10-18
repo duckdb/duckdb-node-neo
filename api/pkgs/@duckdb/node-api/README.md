@@ -249,6 +249,29 @@ Streaming results evaluate lazily when rows are read.
 const result = await connection.stream('from range(10_000)');
 ```
 
+### Close Results
+
+Results are destroyed automatically soon after their reference is
+dropped, but you can also close them explicitly to free their memory:
+
+```ts
+result.closeSync();
+```
+
+From DuckDB 2.0, a streaming result that hasn't been read to the end, or
+a pending result that hasn't been executed, blocks its connection: the
+next statement on it fails until the result is closed. A result reader
+or pending result can be closed the same way:
+
+```ts
+const reader = await connection.streamAndReadUntil(sql, 100);
+reader.closeSync();
+const rows = reader.getRows(); // rows already read stay available
+```
+
+Column names and types also stay available after closing; reading more
+rows throws.
+
 ### Inspect Result Metadata
 
 Get column names and types:
