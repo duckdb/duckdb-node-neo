@@ -203,14 +203,14 @@ describe('writing tuples', () => {
 
   test('bind with an inferred type', async () => {
     await withConnection(async (connection) => {
-      const prepared = await connection.prepare(
-        'select $1 as t, typeof($1) as type'
-      );
+      const prepared = await connection.prepare('select $1 as t');
       prepared.bind([tupleValue([1, 'a'])]);
       const reader = await prepared.runAndReadAll();
-      assert.deepEqual(reader.getRowsJS(), [
-        [[1, 'a'], 'STRUCT(INTEGER, VARCHAR)'],
-      ]);
+      assert.equal(
+        reader.columnTypes()[0].toString(),
+        'TUPLE(INTEGER, VARCHAR)'
+      );
+      assert.deepEqual(reader.getRowsJS(), [[[1, 'a']]]);
     });
   });
 
