@@ -23,7 +23,7 @@ interface ClosedResultMetadata {
   returnType: ResultReturnType;
   statementType: StatementType;
   columnNames: string[];
-  columnLogicalTypes: DuckDBLogicalType[];
+  columnTypes: DuckDBType[];
   isStreaming: boolean;
   rowsChanged: number;
 }
@@ -43,22 +43,23 @@ export class DuckDBResult {
    *
    * The return type, statement type, column names and types, and rows changed
    * stay available; fetching throws. If a fetch is in flight, the result is
-   * destroyed once it finishes. Closing again does nothing.
+   * destroyed, and its connection unblocked, only once that fetch finishes.
+   * Closing again does nothing.
    */
   public closeSync() {
     if (!this.closedMetadata) {
       const columnCount = this.columnCount;
       const columnNames: string[] = [];
-      const columnLogicalTypes: DuckDBLogicalType[] = [];
+      const columnTypes: DuckDBType[] = [];
       for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
         columnNames.push(this.columnName(columnIndex));
-        columnLogicalTypes.push(this.columnLogicalType(columnIndex));
+        columnTypes.push(this.columnType(columnIndex));
       }
       this.closedMetadata = {
         returnType: this.returnType,
         statementType: this.statementType,
         columnNames,
-        columnLogicalTypes,
+        columnTypes,
         isStreaming: this.isStreaming,
         rowsChanged: this.rowsChanged,
       };
@@ -124,7 +125,7 @@ export class DuckDBResult {
 
   public columnTypeId(columnIndex: number): DuckDBTypeId {
     if (this.closedMetadata) {
-      return this.columnLogicalType(columnIndex).typeId;
+      return this.columnType(columnIndex).typeId;
     }
     return duckdb.column_type(
       this.result,
@@ -134,9 +135,7 @@ export class DuckDBResult {
 
   public columnLogicalType(columnIndex: number): DuckDBLogicalType {
     if (this.closedMetadata) {
-      return this.closedMetadata.columnLogicalTypes[
-        this.checkClosedColumnIndex(columnIndex)
-      ];
+      return this.columnType(columnIndex).toLogicalType();
     }
     return DuckDBLogicalType.create(
       duckdb.column_logical_type(this.result, columnIndex)
@@ -144,6 +143,11 @@ export class DuckDBResult {
   }
 
   public columnType(columnIndex: number): DuckDBType {
+    if (this.closedMetadata) {
+      return this.closedMetadata.columnTypes[
+        this.checkClosedColumnIndex(columnIndex)
+      ];
+    }
     return this.columnLogicalType(columnIndex).asType();
   }
 
@@ -369,17 +373,15 @@ export class DuckDBResult {
     return this.yieldConvertedRowObjects(JsonDuckDBValueConverter);
   }
 
+  /** Converts the index as the bindings do (ToUint32), then checks range. */
   private checkClosedColumnIndex(columnIndex: number): number {
+    const index = columnIndex >>> 0;
     const columnCount = this.closedMetadata?.columnNames.length ?? 0;
-    if (
-      !Number.isInteger(columnIndex) ||
-      columnIndex < 0 ||
-      columnIndex >= columnCount
-    ) {
+    if (index >= columnCount) {
       throw new RangeError(
-        `column index ${columnIndex} is out of range (count: ${columnCount})`
+        `column index ${index} is out of range (count: ${columnCount})`
       );
     }
-    return columnIndex;
+    return index;
   }
 }

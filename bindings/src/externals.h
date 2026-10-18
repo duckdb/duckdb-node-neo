@@ -243,6 +243,12 @@ inline void ReleasePendingResultInFlight(duckdb_pending_result_holder *pending_r
 }
 
 inline void FinalizePendingResultHolder(Napi::BasicEnv, duckdb_pending_result_holder *pending_result_holder_ptr) {
+  // A worker's reference keeps the external alive, so this only runs with a
+  // worker in flight when the env tears down. The worker may still be using
+  // the pending result on its thread, so leak it rather than destroy it.
+  if (pending_result_holder_ptr->in_flight > 0) {
+    return;
+  }
   DestroyPendingResultOfHolder(pending_result_holder_ptr);
   delete pending_result_holder_ptr;
 }
@@ -328,6 +334,12 @@ inline void ReleaseResultInFlight(duckdb_result_holder *result_holder_ptr) {
 }
 
 inline void FinalizeResultHolder(Napi::BasicEnv, duckdb_result_holder *result_holder_ptr) {
+  // A worker's reference keeps the external alive, so this only runs with a
+  // worker in flight when the env tears down. The worker may still be using
+  // the result on its thread, so leak it rather than destroy it.
+  if (result_holder_ptr->in_flight > 0) {
+    return;
+  }
   DestroyResultOfHolder(result_holder_ptr);
   delete result_holder_ptr;
 }

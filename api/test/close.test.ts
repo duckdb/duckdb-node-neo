@@ -50,7 +50,16 @@ describe('closeSync', () => {
       assert.equal(result.columnType(0), BIGINT);
       assert.equal(result.isStreaming, true);
       assert.equal(result.rowsChanged, 0);
-      assert.throws(() => result.columnName(1), RangeError);
+      assert.throws(
+        () => result.columnName(1),
+        RangeError,
+        'column index 1 is out of range (count: 1)'
+      );
+      assert.equal(result.columnName(0.5), 'n');
+      const logicalType = result.columnLogicalType(0);
+      assert.notStrictEqual(result.columnLogicalType(0), logicalType);
+      logicalType.alias = 'my_alias';
+      assert.equal(result.columnType(0), BIGINT);
       await assertRejects(result.fetchChunk(), 'Result destroyed');
     });
   });
@@ -60,7 +69,15 @@ describe('closeSync', () => {
       result.closeSync();
       result.closeSync();
       assert.deepEqual(result.columnNames(), ['x']);
-      assert.throws(() => result.rowCount, 'Result destroyed');
+    });
+  });
+  test('materialized result: counts stay available, chunks throw', async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.run('select 1 as x');
+      result.closeSync();
+      assert.equal(result.rowCount, 1);
+      assert.equal(result.chunkCount, 1);
+      assert.throws(() => result.getChunk(0), 'Result destroyed');
     });
   });
   test('result: closing during an in-flight fetch', async () => {
