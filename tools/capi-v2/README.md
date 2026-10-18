@@ -103,13 +103,18 @@ unfinished result that may write rolls it back. The V1 docs for `duckdb_destroy_
 `second query with a stream open: ok`; against the preview: `error (type 44) Resource In Use Error:
 connection has an open result; drain or destroy it before starting a new query`.
 
-This lands on us harder than on most clients, because Node Neo does not expose
-`duckdb_destroy_result` — results are destroyed in a finalizer. On 2.0, a `DuckDBResult` that is
-streamed, partly read and dropped keeps its connection refusing queries until the garbage collector
-happens to finalize it. So the 2.0 upgrade — still V1, before any V2 work — needs an explicit way to
-release a result (a `close()` / `Symbol.dispose`, or draining on the API side) and needs to surface
-`RESOURCE_IN_USE` as something a caller can recognize. The same rule is native to V2 (§8), so the
-API shape chosen here carries over.
+This landed on us harder than on most clients, because Node Neo did not expose
+`duckdb_destroy_result` — results were destroyed in a finalizer, so on 2.0 a `DuckDBResult` that was
+streamed, partly read and dropped kept its connection refusing queries until the garbage collector
+happened to finalize it. [#516](https://github.com/duckdb/duckdb-node-neo/pull/516) added explicit
+release ahead of the 2.0 upgrade: `destroy_result_sync` and `destroy_pending_sync` in the bindings,
+and `closeSync()` on `DuckDBResult`, `DuckDBPendingResult` and `DuckDBResultReader` in the API. A
+destroy requested while a fetch or `execute_pending` is in flight is deferred until it finishes.
+`using` / `Symbol.dispose` support is tracked in
+[#515](https://github.com/duckdb/duckdb-node-neo/issues/515). Still open: surfacing
+`RESOURCE_IN_USE` as something a caller can recognize — `duckdb_result_error_type` is not exposed,
+so the error arrives as a plain `Error` with DuckDB's message. The same rule is native to V2 (§8), so
+the API shape chosen here carries over.
 
 **Our signature check warned on `main` from the 1.5.6 bump until the accounting caught up.**
 1.5.6's `duckdb.h` uses the same generated layout as `duckdb_v2.h`: it carries the 2.0-style
