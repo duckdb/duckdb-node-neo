@@ -36,6 +36,7 @@ import { DuckDBListVector } from './DuckDBListVector';
 import { DuckDBMapVector } from './DuckDBMapVector';
 import { DuckDBSmallIntVector } from './DuckDBSmallIntVector';
 import { DuckDBStructVector } from './DuckDBStructVector';
+import { DuckDBTupleVector } from './DuckDBTupleVector';
 import { DuckDBTimeNSVector } from './DuckDBTimeNSVector';
 import { DuckDBTimeTZVector } from './DuckDBTimeTZVector';
 import { DuckDBTimeVector } from './DuckDBTimeVector';
@@ -193,6 +194,13 @@ function createVector(
         );
       case DuckDBTypeId.STRUCT:
         if (vectorType instanceof DuckDBStructType) {
+          if (vectorType.isTuple) {
+            return DuckDBTupleVector.fromRawVector(
+              vectorType,
+              vector,
+              itemCount
+            );
+          }
           return DuckDBStructVector.fromRawVector(
             vectorType,
             vector,

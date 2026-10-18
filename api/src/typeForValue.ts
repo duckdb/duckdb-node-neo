@@ -24,6 +24,7 @@ import {
   TIMESTAMP_S,
   TIMESTAMPTZ,
   TIMETZ,
+  TUPLE,
   UNION,
   UUID,
   VARCHAR,
@@ -47,6 +48,7 @@ import {
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
+  DuckDBTupleValue,
   DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
@@ -122,6 +124,8 @@ export function typeForValue(value: DuckDBValue): DuckDBType {
           return TIME;
         } else if (value instanceof DuckDBTimeNSValue) {
           return TIME_NS;
+        } else if (value instanceof DuckDBTupleValue) {
+          return TUPLE(value.items.map(typeForValue));
         } else if (value instanceof DuckDBUnionValue) {
           return UNION({ [value.tag]: typeForValue(value.value) });
         } else if (value instanceof DuckDBUUIDValue) {

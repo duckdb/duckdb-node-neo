@@ -31,6 +31,7 @@ export * from './DuckDBTimestampSecondsVector';
 export * from './DuckDBTimestampTZVector';
 export * from './DuckDBTimestampVector';
 export * from './DuckDBTinyIntVector';
+export * from './DuckDBTupleVector';
 export * from './DuckDBUBigIntVector';
 export * from './DuckDBUHugeIntVector';
 export * from './DuckDBUIntegerVector';

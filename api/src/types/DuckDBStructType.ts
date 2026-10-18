@@ -30,6 +30,19 @@ export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
   public get entryCount() {
     return this.entryNames.length;
   }
+  /**
+   * Whether this is an unnamed struct, i.e. a tuple, such as the type of
+   * `(1, 'a')` or `row(1, 'a')`. DuckDB reports these as STRUCTs whose entry
+   * names are all empty. A STRUCT with no entries is not a tuple.
+   *
+   * Values of a tuple type are `DuckDBTupleValue`s, whose items are
+   * positional, rather than `DuckDBStructValue`s.
+   */
+  public get isTuple(): boolean {
+    return (
+      this.entryNames.length > 0 && this.entryNames.every((name) => name === '')
+    );
+  }
   public indexForEntry(entryName: string): number {
     return this.entryIndexes[entryName];
   }
@@ -39,6 +52,9 @@ export class DuckDBStructType extends BaseDuckDBType<DuckDBTypeId.STRUCT> {
   public toString(): string {
     if (this.entryNames.length === 0) {
       return 'STRUCT';
+    }
+    if (this.isTuple) {
+      return `TUPLE(${this.entryTypes.join(', ')})`;
     }
     const parts: string[] = [];
     for (let i = 0; i < this.entryNames.length; i++) {
@@ -74,4 +90,15 @@ export function STRUCT(
   const entryNames = Object.keys(entries);
   const entryTypes = Object.values(entries);
   return new DuckDBStructType(entryNames, entryTypes, alias);
+}
+/** Creates a tuple type: an unnamed STRUCT with the given entry types. */
+export function TUPLE(
+  entryTypes: readonly DuckDBType[],
+  alias?: string
+): DuckDBStructType {
+  return new DuckDBStructType(
+    entryTypes.map(() => ''),
+    entryTypes,
+    alias
+  );
 }

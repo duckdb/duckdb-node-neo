@@ -17,6 +17,9 @@ import type { JS } from './JS';
  * `DuckDBArrayType`, `DuckDBStructType`, `DuckDBMapType`, and
  * `DuckDBUnionType` do not carry their child types at the type level.
  *
+ * STRUCT is an object keyed by entry name, except for a tuple (see
+ * `DuckDBStructType.isTuple`), which is an array of its items.
+ *
  * This interface is exhaustive over `DuckDBTypeId`, and is the annotation
  * source for the converter map in `JSDuckDBValueConverter`; adding a type id
  * without adding it here is a compile error.
@@ -48,7 +51,7 @@ export interface JSTypeForTypeId {
   [DuckDBTypeId.TIMESTAMP_NS]: Date;
   [DuckDBTypeId.ENUM]: string;
   [DuckDBTypeId.LIST]: (JS | null)[];
-  [DuckDBTypeId.STRUCT]: { [key: string]: JS | null };
+  [DuckDBTypeId.STRUCT]: { [key: string]: JS | null } | (JS | null)[];
   [DuckDBTypeId.MAP]: { key: JS | null; value: JS | null }[];
   [DuckDBTypeId.ARRAY]: (JS | null)[];
   [DuckDBTypeId.UUID]: string;

@@ -66,7 +66,9 @@ export interface JSInputTypeForTypeId {
   [DuckDBTypeId.TIMESTAMP_NS]: Date;
   [DuckDBTypeId.ENUM]: string;
   [DuckDBTypeId.LIST]: readonly (JS | null)[];
-  [DuckDBTypeId.STRUCT]: Readonly<Record<string, JS | null>>;
+  [DuckDBTypeId.STRUCT]:
+    | Readonly<Record<string, JS | null>>
+    | readonly (JS | null)[];
   [DuckDBTypeId.MAP]: readonly { key: JS | null; value: JS | null }[];
   [DuckDBTypeId.ARRAY]: readonly (JS | null)[];
   [DuckDBTypeId.UUID]: string;

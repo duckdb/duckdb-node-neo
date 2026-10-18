@@ -43,12 +43,14 @@ import {
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
+  DuckDBTupleValue,
   DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
   DuckDBVariantValue,
   listValue,
   structValue,
+  tupleValue,
 } from './values';
 
 export class DuckDBPreparedStatement {
@@ -231,6 +233,17 @@ export class DuckDBPreparedStatement {
     this.bindValue(
       parameterIndex,
       value instanceof DuckDBStructValue ? value : structValue(value),
+      type
+    );
+  }
+  public bindTuple(
+    parameterIndex: number,
+    value: DuckDBTupleValue | readonly DuckDBValue[],
+    type?: DuckDBStructType
+  ) {
+    this.bindValue(
+      parameterIndex,
+      value instanceof DuckDBTupleValue ? value : tupleValue(value),
       type
     );
   }

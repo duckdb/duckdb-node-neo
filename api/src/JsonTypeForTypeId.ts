@@ -24,6 +24,9 @@ import type { Json } from './Json';
  * `DuckDBArrayType`, `DuckDBStructType`, `DuckDBMapType`, and
  * `DuckDBUnionType` do not carry their child types at the type level.
  *
+ * STRUCT is an object keyed by entry name, except for a tuple (see
+ * `DuckDBStructType.isTuple`), which is an array of its items.
+ *
  * This interface is exhaustive over `DuckDBTypeId`, and is the annotation
  * source for the converter map in `JsonDuckDBValueConverter`; adding a type id
  * without adding it here is a compile error.
@@ -55,7 +58,7 @@ export interface JsonTypeForTypeId {
   [DuckDBTypeId.TIMESTAMP_NS]: string;
   [DuckDBTypeId.ENUM]: string;
   [DuckDBTypeId.LIST]: (Json | null)[];
-  [DuckDBTypeId.STRUCT]: { [key: string]: Json | null };
+  [DuckDBTypeId.STRUCT]: { [key: string]: Json | null } | (Json | null)[];
   [DuckDBTypeId.MAP]: { key: Json | null; value: Json | null }[];
   [DuckDBTypeId.ARRAY]: (Json | null)[];
   [DuckDBTypeId.UUID]: string;

@@ -16,6 +16,7 @@ export * from './DuckDBTimestampTZValue';
 export * from './DuckDBTimestampValue';
 export * from './DuckDBTimeTZValue';
 export * from './DuckDBTimeValue';
+export * from './DuckDBTupleValue';
 export * from './DuckDBUnionValue';
 export * from './DuckDBUUIDValue';
 export * from './DuckDBValue';
