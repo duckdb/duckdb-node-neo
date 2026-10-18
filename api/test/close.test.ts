@@ -9,8 +9,10 @@ import {
 } from '../src';
 import { withConnection } from './util/testHelpers';
 
-// On 2.0, an unfinished streaming or pending result blocks its connection.
-const blocksConnection = version().startsWith('v2');
+// From 2.0, an unfinished streaming or pending result blocks its connection.
+// Before, the next statement aborts it instead.
+const majorVersion = Number(version().slice(1).split('.')[0]);
+const blocksConnection = majorVersion >= 2;
 
 const streamingSql = 'select n from range(100_000) t(n)';
 
@@ -19,7 +21,11 @@ async function assertQueryWorks(connection: DuckDBConnection) {
   assert.deepEqual(reader.getRows(), [[1]]);
 }
 
-async function assertResourceInUse(connection: DuckDBConnection) {
+async function assertQueryWithOpenResult(connection: DuckDBConnection) {
+  if (!blocksConnection) {
+    await assertQueryWorks(connection);
+    return;
+  }
   try {
     await connection.run('select 1');
     assert.fail('should throw');
@@ -95,9 +101,7 @@ describe('closeSync', () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(streamingSql);
       await result.fetchChunk();
-      if (blocksConnection) {
-        await assertResourceInUse(connection);
-      }
+      await assertQueryWithOpenResult(connection);
       result.closeSync();
       await assertQueryWorks(connection);
     });
@@ -105,9 +109,7 @@ describe('closeSync', () => {
   test('reader: rows read stay available, reading more throws', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.streamAndReadUntil(streamingSql, 10);
-      if (blocksConnection) {
-        await assertResourceInUse(connection);
-      }
+      await assertQueryWithOpenResult(connection);
       reader.closeSync();
       reader.closeSync();
       assert.equal(reader.currentRowCount, 2048);
@@ -141,9 +143,7 @@ describe('closeSync', () => {
   test('pending result: closing an unexecuted one frees the connection', async () => {
     await withConnection(async (connection) => {
       const pending = await connection.startStream(streamingSql);
-      if (blocksConnection) {
-        await assertResourceInUse(connection);
-      }
+      await assertQueryWithOpenResult(connection);
       pending.closeSync();
       await assertQueryWorks(connection);
     });

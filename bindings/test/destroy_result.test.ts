@@ -2,8 +2,10 @@ import duckdb from '@duckdb/node-bindings';
 import { expect, suite, test } from 'vitest';
 import { withConnection } from './utils/withConnection';
 
-// On 2.0, an unfinished streaming or pending result blocks its connection.
-const blocksConnection = duckdb.library_version().startsWith('v2');
+// From 2.0, an unfinished streaming or pending result blocks its connection.
+// Before, the next statement aborts it instead.
+const majorVersion = Number(duckdb.library_version().slice(1).split('.')[0]);
+const blocksConnection = majorVersion >= 2;
 
 const streamingQuery = 'select n from range(100_000) t(n)';
 
@@ -15,6 +17,14 @@ async function streamingResult(connection: duckdb.Connection) {
 async function expectQueryWorks(connection: duckdb.Connection) {
   const result = await duckdb.query(connection, 'select 1');
   expect(duckdb.row_count(result)).toBe(1);
+}
+
+async function expectQueryWithOpenResult(connection: duckdb.Connection) {
+  if (blocksConnection) {
+    await expect(duckdb.query(connection, 'select 1')).rejects.toThrowError(/Resource In Use/);
+  } else {
+    await expectQueryWorks(connection);
+  }
 }
 
 suite('destroy_result_sync', () => {
@@ -66,9 +76,7 @@ suite('destroy_result_sync', () => {
     await withConnection(async (connection) => {
       const result = await streamingResult(connection);
       await duckdb.fetch_chunk(result);
-      if (blocksConnection) {
-        await expect(duckdb.query(connection, 'select 1')).rejects.toThrowError(/Resource In Use/);
-      }
+      await expectQueryWithOpenResult(connection);
       duckdb.destroy_result_sync(result);
       await expectQueryWorks(connection);
     });
@@ -113,9 +121,7 @@ suite('destroy_pending_sync', () => {
     await withConnection(async (connection) => {
       const prepared = await duckdb.prepare(connection, streamingQuery);
       const pending = duckdb.pending_prepared_streaming(prepared);
-      if (blocksConnection) {
-        await expect(duckdb.query(connection, 'select 1')).rejects.toThrowError(/Resource In Use/);
-      }
+      await expectQueryWithOpenResult(connection);
       duckdb.destroy_pending_sync(pending);
       await expectQueryWorks(connection);
     });
