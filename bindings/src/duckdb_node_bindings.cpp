@@ -149,6 +149,7 @@ public:
       InstanceMethod("geometry_type_get_crs", &DuckDBNodeAddon::geometry_type_get_crs),
 
       InstanceMethod("pending_prepared", &DuckDBNodeAddon::pending_prepared),
+      InstanceMethod("destroy_pending_sync", &DuckDBNodeAddon::destroy_pending_sync),
       InstanceMethod("pending_error", &DuckDBNodeAddon::pending_error),
       InstanceMethod("pending_execute_task", &DuckDBNodeAddon::pending_execute_task),
       InstanceMethod("pending_execute_check_state", &DuckDBNodeAddon::pending_execute_check_state),
@@ -199,6 +200,7 @@ public:
       InstanceMethod("pending_prepared_streaming", &DuckDBNodeAddon::pending_prepared_streaming),
 
       InstanceMethod("query", &DuckDBNodeAddon::query),
+      InstanceMethod("destroy_result_sync", &DuckDBNodeAddon::destroy_result_sync),
       InstanceMethod("column_name", &DuckDBNodeAddon::column_name),
       InstanceMethod("column_type", &DuckDBNodeAddon::column_type),
       InstanceMethod("result_statement_type", &DuckDBNodeAddon::result_statement_type),
@@ -2094,7 +2096,14 @@ private:
   }
 
   // DUCKDB_C_API void duckdb_destroy_pending(duckdb_pending_result *pending_result);
-  // not exposed: destroyed in finalizer
+  // function destroy_pending_sync(pending_result: PendingResult): void
+  Napi::Value destroy_pending_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto pending_result_holder_ptr = GetPendingResultHolderFromExternal(env, info[0]);
+    // A no-op if already destroyed. Deferred while execute_pending is in flight.
+    RequestPendingResultDestroy(pending_result_holder_ptr);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API const char *duckdb_pending_error(duckdb_pending_result pending_result);
   // function pending_error(pending_result: PendingResult): string
@@ -2701,7 +2710,14 @@ private:
 
 
   // DUCKDB_C_API void duckdb_destroy_result(duckdb_result *result);
-  // not exposed: destroyed in finalizer
+  // function destroy_result_sync(result: Result): void
+  Napi::Value destroy_result_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto result_holder_ptr = GetResultHolderFromExternal(env, info[0]);
+    // A no-op if already destroyed. Deferred while fetch_chunk is in flight.
+    RequestResultDestroy(result_holder_ptr);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API const char *duckdb_column_name(duckdb_result *result, idx_t col);
   // function column_name(result: Result, column_index: number): string
@@ -4785,8 +4801,8 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 546 DUCKDB_C_API
-    319 function
-     28 not exposed
+    321 function
+     26 not exposed
      41 deprecated
     158 TODO
        12 aggregate function

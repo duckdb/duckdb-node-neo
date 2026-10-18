@@ -16,6 +16,18 @@ export class DuckDBPendingResult {
   constructor(pending_result: duckdb.PendingResult) {
     this.pending_result = pending_result;
   }
+  /**
+   * Destroys the pending result. On DuckDB 2.0, a pending result whose result
+   * has not been gotten blocks its connection from starting another statement
+   * until it is closed.
+   *
+   * Running tasks or getting the result afterwards throws. If getting the
+   * result is in flight, the pending result is destroyed once it finishes; the
+   * result it returns is unaffected. Closing again does nothing.
+   */
+  public closeSync() {
+    duckdb.destroy_pending_sync(this.pending_result);
+  }
   public runTask(): DuckDBPendingResultState {
     const pending_state = duckdb.pending_execute_task(this.pending_result);
     switch (pending_state) {
