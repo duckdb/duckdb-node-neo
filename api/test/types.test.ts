@@ -147,6 +147,7 @@ describe('types', () => {
       STRUCT({ 'id': VARCHAR, 'ts': TIMESTAMP }).toString(),
       'STRUCT("id" VARCHAR, "ts" TIMESTAMP)',
     );
+    assert.equal(STRUCT({}).toString(), 'STRUCT');
     assert.equal(MAP(INTEGER, VARCHAR).toString(), 'MAP(INTEGER, VARCHAR)');
     assert.equal(ARRAY(INTEGER, 3).toString(), 'INTEGER[3]');
     assert.equal(UUID.toString(), 'UUID');
