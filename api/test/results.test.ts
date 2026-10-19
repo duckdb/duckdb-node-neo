@@ -75,6 +75,20 @@ describe('results', () => {
       });
     });
   });
+  test('columns of an empty result', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(
+        'select 1 as a, 2 as b where false',
+      );
+      assert.deepEqual(reader.getColumns(), [[], []]);
+      assert.deepEqual(reader.getColumnsJS(), [[], []]);
+      assert.deepEqual(reader.getColumnsObject(), { a: [], b: [] });
+      assert.deepEqual(reader.getColumnsObjectJS(), { a: [], b: [] });
+
+      const result = await connection.run('select 1 as a, 2 as b where false');
+      assert.deepEqual(await result.getColumns(), [[], []]);
+    });
+  });
   test('columns js', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(createTestJSQuery());

@@ -3,10 +3,11 @@ import { DuckDBValueConverter } from './DuckDBValueConverter';
 
 export function convertColumnsFromChunks<T>(
   chunks: readonly DuckDBDataChunk[],
+  columnCount: number,
   converter: DuckDBValueConverter<T>
 ): (T | null)[][] {
   if (chunks.length === 0) {
-    return [];
+    return Array.from({ length: columnCount }, () => []);
   }
   const convertedColumns = chunks[0].convertColumns(converter);
   for (let chunkIndex = 1; chunkIndex < chunks.length; chunkIndex++) {

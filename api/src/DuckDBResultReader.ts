@@ -203,11 +203,11 @@ export class DuckDBResultReader {
   }
 
   public getColumns(): DuckDBValue[][] {
-    return getColumnsFromChunks(this.chunks);
+    return getColumnsFromChunks(this.chunks, this.columnCount);
   }
 
   public convertColumns<T>(converter: DuckDBValueConverter<T>): (T | null)[][] {
-    return convertColumnsFromChunks(this.chunks, converter);
+    return convertColumnsFromChunks(this.chunks, this.columnCount, converter);
   }
 
   public getColumnsJS(): JS[][] {
