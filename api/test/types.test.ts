@@ -304,6 +304,11 @@ describe('types', () => {
     assert.equal(DATE.epoch.toString(), '1970-01-01');
     assert.equal(DATE.max.toString(), '5881580-07-10');
     assert.equal(DATE.min.toString(), '5877642-06-25 (BC)');
+    // there is no year zero: the year before 0001 is 0001 (BC)
+    assert.equal(new DuckDBDateValue(-719162).toString(), '0001-01-01');
+    assert.equal(new DuckDBDateValue(-719163).toString(), '0001-12-31 (BC)');
+    assert.equal(new DuckDBDateValue(-719528).toString(), '0001-01-01 (BC)');
+    assert.equal(new DuckDBDateValue(-719529).toString(), '0002-12-31 (BC)');
 
     // decimal
     assert.equal(decimalValue(0n, 4, 1).toString(), '0.0');
@@ -480,6 +485,10 @@ describe('types', () => {
     assert.equal(TIMESTAMP.min.toString(), '290309-12-22 (BC) 00:00:00');
     assert.equal(TIMESTAMP.posInf.toString(), 'infinity');
     assert.equal(TIMESTAMP.negInf.toString(), '-infinity');
+    assert.equal(
+      new DuckDBTimestampValue(-62135683200000000n + 43200000000n).toString(),
+      '0001-12-31 (BC) 12:00:00',
+    );
 
     // time tz
     assert.equal(timeTZValue(0n, 0).toString(), '00:00:00+00');

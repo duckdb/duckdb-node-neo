@@ -40,7 +40,7 @@ export function getDuckDBDateStringFromDays(days: number): string {
     sign * absDaysFromRemainingInterval * MILLISECONDS_PER_DAY_NUM;
   const date = new Date(millisecondsFromRemainingInterval);
   let year = yearsFrom400YearIntervals + date.getUTCFullYear();
-  if (year < 0) {
+  if (year <= 0) {
     year--; // correct for non-existence of year zero
   }
   const month = date.getUTCMonth() + 1; // getUTCMonth returns zero-indexed month, but we want a one-index month for display
