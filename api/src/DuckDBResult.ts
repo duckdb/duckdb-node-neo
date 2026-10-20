@@ -224,14 +224,14 @@ export class DuckDBResult {
 
   public async getColumns(): Promise<DuckDBValue[][]> {
     const chunks = await this.fetchAllChunks();
-    return getColumnsFromChunks(chunks);
+    return getColumnsFromChunks(chunks, this.columnCount);
   }
 
   public async convertColumns<T>(
     converter: DuckDBValueConverter<T>
   ): Promise<(T | null)[][]> {
     const chunks = await this.fetchAllChunks();
-    return convertColumnsFromChunks(chunks, converter);
+    return convertColumnsFromChunks(chunks, this.columnCount, converter);
   }
 
   public async getColumnsJS(): Promise<JS[][]> {
