@@ -165,7 +165,7 @@ describe('types', () => {
     assert.equal(TIMESTAMPTZ_NS.toString(), 'TIMESTAMPTZ_NS');
     assert.equal(ANY.toString(), 'ANY');
     assert.equal(BIGNUM.toString(), 'BIGNUM');
-    assert.equal(SQLNULL.toString(), 'SQLNULL');
+    assert.equal(SQLNULL.toString(), '"NULL"');
   });
   test('should support all data types', async () => {
     await withConnection(async (connection) => {
@@ -735,6 +735,24 @@ describe('types', () => {
       const reader = await connection.runAndReadAll(sql);
       assert.deepEqual(reader.getRowsJS(), [[null, [null]]]);
       assert.deepEqual(reader.getRowsJson(), [[null, [null]]]);
+    });
+  });
+
+  test('SQLNULL type strings are valid SQL', async () => {
+    const types = [SQLNULL, LIST(SQLNULL), STRUCT({ a: SQLNULL })];
+    assert.deepEqual(types.map(String), [
+      '"NULL"',
+      '"NULL"[]',
+      'STRUCT("a" "NULL")',
+    ]);
+    await withConnection(async (connection) => {
+      await connection.run(
+        `create table t (${types.map((t, i) => `c${i} ${t}`).join(', ')})`,
+      );
+      const reader = await connection.runAndReadAll(
+        `select ${types.map((t) => `null::${t}`).join(', ')}`,
+      );
+      assert.equal(reader.columnCount, 3);
     });
   });
 });
