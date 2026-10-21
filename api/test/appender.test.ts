@@ -606,7 +606,10 @@ describe('appender', () => {
       }
     });
   });
-  test('create and append data chunk with all types', async () => {
+  // Creating the table from every type's DDL parses a 70,000-value ENUM, which
+  // DuckDB 2.0 does about 5x slower than 1.5.6; on slow runners this can exceed
+  // the default timeout. See https://github.com/duckdb/duckdb-node-neo/issues/522
+  test('create and append data chunk with all types', { timeout: 30_000 }, async () => {
     await withConnection(async (connection) => {
       const types = createTestAllTypesColumnTypes();
       const columns = createTestAllTypesColumns();
@@ -739,7 +742,10 @@ describe('appender', () => {
       }
     });
   });
-  test('append all types row-by-row', async () => {
+  // Creating the table from every type's DDL parses a 70,000-value ENUM, which
+  // DuckDB 2.0 does about 5x slower than 1.5.6; on slow runners this can exceed
+  // the default timeout. See https://github.com/duckdb/duckdb-node-neo/issues/522
+  test('append all types row-by-row', { timeout: 30_000 }, async () => {
     await withConnection(async (connection) => {
       const types = createTestAllTypesColumnTypes();
       const columns = createTestAllTypesColumns();
