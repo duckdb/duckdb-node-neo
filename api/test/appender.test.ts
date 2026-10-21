@@ -60,6 +60,7 @@ import {
   listValue,
   mapValue,
   structValue,
+  version,
 } from '../src';
 import {
   createTestAllTypesColumnNameAndTypeObjects,
@@ -711,6 +712,34 @@ describe('appender', () => {
         assertValues(resultChunk, 54, DuckDBArrayVector, columns[54]); // fixed_array_of_int_list
         assertValues(resultChunk, 55, DuckDBListVector, columns[55]); // list_of_fixed_int_array
       }
+    });
+  });
+  test('flushing while the connection has an open result', async () => {
+    // From DuckDB 2.0, an appender can't flush while its connection has an
+    // unfinished streaming result, and the rows it was flushing are lost.
+    const blocksConnection = Number(version().slice(1).split('.')[0]) >= 2;
+    await withConnection(async (connection) => {
+      await connection.run('create table target(i integer)');
+      const appender = await connection.createAppender('target');
+      const stream = await connection.stream('select n from range(100_000) t(n)');
+      appender.appendInteger(1);
+      appender.endRow();
+      if (blocksConnection) {
+        assert.throws(
+          () => appender.flushSync(),
+          /connection has an open result/,
+        );
+      } else {
+        appender.flushSync();
+      }
+      stream.closeSync();
+      appender.appendInteger(2);
+      appender.endRow();
+      appender.closeSync();
+      const reader = await connection.runAndReadAll(
+        'select i from target order by i',
+      );
+      assert.deepEqual(reader.getRows(), blocksConnection ? [[2]] : [[1], [2]]);
     });
   });
   test('clear discards unflushed rows and resets the appender', async () => {

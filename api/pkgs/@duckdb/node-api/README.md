@@ -274,6 +274,15 @@ const rows = reader.getRows(); // rows already read stay available
 Column names and types also stay available after closing; reading more
 rows throws.
 
+The same applies to appenders: from DuckDB 2.0, an appender can't flush
+while its connection has such a result. Appenders flush on `flushSync()`
+and `closeSync()`, and automatically about every 204,800 rows, so with a
+streaming result open, appending fails at the next flush, and the rows
+appended since the last successful flush are lost. Read the result to the
+end or close it before appending, or append on a separate connection.
+Close appenders explicitly too: one that is flushed when it's garbage
+collected can't report a failure.
+
 ### Inspect Result Metadata
 
 Get column names and types:
