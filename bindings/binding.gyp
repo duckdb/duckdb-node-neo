@@ -55,9 +55,14 @@
             'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_linux_arm64<(libc_script_suffix).py',
           },
         }],
-        ['OS=="mac"', {
+        ['OS=="mac" and target_arch=="arm64"', {
           'variables': {
-            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_osx_universal.py',
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_osx_arm64.py',
+          },
+        }],
+        ['OS=="mac" and target_arch=="x64"', {
+          'variables': {
+            'script_path': '<(module_root_dir)/scripts/fetch_libduckdb_osx_amd64.py',
           },
         }],
         ['OS=="win" and target_arch=="arm64"', {
