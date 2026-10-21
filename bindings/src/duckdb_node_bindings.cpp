@@ -298,6 +298,7 @@ public:
       InstanceMethod("create_time_tz_value", &DuckDBNodeAddon::create_time_tz_value),
       InstanceMethod("create_timestamp", &DuckDBNodeAddon::create_timestamp),
       InstanceMethod("create_timestamp_tz", &DuckDBNodeAddon::create_timestamp_tz),
+      InstanceMethod("create_timestamp_tz_ns", &DuckDBNodeAddon::create_timestamp_tz_ns),
       InstanceMethod("create_timestamp_s", &DuckDBNodeAddon::create_timestamp_s),
       InstanceMethod("create_timestamp_ms", &DuckDBNodeAddon::create_timestamp_ms),
       InstanceMethod("create_timestamp_ns", &DuckDBNodeAddon::create_timestamp_ns),
@@ -326,6 +327,7 @@ public:
       InstanceMethod("get_time_tz", &DuckDBNodeAddon::get_time_tz),
       InstanceMethod("get_timestamp", &DuckDBNodeAddon::get_timestamp),
       InstanceMethod("get_timestamp_tz", &DuckDBNodeAddon::get_timestamp_tz),
+      InstanceMethod("get_timestamp_tz_ns", &DuckDBNodeAddon::get_timestamp_tz_ns),
       InstanceMethod("get_timestamp_s", &DuckDBNodeAddon::get_timestamp_s),
       InstanceMethod("get_timestamp_ms", &DuckDBNodeAddon::get_timestamp_ms),
       InstanceMethod("get_timestamp_ns", &DuckDBNodeAddon::get_timestamp_ns),
@@ -1749,6 +1751,11 @@ private:
   Napi::Value create_logical_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto type = static_cast<duckdb_type>(info[0].As<Napi::Number>().Uint32Value());
+    // duckdb_create_logical_type returns a VARIANT without its child types, and
+    // using it crashes; see https://github.com/duckdb/duckdb/issues/24680.
+    if (type == DUCKDB_TYPE_VARIANT) {
+      throw Napi::Error::New(env, "Cannot create a VARIANT logical type; see https://github.com/duckdb/duckdb/issues/24680");
+    }
     auto logical_type = duckdb_create_logical_type(type);
     return CreateExternalForLogicalType(env, logical_type);
   }
@@ -3872,6 +3879,15 @@ private:
     return CreateExternalForValue(env, value);
   }
 
+  // DUCKDB_C_API duckdb_value duckdb_create_timestamp_tz_ns(duckdb_timestamp_ns input);
+  // function create_timestamp_tz_ns(input: TimestampNanoseconds): Value
+  Napi::Value create_timestamp_tz_ns(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto input = GetTimestampNanosecondsFromObject(env, info[0].As<Napi::Object>());
+    auto value = duckdb_create_timestamp_tz_ns(input);
+    return CreateExternalForValue(env, value);
+  }
+
   // DUCKDB_C_API duckdb_value duckdb_create_timestamp_s(duckdb_timestamp_s input);
   // function create_timestamp_s(input: TimestampSeconds): Value
   Napi::Value create_timestamp_s(const Napi::CallbackInfo& info) {
@@ -4129,6 +4145,15 @@ private:
     auto value = GetValueFromExternal(env, info[0]);
     auto timestamp = duckdb_get_timestamp_tz(value);
     return MakeTimestampObject(env, timestamp);
+  }
+
+  // DUCKDB_C_API duckdb_timestamp_ns duckdb_get_timestamp_tz_ns(duckdb_value val);
+  // function get_timestamp_tz_ns(value: Value): TimestampNanoseconds
+  Napi::Value get_timestamp_tz_ns(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto value = GetValueFromExternal(env, info[0]);
+    auto timestamp_ns = duckdb_get_timestamp_tz_ns(value);
+    return MakeTimestampNanosecondsObject(env, timestamp_ns);
   }
 
   // DUCKDB_C_API duckdb_timestamp_s duckdb_get_timestamp_s(duckdb_value val);
@@ -4800,8 +4825,8 @@ NODE_API_ADDON(DuckDBNodeAddon)
 
 /*
 
-546 DUCKDB_C_API
-    321 function
+548 DUCKDB_C_API
+    323 function
      26 not exposed
      41 deprecated
     158 TODO
@@ -4832,7 +4857,7 @@ NODE_API_ADDON(DuckDBNodeAddon)
         3 selection vector
   3 ADDED
 ---
-549 total
+551 total
 
 regexes:
 // DUCKDB_C_API.*\n  // (function|not exposed|deprecated|TODO)

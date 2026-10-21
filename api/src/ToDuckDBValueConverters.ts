@@ -22,6 +22,7 @@ import {
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsValue,
   DuckDBTimestampValue,
   DuckDBUUIDValue,
   DuckDBValue,
@@ -115,6 +116,14 @@ export function timestampValueFromDate(value: Date): DuckDBTimestampValue {
 
 export function timestampTZValueFromDate(value: Date): DuckDBTimestampTZValue {
   return new DuckDBTimestampTZValue(BigInt(millisFromDate(value)) * 1000n);
+}
+
+export function timestampTZNanosValueFromDate(
+  value: Date
+): DuckDBTimestampTZNanosecondsValue {
+  return new DuckDBTimestampTZNanosecondsValue(
+    BigInt(millisFromDate(value)) * 1000000n
+  );
 }
 
 export function timestampSecondsValueFromDate(

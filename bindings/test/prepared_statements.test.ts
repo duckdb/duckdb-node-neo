@@ -17,6 +17,7 @@ import {
   LIST,
   MAP,
   SMALLINT,
+  SQLNULL,
   STRUCT,
   TIME,
   TIMESTAMP,
@@ -63,7 +64,7 @@ suite('prepared statements', () => {
         rowCount: 1,
         columns: [{ name: 'seventeen', logicalType: INTEGER }],
         chunks: [{ rowCount: 1, vectors: [data(4, [true], [17])] }],
-      });
+      }, prepared);
     });
   });
   test('auto-increment parameters', async () => {
@@ -113,7 +114,7 @@ suite('prepared statements', () => {
             vectors: [data(4, [true], [11]), data(4, [true], [22])],
           },
         ],
-      });
+      }, prepared);
     });
   });
   test('positional parameters', async () => {
@@ -151,7 +152,7 @@ suite('prepared statements', () => {
             vectors: [data(4, [true], [22]), data(4, [true], [11])],
           },
         ],
-      });
+      }, prepared);
     });
   });
   test('named parameters', async () => {
@@ -189,7 +190,7 @@ suite('prepared statements', () => {
             vectors: [data(4, [true], [11]), data(16, [true], ['a'])],
           },
         ],
-      });
+      }, prepared);
     });
   });
   test('clear bindings', async () => {
@@ -226,7 +227,7 @@ suite('prepared statements', () => {
             vectors: [data(4, [true], [111]), data(4, [true], [222])],
           },
         ],
-      });
+      }, prepared);
     });
   });
   test('bind error reports which parameter', async () => {
@@ -384,7 +385,7 @@ suite('prepared statements', () => {
           { name: 'interval', logicalType: INTERVAL },
           { name: 'varchar', logicalType: VARCHAR },
           { name: 'blob', logicalType: BLOB },
-          { name: 'null', logicalType: INTEGER },
+          { name: 'null', logicalType: SQLNULL },
         ],
         chunks: [
           {
@@ -423,7 +424,7 @@ suite('prepared statements', () => {
             ],
           },
         ],
-      });
+      }, prepared);
     });
   });
   test('bind nested types', async () => {
@@ -526,7 +527,7 @@ suite('prepared statements', () => {
             ],
           },
         ],
-      });
+      }, prepared);
     });
   });
   test('streaming', async () => {
@@ -571,7 +572,7 @@ suite('prepared statements', () => {
             ],
           },
         ],
-      });
+      }, prepared);
     });
   });
   test('bind empty nested types', async () => {
@@ -625,7 +626,7 @@ suite('prepared statements', () => {
             ],
           },
         ],
-      });
+      }, prepared);
     });
   });
   test.skip('run in parallel (throws nondeterministically, as expected)', async () => {

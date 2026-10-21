@@ -1,11 +1,12 @@
 import duckdb from '@duckdb/node-bindings';
 import { DuckDBDataChunk } from './DuckDBDataChunk';
 import { DuckDBResult } from './DuckDBResult';
+import { StatementType } from './enums';
 
 export class DuckDBMaterializedResult extends DuckDBResult {
   private closedCounts: { rowCount: number; chunkCount: number } | undefined;
-  constructor(result: duckdb.Result) {
-    super(result);
+  constructor(result: duckdb.Result, preparedStatementType?: StatementType) {
+    super(result, preparedStatementType);
   }
   /**
    * Same as `DuckDBResult.closeSync`; the row and chunk counts also stay

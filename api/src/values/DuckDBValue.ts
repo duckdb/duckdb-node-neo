@@ -13,6 +13,7 @@ import { DuckDBTimestampMillisecondsValue } from './DuckDBTimestampMillisecondsV
 import { DuckDBTimestampNanosecondsValue } from './DuckDBTimestampNanosecondsValue';
 import { DuckDBTimestampSecondsValue } from './DuckDBTimestampSecondsValue';
 import { DuckDBTimestampTZValue } from './DuckDBTimestampTZValue';
+import { DuckDBTimestampTZNanosecondsValue } from './DuckDBTimestampTZNanosecondsValue';
 import { DuckDBTimestampValue } from './DuckDBTimestampValue';
 import { DuckDBTimeTZValue } from './DuckDBTimeTZValue';
 import { DuckDBTimeValue } from './DuckDBTimeValue';
@@ -41,6 +42,7 @@ export type DuckDBValue =
   | DuckDBTimestampNanosecondsValue
   | DuckDBTimestampSecondsValue
   | DuckDBTimestampTZValue
+  | DuckDBTimestampTZNanosecondsValue
   | DuckDBTimestampValue
   | DuckDBTimeTZValue
   | DuckDBTimeValue

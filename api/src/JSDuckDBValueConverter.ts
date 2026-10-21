@@ -16,6 +16,7 @@ import {
   dateFromTimestampNanosecondsValue,
   dateFromTimestampSecondsValue,
   dateFromTimestampTZValue,
+  dateFromTimestampTZNanosecondsValue,
   dateFromTimestampValue,
   doubleFromDecimalValue,
   fromVariantValue,
@@ -77,6 +78,7 @@ const JSConvertersByTypeId: {
   [DuckDBTypeId.TIME_NS]: bigintFromTimeNSValue,
   [DuckDBTypeId.GEOMETRY]: bytesFromGeometryValue,
   [DuckDBTypeId.VARIANT]: fromVariantValue,
+  [DuckDBTypeId.TIMESTAMP_TZ_NS]: dateFromTimestampTZNanosecondsValue,
 };
 
 export const JSDuckDBValueConverter =

@@ -13,6 +13,7 @@ export * from './DuckDBTimestampMillisecondsValue';
 export * from './DuckDBTimestampNanosecondsValue';
 export * from './DuckDBTimestampSecondsValue';
 export * from './DuckDBTimestampTZValue';
+export * from './DuckDBTimestampTZNanosecondsValue';
 export * from './DuckDBTimestampValue';
 export * from './DuckDBTimeTZValue';
 export * from './DuckDBTimeValue';

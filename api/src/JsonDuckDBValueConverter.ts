@@ -64,6 +64,7 @@ const JsonConvertersByTypeId: {
   [DuckDBTypeId.TIME_NS]: stringFromValue,
   [DuckDBTypeId.GEOMETRY]: stringFromValue,
   [DuckDBTypeId.VARIANT]: fromVariantValue,
+  [DuckDBTypeId.TIMESTAMP_TZ_NS]: stringFromValue,
 };
 
 export const JsonDuckDBValueConverter = createDuckDBValueConverter<Json>(

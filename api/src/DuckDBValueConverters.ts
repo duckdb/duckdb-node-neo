@@ -27,6 +27,7 @@ import {
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsValue,
   DuckDBTimestampValue,
   DuckDBTupleValue,
   DuckDBUnionValue,
@@ -39,6 +40,15 @@ const MAX_DATE_DAYS = 100000000;
 //                      -8640000000000
 const MIN_DATE_MILLIS = -8640000000000000;
 const MAX_DATE_MILLIS = 8640000000000000;
+
+/** Whether a TIMESTAMP_NS or TIMESTAMPTZ_NS value is not +/-infinity. */
+function isFiniteNanos(nanos: bigint): boolean {
+  return (
+    nanos !== DuckDBTimestampNanosecondsValue.PosInf.nanos &&
+    nanos !== DuckDBTimestampNanosecondsValue.NegInf.nanos
+  );
+}
+
 const MILLS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export function unsupportedConverter(_: DuckDBValue, type: DuckDBType): null {
@@ -165,7 +175,11 @@ export function dateFromTimestampMillisecondsValue(value: DuckDBValue): Date {
 export function dateFromTimestampNanosecondsValue(value: DuckDBValue): Date {
   if (value instanceof DuckDBTimestampNanosecondsValue) {
     const millis = value.nanos / 1000000n;
-    if (MIN_DATE_MILLIS <= millis && millis <= MAX_DATE_MILLIS) {
+    if (
+      isFiniteNanos(value.nanos) &&
+      MIN_DATE_MILLIS <= millis &&
+      millis <= MAX_DATE_MILLIS
+    ) {
       return new Date(Number(millis));
     }
     throw new Error(
@@ -199,6 +213,23 @@ export function dateFromTimestampTZValue(value: DuckDBValue): Date {
     );
   }
   throw new Error(`Expected DuckDBTimestampTZValue`);
+}
+
+export function dateFromTimestampTZNanosecondsValue(value: DuckDBValue): Date {
+  if (value instanceof DuckDBTimestampTZNanosecondsValue) {
+    const millis = value.nanos / 1000000n;
+    if (
+      isFiniteNanos(value.nanos) &&
+      MIN_DATE_MILLIS <= millis &&
+      millis <= MAX_DATE_MILLIS
+    ) {
+      return new Date(Number(millis));
+    }
+    throw new Error(
+      `TIMESTAMP_TZ_NS value out of range for JS Date: ${value.nanos} nanos`
+    );
+  }
+  throw new Error(`Expected DuckDBTimestampTZNanosecondsValue`);
 }
 
 export function objectFromIntervalValue(value: DuckDBValue): {

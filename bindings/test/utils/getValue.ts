@@ -204,6 +204,9 @@ export function getValue(logicalType: ExpectedLogicalType, validity: BigUint64Ar
     case duckdb.Type.GEOMETRY:
       return getBuffer(dv, index * 16);
     
+    case duckdb.Type.TIMESTAMP_TZ_NS:
+      return getInt64(dv, index * 8);
+    
     default:
       throw new Error(`getValue not implemented for type: ${duckdb.Type[logicalType.typeId]}`);
   }

@@ -36,6 +36,7 @@ import {
   DuckDBListVector,
   DuckDBMapVector,
   DuckDBSmallIntVector,
+  DuckDBSQLNullVector,
   DuckDBStructVector,
   DuckDBTimeNSVector,
   DuckDBTimeTZValue,
@@ -46,6 +47,7 @@ import {
   DuckDBTimestampNanosecondsVector,
   DuckDBTimestampSecondsVector,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsVector,
   DuckDBTimestampTZVector,
   DuckDBTimestampValue,
   DuckDBTimestampVector,
@@ -72,6 +74,7 @@ import {
   TIME,
   TIMESTAMP,
   TIMESTAMPTZ,
+  TIMESTAMPTZ_NS,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
   TIMESTAMP_S,
@@ -99,6 +102,7 @@ import {
   timeTZValue,
   timeValue,
   unionValue,
+  timestampTZNanosValue,
 } from '../src';
 import {
   createTestAllTypesColumnNameAndTypeObjects,
@@ -158,21 +162,22 @@ describe('types', () => {
     assert.equal(BIT.toString(), 'BIT');
     assert.equal(TIMETZ.toString(), 'TIME WITH TIME ZONE');
     assert.equal(TIMESTAMPTZ.toString(), 'TIMESTAMP WITH TIME ZONE');
+    assert.equal(TIMESTAMPTZ_NS.toString(), 'TIMESTAMPTZ_NS');
     assert.equal(ANY.toString(), 'ANY');
     assert.equal(BIGNUM.toString(), 'BIGNUM');
-    assert.equal(SQLNULL.toString(), 'SQLNULL');
+    assert.equal(SQLNULL.toString(), '"NULL"');
   });
   test('should support all data types', async () => {
     await withConnection(async (connection) => {
       const result = await connection.run(
-        'from test_all_types(use_large_enum=true)',
+        'select * from test_all_types(use_large_enum=true)',
       );
       assertColumns(result, createTestAllTypesColumnNameAndTypeObjects());
 
       const chunk = await result.fetchChunk();
       assert.isDefined(chunk);
       if (chunk) {
-        assert.strictEqual(chunk.columnCount, 56);
+        assert.strictEqual(chunk.columnCount, 59);
         assert.strictEqual(chunk.rowCount, 3);
 
         const testAllTypesColumns = createTestAllTypesColumns();
@@ -217,64 +222,72 @@ describe('types', () => {
           DuckDBTimestampTZVector,
           testAllTypesColumns[19],
         );
-        assertValues(chunk, 20, DuckDBFloatVector, testAllTypesColumns[20]);
-        assertValues(chunk, 21, DuckDBDoubleVector, testAllTypesColumns[21]);
-        assertValues(chunk, 22, DuckDBDecimal16Vector, testAllTypesColumns[22]);
-        assertValues(chunk, 23, DuckDBDecimal32Vector, testAllTypesColumns[23]);
-        assertValues(chunk, 24, DuckDBDecimal64Vector, testAllTypesColumns[24]);
         assertValues(
           chunk,
-          25,
-          DuckDBDecimal128Vector,
-          testAllTypesColumns[25],
+          20,
+          DuckDBTimestampTZNanosecondsVector,
+          testAllTypesColumns[20],
         );
-        assertValues(chunk, 26, DuckDBUUIDVector, testAllTypesColumns[26]);
-        assertValues(chunk, 27, DuckDBIntervalVector, testAllTypesColumns[27]);
-        assertValues(chunk, 28, DuckDBVarCharVector, testAllTypesColumns[28]);
-        assertValues(chunk, 29, DuckDBBlobVector, testAllTypesColumns[29]);
-        assertValues(chunk, 30, DuckDBBitVector, testAllTypesColumns[30]);
-        assertValues(chunk, 31, DuckDBEnum8Vector, testAllTypesColumns[31]);
-        assertValues(chunk, 32, DuckDBEnum16Vector, testAllTypesColumns[32]);
-        assertValues(chunk, 33, DuckDBEnum32Vector, testAllTypesColumns[33]);
+        assertValues(chunk, 21, DuckDBFloatVector, testAllTypesColumns[21]);
+        assertValues(chunk, 22, DuckDBDoubleVector, testAllTypesColumns[22]);
+        assertValues(chunk, 23, DuckDBDecimal16Vector, testAllTypesColumns[23]);
+        assertValues(chunk, 24, DuckDBDecimal32Vector, testAllTypesColumns[24]);
+        assertValues(chunk, 25, DuckDBDecimal64Vector, testAllTypesColumns[25]);
+        assertValues(
+          chunk,
+          26,
+          DuckDBDecimal128Vector,
+          testAllTypesColumns[26],
+        );
+        assertValues(chunk, 27, DuckDBUUIDVector, testAllTypesColumns[27]);
+        assertValues(chunk, 28, DuckDBIntervalVector, testAllTypesColumns[28]);
+        assertValues(chunk, 29, DuckDBVarCharVector, testAllTypesColumns[29]);
+        assertValues(chunk, 30, DuckDBBlobVector, testAllTypesColumns[30]);
+        assertValues(chunk, 31, DuckDBBitVector, testAllTypesColumns[31]);
+        assertValues(chunk, 32, DuckDBEnum8Vector, testAllTypesColumns[32]);
+        assertValues(chunk, 33, DuckDBEnum16Vector, testAllTypesColumns[33]);
+        assertValues(chunk, 34, DuckDBEnum32Vector, testAllTypesColumns[34]);
         // int_array
-        assertValues(chunk, 34, DuckDBListVector, testAllTypesColumns[34]);
-        // double_array
         assertValues(chunk, 35, DuckDBListVector, testAllTypesColumns[35]);
-        // date_array
+        // double_array
         assertValues(chunk, 36, DuckDBListVector, testAllTypesColumns[36]);
-        // timestamp_array
+        // date_array
         assertValues(chunk, 37, DuckDBListVector, testAllTypesColumns[37]);
-        // timestamptz_array
+        // timestamp_array
         assertValues(chunk, 38, DuckDBListVector, testAllTypesColumns[38]);
-        // varchar_array
+        // timestamptz_array
         assertValues(chunk, 39, DuckDBListVector, testAllTypesColumns[39]);
-        // nested_int_array
+        // varchar_array
         assertValues(chunk, 40, DuckDBListVector, testAllTypesColumns[40]);
-        assertValues(chunk, 41, DuckDBStructVector, testAllTypesColumns[41]);
-        // struct_of_arrays
+        // nested_int_array
+        assertValues(chunk, 41, DuckDBListVector, testAllTypesColumns[41]);
         assertValues(chunk, 42, DuckDBStructVector, testAllTypesColumns[42]);
+        // empty_struct
+        assertValues(chunk, 43, DuckDBStructVector, testAllTypesColumns[43]);
+        // struct_of_arrays
+        assertValues(chunk, 44, DuckDBStructVector, testAllTypesColumns[44]);
         // array_of_structs
-        assertValues(chunk, 43, DuckDBListVector, testAllTypesColumns[43]);
-        assertValues(chunk, 44, DuckDBMapVector, testAllTypesColumns[44]);
-        assertValues(chunk, 45, DuckDBUnionVector, testAllTypesColumns[45]);
+        assertValues(chunk, 45, DuckDBListVector, testAllTypesColumns[45]);
+        assertValues(chunk, 46, DuckDBMapVector, testAllTypesColumns[46]);
+        assertValues(chunk, 47, DuckDBUnionVector, testAllTypesColumns[47]);
         // fixed_int_array
-        assertValues(chunk, 46, DuckDBArrayVector, testAllTypesColumns[46]);
-        // fixed_varchar_array
-        assertValues(chunk, 47, DuckDBArrayVector, testAllTypesColumns[47]);
-        // fixed_nested_int_array
         assertValues(chunk, 48, DuckDBArrayVector, testAllTypesColumns[48]);
-        // fixed_nested_varchar_array
+        // fixed_varchar_array
         assertValues(chunk, 49, DuckDBArrayVector, testAllTypesColumns[49]);
-        // fixed_struct_array
+        // fixed_nested_int_array
         assertValues(chunk, 50, DuckDBArrayVector, testAllTypesColumns[50]);
-        // struct_of_fixed_array
-        assertValues(chunk, 51, DuckDBStructVector, testAllTypesColumns[51]);
-        // fixed_array_of_int_list
+        // fixed_nested_varchar_array
+        assertValues(chunk, 51, DuckDBArrayVector, testAllTypesColumns[51]);
+        // fixed_struct_array
         assertValues(chunk, 52, DuckDBArrayVector, testAllTypesColumns[52]);
+        // struct_of_fixed_array
+        assertValues(chunk, 53, DuckDBStructVector, testAllTypesColumns[53]);
+        // fixed_array_of_int_list
+        assertValues(chunk, 54, DuckDBArrayVector, testAllTypesColumns[54]);
         // list_of_fixed_int_array
-        assertValues(chunk, 53, DuckDBListVector, testAllTypesColumns[53]);
+        assertValues(chunk, 55, DuckDBListVector, testAllTypesColumns[55]);
         // time_ns
-        assertValues(chunk, 54, DuckDBTimeNSVector, testAllTypesColumns[54]);
+        assertValues(chunk, 56, DuckDBTimeNSVector, testAllTypesColumns[56]);
       }
     });
   });
@@ -460,6 +473,8 @@ describe('types', () => {
     assert.equal(TIMESTAMP_NS.epoch.toString(), '1970-01-01 00:00:00');
     assert.equal(TIMESTAMP_NS.max.toString(), '2262-04-11 23:47:16.854775806');
     assert.equal(TIMESTAMP_NS.min.toString(), '1677-09-22 00:00:00');
+    assert.equal(TIMESTAMP_NS.posInf.toString(), 'infinity');
+    assert.equal(TIMESTAMP_NS.negInf.toString(), '-infinity');
 
     // timestamp seconds
     assert.equal(TIMESTAMP_S.epoch.toString(), '1970-01-01 00:00:00');
@@ -478,6 +493,16 @@ describe('types', () => {
     );
     assert.equal(TIMESTAMPTZ.posInf.toString(), 'infinity');
     assert.equal(TIMESTAMPTZ.negInf.toString(), '-infinity');
+
+    // timestamp tz ns
+    assert.equal(TIMESTAMPTZ_NS.epoch.toString(), '1969-12-31 18:30:00-05:30');
+    assert.equal(
+      TIMESTAMPTZ_NS.max.toString(),
+      '2262-04-11 18:17:16.854775806-05:30',
+    );
+    assert.equal(TIMESTAMPTZ_NS.min.toString(), '1677-09-21 18:30:00-05:30');
+    assert.equal(TIMESTAMPTZ_NS.posInf.toString(), 'infinity');
+    assert.equal(TIMESTAMPTZ_NS.negInf.toString(), '-infinity');
 
     // timestamp
     assert.equal(TIMESTAMP.epoch.toString(), '1970-01-01 00:00:00');
@@ -555,6 +580,78 @@ describe('types', () => {
     assert.isFalse(TIMESTAMP_NS.posInf.isFinite);
     assert.isFalse(TIMESTAMP_NS.negInf.isFinite);
   });
+  test('timestamptz_ns isFinite', () => {
+    assert.isTrue(TIMESTAMPTZ_NS.epoch.isFinite);
+    assert.isTrue(TIMESTAMPTZ_NS.max.isFinite);
+    assert.isTrue(TIMESTAMPTZ_NS.min.isFinite);
+    assert.isFalse(TIMESTAMPTZ_NS.posInf.isFinite);
+    assert.isFalse(TIMESTAMPTZ_NS.negInf.isFinite);
+  });
+  test('nanosecond timestamp infinities read as DuckDB prints them', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(`
+        select
+          'infinity'::timestamp_ns as ns_pos,
+          '-infinity'::timestamp_ns as ns_neg,
+          'infinity'::timestamptz_ns as tz_ns_pos,
+          '-infinity'::timestamptz_ns as tz_ns_neg,
+          'infinity'::timestamp_ns::varchar as ns_pos_text,
+          '-infinity'::timestamptz_ns::varchar as tz_ns_neg_text
+      `);
+      const [row] = reader.getRows();
+      assert.deepEqual(row.slice(0, 4), [
+        TIMESTAMP_NS.posInf,
+        TIMESTAMP_NS.negInf,
+        TIMESTAMPTZ_NS.posInf,
+        TIMESTAMPTZ_NS.negInf,
+      ]);
+      assert.deepEqual(reader.getRowsJson(), [
+        [
+          'infinity',
+          '-infinity',
+          'infinity',
+          '-infinity',
+          'infinity',
+          '-infinity',
+        ],
+      ]);
+      // A JS Date can't represent infinity.
+      for (const sql of [
+        `select 'infinity'::timestamp_ns`,
+        `select '-infinity'::timestamp_ns`,
+        `select 'infinity'::timestamptz_ns`,
+        `select '-infinity'::timestamptz_ns`,
+      ]) {
+        const infinity = await connection.runAndReadAll(sql);
+        assert.throws(() => infinity.getRowsJS(), /out of range for JS Date/);
+      }
+    });
+  });
+  test('TIMESTAMPTZ_NS binds, appends and converts', async () => {
+    // 2024-01-02 03:04:05.678901234 UTC
+    const value = timestampTZNanosValue(1704164645678901234n);
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare('select ? as t');
+      prepared.bindTimestampTZNanoseconds(1, value);
+      const reader = await prepared.runAndReadAll();
+      assert.deepEqual(reader.columnTypes(), [TIMESTAMPTZ_NS]);
+      assert.deepEqual(reader.getRows(), [[value]]);
+      assert.deepEqual(reader.getRowsJS(), [
+        [new Date('2024-01-02T03:04:05.678Z')],
+      ]);
+      assert.deepEqual(reader.getRowsJson(), [
+        ['2024-01-01 21:34:05.678901234-05:30'],
+      ]);
+
+      await connection.run('create table t (t TIMESTAMPTZ_NS)');
+      const appender = await connection.createAppender('t');
+      appender.appendTimestampTZNanoseconds(value);
+      appender.endRow();
+      appender.closeSync();
+      const appended = await connection.runAndReadAll('from t');
+      assert.deepEqual(appended.getRows(), [[value]]);
+    });
+  });
   test('value conversion', () => {
     const dateParts: DateParts = { year: 2024, month: 6, day: 3 };
     const timeParts: TimeParts = { hour: 12, min: 34, sec: 56, micros: 789123 };
@@ -625,6 +722,37 @@ describe('types', () => {
       const plainType = plain.columnTypes()[0];
       assert.ok(plainType instanceof DuckDBGeometryType);
       assert.strictEqual(plainType.crs, undefined);
+    });
+  });
+
+  test('SQLNULL columns', async () => {
+    await withConnection(async (connection) => {
+      const sql = `SELECT NULL AS n, [NULL] AS l`;
+      const result = await connection.run(sql);
+      assert.deepEqual(result.columnTypes(), [SQLNULL, LIST(SQLNULL)]);
+      const chunk = await result.fetchChunk();
+      assert.ok(chunk?.getColumnVector(0) instanceof DuckDBSQLNullVector);
+      const reader = await connection.runAndReadAll(sql);
+      assert.deepEqual(reader.getRowsJS(), [[null, [null]]]);
+      assert.deepEqual(reader.getRowsJson(), [[null, [null]]]);
+    });
+  });
+
+  test('SQLNULL type strings are valid SQL', async () => {
+    const types = [SQLNULL, LIST(SQLNULL), STRUCT({ a: SQLNULL })];
+    assert.deepEqual(types.map(String), [
+      '"NULL"',
+      '"NULL"[]',
+      'STRUCT("a" "NULL")',
+    ]);
+    await withConnection(async (connection) => {
+      await connection.run(
+        `create table t (${types.map((t, i) => `c${i} ${t}`).join(', ')})`,
+      );
+      const reader = await connection.runAndReadAll(
+        `select ${types.map((t) => `null::${t}`).join(', ')}`,
+      );
+      assert.equal(reader.columnCount, 3);
     });
   });
 });

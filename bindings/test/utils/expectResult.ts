@@ -4,8 +4,19 @@ import { expectChunk } from './expectChunk';
 import { ExpectedResult } from './ExpectedResult';
 import { expectLogicalType } from './expectLogicalType';
 
-export async function expectResult(result: duckdb.Result, expectedResult: ExpectedResult) {
-  expect(duckdb.result_statement_type(result)).toBe(expectedResult.statementType ?? duckdb.StatementType.SELECT);
+export async function expectResult(
+  result: duckdb.Result,
+  expectedResult: ExpectedResult,
+  prepared?: duckdb.PreparedStatement,
+) {
+  const expectedStatementType = expectedResult.statementType ?? duckdb.StatementType.SELECT;
+  const statementType = duckdb.result_statement_type(result);
+  // On DuckDB 2.0, results of prepared statements report EXECUTE; see https://github.com/duckdb/duckdb/issues/27415
+  if (prepared && statementType === duckdb.StatementType.EXECUTE) {
+    expect(duckdb.prepared_statement_type(prepared)).toBe(expectedStatementType);
+  } else {
+    expect(statementType).toBe(expectedStatementType);
+  }
   expect(duckdb.result_return_type(result)).toBe(expectedResult.resultType ?? duckdb.ResultType.QUERY_RESULT);
   expect(duckdb.result_is_streaming(result)).toBe(!!expectedResult.isStreaming);
   if (expectedResult.chunkCount != undefined) {

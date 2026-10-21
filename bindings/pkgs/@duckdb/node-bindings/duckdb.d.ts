@@ -106,6 +106,7 @@ export enum Type {
   TIME_NS = 39,
   GEOMETRY = 40,
   VARIANT = 41,
+  TIMESTAMP_TZ_NS = 42,
 }
 
 // Types (no explicit destroy)
@@ -1379,6 +1380,9 @@ export function create_timestamp(input: Timestamp): Value;
 // DUCKDB_C_API duckdb_value duckdb_create_timestamp_tz(duckdb_timestamp input);
 export function create_timestamp_tz(input: Timestamp): Value;
 
+// DUCKDB_C_API duckdb_value duckdb_create_timestamp_tz_ns(duckdb_timestamp_ns input);
+export function create_timestamp_tz_ns(input: TimestampNanoseconds): Value;
+
 // DUCKDB_C_API duckdb_value duckdb_create_timestamp_s(duckdb_timestamp_s input);
 export function create_timestamp_s(input: TimestampSeconds): Value;
 
@@ -1462,6 +1466,9 @@ export function get_timestamp(value: Value): Timestamp;
 
 // DUCKDB_C_API duckdb_timestamp duckdb_get_timestamp_tz(duckdb_value val);
 export function get_timestamp_tz(value: Value): Timestamp;
+
+// DUCKDB_C_API duckdb_timestamp_ns duckdb_get_timestamp_tz_ns(duckdb_value val);
+export function get_timestamp_tz_ns(value: Value): TimestampNanoseconds;
 
 // DUCKDB_C_API duckdb_timestamp_s duckdb_get_timestamp_s(duckdb_value val);
 export function get_timestamp_s(value: Value): TimestampSeconds;

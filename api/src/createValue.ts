@@ -18,6 +18,7 @@ import {
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsValue,
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
@@ -287,6 +288,11 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
         return duckdb.create_timestamp_tz(input);
       }
       throw new Error(`input is not a DuckDBTimestampTZValue`);
+    case DuckDBTypeId.TIMESTAMP_TZ_NS:
+      if (input instanceof DuckDBTimestampTZNanosecondsValue) {
+        return duckdb.create_timestamp_tz_ns(input);
+      }
+      throw new Error(`input is not a DuckDBTimestampTZNanosecondsValue`);
     case DuckDBTypeId.ANY:
       throw new Error(
         `Cannot create values of type ANY. Specify a specific type.`

@@ -21,7 +21,7 @@ suite('pending', () => {
         chunks: [
           { rowCount: 1, vectors: [data(4, [true], [11])]},
         ],
-      });
+      }, prepared);
     });
   });
   test('streaming', async () => {
@@ -39,7 +39,7 @@ suite('pending', () => {
           { rowCount: 2048, vectors: [data(4, null, Array.from({ length: 2048 }).map((_, i) => 2048 + i))]},
           { rowCount: 904, vectors: [data(4, null, Array.from({ length: 904 }).map((_, i) => 4096 + i))]},
         ],
-      });
+      }, prepared);
     });
   });
   test('tasks', async () => {
@@ -61,7 +61,7 @@ suite('pending', () => {
         chunks: [
           { rowCount: 1, vectors: [data(8, [true], [10_000n])]},
         ],
-      });
+      }, prepared);
     });
   });
   test.skip('interrupt', async () => { // interrupt does not appear to be entirely deterministic

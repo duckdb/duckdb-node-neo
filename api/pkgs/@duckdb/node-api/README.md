@@ -204,6 +204,7 @@ These are:
 | `TIMETZ` | `timeTZValue` |
 | `TIMESTAMP` | `timestampValue` |
 | `TIMESTAMPTZ` | `timestampTZValue` |
+| `TIMESTAMPTZ_NS` | `timestampTZNanosValue` |
 | `TIMESTAMP_S` | `timestampSecondsValue` |
 | `TIMESTAMP_MS` | `timestampMillisValue` |
 | `TIMESTAMP_NS` | `timestampNanosValue` |
@@ -272,6 +273,15 @@ const rows = reader.getRows(); // rows already read stay available
 
 Column names and types also stay available after closing; reading more
 rows throws.
+
+The same applies to appenders: from DuckDB 2.0, an appender can't flush
+while its connection has such a result. Appenders flush on `flushSync()`
+and `closeSync()`, and automatically about every 204,800 rows, so with a
+streaming result open, appending fails at the next flush, and the rows
+appended since the last successful flush are lost. Read the result to the
+end or close it before appending, or append on a separate connection.
+Close appenders explicitly too: one that is flushed when it's garbage
+collected can't report a failure.
 
 ### Inspect Result Metadata
 
@@ -897,9 +907,9 @@ if (columnType.typeId === DuckDBTypeId.UUID) {
 
 ### Displaying Timezones
 
-Converting a TIMESTAMP_TZ value to a string depends on a timezone offset.
-By default, this is set to the offset for the local timezone when the Node
-process is started.
+Converting a TIMESTAMP_TZ or TIMESTAMPTZ_NS value to a string depends on
+a timezone offset. By default, this is set to the offset for the local
+timezone when the Node process is started.
 
 To change it, set the `timezoneOffsetInMinutes`
 property of `DuckDBTimestampTZValue`:
@@ -913,6 +923,9 @@ DuckDBTimestampTZValue.timezoneOffsetInMinutes = +1 * 60;
 const cet = DuckDBTimestampTZValue.Epoch.toString();
 // 1970-01-01 01:00:00+01
 ```
+
+`DuckDBTimestampTZNanosecondsValue` (TIMESTAMPTZ_NS) uses the same
+`DuckDBTimestampTZValue.timezoneOffsetInMinutes` setting.
 
 Note that the timezone offset used for this string
 conversion is distinct from the `TimeZone` setting of DuckDB.

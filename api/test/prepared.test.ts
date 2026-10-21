@@ -20,6 +20,7 @@ import {
   DuckDBListVector,
   DuckDBMapVector,
   DuckDBPendingResultState,
+  DuckDBSQLNullVector,
   DuckDBStructVector,
   DuckDBTimeTZVector,
   DuckDBTimestampMillisecondsVector,
@@ -38,6 +39,7 @@ import {
   SMALLINT,
   SQLNULL,
   STRUCT,
+  StatementType,
   TIMESTAMPTZ,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
@@ -55,7 +57,6 @@ import {
   unionValue,
   uuidValue,
 } from '../src';
-import { replaceSqlNullWithInteger } from './util/replaceSqlNullWithInteger';
 import {
   ColumnNameAndType,
 } from './util/testAllTypes';
@@ -167,22 +168,13 @@ describe('prepared statements', () => {
 
       const result = await prepared.run();
 
-      // In the result, SQLNULL params get type INTEGER.
-      const expectedColumns = params.map((p) => {
-        const replacedType = replaceSqlNullWithInteger(p.type);
-        if (replacedType !== p.type) {
-          return { ...p, type: replacedType };
-        }
-        return p;
-      });
-
-      assertColumns(result, expectedColumns);
+      assertColumns(result, params);
 
       const chunk = await result.fetchChunk();
 
       assert.isDefined(chunk);
       if (chunk) {
-        assert.strictEqual(chunk.columnCount, expectedColumns.length);
+        assert.strictEqual(chunk.columnCount, params.length);
         assert.strictEqual(chunk.rowCount, 1);
         let i = 0;
         assertValues<boolean, DuckDBBooleanVector>(
@@ -245,13 +237,53 @@ describe('prepared statements', () => {
         assertValues(chunk, i++, DuckDBTimeTZVector, [TIMETZ.max]);
         assertValues(chunk, i++, DuckDBTimestampTZVector, [TIMESTAMPTZ.max]);
         assertValues(chunk, i++, DuckDBBigNumVector, [BIGNUM.max]);
-        assertValues<number, DuckDBIntegerVector>(
-          chunk,
-          i++,
-          DuckDBIntegerVector,
-          [null],
-        );
+        assertValues(chunk, i++, DuckDBSQLNullVector, [null]);
       }
+    });
+  });
+  test('results report the type of the statement that was prepared', async () => {
+    await withConnection(async (connection) => {
+      await connection.run('create table t (i integer)');
+      const { SELECT, INSERT } = StatementType;
+
+      assert.equal(
+        (await connection.run('select ?::integer', [1])).statementType,
+        SELECT,
+      );
+      assert.equal(
+        (await connection.runAndReadAll('select ?::integer', [1])).statementType,
+        SELECT,
+      );
+      // Streams are closed so they don't block the connection on DuckDB 2.0.
+      const stream = await connection.stream('select 1');
+      assert.equal(stream.statementType, SELECT);
+      stream.closeSync();
+      assert.equal(
+        (await connection.streamAndReadAll('select 1')).statementType,
+        SELECT,
+      );
+      assert.equal(
+        (await (await connection.start('select 1')).getResult()).statementType,
+        SELECT,
+      );
+      assert.equal(
+        (await connection.startThenReadAll('select 1')).statementType,
+        SELECT,
+      );
+
+      const select = await connection.prepare('select 1');
+      assert.equal((await select.run()).statementType, SELECT);
+      const selectStream = await select.stream();
+      assert.equal(selectStream.statementType, SELECT);
+      selectStream.closeSync();
+      assert.equal((await select.start().getResult()).statementType, SELECT);
+      const pendingStream = await select.startStream().getResult();
+      assert.equal(pendingStream.statementType, SELECT);
+      pendingStream.closeSync();
+
+      const insert = await connection.prepare('insert into t values (?)');
+      insert.bindInteger(1, 1);
+      assert.equal((await insert.run()).statementType, INSERT);
     });
   });
   test('should support prepare statement bind with list', async () => {
@@ -622,6 +654,20 @@ INSERT INTO cities VALUES
     ('US', 'New York City', 2010, 8175),
     ('US', 'New York City', 2020, 8772);
     `);
+      // Without an IN list, PIVOT expands into several statements, which
+      // cannot take parameters.
+      try {
+        await connection.runAndReadAll(
+          `FROM (PIVOT cities ON year USING sum(population)) WHERE country = $country`,
+          { country: 'US' },
+        );
+        assert.fail('should throw');
+      } catch (err) {
+        assert.include(
+          (err as Error).message,
+          'parameters are not supported for a statement that expands into several',
+        );
+      }
       const reader = await connection.runAndReadAll(
         `
 FROM (

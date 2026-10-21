@@ -30,6 +30,7 @@ import {
   TIMESTAMP,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
+  TIMESTAMPTZ_NS,
   TIMESTAMP_S,
   TIMETZ,
   TINYINT,
@@ -59,6 +60,7 @@ import {
   unionValue,
   uuidValue,
   variantValue,
+  timestampTZNanosValue,
 } from '../src';
 import {
   assertColumns,
@@ -192,6 +194,18 @@ describe('VARIANT', () => {
       expect(timestampNanosValue(1704164645678901234n), TIMESTAMP_NS);
       expect(intervalValue(3, 4, BigInt(5 * 60 * 1_000_000)), INTERVAL);
       expect(uuidValue(0x00112233_4455_6677_8899_aabbccddeeffn), UUID);
+    });
+  });
+
+  test('TIMESTAMPTZ_NS decodes through VARIANT', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(
+        `select '2024-01-02 03:04:05.678901234+00'::TIMESTAMPTZ_NS::VARIANT as v`,
+      );
+      assert.deepStrictEqual(reader.getRowObjects()[0].v, variantValue(
+        timestampTZNanosValue(1704164645678901234n),
+        TIMESTAMPTZ_NS,
+      ));
     });
   });
 
@@ -718,13 +732,12 @@ describe('VARIANT', () => {
   });
 
   test('heterogeneous LIST(VARIANT) cannot be bound directly', async () => {
-    // The C API's create_list_value rejects a list of values with
-    // heterogeneous physical types, so a decoded `LIST(VARIANT)` (which
-    // wraps each non-null element to preserve mixed types) cannot be
-    // bound back through a prepared statement. Pin the failure so we
-    // notice if the surface changes. The error wording originates in
-    // the native bindings — if it changes phrasing across DuckDB
-    // versions, update the regex.
+    // A decoded `LIST(VARIANT)` (which wraps each non-null element to
+    // preserve mixed types) is bound as a list value with a VARIANT element
+    // type. The C API cannot create a usable VARIANT type
+    // (https://github.com/duckdb/duckdb/issues/24680), so the bindings refuse
+    // to create one, and binding fails. Once DuckDB fixes that, this should
+    // bind and round-trip instead.
     await withConnection(async (connection) => {
       const r1 = await connection.runAndReadAll(
         `select '[1, "two"]'::JSON::VARIANT as v`,
@@ -735,7 +748,7 @@ describe('VARIANT', () => {
       const prepared = await connection.prepare(`select ?::VARIANT as v`);
       assert.throws(
         () => prepared.bindVariant(1, decoded),
-        /Failed to create (?:VARIANT value.*?Failed to create )?list value/,
+        /Cannot create a VARIANT logical type/,
       );
     });
   });
