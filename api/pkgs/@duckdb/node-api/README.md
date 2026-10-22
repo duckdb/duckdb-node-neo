@@ -142,12 +142,16 @@ try {
   const catalog = connection.clientContext.getCatalog('memory')!;
   console.log(catalog.typeName); // duckdb (backend type)
   console.log(connection.clientContext.getCatalog('missing')); // null
-  console.log(catalog.getEntry(CatalogEntryType.TABLE, 'main', 'missing')); // null
+  console.log(
+    catalog.getEntry(CatalogEntryType.TABLE, 'main', 'missing')
+  ); // null
 
-  const entry = catalog.getEntry(CatalogEntryType.TABLE, 'main', 'example')!;
+  const entry = catalog.getEntry(
+    CatalogEntryType.TABLE, 'main', 'example'
+  )!;
   await connection.run('rollback');
-  connection.disconnectSync();
 
+  // Snapshotted metadata remains readable after disconnect, too.
   console.log(entry.name); // example
   console.log(CatalogEntryType[entry.type]); // VIEW (actual entry type)
 } finally {
@@ -156,11 +160,19 @@ try {
 }
 ```
 
-Use catalogs within an active transaction on an open connection; retaining
-wrappers does not extend either lifetime. `getEntry` copies name and type during
-lookup, so entry metadata remains readable after `COMMIT`, `ROLLBACK`, or
-disconnect. These snapshots do not track later catalog changes; use a fresh
-lookup in a valid transaction and connection for current metadata.
+`getCatalog` requires an active transaction and returns `null` otherwise.
+Use `getEntry` only within the transaction in which the catalog was
+acquired, while its database remains attached and its connection remains
+open. Retaining a catalog does not extend these lifetimes.
+
+When using a client context from a registered function's callback, perform
+catalog lookups synchronously in that callback. Store entry snapshots in
+bind data for use in later callbacks.
+
+Catalog `typeName` and entry `name` and `type` are snapshots. They remain
+readable after `COMMIT`, `ROLLBACK`, `DETACH`, or disconnect, but do not
+track later changes. Acquire a new catalog in a valid transaction and
+connection for current metadata.
 
 ### Parameterize SQL
 
