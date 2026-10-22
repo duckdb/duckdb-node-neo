@@ -26,6 +26,10 @@ export class DuckDBCatalog {
    * Retaining this wrapper does not extend those lifetimes. Calls outside
    * this scope are unsupported; this method does not check for expired handles.
    *
+   * For a catalog acquired from a scalar or table function callback's client
+   * context, perform lookups synchronously within that same callback. Store
+   * returned entry snapshots in bind data for use in later callbacks.
+   *
    * Returns null if the schema or entry does not exist. Returned snapshots
    * remain readable after the lookup scope ends and do not track later changes.
    */
