@@ -90,14 +90,16 @@ describe('catalog', () => {
   });
 
   test.each(['COMMIT', 'ROLLBACK', 'disconnect'] as const)(
-    'own entry metadata before its first read after %s', async (boundary) => {
+    'retain catalog and entry metadata after %s', async (boundary) => {
       const instance = await DuckDBInstance.create();
       const connection = await instance.connect();
       try {
         await connection.run('BEGIN TRANSACTION');
         await connection.run('CREATE VIEW "Transient_🦆" AS SELECT 42 AS i');
-        const entry = connection.clientContext.getCatalog('memory')!
-          .getEntry(CatalogEntryType.TABLE, 'main', 'transient_🦆')!;
+        const catalog = connection.clientContext.getCatalog('memory')!;
+        const entry = catalog.getEntry(
+          CatalogEntryType.TABLE, 'main', 'transient_🦆'
+        )!;
         expect(entry).toBeInstanceOf(DuckDBCatalogEntry);
 
         if (boundary === 'disconnect') {
@@ -106,11 +108,15 @@ describe('catalog', () => {
           await connection.run(boundary);
         }
 
+        // Read retained metadata for the first time after the boundary.
         // Own data properties cannot invoke native accessors after the boundary.
+        expect(Object.getOwnPropertyDescriptor(catalog, 'typeName'))
+          .toHaveProperty('value', 'duckdb');
         expect(Object.getOwnPropertyDescriptor(entry, 'name'))
           .toHaveProperty('value', 'Transient_🦆');
         expect(Object.getOwnPropertyDescriptor(entry, 'type'))
           .toHaveProperty('value', CatalogEntryType.VIEW);
+        expect(catalog.typeName).toBe('duckdb');
         expect(entry.name).toBe('Transient_🦆');
         expect(entry.type).toBe(CatalogEntryType.VIEW);
 
@@ -137,4 +143,35 @@ describe('catalog', () => {
       }
     }
   );
+
+  test('retain catalog and entry metadata after detaching the database', async () => {
+    const instance = await DuckDBInstance.create();
+    const connection = await instance.connect();
+    try {
+      await connection.run("ATTACH ':memory:' AS attached_catalog");
+      await connection.run('CREATE VIEW attached_catalog.example AS SELECT 42');
+      await connection.run('BEGIN TRANSACTION');
+      const catalog = connection.clientContext.getCatalog('attached_catalog')!;
+      const entry = catalog.getEntry(
+        CatalogEntryType.TABLE, 'main', 'example'
+      )!;
+      await connection.run('COMMIT');
+      await connection.run('DETACH attached_catalog');
+
+      // Only copied metadata is supported after the catalog's lookup scope ends.
+      expect(catalog.typeName).toBe('duckdb');
+      expect(entry.name).toBe('example');
+      expect(entry.type).toBe(CatalogEntryType.VIEW);
+
+      await connection.run('BEGIN TRANSACTION');
+      try {
+        expect(connection.clientContext.getCatalog('attached_catalog')).toBeNull();
+      } finally {
+        await connection.run('ROLLBACK');
+      }
+    } finally {
+      connection.disconnectSync();
+      instance.closeSync();
+    }
+  });
 });

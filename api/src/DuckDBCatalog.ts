@@ -6,15 +6,29 @@ export class DuckDBCatalog {
   private readonly catalog: duckdb.Catalog;
   private readonly client_context: duckdb.ClientContext;
 
+  /**
+   * Backend type name copied when this catalog is acquired. Remains readable
+   * after COMMIT, ROLLBACK, DETACH, or disconnect.
+   */
+  public readonly typeName: string;
+
   constructor(catalog: duckdb.Catalog, client_context: duckdb.ClientContext) {
     this.catalog = catalog;
     this.client_context = client_context;
+    this.typeName = duckdb.catalog_get_type_name(catalog);
   }
 
-  public get typeName(): string {
-    return duckdb.catalog_get_type_name(this.catalog);
-  }
-
+  /**
+   * Looks up an entry and copies its name and type into a metadata snapshot.
+   *
+   * Call only within the transaction in which this catalog was acquired,
+   * while its database remains attached and its connection remains open.
+   * Retaining this wrapper does not extend those lifetimes. Calls outside
+   * this scope are unsupported; this method does not check for expired handles.
+   *
+   * Returns null if the schema or entry does not exist. Returned snapshots
+   * remain readable after the lookup scope ends and do not track later changes.
+   */
   public getEntry(
     type: CatalogEntryType,
     schemaName: string,
