@@ -41,6 +41,15 @@ const MAX_DATE_DAYS = 100000000;
 const MIN_DATE_MILLIS = -8640000000000000;
 const MAX_DATE_MILLIS = 8640000000000000;
 
+/**
+ * Divide, rounding toward negative infinity. BigInt division truncates toward
+ * zero, which would round pre-1970 timestamps up to a later millisecond.
+ */
+function floorDivide(dividend: bigint, divisor: bigint): bigint {
+  const quotient = dividend / divisor;
+  return dividend % divisor < 0n ? quotient - 1n : quotient;
+}
+
 /** Whether a TIMESTAMP_NS or TIMESTAMPTZ_NS value is not +/-infinity. */
 function isFiniteNanos(nanos: bigint): boolean {
   return (
@@ -135,7 +144,7 @@ export function bigintFromTimeNSValue(value: DuckDBValue): bigint {
 
 export function dateFromTimestampValue(value: DuckDBValue): Date {
   if (value instanceof DuckDBTimestampValue) {
-    const millis = value.micros / 1000n;
+    const millis = floorDivide(value.micros, 1000n);
     if (MIN_DATE_MILLIS <= millis && millis <= MAX_DATE_MILLIS) {
       return new Date(Number(millis));
     }
@@ -174,7 +183,7 @@ export function dateFromTimestampMillisecondsValue(value: DuckDBValue): Date {
 
 export function dateFromTimestampNanosecondsValue(value: DuckDBValue): Date {
   if (value instanceof DuckDBTimestampNanosecondsValue) {
-    const millis = value.nanos / 1000000n;
+    const millis = floorDivide(value.nanos, 1000000n);
     if (
       isFiniteNanos(value.nanos) &&
       MIN_DATE_MILLIS <= millis &&
@@ -204,7 +213,7 @@ export function objectFromTimeTZValue(value: DuckDBValue): {
 
 export function dateFromTimestampTZValue(value: DuckDBValue): Date {
   if (value instanceof DuckDBTimestampTZValue) {
-    const millis = value.micros / 1000n;
+    const millis = floorDivide(value.micros, 1000n);
     if (MIN_DATE_MILLIS <= millis && millis <= MAX_DATE_MILLIS) {
       return new Date(Number(millis));
     }
@@ -217,7 +226,7 @@ export function dateFromTimestampTZValue(value: DuckDBValue): Date {
 
 export function dateFromTimestampTZNanosecondsValue(value: DuckDBValue): Date {
   if (value instanceof DuckDBTimestampTZNanosecondsValue) {
-    const millis = value.nanos / 1000000n;
+    const millis = floorDivide(value.nanos, 1000000n);
     if (
       isFiniteNanos(value.nanos) &&
       MIN_DATE_MILLIS <= millis &&

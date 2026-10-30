@@ -652,6 +652,31 @@ describe('types', () => {
       assert.deepEqual(appended.getRows(), [[value]]);
     });
   });
+  test('pre-1970 timestamps convert to the earlier JS Date', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(`
+        select
+          '1969-12-31 23:59:59.999999'::timestamp,
+          '1969-12-31 23:59:59.999999+00'::timestamptz,
+          '1969-12-31 23:59:59.999999999'::timestamp_ns,
+          '1969-12-31 23:59:59.999999999+00'::timestamptz_ns,
+          '1969-12-31 23:59:59.998999999'::timestamp_ns,
+          '1969-12-31 23:59:59.999'::timestamp,
+          '1969-12-31 23:59:59.999'::timestamp_ns
+      `);
+      assert.deepEqual(reader.getRowsJS(), [
+        [
+          new Date('1969-12-31T23:59:59.999Z'),
+          new Date('1969-12-31T23:59:59.999Z'),
+          new Date('1969-12-31T23:59:59.999Z'),
+          new Date('1969-12-31T23:59:59.999Z'),
+          new Date('1969-12-31T23:59:59.998Z'),
+          new Date('1969-12-31T23:59:59.999Z'),
+          new Date('1969-12-31T23:59:59.999Z'),
+        ],
+      ]);
+    });
+  });
   test('value conversion', () => {
     const dateParts: DateParts = { year: 2024, month: 6, day: 3 };
     const timeParts: TimeParts = { hour: 12, min: 34, sec: 56, micros: 789123 };
