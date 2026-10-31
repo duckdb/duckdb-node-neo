@@ -55,6 +55,18 @@ inline constexpr napi_type_tag ExtractedStatementsTypeTag = {
   0x59288E1C60C44EEB, 0xBFA35376EE0F04DD
 };
 
+inline constexpr napi_type_tag FileHandleTypeTag = {
+  0x30FA87A5D304413C, 0x985A0FD790B109D2
+};
+
+inline constexpr napi_type_tag FileOpenOptionsTypeTag = {
+  0x84D4C5DEFD1A4F40, 0xB02E962185C1B682
+};
+
+inline constexpr napi_type_tag FileSystemTypeTag = {
+  0x8C6A10106F1145B2, 0x9206300D32145CC7
+};
+
 inline constexpr napi_type_tag InstanceCacheTypeTag = {
   0x2F3346E30FB5457C, 0xB9201EE5112EEF9F
 };

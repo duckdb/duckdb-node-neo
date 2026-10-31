@@ -87,6 +87,22 @@ inline void ThrowBindError(Napi::Env env, duckdb_prepared_statement prepared_sta
   throw Napi::Error::New(env, message);
 }
 
+// Errors from file systems and file handles
+
+// Call with the error data of a file system or file handle after one of its
+// functions reports failure, to throw duckdb's message. Takes ownership of the
+// error data. Only valid on the failure path: the error stays set after later
+// calls succeed, and some failures (invalid arguments) set none, so callers
+// validate arguments first rather than report a stale message.
+inline void ThrowFileSystemError(Napi::Env env, duckdb_error_data error_data, const char *fallback_message) {
+  std::string message = fallback_message;
+  if (duckdb_error_data_has_error(error_data)) {
+    message = duckdb_error_data_message(error_data);
+  }
+  duckdb_destroy_error_data(&error_data);
+  throw Napi::Error::New(env, message);
+}
+
 // Conversion from JS numbers to fixed-width integers
 
 // Napi's Int32Value and Uint32Value implement the JS ToInt32 and ToUint32
