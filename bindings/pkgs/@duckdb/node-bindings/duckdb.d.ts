@@ -15,6 +15,16 @@ export enum CatalogEntryType {
   DATABASE = 9,
 }
 
+export enum FileFlag {
+  INVALID = 0,
+  READ = 1,
+  WRITE = 2,
+  CREATE = 3,
+  /** Together with CREATE: fail if the file exists. */
+  CREATE_NEW = 4,
+  APPEND = 5,
+}
+
 export enum PendingState {
   RESULT_READY = 0,
   RESULT_NOT_READY = 1,
@@ -289,6 +299,28 @@ export interface DataChunk {
 
 export interface ExtractedStatements {
   __duckdb_type: 'duckdb_extracted_statements';
+}
+
+/**
+ * Usable while the database is open, even after the connection it was opened through
+ * is disconnected. Use after the database is closed can read freed memory. Closed when
+ * collected, if not closed before with file_handle_close_sync.
+ */
+export interface FileHandle {
+  __duckdb_type: 'duckdb_file_handle';
+}
+
+export interface FileOpenOptions {
+  __duckdb_type: 'duckdb_file_open_options';
+}
+
+/**
+ * Belongs to the connection of the client context it came from. Use after that
+ * connection is disconnected can read freed memory; retaining this handle does not
+ * extend its lifetime.
+ */
+export interface FileSystem {
+  __duckdb_type: 'duckdb_file_system';
 }
 
 export interface InstanceCache {
@@ -732,21 +764,56 @@ export function set_config(config: Config, name: string, option: string): void;
 // DUCKDB_C_API duckdb_error_data duckdb_expression_fold(duckdb_client_context context, duckdb_expression expr, duckdb_value *out_value);
 
 // DUCKDB_C_API duckdb_file_system duckdb_client_context_get_file_system(duckdb_client_context context);
+export function client_context_get_file_system(context: ClientContext): FileSystem;
+
 // DUCKDB_C_API void duckdb_destroy_file_system(duckdb_file_system *file_system);
+// not exposed: destroyed in finalizer
+
 // DUCKDB_C_API duckdb_error_data duckdb_file_system_error_data(duckdb_file_system file_system);
+// not exposed: file_system_open_sync throws the error
+
 // DUCKDB_C_API duckdb_state duckdb_file_system_open(duckdb_file_system file_system, const char *path, duckdb_file_open_options options, duckdb_file_handle *out_file);
+export function file_system_open_sync(file_system: FileSystem, path: string, options: FileOpenOptions): FileHandle;
+
 // DUCKDB_C_API duckdb_file_open_options duckdb_create_file_open_options(void);
+export function create_file_open_options(): FileOpenOptions;
+
 // DUCKDB_C_API duckdb_state duckdb_file_open_options_set_flag(duckdb_file_open_options options, duckdb_file_flag flag, bool value);
+/** Flags can only be set, so value must be true. */
+export function file_open_options_set_flag(options: FileOpenOptions, flag: FileFlag, value: boolean): void;
+
 // DUCKDB_C_API void duckdb_destroy_file_open_options(duckdb_file_open_options *options);
+// not exposed: destroyed in finalizer
+
 // DUCKDB_C_API void duckdb_destroy_file_handle(duckdb_file_handle *file_handle);
+// not exposed: destroyed by file_handle_close_sync or in finalizer
+
 // DUCKDB_C_API duckdb_error_data duckdb_file_handle_error_data(duckdb_file_handle file_handle);
+// not exposed: file handle functions throw the error
+
 // DUCKDB_C_API int64_t duckdb_file_handle_read(duckdb_file_handle file_handle, void *buffer, int64_t size);
+/** Reads up to buffer.byteLength bytes into buffer, and returns the number read: 0 at the end of the file. */
+export function file_handle_read_sync(file_handle: FileHandle, buffer: Uint8Array): number;
+
 // DUCKDB_C_API int64_t duckdb_file_handle_write(duckdb_file_handle file_handle, const void *buffer, int64_t size);
+/** Returns the number of bytes written. */
+export function file_handle_write_sync(file_handle: FileHandle, data: Uint8Array): number;
+
 // DUCKDB_C_API int64_t duckdb_file_handle_tell(duckdb_file_handle file_handle);
+export function file_handle_tell(file_handle: FileHandle): number;
+
 // DUCKDB_C_API int64_t duckdb_file_handle_size(duckdb_file_handle file_handle);
+export function file_handle_size(file_handle: FileHandle): number;
+
 // DUCKDB_C_API duckdb_state duckdb_file_handle_seek(duckdb_file_handle file_handle, int64_t position);
+export function file_handle_seek(file_handle: FileHandle, position: number): void;
+
 // DUCKDB_C_API duckdb_state duckdb_file_handle_sync(duckdb_file_handle file_handle);
+export function file_handle_sync_sync(file_handle: FileHandle): void;
+
 // DUCKDB_C_API duckdb_state duckdb_file_handle_close(duckdb_file_handle file_handle);
+/** Closes and releases the handle. Other functions throw if given it afterwards; closing again is a no-op. */
+export function file_handle_close_sync(file_handle: FileHandle): void;
 
 // DUCKDB_C_API duckdb_log_storage duckdb_create_log_storage(void);
 // DUCKDB_C_API void duckdb_destroy_log_storage(duckdb_log_storage *log_storage);

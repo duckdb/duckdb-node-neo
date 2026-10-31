@@ -170,4 +170,19 @@ suite('enums', () => {
     expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.TYPE]).toBe('TYPE');
     expect(duckdb.CatalogEntryType[duckdb.CatalogEntryType.DATABASE]).toBe('DATABASE');
   });
+  test('FileFlag', () => {
+    expect(duckdb.FileFlag.INVALID).toBe(0);
+    expect(duckdb.FileFlag.READ).toBe(1);
+    expect(duckdb.FileFlag.WRITE).toBe(2);
+    expect(duckdb.FileFlag.CREATE).toBe(3);
+    expect(duckdb.FileFlag.CREATE_NEW).toBe(4);
+    expect(duckdb.FileFlag.APPEND).toBe(5);
+
+    expect(duckdb.FileFlag[duckdb.FileFlag.INVALID]).toBe('INVALID');
+    expect(duckdb.FileFlag[duckdb.FileFlag.READ]).toBe('READ');
+    expect(duckdb.FileFlag[duckdb.FileFlag.WRITE]).toBe('WRITE');
+    expect(duckdb.FileFlag[duckdb.FileFlag.CREATE]).toBe('CREATE');
+    expect(duckdb.FileFlag[duckdb.FileFlag.CREATE_NEW]).toBe('CREATE_NEW');
+    expect(duckdb.FileFlag[duckdb.FileFlag.APPEND]).toBe('APPEND');
+  });
 });
