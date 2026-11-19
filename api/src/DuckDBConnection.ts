@@ -37,6 +37,10 @@ export class DuckDBConnection {
     this.preparedStatements.destroySync();
     duckdb.disconnect_sync(this.connection);
   }
+  /** Same as disconnectSync; lets `using` disconnect the connection. */
+  public [Symbol.dispose]() {
+    this.disconnectSync();
+  }
   public get clientContext(): DuckDBClientContext {
     return this.getClientContext();
   }

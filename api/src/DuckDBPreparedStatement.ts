@@ -63,6 +63,10 @@ export class DuckDBPreparedStatement {
   public destroySync() {
     return duckdb.destroy_prepare_sync(this.prepared_statement);
   }
+  /** Same as destroySync; lets `using` destroy the statement. */
+  public [Symbol.dispose]() {
+    this.destroySync();
+  }
   public get statementType(): StatementType {
     return duckdb.prepared_statement_type(this.prepared_statement);
   }
