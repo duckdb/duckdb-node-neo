@@ -95,6 +95,20 @@ inline duckdb_config GetConfigFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_config>(env, ConfigTypeTag, value, "Invalid config argument");
 }
 
+// Registering copies the option's fields into the database, so the handle is
+// the caller's to keep or drop either way.
+inline void FinalizeConfigOption(Napi::BasicEnv, duckdb_config_option option) {
+  duckdb_destroy_config_option(&option);
+}
+
+inline Napi::External<_duckdb_config_option> CreateExternalForConfigOption(Napi::Env env, duckdb_config_option option) {
+  return CreateExternal<_duckdb_config_option>(env, ConfigOptionTypeTag, option, FinalizeConfigOption);
+}
+
+inline duckdb_config_option GetConfigOptionFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_config_option>(env, ConfigOptionTypeTag, value, "Invalid config option argument");
+}
+
 typedef struct {
   duckdb_connection connection;
 } duckdb_connection_holder;
