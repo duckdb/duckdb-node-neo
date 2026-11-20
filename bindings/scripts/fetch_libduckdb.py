@@ -3,7 +3,7 @@ import tarfile
 import urllib.request
 
 # Where the duckdb-shared-libs-<suffix>.tar.gz archives are fetched from.
-base_url = "https://github.com/duckdb/duckdb/releases/download/v2.0.0"
+base_url = "https://github.com/duckdb/duckdb/releases/download/v2.0.1"
 
 def fetch_libduckdb(suffix, files):
   output_dir = os.path.join(os.path.dirname(__file__), "..", "libduckdb")
