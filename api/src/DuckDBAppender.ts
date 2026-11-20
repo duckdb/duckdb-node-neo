@@ -62,6 +62,15 @@ export class DuckDBAppender {
   public closeSync() {
     duckdb.appender_close_sync(this.appender);
   }
+  /**
+   * Same as closeSync, so `using` flushes and closes the appender. Flushing
+   * can throw; if that happens while the scope is already unwinding from an
+   * error, the two errors arrive together as a `SuppressedError`. To discard
+   * the unflushed rows instead, call `clear()` before leaving the scope.
+   */
+  public [Symbol.dispose]() {
+    this.closeSync();
+  }
   public flushSync() {
     duckdb.appender_flush_sync(this.appender);
   }

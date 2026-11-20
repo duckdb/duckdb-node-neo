@@ -274,6 +274,24 @@ const rows = reader.getRows(); // rows already read stay available
 Column names and types also stay available after closing; reading more
 rows throws.
 
+Every class with a `closeSync`, `disconnectSync`, or `destroySync` method
+also implements `Symbol.dispose`, so a `using` declaration closes it on
+every way out of the scope, including a thrown error:
+
+```ts
+{
+  using result = await connection.stream('from range(10_000)');
+  const chunk = await result.fetchChunk();
+  // ...
+} // result is closed here
+```
+
+`using` needs TypeScript 5.2 or a runtime with native support, and
+`Symbol.dispose` exists from Node 20. `DisposableStack` closes several
+objects at once, in reverse order. Disposing an appender flushes it, as
+`closeSync()` does; call `clear()` first to discard unflushed rows
+instead.
+
 The same applies to appenders: from DuckDB 2.0, an appender can't flush
 while its connection has such a result. Appenders flush on `flushSync()`
 and `closeSync()`, and automatically about every 204,800 rows, so with a
