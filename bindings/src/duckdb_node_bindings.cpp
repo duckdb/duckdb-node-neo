@@ -30,6 +30,7 @@ public:
       InstanceValue("sizeof_bool", Napi::Number::New(env, sizeof(bool))),
 
       InstanceValue("CatalogEntryType", CreateCatalogEntryTypeEnum(env)),
+      InstanceValue("ConfigOptionScope", CreateConfigOptionScopeEnum(env)),
       InstanceValue("PendingState", CreatePendingStateEnum(env)),
       InstanceValue("ResultType", CreateResultTypeEnum(env)),
       InstanceValue("StatementType", CreateStatementTypeEnum(env)),
@@ -92,6 +93,15 @@ public:
       InstanceMethod("catalog_get_entry", &DuckDBNodeAddon::catalog_get_entry),
       InstanceMethod("catalog_entry_get_type", &DuckDBNodeAddon::catalog_entry_get_type),
       InstanceMethod("catalog_entry_get_name", &DuckDBNodeAddon::catalog_entry_get_name),
+
+      InstanceMethod("create_config_option", &DuckDBNodeAddon::create_config_option),
+      InstanceMethod("config_option_set_name", &DuckDBNodeAddon::config_option_set_name),
+      InstanceMethod("config_option_set_type", &DuckDBNodeAddon::config_option_set_type),
+      InstanceMethod("config_option_set_default_value", &DuckDBNodeAddon::config_option_set_default_value),
+      InstanceMethod("config_option_set_default_scope", &DuckDBNodeAddon::config_option_set_default_scope),
+      InstanceMethod("config_option_set_description", &DuckDBNodeAddon::config_option_set_description),
+      InstanceMethod("register_config_option", &DuckDBNodeAddon::register_config_option),
+      InstanceMethod("client_context_get_config_option", &DuckDBNodeAddon::client_context_get_config_option),
 
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
       InstanceMethod("interrupt", &DuckDBNodeAddon::interrupt),
@@ -1253,31 +1263,101 @@ private:
   // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API duckdb_config_option duckdb_create_config_option(void);
-  // TODO config option
+  // function create_config_option(): ConfigOption
+  Napi::Value create_config_option(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    return CreateExternalForConfigOption(env, duckdb_create_config_option());
+  }
 
   // DUCKDB_C_API void duckdb_destroy_config_option(duckdb_config_option *option);
-  // TODO config option
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API void duckdb_config_option_set_name(duckdb_config_option option, const char *name);
-  // TODO config option
+  // function config_option_set_name(option: ConfigOption, name: string): void
+  Napi::Value config_option_set_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto option = GetConfigOptionFromExternal(env, info[0]);
+    std::string name = info[1].As<Napi::String>();
+    duckdb_config_option_set_name(option, name.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_config_option_set_type(duckdb_config_option option, duckdb_logical_type type);
-  // TODO config option
+  // function config_option_set_type(option: ConfigOption, logical_type: LogicalType): void
+  Napi::Value config_option_set_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto option = GetConfigOptionFromExternal(env, info[0]);
+    auto logical_type = GetLogicalTypeFromExternal(env, info[1]);
+    duckdb_config_option_set_type(option, logical_type);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_config_option_set_default_value(duckdb_config_option option, duckdb_value default_value);
-  // TODO config option
+  // function config_option_set_default_value(option: ConfigOption, default_value: Value): void
+  Napi::Value config_option_set_default_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto option = GetConfigOptionFromExternal(env, info[0]);
+    auto default_value = GetValueFromExternal(env, info[1]);
+    duckdb_config_option_set_default_value(option, default_value);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_config_option_set_default_scope(duckdb_config_option option, duckdb_config_option_scope default_scope);
-  // TODO config option
+  // function config_option_set_default_scope(option: ConfigOption, default_scope: ConfigOptionScope): void
+  Napi::Value config_option_set_default_scope(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto option = GetConfigOptionFromExternal(env, info[0]);
+    auto default_scope = GetUInt32FromNumber(env, info[1].As<Napi::Number>(), "default_scope");
+    // The C API ignores a scope it does not know, which would leave the default
+    // (SESSION) in place without a word; refuse instead.
+    if (default_scope < DUCKDB_CONFIG_OPTION_SCOPE_LOCAL || default_scope > DUCKDB_CONFIG_OPTION_SCOPE_GLOBAL) {
+      throw Napi::RangeError::New(env, "Invalid config option scope");
+    }
+    duckdb_config_option_set_default_scope(option, static_cast<duckdb_config_option_scope>(default_scope));
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_config_option_set_description(duckdb_config_option option, const char *description);
-  // TODO config option
+  // function config_option_set_description(option: ConfigOption, description: string): void
+  Napi::Value config_option_set_description(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto option = GetConfigOptionFromExternal(env, info[0]);
+    std::string description = info[1].As<Napi::String>();
+    duckdb_config_option_set_description(option, description.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_register_config_option(duckdb_connection connection, duckdb_config_option option);
-  // TODO config option
+  // function register_config_option(connection: Connection, option: ConfigOption): void
+  Napi::Value register_config_option(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto option = GetConfigOptionFromExternal(env, info[1]);
+    // The C API reports no reason. It refuses an option without a name, one
+    // whose type was neither set nor inferred from a default value, and a name
+    // that is already an option.
+    if (duckdb_register_config_option(connection, option)) {
+      throw Napi::Error::New(env, "Failed to register config option: it needs a name and a type, and the name must not be in use");
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_value duckdb_client_context_get_config_option(duckdb_client_context context, const char *name, duckdb_config_option_scope *out_scope);
-  // TODO config option
+  // function client_context_get_config_option(context: ClientContext, name: string): ConfigOptionValue | null
+  Napi::Value client_context_get_config_option(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto context = GetClientContextFromExternal(env, info[0]);
+    std::string name = info[1].As<Napi::String>();
+    duckdb_config_option_scope scope;
+    auto value = duckdb_client_context_get_config_option(context, name.c_str(), &scope);
+    if (!value) {
+      return env.Null();
+    }
+    auto config_option_value = Napi::Object::New(env);
+    config_option_value.Set("value", CreateExternalForValue(env, value));
+    config_option_value.Set("scope", Napi::Number::New(env, scope));
+    return config_option_value;
+  }
 
   // DUCKDB_C_API duckdb_profiling_info duckdb_get_profiling_info(duckdb_connection connection);
   // TODO profiling info
