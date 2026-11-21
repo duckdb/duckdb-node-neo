@@ -68,6 +68,7 @@ import {
   createTestAllTypesColumns,
 } from './util/testAllTypes';
 import {
+  assertColumns,
   assertValues,
   setDefaultTimezone,
   withConnection,
@@ -607,23 +608,16 @@ describe('appender', () => {
       }
     });
   });
-  // Creating the table from every type's DDL parses a 70,000-value ENUM, which
-  // DuckDB 2.0 does about 5x slower than 1.5.6; on slow runners this can exceed
-  // the default timeout. See https://github.com/duckdb/duckdb-node-neo/issues/522
-  test('create and append data chunk with all types', { timeout: 30_000 }, async () => {
+  test('create and append data chunk with all types', async () => {
     await withConnection(async (connection) => {
       const types = createTestAllTypesColumnTypes();
       const columns = createTestAllTypesColumns();
-      const columnNameAndTypeObjects =
-        createTestAllTypesColumnNameAndTypeObjects();
 
       const chunk = DuckDBDataChunk.create(types);
       chunk.setColumns(columns);
 
       await connection.run(
-        `create table target(${columnNameAndTypeObjects
-          .map(({ name, type }) => `"${name.replace(`"`, `""`)}" ${type}`)
-          .join(', ')})`,
+        'create table target as from test_all_types(use_large_enum=true) limit 0',
       );
       const appender = await connection.createAppender('target');
       appender.appendDataChunk(chunk);
@@ -771,20 +765,13 @@ describe('appender', () => {
       }
     });
   });
-  // Creating the table from every type's DDL parses a 70,000-value ENUM, which
-  // DuckDB 2.0 does about 5x slower than 1.5.6; on slow runners this can exceed
-  // the default timeout. See https://github.com/duckdb/duckdb-node-neo/issues/522
-  test('append all types row-by-row', { timeout: 30_000 }, async () => {
+  test('append all types row-by-row', async () => {
     await withConnection(async (connection) => {
       const types = createTestAllTypesColumnTypes();
       const columns = createTestAllTypesColumns();
-      const columnNameAndTypeObjects =
-        createTestAllTypesColumnNameAndTypeObjects();
 
       await connection.run(
-        `create table target(${columnNameAndTypeObjects
-          .map(({ name, type }) => `"${name.replace(`"`, `""`)}" ${type}`)
-          .join(', ')})`,
+        'create table target as from test_all_types(use_large_enum=true) limit 0',
       );
 
       const appender = await connection.createAppender('target');
@@ -891,6 +878,26 @@ describe('appender', () => {
         assertValues(resultChunk, 55, DuckDBListVector, columns[55]); // list_of_fixed_int_array
         assertValues(resultChunk, 56, DuckDBTimeNSVector, columns[56]); // time_ns
       }
+    });
+  });
+  // Casting null to every type's toString() parses a 70,000-value ENUM, which
+  // DuckDB 2.0 does about 5x slower than 1.5.6; on slow runners this can exceed
+  // the default timeout. See https://github.com/duckdb/duckdb-node-neo/issues/522
+  test("every type's toString() round-trips through DuckDB", { timeout: 30_000 }, async () => {
+    await withConnection(async (connection) => {
+      const columnNameAndTypeObjects =
+        createTestAllTypesColumnNameAndTypeObjects();
+
+      const result = await connection.run(
+        `select ${columnNameAndTypeObjects
+          .map(
+            ({ name, type }) =>
+              `cast(null as ${type}) as "${name.replace(`"`, `""`)}"`,
+          )
+          .join(', ')}`,
+      );
+
+      assertColumns(result, columnNameAndTypeObjects);
     });
   });
 });
