@@ -127,6 +127,10 @@ export const GEOMETRY: ExpectedSimpleLogicalType = {
   typeId: duckdb.Type.GEOMETRY,
 };
 
+export const TIMESTAMP_TZ_NS: ExpectedSimpleLogicalType = {
+  typeId: duckdb.Type.TIMESTAMP_TZ_NS,
+};
+
 export function ARRAY(
   valueType: ExpectedLogicalType,
   size: number

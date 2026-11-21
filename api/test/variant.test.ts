@@ -8,10 +8,13 @@ import {
   DATE,
   DECIMAL,
   DOUBLE,
+  DuckDBDataChunk,
   DuckDBListValue,
   DuckDBListVector,
+  DuckDBScalarFunction,
   DuckDBStructValue,
   DuckDBStructVector,
+  DuckDBTableFunction,
   DuckDBType,
   DuckDBValue,
   DuckDBVariantValue,
@@ -30,6 +33,7 @@ import {
   TIMESTAMP,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
+  TIMESTAMPTZ_NS,
   TIMESTAMP_S,
   TIMETZ,
   TINYINT,
@@ -59,6 +63,7 @@ import {
   unionValue,
   uuidValue,
   variantValue,
+  timestampTZNanosValue,
 } from '../src';
 import {
   assertColumns,
@@ -192,6 +197,18 @@ describe('VARIANT', () => {
       expect(timestampNanosValue(1704164645678901234n), TIMESTAMP_NS);
       expect(intervalValue(3, 4, BigInt(5 * 60 * 1_000_000)), INTERVAL);
       expect(uuidValue(0x00112233_4455_6677_8899_aabbccddeeffn), UUID);
+    });
+  });
+
+  test('TIMESTAMPTZ_NS decodes through VARIANT', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(
+        `select '2024-01-02 03:04:05.678901234+00'::TIMESTAMPTZ_NS::VARIANT as v`,
+      );
+      assert.deepStrictEqual(reader.getRowObjects()[0].v, variantValue(
+        timestampTZNanosValue(1704164645678901234n),
+        TIMESTAMPTZ_NS,
+      ));
     });
   });
 
@@ -527,22 +544,20 @@ describe('VARIANT', () => {
     });
   });
 
-  test('setItem(null) and flush() on a VARIANT vector are no-ops', async () => {
+  test('setItem(null) on a VARIANT vector writes a NULL', async () => {
     await withConnection(async (connection) => {
       const result = await connection.run(
         `select 42::INTEGER::VARIANT as v`,
       );
       const chunk = await result.fetchChunk();
       const vec = chunk!.getColumnVector(0) as DuckDBVariantVector;
-      // No throw: parent containers (struct/list/array) call setItem(null)
-      // and flush() generically on every child; VARIANT must tolerate
-      // those even though writes aren't supported.
       vec.setItem(0, null);
       vec.flush();
+      assert.strictEqual(vec.getItem(0), null);
       // Writing a non-null value remains an error.
       assert.throws(
         () => vec.setItem(0, variantValue(1)),
-        /Setting VARIANT values is not yet supported/,
+        /Setting non-NULL VARIANT values is not yet supported/,
       );
     });
   });
@@ -717,14 +732,168 @@ describe('VARIANT', () => {
     });
   });
 
-  test('heterogeneous LIST(VARIANT) cannot be bound directly', async () => {
-    // The C API's create_list_value rejects a list of values with
-    // heterogeneous physical types, so a decoded `LIST(VARIANT)` (which
-    // wraps each non-null element to preserve mixed types) cannot be
-    // bound back through a prepared statement. Pin the failure so we
-    // notice if the surface changes. The error wording originates in
-    // the native bindings — if it changes phrasing across DuckDB
-    // versions, update the regex.
+  test('VARIANT logical types, alone and nested', () => {
+    for (const type of [VARIANT, LIST(VARIANT), STRUCT({ v: VARIANT })]) {
+      assert.deepStrictEqual(type.toLogicalType().asType(), type);
+    }
+  });
+
+  test('data chunk with VARIANT columns', () => {
+    const chunk = DuckDBDataChunk.create([VARIANT, LIST(VARIANT)], 3);
+    assert.strictEqual(chunk.columnCount, 2);
+    assert.strictEqual(chunk.rowCount, 3);
+  });
+
+  test('scalar function with a VARIANT parameter', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'describe_variant',
+          parameterTypes: [VARIANT],
+          returnType: VARCHAR,
+          mainFunction: (_info, input, output) => {
+            const vector = input.getColumnVector(0);
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+              output.setItem(rowIndex, String(vector.getItem(rowIndex)));
+            }
+            output.flush();
+          },
+        }),
+      );
+      const reader = await connection.runAndReadAll(`
+        select describe_variant(1::INTEGER::VARIANT) as a,
+               describe_variant('two'::VARIANT) as b,
+               describe_variant([1, 2]::VARIANT) as c
+      `);
+      assert.deepStrictEqual(reader.getRowObjects(), [
+        { a: '1', b: "'two'", c: '[1, 2]' },
+      ]);
+    });
+  });
+
+  test('scalar function returning VARIANT', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'to_variant',
+          parameterTypes: [INTEGER],
+          returnType: VARIANT,
+          mainFunction: (_info, input, output) => {
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+              output.setItem(rowIndex, null);
+            }
+            output.flush();
+          },
+        }),
+      );
+      const reader = await connection.runAndReadAll(
+        `select to_variant(i::INTEGER) as v from range(3) t(i)`,
+      );
+      assert.deepStrictEqual(reader.columnType(0), VARIANT);
+      assert.deepStrictEqual(reader.getRowObjects(), [
+        { v: null },
+        { v: null },
+        { v: null },
+      ]);
+    });
+  });
+
+  test('table function with a VARIANT result column', async () => {
+    await withConnection(async (connection) => {
+      connection.registerTableFunction(
+        DuckDBTableFunction.create({
+          name: 'variant_table',
+          bindFunction: (info) => {
+            info.addResultColumn('v', VARIANT);
+            info.setBindData({});
+          },
+          initFunction: (info) => {
+            info.setInitData({ done: false });
+          },
+          mainFunction: (info, output) => {
+            const initData = info.initData as { done: boolean };
+            if (initData.done) {
+              output.rowCount = 0;
+              return;
+            }
+            initData.done = true;
+            output.rowCount = 2;
+            output.setRows([[null], [null]]);
+          },
+        }),
+      );
+      const reader = await connection.runAndReadAll(
+        `select * from variant_table()`,
+      );
+      assert.deepStrictEqual(reader.columnType(0), VARIANT);
+      assert.deepStrictEqual(reader.getRowObjects(), [
+        { v: null },
+        { v: null },
+      ]);
+    });
+  });
+
+  test('appendDataChunk with VARIANT NULLs, alone and nested', async () => {
+    await withConnection(async (connection) => {
+      await connection.run(
+        `create table t (i INTEGER, v VARIANT, s STRUCT(v VARIANT))`,
+      );
+      const appender = await connection.createAppender('t');
+      const chunk = DuckDBDataChunk.create([
+        INTEGER,
+        VARIANT,
+        STRUCT({ v: VARIANT }),
+      ]);
+      chunk.setRows([
+        [1, null, structValue({ v: null })],
+        [2, null, null],
+      ]);
+      appender.appendDataChunk(chunk);
+      appender.closeSync();
+      const reader = await connection.runAndReadAll(`select * from t`);
+      assert.deepStrictEqual(reader.getRowObjects(), [
+        { i: 1, v: null, s: structValue({ v: null }) },
+        { i: 2, v: null, s: null },
+      ]);
+    });
+  });
+
+  test('bindList with a LIST(VARIANT) type', async () => {
+    await withConnection(async (connection) => {
+      const prepared = await connection.prepare(`select ? as l`);
+      prepared.bindList(
+        1,
+        [variantValue(1, INTEGER), variantValue('two', VARCHAR)],
+        LIST(VARIANT),
+      );
+      const reader = await prepared.runAndReadAll();
+      assert.deepStrictEqual(reader.columnType(0), LIST(VARIANT));
+      assert.deepStrictEqual(reader.getRowObjects(), [
+        {
+          l: listValue([
+            variantValue(1, INTEGER),
+            variantValue('two', VARCHAR),
+          ]),
+        },
+      ]);
+    });
+  });
+
+  test('VARIANT column types of a closed result', async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.run(
+        `select 1::VARIANT as v, [1::VARIANT] as l`,
+      );
+      result.closeSync();
+      assert.deepStrictEqual(result.columnType(0), VARIANT);
+      assert.deepStrictEqual(result.columnType(1), LIST(VARIANT));
+    });
+  });
+
+  test('heterogeneous LIST(VARIANT) round-trips', async () => {
+    // A decoded `LIST(VARIANT)` (which wraps each non-null element to
+    // preserve mixed types) is bound as a list value with a VARIANT element
+    // type.
     await withConnection(async (connection) => {
       const r1 = await connection.runAndReadAll(
         `select '[1, "two"]'::JSON::VARIANT as v`,
@@ -733,10 +902,9 @@ describe('VARIANT', () => {
       // Confirm the decoder produced the heterogeneous shape.
       assert.deepStrictEqual(decoded.type, LIST(VARIANT));
       const prepared = await connection.prepare(`select ?::VARIANT as v`);
-      assert.throws(
-        () => prepared.bindVariant(1, decoded),
-        /Failed to create (?:VARIANT value.*?Failed to create )?list value/,
-      );
+      prepared.bindVariant(1, decoded);
+      const r2 = await prepared.runAndReadAll();
+      assert.deepStrictEqual(r2.getRowObjects()[0].v, decoded);
     });
   });
 

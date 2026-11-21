@@ -40,6 +40,14 @@ export class DuckDBResultReader {
     this.done_ = false;
   }
 
+  /**
+   * Closes the result being read; see `DuckDBResult.closeSync`. Rows already
+   * read and the column metadata stay available; reading more throws.
+   */
+  public closeSync() {
+    this.result.closeSync();
+  }
+
   public get returnType(): ResultReturnType {
     return this.result.returnType;
   }
@@ -195,11 +203,11 @@ export class DuckDBResultReader {
   }
 
   public getColumns(): DuckDBValue[][] {
-    return getColumnsFromChunks(this.chunks);
+    return getColumnsFromChunks(this.chunks, this.columnCount);
   }
 
   public convertColumns<T>(converter: DuckDBValueConverter<T>): (T | null)[][] {
-    return convertColumnsFromChunks(this.chunks, converter);
+    return convertColumnsFromChunks(this.chunks, this.columnCount, converter);
   }
 
   public getColumnsJS(): JS[][] {

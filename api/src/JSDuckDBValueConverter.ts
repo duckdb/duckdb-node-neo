@@ -16,6 +16,7 @@ import {
   dateFromTimestampNanosecondsValue,
   dateFromTimestampSecondsValue,
   dateFromTimestampTZValue,
+  dateFromTimestampTZNanosecondsValue,
   dateFromTimestampValue,
   doubleFromDecimalValue,
   fromVariantValue,
@@ -23,7 +24,7 @@ import {
   numberFromValue,
   objectArrayFromMapValue,
   objectFromIntervalValue,
-  objectFromStructValue,
+  objectOrArrayFromStructValue,
   objectFromTimeTZValue,
   objectFromUnionValue,
   stringFromValue,
@@ -61,7 +62,7 @@ const JSConvertersByTypeId: {
   [DuckDBTypeId.TIMESTAMP_NS]: dateFromTimestampNanosecondsValue,
   [DuckDBTypeId.ENUM]: stringFromValue,
   [DuckDBTypeId.LIST]: arrayFromListValue,
-  [DuckDBTypeId.STRUCT]: objectFromStructValue,
+  [DuckDBTypeId.STRUCT]: objectOrArrayFromStructValue,
   [DuckDBTypeId.MAP]: objectArrayFromMapValue,
   [DuckDBTypeId.ARRAY]: arrayFromArrayValue,
   [DuckDBTypeId.UUID]: stringFromValue,
@@ -77,6 +78,7 @@ const JSConvertersByTypeId: {
   [DuckDBTypeId.TIME_NS]: bigintFromTimeNSValue,
   [DuckDBTypeId.GEOMETRY]: bytesFromGeometryValue,
   [DuckDBTypeId.VARIANT]: fromVariantValue,
+  [DuckDBTypeId.TIMESTAMP_TZ_NS]: dateFromTimestampTZNanosecondsValue,
 };
 
 export const JSDuckDBValueConverter =

@@ -10,6 +10,18 @@ suite('logical_type', () => {
     duckdb.logical_type_set_alias(int_type, 'my_logical_type');
     expect(duckdb.logical_type_get_alias(int_type)).toBe('my_logical_type');
   });
+  test('create VARIANT', () => {
+    const variant_type = duckdb.create_logical_type(duckdb.Type.VARIANT);
+    expect(duckdb.get_type_id(variant_type)).toBe(duckdb.Type.VARIANT);
+    expect(duckdb.struct_type_child_count(variant_type)).toBe(4);
+    const vector = duckdb.create_vector(variant_type, 1);
+    expect(duckdb.get_type_id(duckdb.vector_get_column_type(vector))).toBe(
+      duckdb.Type.VARIANT
+    );
+    const list_type = duckdb.create_list_type(variant_type);
+    const chunk = duckdb.create_data_chunk([variant_type, list_type]);
+    expect(duckdb.data_chunk_get_column_count(chunk)).toBe(2);
+  });
   test('array', () => {
     const int_type = duckdb.create_logical_type(duckdb.Type.INTEGER);
     const array_type = duckdb.create_array_type(int_type, 3);

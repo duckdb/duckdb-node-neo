@@ -25,7 +25,7 @@ out_dir = os.path.dirname(os.path.abspath(__file__))
 csv_path = os.path.join(out_dir, "capi_coverage.csv")
 clients_dir = os.path.join(out_dir, "clients")
 fetch_script = os.path.join(
-  out_dir, "..", "..", "bindings", "scripts", "fetch_libduckdb_osx_universal.py"
+  out_dir, "..", "..", "bindings", "scripts", "fetch_libduckdb.py"
 )
 
 # How "exposed by another client" is decided, per client. Go and C# hand-write a
@@ -71,10 +71,10 @@ def covered_by(row):
 
 
 def duckdb_version():
-  """duckdb.h carries no version macro; the vendored release is named in the fetch script."""
+  """duckdb.h carries no version macro; the vendored release is named in the fetch script's base_url."""
   try:
     with open(fetch_script) as f:
-      match = re.search(r"/download/v([0-9]+\.[0-9]+\.[0-9]+)/", f.read())
+      match = re.search(r"/download/v([0-9]+\.[0-9]+\.[0-9]+)\b", f.read())
     if match:
       return match.group(1)
   except OSError:

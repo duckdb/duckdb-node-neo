@@ -6,3 +6,5 @@ coexist_probe
 coexist_probe.duckdb
 chunk_probe
 chunk_probe_v2
+options_probe
+open_result_probe

@@ -19,26 +19,97 @@ import { getRowObjectsFromChunks } from './getRowObjectsFromChunks';
 import { getRowsFromChunks } from './getRowsFromChunks';
 import { DuckDBValue } from './values';
 
+interface ClosedResultMetadata {
+  returnType: ResultReturnType;
+  statementType: StatementType;
+  columnNames: string[];
+  columnTypes: DuckDBType[];
+  isStreaming: boolean;
+  rowsChanged: number;
+}
+
 export class DuckDBResult {
   protected readonly result: duckdb.Result;
+  private readonly preparedStatementType: StatementType | undefined;
+  private closedMetadata: ClosedResultMetadata | undefined;
 
-  constructor(result: duckdb.Result) {
+  /**
+   * `preparedStatementType` is the type of the prepared statement the result
+   * came from, if any. It is reported as the result's statement type when
+   * DuckDB reports EXECUTE instead.
+   */
+  constructor(result: duckdb.Result, preparedStatementType?: StatementType) {
     this.result = result;
+    this.preparedStatementType = preparedStatementType;
+  }
+
+  /**
+   * Destroys the result, freeing its memory. On DuckDB 2.0, a streaming result
+   * that has not been read to the end blocks its connection from starting
+   * another statement until it is closed.
+   *
+   * The return type, statement type, column names and types, and rows changed
+   * stay available; fetching throws. If a fetch is in flight, the result is
+   * destroyed, and its connection unblocked, only once that fetch finishes.
+   * Closing again does nothing.
+   */
+  public closeSync() {
+    if (!this.closedMetadata) {
+      const columnCount = this.columnCount;
+      const columnNames: string[] = [];
+      const columnTypes: DuckDBType[] = [];
+      for (let columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+        columnNames.push(this.columnName(columnIndex));
+        columnTypes.push(this.columnType(columnIndex));
+      }
+      this.closedMetadata = {
+        returnType: this.returnType,
+        statementType: this.statementType,
+        columnNames,
+        columnTypes,
+        isStreaming: this.isStreaming,
+        rowsChanged: this.rowsChanged,
+      };
+    }
+    duckdb.destroy_result_sync(this.result);
   }
 
   public get returnType(): ResultReturnType {
+    if (this.closedMetadata) {
+      return this.closedMetadata.returnType;
+    }
     return duckdb.result_return_type(this.result);
   }
 
   public get statementType(): StatementType {
-    return duckdb.result_statement_type(this.result);
+    if (this.closedMetadata) {
+      return this.closedMetadata.statementType;
+    }
+    const statementType = duckdb.result_statement_type(this.result);
+    // On DuckDB 2.0, results of prepared statements report EXECUTE; see
+    // https://github.com/duckdb/duckdb/issues/27415
+    if (
+      statementType === StatementType.EXECUTE &&
+      this.preparedStatementType !== undefined
+    ) {
+      return this.preparedStatementType;
+    }
+    return statementType;
   }
 
   public get columnCount(): number {
+    if (this.closedMetadata) {
+      return this.closedMetadata.columnNames.length;
+    }
     return duckdb.column_count(this.result);
   }
 
   public columnName(columnIndex: number): string {
+    if (this.closedMetadata) {
+      return this.closedMetadata.columnNames[
+        this.checkClosedColumnIndex(columnIndex)
+      ];
+    }
     return duckdb.column_name(this.result, columnIndex);
   }
 
@@ -69,6 +140,9 @@ export class DuckDBResult {
   }
 
   public columnTypeId(columnIndex: number): DuckDBTypeId {
+    if (this.closedMetadata) {
+      return this.columnType(columnIndex).typeId;
+    }
     return duckdb.column_type(
       this.result,
       columnIndex
@@ -76,15 +150,21 @@ export class DuckDBResult {
   }
 
   public columnLogicalType(columnIndex: number): DuckDBLogicalType {
+    if (this.closedMetadata) {
+      return this.columnType(columnIndex).toLogicalType();
+    }
     return DuckDBLogicalType.create(
       duckdb.column_logical_type(this.result, columnIndex)
     );
   }
 
   public columnType(columnIndex: number): DuckDBType {
-    return DuckDBLogicalType.create(
-      duckdb.column_logical_type(this.result, columnIndex)
-    ).asType();
+    if (this.closedMetadata) {
+      return this.closedMetadata.columnTypes[
+        this.checkClosedColumnIndex(columnIndex)
+      ];
+    }
+    return this.columnLogicalType(columnIndex).asType();
   }
 
   public columnTypeJson(columnIndex: number): Json {
@@ -129,10 +209,16 @@ export class DuckDBResult {
   }
 
   public get isStreaming(): boolean {
+    if (this.closedMetadata) {
+      return this.closedMetadata.isStreaming;
+    }
     return duckdb.result_is_streaming(this.result);
   }
 
   public get rowsChanged(): number {
+    if (this.closedMetadata) {
+      return this.closedMetadata.rowsChanged;
+    }
     return duckdb.rows_changed(this.result);
   }
 
@@ -154,14 +240,14 @@ export class DuckDBResult {
 
   public async getColumns(): Promise<DuckDBValue[][]> {
     const chunks = await this.fetchAllChunks();
-    return getColumnsFromChunks(chunks);
+    return getColumnsFromChunks(chunks, this.columnCount);
   }
 
   public async convertColumns<T>(
     converter: DuckDBValueConverter<T>
   ): Promise<(T | null)[][]> {
     const chunks = await this.fetchAllChunks();
-    return convertColumnsFromChunks(chunks, converter);
+    return convertColumnsFromChunks(chunks, this.columnCount, converter);
   }
 
   public async getColumnsJS(): Promise<JS[][]> {
@@ -301,5 +387,17 @@ export class DuckDBResult {
 
   public yieldRowObjectJson(): AsyncIterableIterator<Record<string, Json>[]> {
     return this.yieldConvertedRowObjects(JsonDuckDBValueConverter);
+  }
+
+  /** Converts the index as the bindings do (ToUint32), then checks range. */
+  private checkClosedColumnIndex(columnIndex: number): number {
+    const index = columnIndex >>> 0;
+    const columnCount = this.closedMetadata?.columnNames.length ?? 0;
+    if (index >= columnCount) {
+      throw new RangeError(
+        `column index ${index} is out of range (count: ${columnCount})`
+      );
+    }
+    return index;
   }
 }

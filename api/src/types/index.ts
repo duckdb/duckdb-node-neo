@@ -29,6 +29,7 @@ export * from './DuckDBTimestampMillisecondsType';
 export * from './DuckDBTimestampNanosecondsType';
 export * from './DuckDBTimestampSecondsType';
 export * from './DuckDBTimestampTZType';
+export * from './DuckDBTimestampTZNanosecondsType';
 export * from './DuckDBTimestampType';
 export * from './DuckDBTinyIntType';
 export * from './DuckDBType';

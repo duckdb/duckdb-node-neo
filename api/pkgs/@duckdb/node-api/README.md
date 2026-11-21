@@ -245,10 +245,12 @@ These are:
 | `LIST` | `listValue` |
 | `MAP` | `mapValue` |
 | `STRUCT` | `structValue` |
+| `STRUCT` (unnamed, a tuple) | `tupleValue` |
 | `TIME` | `timeValue` |
 | `TIMETZ` | `timeTZValue` |
 | `TIMESTAMP` | `timestampValue` |
 | `TIMESTAMPTZ` | `timestampTZValue` |
+| `TIMESTAMPTZ_NS` | `timestampTZNanosValue` |
 | `TIMESTAMP_S` | `timestampSecondsValue` |
 | `TIMESTAMP_MS` | `timestampMillisValue` |
 | `TIMESTAMP_NS` | `timestampNanosValue` |
@@ -294,6 +296,38 @@ Streaming results evaluate lazily when rows are read.
 ```ts
 const result = await connection.stream('from range(10_000)');
 ```
+
+### Close Results
+
+Results are destroyed automatically soon after their reference is
+dropped, but you can also close them explicitly to free their memory:
+
+```ts
+result.closeSync();
+```
+
+From DuckDB 2.0, a streaming result that hasn't been read to the end, or
+a pending result that hasn't been executed, blocks its connection: the
+next statement on it fails until the result is closed. A result reader
+or pending result can be closed the same way:
+
+```ts
+const reader = await connection.streamAndReadUntil(sql, 100);
+reader.closeSync();
+const rows = reader.getRows(); // rows already read stay available
+```
+
+Column names and types also stay available after closing; reading more
+rows throws.
+
+The same applies to appenders: from DuckDB 2.0, an appender can't flush
+while its connection has such a result. Appenders flush on `flushSync()`
+and `closeSync()`, and automatically about every 204,800 rows, so with a
+streaming result open, appending fails at the next flush, and the rows
+appended since the last successful flush are lost. Read the result to the
+end or close it before appending, or append on a separate connection.
+Close appenders explicitly too: one that is flushed when it's garbage
+collected can't report a failure.
 
 ### Inspect Result Metadata
 
@@ -844,8 +878,13 @@ if (columnType.typeId === DuckDBTypeId.MAP) {
 }
 
 if (columnType.typeId === DuckDBTypeId.STRUCT) {
-  // { name1: value1, name2: value2, ... }
-  const structEntries = columnValue.entries;
+  if (columnType.isTuple) {
+    // An unnamed struct, such as (1, 'a'): items in entry order
+    const tupleItems = columnValue.items; // array of values
+  } else {
+    // { name1: value1, name2: value2, ... }
+    const structEntries = columnValue.entries;
+  }
   const structString = columnValue.toString();
 }
 
@@ -914,9 +953,9 @@ if (columnType.typeId === DuckDBTypeId.UUID) {
 
 ### Displaying Timezones
 
-Converting a TIMESTAMP_TZ value to a string depends on a timezone offset.
-By default, this is set to the offset for the local timezone when the Node
-process is started.
+Converting a TIMESTAMP_TZ or TIMESTAMPTZ_NS value to a string depends on
+a timezone offset. By default, this is set to the offset for the local
+timezone when the Node process is started.
 
 To change it, set the `timezoneOffsetInMinutes`
 property of `DuckDBTimestampTZValue`:
@@ -930,6 +969,9 @@ DuckDBTimestampTZValue.timezoneOffsetInMinutes = +1 * 60;
 const cet = DuckDBTimestampTZValue.Epoch.toString();
 // 1970-01-01 01:00:00+01
 ```
+
+`DuckDBTimestampTZNanosecondsValue` (TIMESTAMPTZ_NS) uses the same
+`DuckDBTimestampTZValue.timezoneOffsetInMinutes` setting.
 
 Note that the timezone offset used for this string
 conversion is distinct from the `TimeZone` setting of DuckDB.

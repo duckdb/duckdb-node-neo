@@ -75,6 +75,20 @@ describe('results', () => {
       });
     });
   });
+  test('columns of an empty result', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(
+        'select 1 as a, 2 as b where false',
+      );
+      assert.deepEqual(reader.getColumns(), [[], []]);
+      assert.deepEqual(reader.getColumnsJS(), [[], []]);
+      assert.deepEqual(reader.getColumnsObject(), { a: [], b: [] });
+      assert.deepEqual(reader.getColumnsObjectJS(), { a: [], b: [] });
+
+      const result = await connection.run('select 1 as a, 2 as b where false');
+      assert.deepEqual(await result.getColumns(), [[], []]);
+    });
+  });
   test('columns js', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(createTestJSQuery());
@@ -106,7 +120,7 @@ describe('results', () => {
   test('columns json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types()`,
+        `select * from test_all_types()`,
       );
       const columnsJson = reader.getColumnsJson();
       assert.deepEqual(columnsJson, createTestAllTypesColumnsJson());
@@ -115,7 +129,7 @@ describe('results', () => {
   test('columns object json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types()`,
+        `select * from test_all_types()`,
       );
       const columnsJson = reader.getColumnsObjectJson();
       assert.deepEqual(columnsJson, createTestAllTypesColumnsObjectJson());
@@ -124,7 +138,7 @@ describe('results', () => {
   test('rows json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types()`,
+        `select * from test_all_types()`,
       );
       const rowsJson = reader.getRowsJson();
       assert.deepEqual(rowsJson, createTestAllTypesRowsJson());
@@ -133,7 +147,7 @@ describe('results', () => {
   test('row objects json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types()`,
+        `select * from test_all_types()`,
       );
       const rowObjectsJson = reader.getRowObjectsJson();
       assert.deepEqual(rowObjectsJson, createTestAllTypesRowObjectsJson());
@@ -142,7 +156,7 @@ describe('results', () => {
   test('column names and types json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types(use_large_enum=true)`,
+        `select * from test_all_types(use_large_enum=true)`,
       );
       const columnNamesAndTypesJson = reader.columnNamesAndTypesJson();
       assert.deepEqual(
@@ -154,7 +168,7 @@ describe('results', () => {
   test('column name and type objects json', async () => {
     await withConnection(async (connection) => {
       const reader = await connection.runAndReadAll(
-        `from test_all_types(use_large_enum=true)`,
+        `select * from test_all_types(use_large_enum=true)`,
       );
       const columnNameAndTypeObjectsJson =
         reader.columnNameAndTypeObjectsJson();
@@ -294,7 +308,7 @@ describe('results', () => {
   test('iterate result stream rows json', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        `from test_all_types()`,
+        `select * from test_all_types()`,
       );
       for await (const row of result.yieldRowsJson()) {
         assert.deepEqual(row, createTestAllTypesRowsJson());
@@ -305,7 +319,7 @@ describe('results', () => {
   test('iterate result stream object json', async () => {
     await withConnection(async (connection) => {
       const result = await connection.stream(
-        `from test_all_types()`,
+        `select * from test_all_types()`,
       );
       for await (const row of result.yieldRowObjectJson()) {
         assert.deepEqual(row, createTestAllTypesRowObjectsJson());

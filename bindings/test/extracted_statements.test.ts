@@ -34,7 +34,7 @@ suite('extracted statements', () => {
         chunks: [
           { rowCount: 1, vectors: [data(4, [true], [11])]},
         ],
-      });
+      }, prepared);
     });
   });
   test('multiple statements', async () => {
@@ -55,7 +55,7 @@ suite('extracted statements', () => {
         chunks: [
           { rowCount: 1, vectors: [data(4, [true], [11])]},
         ],
-      });
+      }, prepared0);
 
       const prepared1 = await duckdb.prepare_extracted_statement(connection, extracted_statements, 1);
       const result1 = await duckdb.execute_prepared(prepared1);
@@ -68,7 +68,7 @@ suite('extracted statements', () => {
         chunks: [
           { rowCount: 1, vectors: [data(4, [true], [22])]},
         ],
-      });
+      }, prepared1);
 
       const prepared2 = await duckdb.prepare_extracted_statement(connection, extracted_statements, 2);
       const result2 = await duckdb.execute_prepared(prepared2);
@@ -81,7 +81,7 @@ suite('extracted statements', () => {
         chunks: [
           { rowCount: 1, vectors: [data(4, [true], [33])]},
         ],
-      });
+      }, prepared2);
     });
   });
 });

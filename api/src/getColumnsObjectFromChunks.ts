@@ -6,6 +6,9 @@ export function getColumnsObjectFromChunks(
   columnNames: readonly string[]
 ): Record<string, DuckDBValue[]> {
   const columnsObject: Record<string, DuckDBValue[]> = {};
+  for (const columnName of columnNames) {
+    columnsObject[columnName] = [];
+  }
   for (const chunk of chunks) {
     chunk.appendToColumnsObject(columnNames, columnsObject);
   }

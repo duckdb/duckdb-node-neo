@@ -41,6 +41,7 @@ import {
   TIMESTAMP_NS,
   TIMESTAMP_S,
   TIMESTAMP_TZ,
+  TIMESTAMP_TZ_NS,
   TINYINT,
   UBIGINT,
   UHUGEINT,
@@ -215,6 +216,17 @@ suite('values', () => {
     const timestamp_value = duckdb.create_timestamp_tz(input);
     expectLogicalType(duckdb.get_value_type(timestamp_value), TIMESTAMP_TZ);
     expect(duckdb.get_timestamp_tz(timestamp_value)).toStrictEqual(input);
+  });
+  test('timestamp_tz_ns', () => {
+    const input: TimestampNanoseconds = { nanos: 9223372036854775806n };
+    const timestamp_tz_ns_value = duckdb.create_timestamp_tz_ns(input);
+    expectLogicalType(
+      duckdb.get_value_type(timestamp_tz_ns_value),
+      TIMESTAMP_TZ_NS
+    );
+    expect(duckdb.get_timestamp_tz_ns(timestamp_tz_ns_value)).toStrictEqual(
+      input
+    );
   });
   test('timestamp_s', () => {
     const input: TimestampSeconds = { seconds: 9223372036854n };

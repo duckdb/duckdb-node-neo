@@ -18,9 +18,11 @@ import {
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsValue,
   DuckDBTimestampValue,
   DuckDBTimeTZValue,
   DuckDBTimeValue,
+  DuckDBTupleValue,
   DuckDBUnionValue,
   DuckDBUUIDValue,
   DuckDBValue,
@@ -170,6 +172,29 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       }
       throw new Error(`input is not a DuckDBListValue`);
     case DuckDBTypeId.STRUCT:
+      if (type.isTuple) {
+        if (input instanceof DuckDBTupleValue) {
+          if (
+            type.entryTypes.find(
+              (entryType) => entryType.typeId === DuckDBTypeId.ANY
+            )
+          ) {
+            throw new Error(
+              'Cannot create tuples with an entry type of ANY. Specify a specific type.'
+            );
+          }
+          if (input.items.length !== type.entryCount) {
+            throw new Error(
+              `Expected ${type.entryCount} items for ${type}, got ${input.items.length}`
+            );
+          }
+          return duckdb.create_struct_value(
+            type.toLogicalType().logical_type,
+            input.items.map((item, i) => createValue(type.entryTypes[i], item))
+          );
+        }
+        throw new Error(`input is not a DuckDBTupleValue`);
+      }
       if (input instanceof DuckDBStructValue) {
         if (
           type.entryTypes.find(
@@ -263,6 +288,11 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
         return duckdb.create_timestamp_tz(input);
       }
       throw new Error(`input is not a DuckDBTimestampTZValue`);
+    case DuckDBTypeId.TIMESTAMP_TZ_NS:
+      if (input instanceof DuckDBTimestampTZNanosecondsValue) {
+        return duckdb.create_timestamp_tz_ns(input);
+      }
+      throw new Error(`input is not a DuckDBTimestampTZNanosecondsValue`);
     case DuckDBTypeId.ANY:
       throw new Error(
         `Cannot create values of type ANY. Specify a specific type.`

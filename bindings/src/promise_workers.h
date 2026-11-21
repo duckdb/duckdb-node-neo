@@ -453,9 +453,16 @@ public:
 
   ExecutePendingWorker(Napi::Env env, Napi::Value pendingResultValue)
     : PromiseWorker(env),
+    pending_result_holder_ptr_(GetPendingResultHolderFromExternal(env, pendingResultValue)),
     pending_result_(GetPendingResultFromExternal(env, pendingResultValue)),
     pendingResultValueRef_(MakeValueRef(pendingResultValue))
   {
+    // Defers an explicit destroy until this worker is done.
+    pending_result_holder_ptr_->in_flight++;
+  }
+
+  ~ExecutePendingWorker() {
+    ReleasePendingResultInFlight(pending_result_holder_ptr_);
   }
 
 protected:
@@ -483,6 +490,7 @@ protected:
 
 private:
 
+  duckdb_pending_result_holder *pending_result_holder_ptr_;
   duckdb_pending_result pending_result_;
   Napi::Reference<Napi::Value> pendingResultValueRef_;
   duckdb_result *result_ptr_ = nullptr;
@@ -495,15 +503,28 @@ public:
 
   FetchWorker(Napi::Env env, Napi::Value resultValue)
     : PromiseWorker(env),
+    result_holder_ptr_(GetResultHolderFromExternal(env, resultValue)),
     result_ptr_(GetResultFromExternal(env, resultValue)),
     resultValueRef_(MakeValueRef(resultValue))
   {
+    // Defers an explicit destroy until this worker is done.
+    result_holder_ptr_->in_flight++;
+  }
+
+  ~FetchWorker() {
+    ReleaseResultInFlight(result_holder_ptr_);
   }
 
 protected:
 
   void Execute() override {
     data_chunk_ = duckdb_fetch_chunk(*result_ptr_);
+    if (auto error = duckdb_result_error(result_ptr_)) {
+      if (data_chunk_) {
+        duckdb_destroy_data_chunk(&data_chunk_);
+      }
+      SetError(error);
+    }
   }
 
   Napi::Value Result() override {
@@ -512,6 +533,7 @@ protected:
 
 private:
 
+  duckdb_result_holder *result_holder_ptr_;
   duckdb_result *result_ptr_;
   Napi::Reference<Napi::Value> resultValueRef_;
   duckdb_data_chunk data_chunk_ = nullptr;

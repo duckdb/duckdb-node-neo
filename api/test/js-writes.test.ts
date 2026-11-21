@@ -12,6 +12,7 @@ import {
   STRUCT,
   TIMESTAMP,
   TIMESTAMPTZ,
+  TIMESTAMPTZ_NS,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
   TIMESTAMP_S,
@@ -120,6 +121,7 @@ test('an Invalid Date is refused by every temporal converter', () => {
     TIMESTAMP_MS,
     TIMESTAMP_NS,
     TIMESTAMPTZ,
+    TIMESTAMPTZ_NS,
   ] as const) {
     expect(
       () => jsToDuckDBValue(invalid, type),

@@ -213,19 +213,62 @@ inline duckdb_logical_type GetLogicalTypeFromExternal(Napi::Env env, Napi::Value
   return GetDataFromExternal<_duckdb_logical_type>(env, LogicalTypeTypeTag, value, "Invalid logical type argument");
 }
 
-inline void FinalizePendingResult(Napi::BasicEnv, duckdb_pending_result pending_result) {
-  if (pending_result) {
-    duckdb_destroy_pending(&pending_result);
-    pending_result = nullptr;
+// A pending result can be destroyed explicitly while execute_pending is still
+// using it on a worker thread. The worker counts itself in in_flight; an explicit
+// destroy then only sets destroy_requested, and the last worker to finish
+// destroys it. Both fields are only touched on the JS thread.
+struct duckdb_pending_result_holder {
+  duckdb_pending_result pending_result;
+  uint32_t in_flight;
+  bool destroy_requested;
+};
+
+inline void DestroyPendingResultOfHolder(duckdb_pending_result_holder *pending_result_holder_ptr) {
+  // duckdb_destroy_pending is a no-op if already destroyed
+  duckdb_destroy_pending(&pending_result_holder_ptr->pending_result);
+}
+
+inline void RequestPendingResultDestroy(duckdb_pending_result_holder *pending_result_holder_ptr) {
+  pending_result_holder_ptr->destroy_requested = true;
+  if (pending_result_holder_ptr->in_flight == 0) {
+    DestroyPendingResultOfHolder(pending_result_holder_ptr);
   }
 }
 
-inline Napi::External<_duckdb_pending_result> CreateExternalForPendingResult(Napi::Env env, duckdb_pending_result pending_result) {
-  return CreateExternal<_duckdb_pending_result>(env, PendingResultTypeTag, pending_result, FinalizePendingResult);
+inline void ReleasePendingResultInFlight(duckdb_pending_result_holder *pending_result_holder_ptr) {
+  pending_result_holder_ptr->in_flight--;
+  if (pending_result_holder_ptr->destroy_requested && pending_result_holder_ptr->in_flight == 0) {
+    DestroyPendingResultOfHolder(pending_result_holder_ptr);
+  }
 }
 
+inline void FinalizePendingResultHolder(Napi::BasicEnv, duckdb_pending_result_holder *pending_result_holder_ptr) {
+  // A worker's reference keeps the external alive, so this only runs with a
+  // worker in flight when the env tears down. The worker may still be using
+  // the pending result on its thread, so leak it rather than destroy it.
+  if (pending_result_holder_ptr->in_flight > 0) {
+    return;
+  }
+  DestroyPendingResultOfHolder(pending_result_holder_ptr);
+  delete pending_result_holder_ptr;
+}
+
+inline Napi::External<duckdb_pending_result_holder> CreateExternalForPendingResult(Napi::Env env, duckdb_pending_result pending_result) {
+  auto pending_result_holder_ptr = new duckdb_pending_result_holder { pending_result, 0, false };
+  return CreateExternal<duckdb_pending_result_holder>(env, PendingResultTypeTag, pending_result_holder_ptr, FinalizePendingResultHolder);
+}
+
+inline duckdb_pending_result_holder *GetPendingResultHolderFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<duckdb_pending_result_holder>(env, PendingResultTypeTag, value, "Invalid pending result argument");
+}
+
+// Throws if the pending result has been destroyed, or its destroy requested.
 inline duckdb_pending_result GetPendingResultFromExternal(Napi::Env env, Napi::Value value) {
-  return GetDataFromExternal<_duckdb_pending_result>(env, PendingResultTypeTag, value, "Invalid pending result argument");
+  auto pending_result_holder_ptr = GetPendingResultHolderFromExternal(env, value);
+  if (pending_result_holder_ptr->destroy_requested) {
+    throw Napi::Error::New(env, "Pending result destroyed");
+  }
+  return pending_result_holder_ptr->pending_result;
 }
 
 typedef struct {
@@ -256,20 +299,67 @@ inline duckdb_prepared_statement GetPreparedStatementFromExternal(Napi::Env env,
   return GetPreparedStatementHolderFromExternal(env, value)->prepared;
 }
 
-inline void FinalizeResult(Napi::BasicEnv, duckdb_result *result_ptr) {
-  if (result_ptr) {
-    duckdb_destroy_result(result_ptr);
-    duckdb_free(result_ptr); // memory for duckdb_result struct is malloc'd in QueryWorker, ExecutePreparedWorker, or ExecutePendingWorker.
-    result_ptr = nullptr;
+// A result can be destroyed explicitly while fetch_chunk is still using it on a
+// worker thread. The worker counts itself in in_flight; an explicit destroy then
+// only sets destroy_requested, and the last worker to finish destroys it. Both
+// fields are only touched on the JS thread.
+struct duckdb_result_holder {
+  // malloc'd in QueryWorker, ExecutePreparedWorker, ExecutePreparedStreamingWorker,
+  // or ExecutePendingWorker; null once destroyed.
+  duckdb_result *result_ptr;
+  uint32_t in_flight;
+  bool destroy_requested;
+};
+
+inline void DestroyResultOfHolder(duckdb_result_holder *result_holder_ptr) {
+  if (result_holder_ptr->result_ptr) {
+    duckdb_destroy_result(result_holder_ptr->result_ptr);
+    duckdb_free(result_holder_ptr->result_ptr);
+    result_holder_ptr->result_ptr = nullptr;
   }
 }
 
-inline Napi::External<duckdb_result> CreateExternalForResult(Napi::Env env, duckdb_result *result_ptr) {
-  return CreateExternal<duckdb_result>(env, ResultTypeTag, result_ptr, FinalizeResult);
+inline void RequestResultDestroy(duckdb_result_holder *result_holder_ptr) {
+  result_holder_ptr->destroy_requested = true;
+  if (result_holder_ptr->in_flight == 0) {
+    DestroyResultOfHolder(result_holder_ptr);
+  }
 }
 
+inline void ReleaseResultInFlight(duckdb_result_holder *result_holder_ptr) {
+  result_holder_ptr->in_flight--;
+  if (result_holder_ptr->destroy_requested && result_holder_ptr->in_flight == 0) {
+    DestroyResultOfHolder(result_holder_ptr);
+  }
+}
+
+inline void FinalizeResultHolder(Napi::BasicEnv, duckdb_result_holder *result_holder_ptr) {
+  // A worker's reference keeps the external alive, so this only runs with a
+  // worker in flight when the env tears down. The worker may still be using
+  // the result on its thread, so leak it rather than destroy it.
+  if (result_holder_ptr->in_flight > 0) {
+    return;
+  }
+  DestroyResultOfHolder(result_holder_ptr);
+  delete result_holder_ptr;
+}
+
+inline Napi::External<duckdb_result_holder> CreateExternalForResult(Napi::Env env, duckdb_result *result_ptr) {
+  auto result_holder_ptr = new duckdb_result_holder { result_ptr, 0, false };
+  return CreateExternal<duckdb_result_holder>(env, ResultTypeTag, result_holder_ptr, FinalizeResultHolder);
+}
+
+inline duckdb_result_holder *GetResultHolderFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<duckdb_result_holder>(env, ResultTypeTag, value, "Invalid result argument");
+}
+
+// Throws if the result has been destroyed, or its destroy requested.
 inline duckdb_result *GetResultFromExternal(Napi::Env env, Napi::Value value) {
-  return GetDataFromExternal<duckdb_result>(env, ResultTypeTag, value, "Invalid result argument");
+  auto result_holder_ptr = GetResultHolderFromExternal(env, value);
+  if (result_holder_ptr->destroy_requested) {
+    throw Napi::Error::New(env, "Result destroyed");
+  }
+  return result_holder_ptr->result_ptr;
 }
 
 inline void FinalizeValue(Napi::BasicEnv, duckdb_value value) {

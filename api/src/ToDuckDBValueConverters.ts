@@ -22,6 +22,7 @@ import {
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsValue,
   DuckDBTimestampValue,
   DuckDBUUIDValue,
   DuckDBValue,
@@ -30,6 +31,7 @@ import {
   listValue,
   mapValue,
   structValue,
+  tupleValue,
   unionValue,
   variantValue,
 } from './values';
@@ -116,6 +118,14 @@ export function timestampTZValueFromDate(value: Date): DuckDBTimestampTZValue {
   return new DuckDBTimestampTZValue(BigInt(millisFromDate(value)) * 1000n);
 }
 
+export function timestampTZNanosValueFromDate(
+  value: Date
+): DuckDBTimestampTZNanosecondsValue {
+  return new DuckDBTimestampTZNanosecondsValue(
+    BigInt(millisFromDate(value)) * 1000000n
+  );
+}
+
 export function timestampSecondsValueFromDate(
   value: Date
 ): DuckDBTimestampSecondsValue {
@@ -199,20 +209,45 @@ export function arrayValueFromArray<T>(
   );
 }
 
+/**
+ * Converts an object keyed by entry name to a named STRUCT value, or an array
+ * of items to a tuple value (see `DuckDBStructType.isTuple`).
+ */
 export function structValueFromObject<T>(
-  value: Readonly<Record<string, T>>,
+  value: Readonly<Record<string, T>> | readonly T[],
   type: DuckDBType,
   converter: ToDuckDBValueConverter<T>
 ): DuckDBValue {
   if (!(type instanceof DuckDBStructType)) {
     throw new Error(`Expected DuckDBStructType`);
   }
+  if (type.isTuple) {
+    if (!Array.isArray(value)) {
+      throw new Error(`Expected an array for ${type}`);
+    }
+    if (value.length !== type.entryCount) {
+      throw new Error(
+        `Expected ${type.entryCount} items for ${type}, got ${value.length}`
+      );
+    }
+    return tupleValue(
+      value.map((item, i) => converter(item, type.entryTypes[i], converter))
+    );
+  }
+  if (Array.isArray(value)) {
+    throw new Error(`Expected an object for ${type}`);
+  }
+  const entryValues = value as Readonly<Record<string, T>>;
   const entries: Record<string, DuckDBValue> = {};
   for (const key of type.entryNames) {
-    if (!(key in value)) {
+    if (!(key in entryValues)) {
       throw new Error(`Missing entry for struct key: ${key}`);
     }
-    entries[key] = converter(value[key], type.typeForEntry(key), converter);
+    entries[key] = converter(
+      entryValues[key],
+      type.typeForEntry(key),
+      converter
+    );
   }
   return structValue(entries);
 }

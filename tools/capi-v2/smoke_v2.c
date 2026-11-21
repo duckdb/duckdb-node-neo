@@ -1,5 +1,5 @@
 /* A minimal end-to-end exercise of the DuckDB C API V2, used to confirm that the
- * 2.0 preview library works and to show the shape of the calling convention Node
+ * 2.0 library works and to show the shape of the calling convention Node
  * Neo's bindings will have to adopt.
  *
  *   python3 tools/capi-v2/fetch_libduckdb_v2.py
@@ -7,10 +7,14 @@
  *      -Wl,-rpath,@loader_path/libduckdb-v2 -o smoke_v2 && ./smoke_v2
  *
  * Note what V1 does in one call and V2 spreads across several: opening needs an
- * environment, querying goes through a statement iterator, and a result is always
+ * environment and an instance, and a database is attached to the instance rather
+ * than opened; querying goes through a statement iterator, and a result is always
  * a stream. Every call returns a status and writes its product to an out-param.
  */
 
+/* Every V2 function is marked unstable in 2.0, and the header declares none of
+ * them unless the consumer opts in. */
+#define DUCKDB_V2_API_ALLOW_UNSTABLE 1
 #include "duckdb_v2.h"
 
 #include <stdio.h>
@@ -45,20 +49,24 @@ static duckdb_v2_str str(const char *s) {
 int main(void) {
 	duckdb_v2_error_info_handle err = NULL;
 	duckdb_v2_environment_handle env = NULL;
-	duckdb_v2_database_handle db = NULL;
+	duckdb_v2_instance_handle instance = NULL;
 	duckdb_v2_connection_handle conn = NULL;
 	duckdb_v2_statement_iterator_handle iterator = NULL;
 	duckdb_v2_sql_statement_handle statement = NULL;
 	duckdb_v2_result_handle result = NULL;
 	duckdb_v2_schema_handle schema = NULL;
 
-	CHECK(duckdb_v2_create_environment(&env, &err));
-	CHECK(duckdb_v2_open(env, str(":memory:"), NULL, 0, &db, &err));
-	CHECK(duckdb_v2_connect(db, &conn, &err));
+	CHECK(duckdb_v2_environment_create(&env, &err));
+	/* An instance starts with nothing attached. Attaching is ATTACH, and the
+	 * attached database becomes the default for connections created afterwards. */
+	CHECK(duckdb_v2_instance_create(env, &instance, &err));
+	duckdb_v2_str memory = str(":memory:");
+	CHECK(duckdb_v2_instance_attach(instance, NULL, &memory, NULL, true, &err));
+	CHECK(duckdb_v2_connection_create(instance, &conn, &err));
 
 	/* SQL text is parsed into a statement iterator, replacing both duckdb_query
 	 * and duckdb_extract_statements. */
-	CHECK(duckdb_v2_parse_sql(conn, "select 42 as answer, 'hi' as greeting, [1,2,3] as lst", &iterator, &err));
+	CHECK(duckdb_v2_parse_sql(conn, "select 42 as answer, 'hi' as greeting, [1,2,3] as lst", true, &iterator, &err));
 	CHECK(duckdb_v2_statement_iterator_next(iterator, &statement, &err));
 	CHECK(duckdb_v2_statement_execute(conn, statement, NULL, NULL, 0, &result, &err));
 
@@ -114,9 +122,9 @@ int main(void) {
 	duckdb_v2_result_destroy(&result);
 	duckdb_v2_sql_statement_destroy(&statement);
 	duckdb_v2_statement_iterator_destroy(&iterator);
-	duckdb_v2_disconnect(&conn);
-	duckdb_v2_close(&db);
-	duckdb_v2_destroy_environment(&env);
+	duckdb_v2_connection_destroy(&conn);
+	duckdb_v2_instance_destroy(&instance);
+	duckdb_v2_environment_destroy(&env);
 
 	printf("OK\n");
 	return 0;

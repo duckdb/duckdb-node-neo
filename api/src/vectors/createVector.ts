@@ -35,7 +35,9 @@ import { DuckDBIntervalVector } from './DuckDBIntervalVector';
 import { DuckDBListVector } from './DuckDBListVector';
 import { DuckDBMapVector } from './DuckDBMapVector';
 import { DuckDBSmallIntVector } from './DuckDBSmallIntVector';
+import { DuckDBSQLNullVector } from './DuckDBSQLNullVector';
 import { DuckDBStructVector } from './DuckDBStructVector';
+import { DuckDBTupleVector } from './DuckDBTupleVector';
 import { DuckDBTimeNSVector } from './DuckDBTimeNSVector';
 import { DuckDBTimeTZVector } from './DuckDBTimeTZVector';
 import { DuckDBTimeVector } from './DuckDBTimeVector';
@@ -43,6 +45,7 @@ import { DuckDBTimestampMillisecondsVector } from './DuckDBTimestampMilliseconds
 import { DuckDBTimestampNanosecondsVector } from './DuckDBTimestampNanosecondsVector';
 import { DuckDBTimestampSecondsVector } from './DuckDBTimestampSecondsVector';
 import { DuckDBTimestampTZVector } from './DuckDBTimestampTZVector';
+import { DuckDBTimestampTZNanosecondsVector } from './DuckDBTimestampTZNanosecondsVector';
 import { DuckDBTimestampVector } from './DuckDBTimestampVector';
 import { DuckDBTinyIntVector } from './DuckDBTinyIntVector';
 import { DuckDBUBigIntVector } from './DuckDBUBigIntVector';
@@ -193,6 +196,13 @@ function createVector(
         );
       case DuckDBTypeId.STRUCT:
         if (vectorType instanceof DuckDBStructType) {
+          if (vectorType.isTuple) {
+            return DuckDBTupleVector.fromRawVector(
+              vectorType,
+              vector,
+              itemCount
+            );
+          }
           return DuckDBStructVector.fromRawVector(
             vectorType,
             vector,
@@ -236,7 +246,7 @@ function createVector(
       case DuckDBTypeId.BIGNUM:
         return DuckDBBigNumVector.fromRawVector(vector, itemCount);
       case DuckDBTypeId.SQLNULL:
-        throw new Error(`Invalid vector type: SQLNULL`);
+        return DuckDBSQLNullVector.fromRawVector(vector, itemCount);
       case DuckDBTypeId.STRING_LITERAL:
         throw new Error(`Invalid vector type: STRING_LITERAL`);
       case DuckDBTypeId.INTEGER_LITERAL:
@@ -247,6 +257,8 @@ function createVector(
         return DuckDBGeometryVector.fromRawVector(vector, itemCount);
       case DuckDBTypeId.VARIANT:
         return DuckDBVariantVector.fromRawVector(vector, itemCount);
+      case DuckDBTypeId.TIMESTAMP_TZ_NS:
+        return DuckDBTimestampTZNanosecondsVector.fromRawVector(vector, itemCount);
       default:
         throw new Error(
           `Invalid type id: ${(vectorType as DuckDBType).typeId}`

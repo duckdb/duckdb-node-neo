@@ -27,7 +27,9 @@ import {
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsValue,
   DuckDBTimestampValue,
+  DuckDBTupleValue,
   DuckDBUnionValue,
   DuckDBValue,
   DuckDBVariantValue,
@@ -38,6 +40,24 @@ const MAX_DATE_DAYS = 100000000;
 //                      -8640000000000
 const MIN_DATE_MILLIS = -8640000000000000;
 const MAX_DATE_MILLIS = 8640000000000000;
+
+/**
+ * Divide, rounding toward negative infinity. BigInt division truncates toward
+ * zero, which would round pre-1970 timestamps up to a later millisecond.
+ */
+function floorDivide(dividend: bigint, divisor: bigint): bigint {
+  const quotient = dividend / divisor;
+  return dividend % divisor < 0n ? quotient - 1n : quotient;
+}
+
+/** Whether a TIMESTAMP_NS or TIMESTAMPTZ_NS value is not +/-infinity. */
+function isFiniteNanos(nanos: bigint): boolean {
+  return (
+    nanos !== DuckDBTimestampNanosecondsValue.PosInf.nanos &&
+    nanos !== DuckDBTimestampNanosecondsValue.NegInf.nanos
+  );
+}
+
 const MILLS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export function unsupportedConverter(_: DuckDBValue, type: DuckDBType): null {
@@ -124,7 +144,7 @@ export function bigintFromTimeNSValue(value: DuckDBValue): bigint {
 
 export function dateFromTimestampValue(value: DuckDBValue): Date {
   if (value instanceof DuckDBTimestampValue) {
-    const millis = value.micros / 1000n;
+    const millis = floorDivide(value.micros, 1000n);
     if (MIN_DATE_MILLIS <= millis && millis <= MAX_DATE_MILLIS) {
       return new Date(Number(millis));
     }
@@ -163,8 +183,12 @@ export function dateFromTimestampMillisecondsValue(value: DuckDBValue): Date {
 
 export function dateFromTimestampNanosecondsValue(value: DuckDBValue): Date {
   if (value instanceof DuckDBTimestampNanosecondsValue) {
-    const millis = value.nanos / 1000000n;
-    if (MIN_DATE_MILLIS <= millis && millis <= MAX_DATE_MILLIS) {
+    const millis = floorDivide(value.nanos, 1000000n);
+    if (
+      isFiniteNanos(value.nanos) &&
+      MIN_DATE_MILLIS <= millis &&
+      millis <= MAX_DATE_MILLIS
+    ) {
       return new Date(Number(millis));
     }
     throw new Error(
@@ -189,7 +213,7 @@ export function objectFromTimeTZValue(value: DuckDBValue): {
 
 export function dateFromTimestampTZValue(value: DuckDBValue): Date {
   if (value instanceof DuckDBTimestampTZValue) {
-    const millis = value.micros / 1000n;
+    const millis = floorDivide(value.micros, 1000n);
     if (MIN_DATE_MILLIS <= millis && millis <= MAX_DATE_MILLIS) {
       return new Date(Number(millis));
     }
@@ -198,6 +222,23 @@ export function dateFromTimestampTZValue(value: DuckDBValue): Date {
     );
   }
   throw new Error(`Expected DuckDBTimestampTZValue`);
+}
+
+export function dateFromTimestampTZNanosecondsValue(value: DuckDBValue): Date {
+  if (value instanceof DuckDBTimestampTZNanosecondsValue) {
+    const millis = floorDivide(value.nanos, 1000000n);
+    if (
+      isFiniteNanos(value.nanos) &&
+      MIN_DATE_MILLIS <= millis &&
+      millis <= MAX_DATE_MILLIS
+    ) {
+      return new Date(Number(millis));
+    }
+    throw new Error(
+      `TIMESTAMP_TZ_NS value out of range for JS Date: ${value.nanos} nanos`
+    );
+  }
+  throw new Error(`Expected DuckDBTimestampTZNanosecondsValue`);
 }
 
 export function objectFromIntervalValue(value: DuckDBValue): {
@@ -265,6 +306,38 @@ export function objectFromStructValue<T>(
     return result;
   }
   throw new Error(`Expected DuckDBStructValue and DuckDBStructType`);
+}
+
+export function arrayFromTupleValue<T>(
+  value: DuckDBValue,
+  type: DuckDBType,
+  converter: DuckDBValueConverter<T>
+): (T | null)[] {
+  if (
+    value instanceof DuckDBTupleValue &&
+    type instanceof DuckDBStructType &&
+    type.isTuple
+  ) {
+    return value.items.map((item, i) =>
+      converter(item, type.entryTypes[i], converter)
+    );
+  }
+  throw new Error(`Expected DuckDBTupleValue and tuple DuckDBStructType`);
+}
+
+/**
+ * Converts a STRUCT value: a tuple (see `DuckDBStructType.isTuple`) to an
+ * array of its items, and a named struct to an object keyed by entry name.
+ */
+export function objectOrArrayFromStructValue<T>(
+  value: DuckDBValue,
+  type: DuckDBType,
+  converter: DuckDBValueConverter<T>
+): { [key: string]: T | null } | (T | null)[] {
+  if (value instanceof DuckDBTupleValue) {
+    return arrayFromTupleValue(value, type, converter);
+  }
+  return objectFromStructValue(value, type, converter);
 }
 
 export function objectArrayFromMapValue<T>(
@@ -360,6 +433,11 @@ function convertVariantInner<T>(
       result[key] = convertVariantInner(value.entries[key], converter);
     }
     return result as unknown as T;
+  }
+  if (value instanceof DuckDBTupleValue) {
+    return value.items.map((item) =>
+      convertVariantInner(item, converter)
+    ) as unknown as T;
   }
   if (value instanceof DuckDBMapValue) {
     return value.entries.map((entry) => ({

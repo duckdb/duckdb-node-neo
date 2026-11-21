@@ -46,6 +46,8 @@ import {
   UNION,
   UUID,
   VARCHAR,
+  VARIANT,
+  variantValue,
 } from '../src';
 import { setDefaultTimezone, withConnection } from './util/testHelpers';
 
@@ -178,9 +180,16 @@ describe('readValue', () => {
     expect(view.getFloat64(13, true)).toBe(2);
   });
 
-  // VARIANT has no coverage here: DuckDB fails with an internal error while
-  // binding a call to a table function that declares a VARIANT parameter, before
-  // the bind callback runs, so a value of that type cannot be reached this way.
+  test('variant', async () => {
+    assert.deepStrictEqual(
+      await readParameter(VARIANT, '1::INTEGER::VARIANT'),
+      variantValue(1, INTEGER),
+    );
+    assert.deepStrictEqual(
+      await readParameter(VARIANT, "'two'::VARIANT"),
+      variantValue('two', VARCHAR),
+    );
+  });
 
   test('arrays and unions, which the value accessors cannot read', async () => {
     // duckdb_get_list_child and duckdb_get_struct_child guard on the exact type

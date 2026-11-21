@@ -23,6 +23,7 @@ import {
   TIME,
   TIMESTAMP,
   TIMESTAMPTZ,
+  TIMESTAMPTZ_NS,
   TIMESTAMP_MS,
   TIMESTAMP_NS,
   TIMESTAMP_S,
@@ -55,6 +56,7 @@ import {
   DuckDBTimestampNanosecondsValue,
   DuckDBTimestampSecondsValue,
   DuckDBTimestampTZValue,
+  DuckDBTimestampTZNanosecondsValue,
   DuckDBTimestampValue,
   DuckDBUUIDValue,
   DuckDBValue,
@@ -137,6 +139,7 @@ enum VariantLogicalType {
   BIGNUM = 31,
   BITSTRING = 32,
   GEOMETRY = 33,
+  TIMESTAMP_NANOS_TZ = 34,
 }
 
 /** Physical STRUCT layout of a VARIANT column. Mirrors `LogicalType::VARIANT()`. */
@@ -223,21 +226,17 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
   }
 
   public override setItem(
-    _itemIndex: number,
+    itemIndex: number,
     value: DuckDBVariantValue | null
   ): void {
-    // Writing a VARIANT value isn't supported yet. setItem(null) is
-    // tolerated as a no-op so a parent struct/list/array can iterate
-    // every child and call setItem(null) on this column without failing
-    // — the read path remains usable inside arbitrary container types.
     if (value !== null) {
-      throw new Error('Setting VARIANT values is not yet supported.');
+      throw new Error('Setting non-NULL VARIANT values is not yet supported.');
     }
+    this.structVec.setItem(itemIndex, null);
   }
 
   public override flush(): void {
-    // No-op: VARIANT is read-only, but a parent vector's flush() will
-    // still call this on every child. Nothing to write back.
+    this.structVec.flush();
   }
 
   public override slice(offset: number, length: number): DuckDBVariantVector {
@@ -361,6 +360,13 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
         return {
           value: new DuckDBTimestampTZValue(getInt64(view, byteOffset)),
           type: TIMESTAMPTZ,
+        };
+      case VariantLogicalType.TIMESTAMP_NANOS_TZ:
+        return {
+          value: new DuckDBTimestampTZNanosecondsValue(
+            getInt64(view, byteOffset)
+          ),
+          type: TIMESTAMPTZ_NS,
         };
       case VariantLogicalType.INTERVAL:
         return {
