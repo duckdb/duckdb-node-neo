@@ -226,21 +226,17 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
   }
 
   public override setItem(
-    _itemIndex: number,
+    itemIndex: number,
     value: DuckDBVariantValue | null
   ): void {
-    // Writing a VARIANT value isn't supported yet. setItem(null) is
-    // tolerated as a no-op so a parent struct/list/array can iterate
-    // every child and call setItem(null) on this column without failing
-    // — the read path remains usable inside arbitrary container types.
     if (value !== null) {
-      throw new Error('Setting VARIANT values is not yet supported.');
+      throw new Error('Setting non-NULL VARIANT values is not yet supported.');
     }
+    this.structVec.setItem(itemIndex, null);
   }
 
   public override flush(): void {
-    // No-op: VARIANT is read-only, but a parent vector's flush() will
-    // still call this on every child. Nothing to write back.
+    this.structVec.flush();
   }
 
   public override slice(offset: number, length: number): DuckDBVariantVector {

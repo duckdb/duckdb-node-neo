@@ -1045,7 +1045,7 @@ The refusal carried into 2.0.0, and is gone in 2.0.1. It was a symptom of
 [duckdb/duckdb#24680](https://github.com/duckdb/duckdb/issues/24680):
 `duckdb_create_logical_type(DUCKDB_TYPE_VARIANT)` built the type without its child type info. On
 2.0.0 that stopped failing cleanly — the bare type crashed some calls outright, which is why the
-bindings refuse to create one
+bindings refused to create one
 ([duckdb/duckdb-node-neo#524](https://github.com/duckdb/duckdb-node-neo/issues/524)). The fix
 (backported in [#28072](https://github.com/duckdb/duckdb/pull/28072)) builds the full type, and the
 same probe now gets a chunk for every input:
@@ -1057,7 +1057,7 @@ same probe now gets a chunk for every input:
 [] (zero types)      handle=non-NULL columns=0
 ```
 
-So on 2.0.1 the refusal in #524 guards against a bug that is no longer there.
+So on 2.0.1 the bindings no longer refuse to create a VARIANT type.
 
 On V1 it was a gap rather than a wall even before the fix, because the per-value path works:
 `appendVariant`, `appendValue(v, VARIANT)`, `bindValue(…, VARIANT)` and a SQL `::variant` cast all
@@ -1081,9 +1081,8 @@ column data collection:
 So this is not a V2 prerequisite and there is nothing to raise upstream. Losing the per-value
 appender does not cost us VARIANT.
 
-What it does do is move the remaining gap onto our side of the line. `DuckDBVariantVector` cannot
-write — `setItem` throws for a non-null value, and is a deliberate no-op for `null` so that a
-containing struct or list can iterate every child while reading. Under V1 that barely matters,
+What it does do is move the remaining gap onto our side of the line. `DuckDBVariantVector` can
+write a NULL but not a value — `setItem` throws for anything non-null. Under V1 that barely matters,
 since the per-value path is there to fall back on. Under V2 the collection is the only write path,
 so a VARIANT column in a bulk append needs that vector to learn to write. That is ours to
 implement whenever we want it, not a dependency to wait on — which is why it is not in the
