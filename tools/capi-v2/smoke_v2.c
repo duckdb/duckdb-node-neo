@@ -1,5 +1,5 @@
 /* A minimal end-to-end exercise of the DuckDB C API V2, used to confirm that the
- * 2.0 preview library works and to show the shape of the calling convention Node
+ * 2.0 library works and to show the shape of the calling convention Node
  * Neo's bindings will have to adopt.
  *
  *   python3 tools/capi-v2/fetch_libduckdb_v2.py
@@ -12,6 +12,9 @@
  * a stream. Every call returns a status and writes its product to an out-param.
  */
 
+/* Every V2 function is marked unstable in 2.0, and the header declares none of
+ * them unless the consumer opts in. */
+#define DUCKDB_V2_API_ALLOW_UNSTABLE 1
 #include "duckdb_v2.h"
 
 #include <stdio.h>
@@ -58,12 +61,12 @@ int main(void) {
 	 * attached database becomes the default for connections created afterwards. */
 	CHECK(duckdb_v2_instance_create(env, &instance, &err));
 	duckdb_v2_str memory = str(":memory:");
-	CHECK(duckdb_v2_instance_attach(instance, &memory, NULL, NULL, true, &err));
+	CHECK(duckdb_v2_instance_attach(instance, NULL, &memory, NULL, true, &err));
 	CHECK(duckdb_v2_connection_create(instance, &conn, &err));
 
 	/* SQL text is parsed into a statement iterator, replacing both duckdb_query
 	 * and duckdb_extract_statements. */
-	CHECK(duckdb_v2_parse_sql(conn, "select 42 as answer, 'hi' as greeting, [1,2,3] as lst", &iterator, &err));
+	CHECK(duckdb_v2_parse_sql(conn, "select 42 as answer, 'hi' as greeting, [1,2,3] as lst", true, &iterator, &err));
 	CHECK(duckdb_v2_statement_iterator_next(iterator, &statement, &err));
 	CHECK(duckdb_v2_statement_execute(conn, statement, NULL, NULL, 0, &result, &err));
 

@@ -7,10 +7,9 @@
  * binding that wraps it hands JS something that is a hazard on every call, and
  * the check belongs in the binding rather than in the API layer.
  *
- * Built against the V1 library we ship today, not the 2.0 preview, because the
- * behaviour is V1's and the bindings' -- but the answer carries into V2, where
- * a column data collection is created from a fixed set of column types the
- * same way.
+ * Built against the V1 library the bindings ship, because the behaviour is V1's
+ * and the bindings' -- but the question carries into V2, where a column data
+ * collection is created from a fixed set of column types the same way.
  *
  *   cd tools/capi-v2 && cc -std=c11 -I ../../bindings/libduckdb chunk_probe.c \
  *      -L ../../bindings/libduckdb -lduckdb \
@@ -28,6 +27,19 @@
  *
  * So: null, all-or-nothing, and a zero-column chunk is legitimate -- zero
  * columns is not the signal, the null is.
+ *
+ * Against 2.0.1 (2026-11-21) VARIANT is accepted:
+ *
+ *   VARIANT logical type: created, type id=41
+ *
+ *   [INTEGER]            handle=non-NULL columns=1 size=0
+ *   [VARIANT]            handle=non-NULL columns=1 size=0
+ *   [INTEGER, VARIANT]   handle=non-NULL columns=2 size=0
+ *   [] (zero types)      handle=non-NULL columns=0 size=0
+ *
+ * The refusal was a symptom of duckdb/duckdb#24680: duckdb_create_logical_type
+ * built VARIANT without its child type info. The fix (6b51033, backported in
+ * duckdb/duckdb#28072) is in 2.0.1 but not 2.0.0.
  */
 #include <stdio.h>
 #include <duckdb.h>

@@ -1,12 +1,14 @@
 /* Can a V1 connection run a query while a streaming result on it is still open?
  *
  * Through 1.5.x it can: the new statement silently aborts the unfinished one.
- * On the 2.0 branch (duckdb/duckdb#26314, #26747) the new statement is refused
+ * From 2.0 (duckdb/duckdb#26314, #26747) the new statement is refused
  * instead, with DUCKDB_ERROR_RESOURCE_IN_USE, until the open result is drained
  * or destroyed. This is a V1 behavior change across the 2.0 boundary, with no
  * change to any V1 signature.
  *
- * Builds against either library, like chunk_probe.c:
+ * Builds against either library, like chunk_probe.c -- though since the bindings
+ * moved to 2.0, both commands measure 2.0; seeing the 1.5.x behavior takes a
+ * 1.5.x library:
  *
  *   cd tools/capi-v2 && cc -std=c11 -I ../../bindings/libduckdb open_result_probe.c \
  *      -L ../../bindings/libduckdb -lduckdb -Wl,-rpath,@loader_path/../../bindings/libduckdb \
@@ -19,7 +21,7 @@
  *   second query with a stream open: ok
  *   after destroying the stream:     ok
  *
- * Against the 2.0 preview:
+ * Against the 2.0 preview, and unchanged against 2.0.1 (2026-11-21):
  *
  *   second query with a stream open: error (type 44) Resource In Use Error: connection has an open
  *     result; drain or destroy it before starting a new query
