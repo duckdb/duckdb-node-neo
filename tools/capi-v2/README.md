@@ -3,34 +3,35 @@
 Working notes for migrating Node Neo to the C API that ships with DuckDB 2.0. Nothing here
 is a commitment; this is the fact-finding pass that a migration plan gets built on.
 
-Sources, as of 2026-10-10 (first surveyed 2026-09-05):
+Sources, as of 2026-11-21 (first surveyed 2026-09-05, and refreshed 2026-10-10 against the
+`v2.0-cyanoptera` branch before 2.0 shipped):
 
-- `duckdb_v2.h` on the [`v2.0-cyanoptera`](https://github.com/duckdb/duckdb/tree/v2.0-cyanoptera)
-  branch at `d8b295d` — 587 functions.
-- `duckdb.h` on the same branch — the V1 surface as it will ship in 2.0.
-- `bindings/libduckdb/duckdb.h` — the V1 surface Node Neo builds against today (DuckDB 1.5.6).
+- `duckdb_v2.h` at the [`v2.0.1`](https://github.com/duckdb/duckdb/tree/v2.0.1) tag (`8d78114`) —
+  641 functions, 620 of them behind `DUCKDB_V2_API_ALLOW_UNSTABLE`. The branch tip on 2026-11-20
+  (`b3a028e`) has the same header, so nothing further is queued for the next patch release yet.
+- `duckdb.h` at the same tag — the V1 surface in 2.0.1, and what `bindings/libduckdb/` builds
+  against since the 2.0.1 upgrade.
+- `duckdb.h` at `v1.5.6` — the last V1 surface before 2.0, kept as the baseline for what 2.0 did to
+  V1.
 - The three PRs that landed V2: [#24702](https://github.com/duckdb/duckdb/pull/24702) (part 1:
   errors, environment, database, connection, context, SQL statements, streaming results, logical
   types, values, data chunks, vectors), [#25184](https://github.com/duckdb/duckdb/pull/25184)
   (part 2: scalar and aggregate functions, column data collections),
   [#25340](https://github.com/duckdb/duckdb/pull/25340) (part 3: table, copy and cast functions,
   file system, replacement scans, arrow, catalog, logging).
-- The follow-ups that reshaped it between 2026-09-05 and 2026-10-10 — see
-  [What changed since the first survey](#what-changed-since-the-first-survey).
+- The follow-ups that reshaped it, before and after the release — see
+  [What changed between surveys](#what-changed-between-surveys).
 
-All of those PRs carry the same caveat — nothing is set in stone, more follow-ups are expected — and
-the five weeks after the first survey bore it out: 40 functions removed, 100 added, 43 signatures
-changed. Treat every count below as a snapshot. `compare_api.py` re-derives all of them from the
-headers.
+All of those PRs carried the same caveat — nothing is set in stone, more follow-ups are expected —
+and 2.0 made it formal: every V2 function ships marked unstable. It kept moving, too. Between the
+October survey and 2.0.1: 131 functions removed, 185 added, 6 signatures changed, some of it inside a
+patch release. Treat every count below as a snapshot. `compare_api.py` re-derives all of them from
+the headers.
 
-The preview artifacts are **rebuilt in place under the same tag**, so a local `libduckdb-v2/` goes
-stale without changing its name or URL. Between 2026-09-05 and 2026-09-12 the osx-universal
-tarball moved from 38,600,129 to 38,950,606 bytes while `duckdb_v2.h` stayed byte-for-byte
-identical — an implementation rebuild. By 2026-10-10 it was 39,725,035 bytes, and the header inside
-was the surface change described below; it matched the branch's `duckdb_v2.h` byte for byte, so the
-preview and the branch were in step. Re-run `fetch_libduckdb_v2.py` before trusting a measurement
-taken against a copy you did not just fetch; a probe that disagrees with what is recorded here may
-be measuring a different build rather than a changed answer.
+The earlier surveys measured preview artifacts that were rebuilt in place under one tag, so a local
+copy could go stale without changing its name. Release tarballs do not, so a `libduckdb-v2/` fetched
+for a version stays valid. `fetch_libduckdb_v2.py` and `compare_api.py --fetch` both take the version
+from `bindings/scripts/fetch_libduckdb.py`, so they follow the bindings' DuckDB bump without edits.
 
 Companion to [`../capi-coverage`](../capi-coverage/README.md), which measures Node Neo against the
 other five C-API clients. `compare_api.py` reuses that tool's `capi_functions.py` (the canonical
@@ -47,9 +48,10 @@ deprecation flags are identical across the two releases.
 ## Reproducing this
 
 ```bash
-python3 tools/capi-v2/compare_api.py --fetch   # pull duckdb.h + duckdb_v2.h from the branch
+python3 tools/capi-v2/compare_api.py --fetch   # pull duckdb.h + duckdb_v2.h for the bindings' release
 python3 tools/capi-v2/compare_api.py           # print the comparison report
-python3 tools/capi-v2/fetch_libduckdb_v2.py    # pull the 2.0 preview library for this platform
+python3 tools/capi-v2/compare_api.py --fetch --ref v2.0-cyanoptera   # look ahead at the next patch
+python3 tools/capi-v2/fetch_libduckdb_v2.py    # pull that release's library + every header
 cd tools/capi-v2 && cc -std=c11 -I libduckdb-v2 smoke_v2.c -L libduckdb-v2 -lduckdb \
     -Wl,-rpath,@loader_path/libduckdb-v2 -o smoke_v2 && ./smoke_v2
 ```
@@ -58,13 +60,13 @@ cd tools/capi-v2 && cc -std=c11 -I libduckdb-v2 smoke_v2.c -L libduckdb-v2 -lduc
 shortest illustration of the calling convention the bindings have to adopt. `coexist_probe.c`
 builds the same way, and checks whether one database file opened through both V1 and V2 is
 detected. So does `options_probe.c`, which checks whether V2 can enumerate configuration options
-before any database exists.
+before any database exists. Every V2 probe defines `DUCKDB_V2_API_ALLOW_UNSTABLE` before including
+`duckdb_v2.h`; without it, 2.0's header declares almost nothing (see the headline findings).
 
 `chunk_probe.c` and `chunk_probe_v2.c` are a pair, asking the same question of each surface: will
-a data chunk take a VARIANT column? The V1 one builds against either library — the library we ship
-today, or the preview, which exports the V1 symbols too — which is how the answer is known to be
-the same on both sides of the 2.0 boundary. See
-[VARIANT in a data chunk](#variant-in-a-data-chunk-a-v1-defect-v2-does-not-inherit).
+a data chunk take a VARIANT column? The V1 one builds against the bindings' library, and its answer
+changed in 2.0.1. See
+[VARIANT in a data chunk](#variant-in-a-data-chunk-a-v1-defect-fixed-in-201).
 
 ```bash
 cd tools/capi-v2 && cc -std=c11 -I ../../bindings/libduckdb chunk_probe.c \
@@ -76,15 +78,37 @@ cd tools/capi-v2 && cc -std=c11 -I libduckdb-v2 chunk_probe_v2.c -L libduckdb-v2
 
 ## Headline findings
 
-**V1 keeps compiling in 2.0, but the clock is now running.** Comparing the V1 header we build
-against (1.5.6) with the V1 header on the 2.0 branch: zero functions removed, two added
-(`duckdb_create_timestamp_tz_ns`, `duckdb_get_timestamp_tz_ns`), zero signature changes, and three
-new enum values (`DUCKDB_TYPE_TIMESTAMP_TZ_NS = 42`, `DUCKDB_ERROR_DATA_CORRUPTION = 43`,
-`DUCKDB_ERROR_RESOURCE_IN_USE = 44`). The thirteen `()` → `(void)` edits the first survey counted
-here now arrive with 1.5.6 instead — see below. Nothing in the header carries `DUCKDB_DEPRECATED` —
-the macro is defined but never applied. The preview `libduckdb` exports all 548 V1 symbols alongside
-all 587 V2 symbols from one library, so V1 and V2 can be mixed inside one addon, and an incremental,
-module-by-module migration is possible rather than a big-bang rewrite.
+**Every V2 function is unstable in 2.0, and V2 changes in patch releases.** Three days before the
+release, [#27410](https://github.com/duckdb/duckdb/pull/27410) demoted all of V2 to `unstable`:
+each declaration sits inside `#if DUCKDB_V2_API_ALLOW_UNSTABLE`, which defaults to 0, so a consumer
+that includes `duckdb_v2.h` without defining it gets no V2 function at all. Opting in while
+targeting an older V2 API version is an `#error`, since the unstable surface "is not part of any
+released version". The October survey counted 26 unstable functions; 2.0.0 has 620 of 620.
+
+The label is earned. 2.0.1, a patch release, added 21 V2 functions and changed one signature:
+`duckdb_v2_parse_sql` gained an `apply_invalidation_policy` parameter in the middle of its argument
+list (backported in [#27684](https://github.com/duckdb/duckdb/pull/27684)). Every probe here that
+parses SQL needed the extra argument. That is new for Node Neo: V1's signatures are a stability
+promise, so a DuckDB bump compiles unchanged and the signature check only warns. Once the
+bindings call V2, a bump — a patch bump included — can stop them compiling until the call sites
+follow. See [Migration approach](#migration-approach).
+
+One inconsistency: the 21 functions 2.0.1 added — stats callbacks for scalar, aggregate and table
+functions, and four `stats_*` accessors — came from `main` with `stable v2.0.0` lifecycle entries,
+which the backport kept. They are the only V2 declarations *outside* the switch. Without it they
+compile in, but cannot be used, since nothing that creates a function to attach them to is
+declared. Worth raising upstream: v2.0.0 has no such functions, stable or not.
+
+**V1 keeps compiling in 2.0, but the clock is now running.** Comparing the last V1 header before
+2.0 (1.5.6) with 2.0.1's — the release confirmed what the October branch showed: zero functions
+removed, two added (`duckdb_create_timestamp_tz_ns`, `duckdb_get_timestamp_tz_ns`), zero signature
+changes, and three new enum values (`DUCKDB_TYPE_TIMESTAMP_TZ_NS = 42`,
+`DUCKDB_ERROR_DATA_CORRUPTION = 43`, `DUCKDB_ERROR_RESOURCE_IN_USE = 44`). The thirteen `()` →
+`(void)` edits the first survey counted here arrived with 1.5.6 instead — see below. Nothing in the
+header carries `DUCKDB_DEPRECATED` — the macro is defined but never applied. The 2.0.1 `libduckdb`
+exports all 548 V1 symbols alongside all 641 V2 symbols from one library, so V1 and V2 can be mixed
+inside one addon, and an incremental, module-by-module migration is possible rather than a big-bang
+rewrite.
 
 What the header does not show is the schedule. Per the DuckDB team (maxxen, 2026-09-05): **V1 is
 deprecated in 2.0 and probably removed entirely in 3.0, likely about a year out.** So 2.0 is not a
@@ -94,14 +118,14 @@ forced migration, but it is the start of a fixed window rather than an open-ende
 **But one V1 behavior changes underneath an unchanged signature: an open result now blocks its
 connection.** Through 1.5.x, starting a statement on a connection with an unfinished streaming or
 pending result silently aborts the unfinished one — and inside a transaction, an aborted write was
-then lost by the `COMMIT` without an error. On the 2.0 branch
+then lost by the `COMMIT` without an error. From 2.0
 ([#26314](https://github.com/duckdb/duckdb/pull/26314),
 [#26747](https://github.com/duckdb/duckdb/pull/26747)) the *new* statement is refused with
 `DUCKDB_ERROR_RESOURCE_IN_USE` until the open result is drained or destroyed, and destroying an
 unfinished result that may write rolls it back. The V1 docs for `duckdb_destroy_result` and
 `duckdb_destroy_pending` say so, and `open_result_probe.c` measures it — against 1.5.6:
-`second query with a stream open: ok`; against the preview: `error (type 44) Resource In Use Error:
-connection has an open result; drain or destroy it before starting a new query`.
+`second query with a stream open: ok`; against the preview and 2.0.1: `error (type 44) Resource In
+Use Error: connection has an open result; drain or destroy it before starting a new query`.
 
 This landed on us harder than on most clients, because Node Neo did not expose
 `duckdb_destroy_result` — results were destroyed in a finalizer, so on 2.0 a `DuckDBResult` that was
@@ -126,25 +150,17 @@ announced it. The `// DUCKDB_C_API …` blocks in `duckdb_node_bindings.cpp` and
 follow the 1.5.6 header order and take the `(void)` edits, and the check is clean again (546 of
 546). The script's guard handling needed no change, since it was already done for 2.0. The
 `// #ifndef DUCKDB_API_NO_DEPRECATED` markers kept their spelling but were regrouped: the 48
-deprecated functions now sit in 5 contiguous runs instead of 9.
+deprecated functions now sit in 5 contiguous runs instead of 9. On 2.0.1 the check is clean at 548
+of 548: the 2.0 upgrade accounted for the two new functions.
 
-**The preview binaries exist, under a different naming scheme.** The install page only links the
-CLI, and `duckdb-binaries-<platform>.zip` (the 1.4/1.5 preview convention) 404s for
-`v2.0-cyanoptera`. The libraries are published as tarballs instead:
-
-```
-https://artifacts.duckdb.org/v2.0-cyanoptera/duckdb-shared-libs-<suffix>.tar.gz
-```
-
-All seven suffixes Node Neo targets are live: `osx-universal`, `linux-amd64`, `linux-arm64`,
-`linux-amd64-musl`, `linux-arm64-musl`, `windows-amd64`, `windows-arm64`. Each tarball contains
-`libduckdb.{dylib,so,dll}`, `duckdb.h`, `duckdb_v2.h`, `duckdb_extension.h`, `duckdb_extension_v2.h`
-and, since September, `duckdb_static_extension.h` (registration for statically linked extensions —
-not something Node Neo uses). `fetch_libduckdb_v2.py` fetches one; it is deliberately separate from
-`bindings/scripts/fetch_libduckdb_*.py`, which points at GitHub releases and cannot reach these.
-Note the shape difference — tarball, not zip, and no `libduckdb/` prefix inside — so the existing
-fetch scripts need more than a URL swap when 2.0 releases. The release workflow already zips
-`duckdb_v2.h` next to `duckdb.h`, so the final release artifacts will carry both headers.
+**The release ships tarballs, carrying both headers.** 2.0 replaced the
+`libduckdb-<platform>.zip` release assets with `duckdb-shared-libs-<suffix>.tar.gz`, flat, each
+holding `libduckdb.{dylib,so,dll}`, `duckdb.h`, `duckdb_v2.h`, `duckdb_extension.h`,
+`duckdb_extension_v2.h` and `duckdb_static_extension.h` (registration for statically linked
+extensions — not something Node Neo uses). The bindings fetch these since
+[#512](https://github.com/duckdb/duckdb-node-neo/pull/512), extracting `duckdb.h` and the library;
+`fetch_libduckdb_v2.py` fetches the same tarball and extracts all of it, for the probes here.
+Neither `duckdb_cpp.hpp` nor `duckdb_cpp.cpp` is in it.
 
 **V2 is a redesign, not a rename.** Function-by-function translation does not exist for most of
 the surface. Roughly: a third of what Node Neo uses maps mechanically, a third needs restructuring
@@ -157,10 +173,10 @@ using columndatacollections and replacement scans/table functions."
 
 So bulk append becomes ours to design rather than to wrap. The goal is the *scenario* — efficient
 bulk append — not the V1 shape: an explicit appender class is one option, helpers that drive an
-`INSERT INTO … SELECT * FROM` over a replacement-scanned collection are another, and that choice
+`INSERT INTO … SELECT * FROM` over a collection bound to the statement are another, and that choice
 belongs to whoever builds this part of the V2 API rather than to this survey. Worth knowing going in:
-a collection surfaced through a replacement scan is a *virtual table*, which is why appending to an
-*existing* table is a statement rather than a direct append. See
+a collection reaches SQL only through a statement that reads it, which is why appending to an
+*existing* table is an `INSERT … SELECT` rather than a direct append. See
 [How bulk append works without an appender](#how-bulk-append-works-without-an-appender) for the
 mechanism and its sharp edges.
 
@@ -173,16 +189,41 @@ polymorphic C++ class, so sharing it is safe in a way V1's sharing is not. `type
 either way — a tag is the only thing that distinguishes one `Napi::External` from another at runtime
 — but the six function-info tags stop carrying extra load; see §12. Separately, the `duckdb_cpp`
 "stable C++ API" over V2, mentioned in all three PRs, turns out to live at `tools/cpp/` rather than
-`src/include/`, which is why it is not in the packaged headers. The team expects to add it to the
-release tarballs "soon", along with a CMake module for `FetchContent` (maxxen, 2026-09-05). As a C++
-N-API addon we are its natural consumer — see [Migration approach](#migration-approach) for what
-that would take.
+`src/include/`, which is why it is not in the packaged headers. The team expected to add it to the
+release tarballs "soon", along with a CMake module for `FetchContent` (maxxen, 2026-09-05); 2.0.1's
+tarballs still do not have it. As a C++ N-API addon we are its natural consumer — see
+[Migration approach](#migration-approach) for what that would take.
 
-## What changed since the first survey
+## What changed between surveys
 
-Between 2026-09-05 and 2026-10-10, `duckdb_v2.h` went from 527 functions to 587: 40 removed, 100
-added, 43 signatures changed, the `database` module gone and `instance`, `function` and `tokenizer`
-new. Grouped by what it means for us rather than by module:
+### 2026-10-10 to 2.0.1
+
+`duckdb_v2.h` went from 587 functions to 641: 131 removed, 185 added, 6 signatures changed. The
+removals are consolidation, not lost capability: 98 `_with_connection` / `_with_context`
+constructors folded, pair by pair, into one function taking a factory, 17 `*_create_with_extension` /
+`*_register` functions gave way to registration on the target, and 16 per-root option functions to a
+config handle. New modules: `factory`, `custom_option`, `pragma`, `macro`, `function docs`, `log
+sink`, `query metrics` and `stats`. Grouped by what it means for us:
+
+| Change | PRs | Where it lands here |
+|---|---|---|
+| Every function marked unstable | [#27410](https://github.com/duckdb/duckdb/pull/27410) | Headline finding |
+| A **factory**, borrowed from an instance, connection or context, creates values, types, data chunks, collections and functions — replacing every `_with_connection` / `_with_context` pair | [#26820](https://github.com/duckdb/duckdb/pull/26820) | §9, §10, §12 |
+| A **config**, borrowed the same way, reads and writes options by scope; startup-only options move to `instance_create_with_options`, and an instance starts as soon as it is created | [#26820](https://github.com/duckdb/duckdb/pull/26820) | §6, §7 |
+| Registration moves to the target: `connection_register_*`, `instance_register_*` and `extension_register_*` replace `*_register` | [#26820](https://github.com/duckdb/duckdb/pull/26820) | §12 |
+| `instance_attach` takes the name before the path; `instance_detach` and `instance_set_default` take the name instead of the path | [#26820](https://github.com/duckdb/duckdb/pull/26820) | §6 |
+| Function docs; `factory_create_common_type` (SQL's type unification) | [#26820](https://github.com/duckdb/duckdb/pull/26820) | §9, §12 |
+| Custom options, pragma functions, macros (extensions only), vector casts, file system path helpers | [#26863](https://github.com/duckdb/duckdb/pull/26863) | §7, [What we would gain](#what-we-would-gain) |
+| Log sinks | [#26872](https://github.com/duckdb/duckdb/pull/26872) | [What we would gain](#what-we-would-gain) |
+| Profiling metrics | [#26874](https://github.com/duckdb/duckdb/pull/26874) | [What we would gain](#what-we-would-gain) |
+| `statement_add_collection` returns, and upstream's appender moves onto it; `data_chunk_clear`; more file system helpers | [#26886](https://github.com/duckdb/duckdb/pull/26886) | [Bulk append](#how-bulk-append-works-without-an-appender) |
+| `parse_sql` takes `apply_invalidation_policy`; stats callbacks for scalar, aggregate and table functions — both in 2.0.1, not 2.0.0 | [#27684](https://github.com/duckdb/duckdb/pull/27684) (backport) | Headline finding; §8, §12 |
+
+### 2026-09-05 to 2026-10-10
+
+`duckdb_v2.h` went from 527 functions to 587: 40 removed, 100 added, 43 signatures changed, the
+`database` module gone and `instance`, `function` and `tokenizer` new. Grouped by what it means for
+us rather than by module:
 
 | Change | PRs | Where it lands here |
 |---|---|---|
@@ -196,47 +237,52 @@ new. Grouped by what it means for us rather than by module:
 | `connection_progress_get` replaces the `query_progress` handle; `error_info_get_raw_message` → `_get_raw_text`; `validate_utf8`, and identifiers validated as UTF-8 | [#25984](https://github.com/duckdb/duckdb/pull/25984), [#25851](https://github.com/duckdb/duckdb/pull/25851), [#26088](https://github.com/duckdb/duckdb/pull/26088) | §3, §4 |
 | Table-function order preservation ([#26230](https://github.com/duckdb/duckdb/pull/26230)), partitioning and batch claims; multi-file functions; copy-to statistics | [#26254](https://github.com/duckdb/duckdb/pull/26254), [#26584](https://github.com/duckdb/duckdb/pull/26584) for multi-file | §12 — mostly behind the new unstable switch |
 
-What did **not** change, and was re-measured rather than assumed: VARIANT columns in V2 data chunks
-and collections still work, and V1's chunk still refuses them (`chunk_probe*.c`); the appender and
-the conversion helpers are still absent; a database opened through both APIs is still not detected
-(`coexist_probe.c`); and nothing in either header is marked `DUCKDB_DEPRECATED`.
+What did **not** change across either refresh, re-measured rather than assumed: VARIANT columns in
+V2 data chunks and collections work (`chunk_probe_v2.c`); the appender and the conversion helpers
+are absent; a database opened through both APIs is not detected (`coexist_probe.c`); and nothing in
+either header is marked `DUCKDB_DEPRECATED`. One answer did change, on the V1 side: as of 2.0.1 a V1
+data chunk takes a VARIANT column too — see
+[VARIANT in a data chunk](#variant-in-a-data-chunk-a-v1-defect-fixed-in-201).
 
 ## The two surfaces, side by side
 
-| | V1 (1.5.6) | V1 (on 2.0) | V2 |
+| | V1 (1.5.6) | V1 (2.0.1) | V2 (2.0.1) |
 |---|---:|---:|---:|
-| Functions | 546 | 548 | 587 |
-| Exposed by Node Neo | 319 | — | — |
+| Functions | 546 | 548 | 641 |
+| Exposed by Node Neo | 319 | 323 | — |
 
-The first survey measured 527 V2 functions and 314 exposed; the five newly exposed are the catalog
-functions from [#500](https://github.com/duckdb/duckdb-node-neo/pull/500).
+The first survey measured 527 V2 functions and 314 exposed. The five exposed by October are the
+catalog functions from [#500](https://github.com/duckdb/duckdb-node-neo/pull/500); the four since
+are `duckdb_destroy_result` and `duckdb_destroy_pending`
+([#516](https://github.com/duckdb/duckdb-node-neo/pull/516)) and 2.0's two TIMESTAMP_TZ_NS value
+functions.
 
-Node Neo's V1 coverage, by header module — this is the actual migration surface, not the 546:
+Node Neo's V1 coverage, by 2.0.1 header module — this is the actual migration surface, not the 548:
 
 | V1 module | total | in Neo | V2 status |
 |---|---:|---:|---|
-| database | 12 | 9 | restructured: environment → instance → attach; instance cache gone, double-attach detected per environment |
-| connection | 10 | 7 | `connection_create` / `interrupt` / `progress_get`; **no** `get_table_names`, no client context or connection id outside callbacks |
-| query | 32 | 14 | restructured (parse → iterate → bind → execute → step); error data → `error_info`; safe fetch gone; `vector_size` and malloc/free gone |
+| database | 12 | 9 | restructured: environment → instance → attach; startup options at instance creation; instance cache gone, double-attach detected per environment |
+| connection | 10 | 7 | `connection_create` / `interrupt` / `progress_get`; **no** `get_table_names`, no client context outside callbacks, connection id only in log sink records |
+| query | 32 | 15 | restructured (parse → iterate → bind → execute → step); error data → `error_info`; safe fetch gone; `vector_size` and malloc/free gone |
 | prepared_statement | 45 | 42 | restructured: binds become parameter arrays at execute time; metadata split between `sql_statement` and `schema` |
-| pending | 7 | 6 | replaced by `result_step` + `result_wait` |
+| pending | 7 | 7 | replaced by `result_step` + `result_wait` |
 | datetime_helpers | 19 | 19 | **absent** (date/time/timestamp, hugeint and decimal conversions) |
-| value | 101 | 74 | present, but every constructor needs a connection or context |
-| logical_type | 31 | 29 | collapsed into generic construct-by-name/id/text + `get_param` |
+| value | 103 | 76 | present; every constructor takes a factory, borrowed from an instance, connection or context |
+| logical_type | 31 | 29 | collapsed into generic construct-by-name/id/text through a factory + `get_param` |
 | data_chunk | 7 | 6 | close mapping |
 | vector | 26 | 18 | restructured around `vector_view`; selection vectors folded into `view.sel` |
 | scalar_function | 33 | 26 | close mapping; type resolution split into its own callback |
 | table_function | 36 | 33 | close mapping, plus filter / projection pushdown, order preservation, partitioning |
 | catalog | 7 | 5 | **absent** — V2 describes tables (`connection_describe_table`) but has no catalog-entry lookup |
 | appender | 40 | 31 | **absent** |
-| aggregate_function | 16 | 0 | present (44 functions) |
+| aggregate_function | 16 | 0 | present (51 functions) |
 | arrow | 19 | 0 | present, redesigned (importer / exporter, plus Arrow-producing results) |
 | cast_function | 12 | 0 | present (14 functions) |
-| config_option | 14 | 0 | **absent** — no custom option registration and no profiling info; reading options is in `configuration` |
-| copy_function | 33 | 0 | present (78 functions) |
+| config_option | 14 | 0 | present, split: custom option registration in `custom_option` (17), profiling in `query metrics` (11); reading and writing options is `configuration` |
+| copy_function | 33 | 0 | present (79 functions) |
 | expression | 4 | 0 | present (9 functions) |
-| file_system | 16 | 0 | present (17 functions) |
-| log_storage | 6 | 0 | reduced to `context_log` |
+| file_system | 16 | 0 | present (24 functions) |
+| log_storage | 6 | 0 | present as log sinks (12 functions), plus `*_log` on instance, connection and context |
 | replacement_scan | 4 | 0 | present (15 functions) |
 | table_description | 8 | 0 | present, in V2's `catalog` module |
 | threading | 8 | 0 | **absent** |
@@ -262,7 +308,7 @@ Everything returns a status. Products go to out-params.
              duckdb_v2_schema_handle schema, idx_t *out_count, duckdb_v2_error_info_handle *err);
 ```
 
-This affects essentially all 319 call sites in `duckdb_node_bindings.cpp`. It is the single
+This affects essentially all 323 call sites in `duckdb_node_bindings.cpp`. It is the single
 largest mechanical cost of the migration, and it is exactly the kind of boilerplate a
 `duckdb_cpp.hpp` (or our own wrapper) would absorb.
 
@@ -326,16 +372,19 @@ lifetime pinned. This is the subtlest part of the migration and the easiest to g
 ### 6. New roots: the environment and the instance
 
 Reworked since the first survey ([#25751](https://github.com/duckdb/duckdb/pull/25751), renamed in
-[#25910](https://github.com/duckdb/duckdb/pull/25910)). `duckdb_v2_open` used to create an instance,
-apply options and attach the main database all at once. Those are now three steps:
+[#25910](https://github.com/duckdb/duckdb/pull/25910), simplified in
+[#26820](https://github.com/duckdb/duckdb/pull/26820)). `duckdb_v2_open` used to create an
+instance, apply options and attach the main database all at once. Those are now separate steps:
 
 ```c
 duckdb_v2_environment_create(&env, &err);
-duckdb_v2_instance_create(env, &instance, &err);                    /* nothing attached, not started */
-duckdb_v2_instance_set_option(instance, &name, &setting, &err);     /* startup-only options go here */
-duckdb_v2_instance_attach(instance, &path, NULL, NULL, true, &err); /* ATTACH; true = make default */
+duckdb_v2_instance_create_with_options(env, names, values, count,   /* startup-only options; */
+                                       &instance, &err);            /* started, nothing attached */
+duckdb_v2_instance_attach(instance, NULL, &path, NULL, true, &err); /* ATTACH; NULL name = derived */
 duckdb_v2_connection_create(instance, &conn, &err);
 ```
+
+(`instance_create` is the same without options.)
 
 What this changes:
 
@@ -343,11 +392,13 @@ What this changes:
   buffer pool, catalog and transaction manager — but it starts empty. Databases are *attached* to
   it exactly like SQL `ATTACH`, any number of them, with `(KEY value)` options through an
   `attach_options` handle, and one chosen as the default for new connections. `instance_detach`
-  and `instance_set_default` complete the set. A connection can be created with nothing attached,
-  and then sees only the system and temp catalogs.
-- **The instance starts on first attach or connection.** Before that, `instance_set_option` stages
-  startup configuration — the only way to set startup-only options such as `access_mode` or
-  `enable_external_access`. After it, the same call is `SET GLOBAL`.
+  and `instance_set_default` complete the set, both by attach name; a null name derives it from the
+  path, as SQL `ATTACH` without `AS` does. A connection can be created with nothing attached, and
+  then sees only the system and temp catalogs.
+- **The instance starts when it is created.** In October it started on first attach or connection,
+  and `instance_set_option` staged startup configuration until then. That staging is gone:
+  startup-only options such as `access_mode` or `enable_external_access` are text name / value pairs
+  to `instance_create_with_options`, and every later change is a config write (§7).
 - **Double-open detection is per environment.** A path already attached on *any* instance of the
   environment is refused with `ERROR_RESOURCE_IN_USE`. That subsumes the deduplication
   `duckdb_instance_cache` provides — which has no V2 counterpart — but as a refusal rather than a
@@ -362,18 +413,25 @@ What this changes:
 
 V1: build a `duckdb_config` blob of string key/value pairs, pass it to `duckdb_open_ext`.
 
-V2: options are set by name, as the text SQL `SET` accepts — no option handles to build any more
-(`option_create` is gone). On the instance, `instance_set_option` is a startup option before the
-instance starts and `SET GLOBAL` after; on a connection, `connection_set_option(conn, name, setting,
-scope, err)` takes `AUTOMATIC`, `GLOBAL` or `LOCAL`. Reading goes through `*_get_option_by_name` /
-`_by_index` / `_count` on the instance, the connection, or — inside callbacks — the context, and
-returns an option handle carrying the current and default settings, description, target scope and
-aliases — richer than V1's `duckdb_get_config_flag`.
+V2: startup-only options are text name / value pairs to `instance_create_with_options`. Everything
+else goes through a `duckdb_v2_config_handle`
+([#26820](https://github.com/duckdb/duckdb/pull/26820)), borrowed from an instance (which reads and
+writes `GLOBAL` only), a connection (which reads its session value before the global one, and writes
+either) or — inside callbacks — a context. One set of functions serves all three: `config_set_option_text` takes the text SQL `SET` accepts and `config_set_option_value` a
+value, each with a `DEFAULT`, `GLOBAL` or `SESSION` scope; `config_get_option_value` returns the
+current value and the scope it came from; and `config_get_option_count` / `_by_index` / `_by_name`
+return option handles carrying the description, default value, default scope, supported scopes and
+aliases — richer than V1's `duckdb_get_config_flag`. The October survey's per-root
+`instance_*_option`, `connection_*_option` and `context_*_option` functions are gone.
+
+Registering *new* options, which V1's `config_option` module does, is in V2 now too:
+`custom_option_*`, with an update callback that sees each new value and can replace it
+([#26863](https://github.com/duckdb/duckdb/pull/26863)).
 
 The first survey recorded a regression here: V1 enumerates options with no database open
 (`duckdb_config_count` / `duckdb_get_config_flag`), which `configurationOptionDescriptions.ts`
-relies on, and V2 then needed an open database. **That is gone.** An instance that has not started
-enumerates fine — `options_probe.c` lists 192 options from one with nothing attached. So the V2
+relies on, and V2 then needed an open database. **That stays fixed.** `options_probe.c` lists 208
+options through the config of an instance with nothing attached (192 in October). So the V2
 equivalent costs an environment and an instance, not a database.
 
 ### 8. Query execution
@@ -392,16 +450,23 @@ duckdb_pending_execute_task(pending);                  /* pump until ready */
 V2:
 
 ```c
-duckdb_v2_parse_sql(conn, sql, &iterator, &err);       /* also replaces extract_statements */
+duckdb_v2_parse_sql(conn, sql, true, &iterator, &err); /* also replaces extract_statements */
 duckdb_v2_statement_iterator_next(iterator, &stmt, &err);
 duckdb_v2_statement_bind(conn, stmt, &schema, &parameters, &err);   /* optional: metadata */
 duckdb_v2_statement_execute(conn, stmt, names, values, count, &result, &err);
 ```
 
+`parse_sql`'s `true` is 2.0.1's `apply_invalidation_policy`
+([#27684](https://github.com/duckdb/duckdb/pull/27684)): whether a parse error invalidates the connection's
+transaction, as a failed statement would. Pass true when parsing to run, false when only
+inspecting.
+
 A parsed statement now carries parse-time metadata too
 ([#25612](https://github.com/duckdb/duckdb/pull/25612)): `sql_statement_get_type`, `_get_text`, and
 `_get_parameter_count` / `_get_parameter_name`, which give the binding keys `statement_execute`
-accepts ("1", "2", … for positional parameters, the identifier for named ones) without a bind.
+accepts ("1", "2", … for positional parameters, the identifier for named ones) without a bind. And
+`statement_add_collection` binds a column data collection to a parsed statement as a named table —
+what bulk append is now built from; see [below](#how-bulk-append-works-without-an-appender).
 
 Three consequences:
 
@@ -448,9 +513,9 @@ which we expose.
 V2 has three constructors and two accessors:
 
 ```c
-duckdb_v2_connection_create_type_from_id(conn, type_id, param_names, param_values, count, &type, &err);
-duckdb_v2_connection_create_type_from_name(conn, qname, param_names, param_values, count, &type, &err);
-duckdb_v2_connection_create_type_from_text(conn, &text /* "STRUCT(a INTEGER, b VARCHAR)" */, &type, &err);
+duckdb_v2_factory_create_type_from_id(factory, type_id, param_names, param_values, count, &type, &err);
+duckdb_v2_factory_create_type_from_name(factory, qname, param_names, param_values, count, &type, &err);
+duckdb_v2_factory_create_type_from_text(factory, &text /* "STRUCT(a INTEGER, b VARCHAR)" */, &type, &err);
 
 duckdb_v2_logical_type_get_param_count(type, &count, &err);
 duckdb_v2_logical_type_get_param(type, index, &out_name, &out_value, &err);
@@ -463,22 +528,27 @@ values, unwrapped with `value_get_type`.
 
 This is a much smaller surface, and it generalizes to extension types for free — but `DuckDBType.ts`
 and the `types/` tree are built directly on the V1 per-kind accessors, so this is a rewrite rather
-than a retarget. Also note that construction now requires a connection or context, where V1's
-`duckdb_create_list_type` needed neither.
+than a retarget. Also note that construction now requires a factory, where V1's
+`duckdb_create_list_type` needed nothing. An instance's factory is enough for built-in types;
+catalog-registered types and qualified names need a connection's or a context's. Beside the three
+constructors, `factory_create_type_with_alias` aliases a type, and `factory_create_common_type`
+unifies two types the way SQL does.
 
 ### 10. Values
 
 Reading is a close mapping (`value_get_int`, `value_get_varchar`, `value_get_child`, …).
 
-Creating is not: **every constructor except `value_create_null` requires a connection or a
-context**, in `_with_connection` / `_with_context` pairs. `duckdb_create_int32(42)` becomes
-`duckdb_v2_value_create_int_with_connection(conn, 42, &value, &err)`.
+Creating is not: **every constructor takes a factory**, borrowed from an instance, connection or
+context. `duckdb_create_int32(42)` becomes `duckdb_v2_value_create_int(factory, 42, &value, &err)`.
+In October these were `_with_connection` / `_with_context` pairs, with `value_create_null` alone
+taking neither; [#26820](https://github.com/duckdb/duckdb/pull/26820) folded each pair into one function,
+`value_create_null` included.
 
-`createValue.ts` and `DuckDBValue` construct values with no connection in hand. Threading a
-connection (or context) through that layer is a design change in the API package, not just the
-bindings.
+`createValue.ts` and `DuckDBValue` construct values with no connection in hand. That is still a
+design change in the API package, not just the bindings, but a smaller one than in October: a
+built-in value needs only an instance's factory, not a connection.
 
-The context variant matters for UDFs: inside a bind or exec callback we hold a
+The context's factory matters for UDFs: inside a bind or exec callback we hold a
 `duckdb_v2_context_handle`, not a connection, and the header is explicit that catalog-touching
 context calls belong in bind-phase callbacks rather than exec-phase worker callbacks.
 
@@ -520,9 +590,10 @@ underlying C types between them, and the tag is the *only* thing separating a sc
 a table one. The structs behind those handles are unrelated and get `reinterpret_cast` without a
 check, so a mix-up corrupts memory rather than failing.
 
-V2 gives each phase of each family its own handle type — 37 distinct `*_info_handle` types, up from
-30 at the first survey — so the C type system separates them and those tags become ordinary
-externals tags like the other sixteen.
+V2 gives each phase of each family its own handle type — 44 distinct `*_info_handle` types, up from
+30 at the first survey and 37 in October (three stats phases, two log sink phases, the custom option
+update and the pragma query are new) — so the C type system separates them and those tags become
+ordinary externals tags like the other sixteen.
 
 One handle is now shared on purpose. Since [#26264](https://github.com/duckdb/duckdb/pull/26264),
 every family's bind callback receives a `duckdb_v2_function_bind_info_handle` alongside its own bind
@@ -551,6 +622,14 @@ the cast and sets bind data. `scalar_function_bind_set_return_type` moved to
 `scalar_function_resolve_types_set_return_type` accordingly. Worth knowing for our scalar UDFs: a V1
 bind callback that sets the return type has to become a V2 `resolve_types` callback, not a bind one.
 
+Creating a function and registering it are now separate from any connection
+([#26820](https://github.com/duckdb/duckdb/pull/26820)): `scalar_function_create(factory, &fn,
+&err)` builds one, and `connection_register_scalar_function` or `extension_register_scalar_function`
+registers it — likewise for every family. Scalar, aggregate
+and table functions, pragmas and macros can fill in function docs (description, categories,
+examples), and since 2.0.1 the first three can set a stats callback that reports statistics about
+their result to the optimizer.
+
 Function registration uses a `function_signature` object (`add_parameter`, `set_return_type`).
 Parameters now carry a Python-style kind — `POSITIONAL_ONLY`, `STANDARD`, `POSITIONAL_VARIADIC`
 (`*args`), `NAMED_ONLY`, `NAMED_VARIADIC` (`**kwargs`) — with defaults on the non-variadic ones.
@@ -559,14 +638,14 @@ That replaced `set_varargs`, and is why the shared `function_bind_get_arg_count`
 and `_get_arg_index` look arguments up by name. The exec-side `*_exec_get_arg_count` reports the
 same four, and argument indices went from `uint32_t` to `idx_t` throughout.
 
-**A new tier: unstable functions.** 26 of the 587 sit behind `DUCKDB_V2_API_ALLOW_UNSTABLE`, which
-defaults to 0 (or to 1 if a consumer defines the older `DUCKDB_EXTENSION_API_VERSION_UNSTABLE`):
-`data_chunk_get_capacity`, six `copy_to_statistics_*` functions, and nineteen table-function ones —
-batch claiming, `get_bind_info`, and all of `multi_file_function_*`. The preview library exports
-them regardless; the switch only hides the declarations. None are things Node Neo needs, with one
-exception: `data_chunk_get_capacity` is the closest V2 has to V1's `duckdb_vector_size`, which we
-expose. If the V2 API wants that number, the choice is between defining the switch and not offering
-it.
+**Everything is the unstable tier now.** In October, 26 of 587 functions sat behind
+`DUCKDB_V2_API_ALLOW_UNSTABLE` (which defaults to 0, or to 1 if a consumer defines the older
+`DUCKDB_EXTENSION_API_VERSION_UNSTABLE`): `data_chunk_get_capacity`, the `copy_to_statistics_*`
+functions, batch claiming and multi-file functions. The open question then was whether to define the
+switch just to reach `data_chunk_get_capacity`, the closest V2 has to V1's `duckdb_vector_size`.
+[#27410](https://github.com/duckdb/duckdb/pull/27410) settled it: with 620 of 641 functions behind
+the switch, the bindings define it or get nothing. The library exports every symbol regardless; the
+switch only hides declarations.
 
 ## Not in V2 (yet)
 
@@ -577,10 +656,10 @@ Ordered by what it would cost us:
   shape suits.
 - **Date / time / timestamp / hugeint / decimal conversion helpers** (19 exposed functions, all of
   them). `duckdb_from_date`, `duckdb_to_timestamp`, `duckdb_double_to_decimal` and the rest have no
-  V2 equivalent, and still none as of the latest branch fetch — the header contains no `static
-  inline` helpers at all. The omission is deliberate: the team is "trying to avoid *convenience*
-  functions", and expects clients to implement them, though some may yet ship as inline functions in
-  the header or as documentation (maxxen, 2026-09-05, hedged — worth re-checking near release). For
+  V2 equivalent, and still none in 2.0.1 — the header contains no `static inline` helpers at all.
+  The omission is deliberate: the team is "trying to avoid *convenience* functions", and expects
+  clients to implement them, though some may yet ship as inline functions in the header or as
+  documentation (maxxen, 2026-09-05, hedged; nothing shipped with 2.0 or 2.0.1). For
   us these are pure computation over plain structs, so TypeScript implementations are
   straightforward, and would remove 19 native round-trips in the process. Not a concern: they were
   exposed in V1 because they were in the C API, not because a native implementation was wanted.
@@ -590,12 +669,10 @@ Ordered by what it would cost us:
   description only (`connection_describe_table`), plus `qname` for names. This is the one gap that
   grew on our side rather than upstream's.
 - **`duckdb_get_table_names`** and **`duckdb_client_context_get_connection_id`** (both exposed). V2
-  hands out a context only inside callbacks, and has no connection id or referenced-tables call.
+  hands out a context only inside callbacks, and has no referenced-tables call; a connection id
+  appears only in the records a log sink receives.
   Both need a V2 answer for the scope target, and neither has an obvious one yet.
-- **`duckdb_vector_size`** — nearest is the unstable `data_chunk_get_capacity`, see §12 — and the
-  malloc/free helpers.
-- **Custom configuration options and profiling info** — V1's `config_option` module (not exposed
-  today). V2 reads options but cannot register new ones.
+- **`duckdb_vector_size`** — nearest is `data_chunk_get_capacity` — and the malloc/free helpers.
 - **Task / threading control** — `duckdb_execute_tasks` and friends (not exposed today).
 - **Instance cache** — subsumed by the environment, but not one-to-one: the cache hands back the
   database already open for a path, while V2 refuses the second attach with `RESOURCE_IN_USE`
@@ -610,16 +687,17 @@ Ordered by what it would cost us:
 - `WAITING`-based streaming that fits an async binding better than the pending-result pump.
 - Table function filter and projection pushdown.
 - Catalog / table description, cast functions, copy functions, replacement scans, file system and
-  expression interfaces — all present in V1 too, all unexposed by us today, all with a smaller and
-  more consistent surface in V2.
+  expression interfaces, custom options, profiling metrics and log sinks — all present in V1 too, all
+  unexposed by us today, all with a smaller and more consistent surface in V2. Pragma functions are
+  new.
 - `qname` (qualified-name parsing, rendering, comparison) and `identifier_render_quoted`, which
   would replace hand-rolled quoting in `sql.ts`.
 - A SQL tokenizer aware of the connection's grammar, and parse-time statement metadata (type,
   text, parameter names) without a bind.
-- Instance configuration and multiple attached databases before anything opens — startup-only
-  options set by name, `ATTACH` options per database.
-- `column_data_collection` — build a set of chunks and register it as a table via a replacement
-  scan. Not an appender, but a bulk-load path with no V1 equivalent.
+- Instance configuration and multiple attached databases on one engine — startup-only options set
+  by name at creation, `ATTACH` options per database.
+- `column_data_collection` — build a set of chunks and bind it to a statement as a table. Not an
+  appender, but a bulk-load path with no V1 equivalent.
 
 ## Migration approach
 
@@ -664,8 +742,15 @@ What this lands on:
   fail: a blocking check would drag both of those later steps into the version bump. Not scheduled;
   recorded so the "should it gate CI?" question does not get reopened.
 - **The fetch scripts need `duckdb_v2.h`.** `fetch_libduckdb_*.py` extracts `duckdb.h` and the
-  library from each release zip; the release workflow already zips `duckdb_v2.h` beside `duckdb.h`,
-  so this is one more entry in each `files` list.
+  library from each release tarball; the tarball already carries `duckdb_v2.h`, so this is one more
+  entry in each `files` list.
+- **The bindings must opt into the unstable surface, and absorb its churn.** `binding.gyp` has to
+  define `DUCKDB_V2_API_ALLOW_UNSTABLE=1`, or no V2 function is declared. And since unstable means
+  no promise even across a patch release — 2.0.1 changed `parse_sql`'s parameters — a DuckDB bump
+  that changes a V2 function the bindings call cannot land without the matching binding change: the
+  compiler enforces it, whatever the signature check does. V1 bumps are unaffected. Until functions
+  start graduating to stable, reading the `compare_api.py` diff *before* a bump says whether it can
+  land alone.
 
 ### Bindings shape: near 1:1, deviating where the language demands
 
@@ -683,10 +768,12 @@ out parameters, as the V1 mapping already does. The places where "as feasible" w
   pervasiveness and enforcement: the C API documents ownership per out-param and aborts if a
   borrowed handle is destroyed, so this becomes something the accounting should record per function
   rather than something inferred per call site.
-- **The `_with_connection` / `_with_context` pairs.** 37 value constructors exist in both forms, and
-  the same split runs through data chunks, column data collections and the type constructors. A 1:1
-  mapping exposes both; whether the TS layer keeps them as two functions or one with a union-typed
-  first argument is the open judgement call.
+- **Factories, not pairs.** The `_with_connection` / `_with_context` pairs this bullet used to
+  weigh are gone upstream: values, types, data chunks, collections and functions are each created
+  through one `duckdb_v2_factory_handle`, borrowed from an instance, connection or context and never
+  destroyed. A 1:1 mapping exposes `instance_get_factory`, `connection_get_factory` and
+  `context_get_factory`, with the factory a borrowed external that pins its parent. The config
+  handle (§7) has the same shape.
 - **`environment_create` maps onto the instance-cache pattern.** Not addon-owned state: the
   precedent is `DuckDBInstanceCache`, which the bindings expose 1:1 as `create_instance_cache()`
   while the API layer supplies a lazily-created `singleton` that `DuckDBInstance.fromCache()` routes
@@ -722,15 +809,15 @@ changes how `duckdb_node_bindings.cpp` is written, so it is orthogonal to the 1:
 
 Two things to know before planning around it:
 
-- **It is not header-only**, despite the description. `tools/cpp/duckdb_cpp.hpp` is 6,446 lines of
-  declarations that name no C type at all, and `tools/cpp/duckdb_cpp.cpp` is 6,521 lines of
-  implementation that includes `duckdb_extension_v2.h` (both grew about 13% since 2026-09-05). For a
+- **It is not header-only**, despite the description. At v2.0.1, `tools/cpp/duckdb_cpp.hpp` is
+  7,463 lines of declarations and `tools/cpp/duckdb_cpp.cpp` 7,410 lines of implementation that
+  includes `duckdb_extension_v2.h` (6,446 and 6,521 in October). For a
   client library — us — that header binds the `duckdb_v2_*` symbols at link time, so no extension
   machinery is involved; extensions get a separate 48-line `duckdb_cpp_extension.hpp` for their
   entrypoint. The `.cpp` also turns on `DUCKDB_V2_API_ALLOW_UNSTABLE` for itself, since parts of the
   C++ API wrap unstable functions. Consuming it means adding that `.cpp` to `sources` in
   `binding.gyp` — fine in itself, but it means the release tarball has to ship the source file too,
-  not just the header. As of 2026-10-10 the preview tarball still ships neither. The CMake module
+  not just the header. The 2.0.1 release tarballs ship neither. The CMake module
   the team mentions does not help us: node-gyp is not CMake, and `FetchContent` has no equivalent
   here.
 - **Exceptions are fine.** `duckdb_cpp` reports every failure by throwing, and `binding.gyp` already
@@ -761,21 +848,23 @@ One knock-on: `rowsChanged` is a synchronous getter today, straight from `duckdb
 reports it out of `duckdb_v2_result_drain(result, &out_rows_changed, err)`, which consumes the
 stream — so it becomes an async, state-changing call rather than a property.
 
-### Value construction: keep both the connection and context forms
+### Value construction: one factory parameter
 
-Keep `_with_connection` and `_with_context` as two functions rather than collapsing them into one
-with a union-typed first argument. That follows the 1:1 principle, gives tighter types, and the two
-forms likely belong to different scenarios in practice: a connection is what an external caller
-holds, while a context is what arrives inside a bind / init / exec scope — and the header is
-explicit that catalog-touching context calls belong in bind-phase callbacks rather than exec-phase
-worker callbacks. Worth staying flexible: if the implementation turns up a concrete reason to
-collapse them, revisit.
+Decided in September as "keep `_with_connection` and `_with_context` as two functions rather than
+one with a union-typed first argument", and overtaken by
+[#26820](https://github.com/duckdb/duckdb/pull/26820), which removed the pairs upstream: every constructor now
+takes one factory, borrowed from whichever root the caller holds.
+The 1:1 mapping is therefore one function per constructor. The reasoning behind the decision now
+applies to where the factory comes from: an external caller holds an instance or connection, a
+callback holds a context, and the header is explicit that catalog-touching context calls belong in
+bind-phase callbacks rather than exec-phase worker callbacks. How the V2 API surfaces the factory is
+open.
 
 ### A known limitation to document: one file, both APIs
 
 Because the point of a `v2` subpath is to let a consumer migrate incrementally, both APIs will run
 in one process — and a database file opened through both is **not** detected. Measured against the
-preview build (2026-10-10, after the instance rework):
+preview build (2026-10-10, after the instance rework), and unchanged on 2.0.1:
 
 ```
 v1 open:                           ok
@@ -786,7 +875,7 @@ v2 attach again, second instance:  refused (code 3001)
 v2 attach again, second env:       ok (NOT detected) (code 0)
 ```
 
-(`coexist_probe.c`, run against the preview build.)
+(`coexist_probe.c`.)
 
 V2 detects its own double-attach across every instance of one environment, because
 `duckdb_v2_instance_attach` rejects a path "already attached on this or any other instance of the
@@ -808,9 +897,9 @@ Asked 2026-09-05; answered by maxxen the same day. Paraphrased, with what each o
 | Question | Answer | Lands on |
 |---|---|---|
 | Will there be an appender equivalent? | "Probably not" — implement client-side over column data collections plus replacement scans / table functions; `duckdb_cpp` has an example. | We own a V2 appender. Not a wrapper — a collection behind a replacement scan is a virtual table, so appending to an existing table is `INSERT INTO … SELECT * FROM`. |
-| What about the V1 date/time/decimal/hugeint conversion helpers? | Some may be; the team is "trying to avoid *convenience* functions" and expects clients to implement them, but they may ship as inline header functions or as docs. | We implement them in TypeScript. Hedged, so re-check near release. |
+| What about the V1 date/time/decimal/hugeint conversion helpers? | Some may be; the team is "trying to avoid *convenience* functions" and expects clients to implement them, but they may ship as inline header functions or as docs. | We implement them in TypeScript. Nothing shipped in 2.0 or 2.0.1. |
 | Will V1 be deprecated and retired? When? | "v1 will be deprecated in 2.0, and probably removed entirely in 3.0 (likely another year out)." | Side-by-side is a ~1-year window, not indefinite. |
-| Will `duckdb_cpp` ship in 2.0? | Currently core-repo only; "most likely" added to the release tarballs soon, plus a proper CMake module for `FetchContent`. | Promising but uncommitted, and the CMake half does not help node-gyp. Still not in the preview tarball on 2026-10-10. |
+| Will `duckdb_cpp` ship in 2.0? | Currently core-repo only; "most likely" added to the release tarballs soon, plus a proper CMake module for `FetchContent`. | Promising but uncommitted, and the CMake half does not help node-gyp. Not in the 2.0.1 release tarballs. |
 
 ## The scope target
 
@@ -818,7 +907,7 @@ Everything Node Neo exposes through V1 today should be reachable through the V2 
 is removed in 3.0 (Jeff, 2026-09-05). Not a 3.0 problem to plan around now — a definition of done
 for the V2 API.
 
-Concretely that is the 319 exposed V1 functions plus the API classes over them. Parity is not
+Concretely that is the 323 exposed V1 functions plus the API classes over them. Parity is not
 function-for-function, though, because the two surfaces do not correspond one to one: 31 V1 logical
 type functions collapse into a handful of V2 calls, 25 bind functions become one parameter array, 7
 pending functions become `result_step`. The [coverage table](#the-two-surfaces-side-by-side) above
@@ -846,51 +935,67 @@ collection can hold far more than RAM. It knows nothing about tables — it is p
   progress. Scans are zero-copy, so a scanned chunk is valid only until that worker state's next
   scan call.
 
-### Replacement scan, as the bridge to SQL
+### Getting the collection into SQL
 
-A callback that fires during query planning for **each table reference the catalog could not
-resolve**. It claims the name one of three mutually exclusive ways — `set_function_name`,
-`set_subquery`, or `set_collection`.
+A collection knows nothing about SQL, so something has to show it to a statement. There are two
+ways.
 
-`set_collection` is the one that matters here: *read this collection instead*. Columns default to
-`col1..colN`, or can be named. It is connection-scoped, so invisible to every other connection, and
-the collection is **borrowed, not copied** — the caller keeps ownership and must keep it alive.
+**`statement_add_collection`**, back since October
+([#26886](https://github.com/duckdb/duckdb/pull/26886)) and now what upstream uses: bind the
+collection to a parsed statement under a name, as a common table expression. The statement —
+SELECT, INSERT, UPDATE, DELETE or MERGE INTO — can then be bound, prepared or executed, and each
+execution reads the collection as it is at that moment. Nothing is registered anywhere: the binding
+belongs to the statement. Columns default to `col1..colN`, or can be named; the name shadows a
+catalog table, as a CTE does; and the collection is **borrowed, not copied** — the caller keeps
+ownership and must keep it alive.
 
-Note that no scan *function* is involved: `set_collection` is a built-in claim form, so there are no
-bind / init / exec callbacks and no thread handling to write.
+**A replacement scan**, the only way at the time of the first survey: a callback that fires during
+query planning for **each table reference the catalog could not resolve**, and claims the name one
+of three mutually exclusive ways — `set_function_name`, `set_subquery`, or `set_collection`, *read
+this collection instead*. Registered on a connection, it is invisible to every other connection. No
+scan *function* is involved: `set_collection` is a built-in claim form, so there are no bind / init
+/ exec callbacks and no thread handling to write. But a registered scan cannot be unregistered; see
+the sharp edges.
 
 ### The appender that falls out of that
 
 1. Create a collection with the target table's column types.
-2. Register a connection-scoped replacement scan claiming a unique buffer name, pointing at it.
+2. Parse `INSERT INTO target (cols…) SELECT * FROM <buffer_name>` once, and bind the collection to it
+   as `<buffer_name>`.
 3. Append chunks into the collection — no database contact at all.
-4. Flush by executing `INSERT INTO target (cols…) SELECT * FROM <buffer_name>`, then clear.
+4. Flush by executing that statement and draining the result, then clear the collection.
 
-**Where table functions fit instead.** A replacement scan hooks an *unresolved name*
+**Where table functions fit instead.** A bound collection or a replacement scan answers a *name*
 (`FROM my_buffer`); a table function is an *explicit call* (`FROM my_fn(args)`). For appending, the
-buffer should look like a table, so the replacement scan is the natural fit. Table functions are the
-answer when arguments are wanted, or a general SQL-callable producer.
+buffer should look like a table, so a name is the natural fit. Table functions are the answer when
+arguments are wanted, or a general SQL-callable producer.
 
 ### Upstream ships a reference implementation
 
 `tools/cpp/duckdb_cpp.{hpp,cpp}` in the DuckDB repo contains a working `Appender` class built on the
 public V2 API alone, with two constructors — one targeting a table, one taking an arbitrary query.
-This is the example the DuckDB team pointed at, and it is worth reading before designing ours.
+Since [#26886](https://github.com/duckdb/duckdb/pull/26886) it binds its buffer with
+`statement_add_collection` rather than registering a replacement scan. This is the example the
+DuckDB team pointed at, and it is worth reading before designing ours.
 
 ### The sharp edges
 
 These are the parts that should drive the design, and none of them are visible from the function
 list:
 
-- **Replacement scans cannot be unregistered.** Every appender permanently leaves a scan on its
-  connection. Upstream's own guidance is to create appenders once and reuse them rather than one per
-  batch; its destructor nulls the collection behind a `shared_ptr` so the orphaned scan *declines*
-  from then on. This is the awkward one for a JS API, where a `DuckDBAppender` that is simply
-  garbage-collected would still leave a registration behind.
-- **The borrow outlives the obvious scope.** A prepared statement over the claimed name captures the
-  borrow *in its plan* — `prepared_statement_reuses_plan()` returns true, so later executions never
-  consult the callback again. Clearing or destroying the collection while such a statement is alive
-  means reading freed memory.
+- **Replacement scans cannot be unregistered — so an appender should not use one.** A registered
+  scan lives as long as its connection. The October design left one behind on every appender, which
+  upstream mitigated by having the orphaned scan decline once its appender was gone, and which was
+  awkward for a JS API, where a `DuckDBAppender` that is simply garbage-collected would still leave
+  a registration behind. Binding the collection to the statement leaves nothing behind, which is
+  why upstream moved its appender onto `statement_add_collection`.
+- **The borrow outlives the obvious scope.** The collection must outlive the statement, any
+  statement prepared from it, and any result executing it; destroying it earlier means reading freed
+  memory. The header is not consistent about *clearing* it: it says a prepared statement can run
+  again after the collection is cleared and refilled, and also that the collection must not be
+  cleared while the statement is live. Upstream's appender keeps the parsed statement for its whole
+  life and clears the collection after each drained flush, so clearing between executions, with no
+  result open, is the pattern that is exercised.
 - **Column resolution is a bind, not an execute.** The table-targeting constructor parses
   `SELECT * FROM <table>` and binds it to get names and types without reading a row — a use of
   `statement_bind` worth copying.
@@ -900,15 +1005,16 @@ list:
   `RUNTIME_INTERRUPT` so the flush can be retried, and dropped on anything else so a retry does not
   re-run a failing statement over the same rows.
 
-### VARIANT in a data chunk: a V1 defect V2 does not inherit
+### VARIANT in a data chunk: a V1 defect, fixed in 2.0.1
 
-Worth knowing before the shape question is answered, because it runs the opposite way to the rest
-of this document: **V1 cannot put a VARIANT column in a data chunk, and V2 can.**
+Worth knowing before the shape question is answered, because it ran the opposite way to the rest
+of this document: **through 2.0.0, V1 could not put a VARIANT column in a data chunk, and V2 could.**
+2.0.1 fixed the V1 side.
 
-`duckdb_create_data_chunk` will not accept a VARIANT logical type. The logical type itself builds
-fine — `duckdb_create_logical_type` returns it, type id 41 — and it is the chunk call that
-refuses. It refuses by **returning null**, not by reporting anything. Measured against libduckdb
-directly (`chunk_probe.c`), where the refusal is also all-or-nothing rather than partial:
+`duckdb_create_data_chunk` would not accept a VARIANT logical type. The logical type itself built
+— `duckdb_create_logical_type` returned it, type id 41 — and it was the chunk call that refused,
+by **returning null**, not by reporting anything. Measured against libduckdb 1.5.5 directly
+(`chunk_probe.c`), where the refusal was also all-or-nothing rather than partial:
 
 ```
 [INTEGER]            handle=non-NULL columns=1
@@ -933,20 +1039,35 @@ appender.appendDataChunk(chunk);                           // native crash
 ```
 
 Fixed in [#487](https://github.com/duckdb/duckdb-node-neo/pull/487), in the binding, which is the
-only place the null is visible. This behaviour is unchanged in 2.0: the same probe relinked
-against the preview library returns null for the same inputs, so the V1 surface carries the defect
-across the boundary with it.
+only place the null is visible.
 
-On V1 it is a gap rather than a wall, because the per-value path works: `appendVariant`,
-`appendValue(v, VARIANT)`, `bindValue(…, VARIANT)` and a SQL `::variant` cast all write one, with
-`typeForValue` inferring a scalar's type when no hint is given and nested content requiring both a
+The refusal carried into 2.0.0, and is gone in 2.0.1. It was a symptom of
+[duckdb/duckdb#24680](https://github.com/duckdb/duckdb/issues/24680):
+`duckdb_create_logical_type(DUCKDB_TYPE_VARIANT)` built the type without its child type info. On
+2.0.0 that stopped failing cleanly — the bare type crashed some calls outright, which is why the
+bindings refuse to create one
+([duckdb/duckdb-node-neo#524](https://github.com/duckdb/duckdb-node-neo/issues/524)). The fix
+(backported in [#28072](https://github.com/duckdb/duckdb/pull/28072)) builds the full type, and the
+same probe now gets a chunk for every input:
+
+```
+[INTEGER]            handle=non-NULL columns=1
+[VARIANT]            handle=non-NULL columns=1
+[INTEGER, VARIANT]   handle=non-NULL columns=2
+[] (zero types)      handle=non-NULL columns=0
+```
+
+So on 2.0.1 the refusal in #524 guards against a bug that is no longer there.
+
+On V1 it was a gap rather than a wall even before the fix, because the per-value path works:
+`appendVariant`, `appendValue(v, VARIANT)`, `bindValue(…, VARIANT)` and a SQL `::variant` cast all
+write one, with `typeForValue` inferring a scalar's type when no hint is given and nested content requiring both a
 wrapper and a type (`variantValue(structValue({k: 'n'}), STRUCT({k: VARCHAR}))`).
 
-**V2 does not have the defect.** `duckdb_v2_data_chunk_create` takes a VARIANT column, and so does
-`duckdb_v2_column_data_collection_create_with_connection` — which is the one that matters, since
-the collection is what bulk append actually fills. Measured by `chunk_probe_v2.c` against the same
-preview library, borrowing the VARIANT logical type from a result schema because a context is only
-handed out inside callback scopes:
+**V2 never had the defect.** `duckdb_v2_data_chunk_create` takes a VARIANT column, and so does
+`duckdb_v2_column_data_collection_create` — which is the one that matters, since the collection is
+what bulk append actually fills. Measured by `chunk_probe_v2.c` against the preview library and
+again against 2.0.1, borrowing the VARIANT logical type from a result schema:
 
 ```
 [INTEGER]            -> code=0 chunk=non-NULL columns=1
@@ -972,9 +1093,9 @@ deferred decisions below.
 
 More capable: the flush does not have to be a plain INSERT, so a column subset, `ON CONFLICT`, or a
 buffer-driven UPDATE or MERGE all become reachable, and the buffer spills to disk rather than being
-memory-bound. It also accepts a VARIANT column, which V1's own chunk path does not — see
-[VARIANT in a data chunk](#variant-in-a-data-chunk-a-v1-defect-v2-does-not-inherit). The cost is ownership — the lifetime rules, the error semantics and that registration
-leak all become ours.
+memory-bound. It also accepted a VARIANT column when V1's own chunk path did not — see
+[VARIANT in a data chunk](#variant-in-a-data-chunk-a-v1-defect-fixed-in-201). The cost is
+ownership — the lifetime rules and the error semantics become ours.
 
 ## Deferred decisions
 
@@ -986,40 +1107,37 @@ Real choices, deliberately not made yet, each with the thing that should trigger
 | Whether to build the V2 bindings on `duckdb_cpp`, borrow its patterns, or ignore it | `duckdb_cpp` actually shipping in a release; it is not required either way |
 | Whether any conversion helpers are worth keeping native rather than reimplementing in TypeScript | Only if upstream ships some after all — otherwise TypeScript, which is the better choice regardless |
 
-## When 2.0 ships
+## On each DuckDB release
 
-Everything here was last measured on 2026-10-10 against a branch every V2 PR describes as still
-moving — and between the first survey and this one it moved a lot. Before acting on any of it:
+2.0 has shipped, and the checklist this section held for it has been worked through against 2.0.1:
+the V1 drift held exactly, `open_result_probe.c` gave the same answer, the conversion helpers and
+`duckdb_cpp` did not ship, V1's deprecation is still the compile switch described below, and the
+V2 diff is under [What changed between surveys](#what-changed-between-surveys). Because V2 is
+unstable and moves within patch releases, the refresh is now per release rather than once:
 
-1. **Re-run `compare_api.py --fetch`** and compare against the counts in this document — 546 V1
-   shipped, 548 V1 on branch, 587 V2, 319 exposed. Read the two V1 drift blocks first: they should
-   still say 0 removed, 2 added, 0 signature changes, and 3 enum values added. Anything else there
-   changes the headline finding. Then re-run `open_result_probe.c` against the release, since that
-   V1 behavior change is the one that lands on the upgrade itself.
-2. **Point `fetch_libduckdb_*.py` at the release and add `duckdb_v2.h` to each `files` list.** The
-   release zips carry both headers — verified from `.github/workflows/Main.yml`, which zips
-   `duckdb_v2.h` beside `duckdb.h`. `fetch_libduckdb_v2.py` here is preview-only, since the preview
-   ships tarballs rather than zips, and can be retired at that point.
-3. **Regenerate the three `*Sigs.json` files.** The guard handling is already 2.0-ready, and the
-   `(void)` edits and module ordering arrived with 1.5.6 and the accounting has caught up with
-   them, so the only 2.0 diff should be the 2 added functions. Anything beyond that is worth reading
-   before accepting.
-4. **Re-check the three things the team hedged on**: whether any conversion helpers shipped after all
-   (the header had none on 2026-10-10, and no `static inline` helpers at all), whether
-   `duckdb_cpp.hpp` *and* `duckdb_cpp.cpp` are in the release artifacts, and whether V1's
-   deprecation is the compile switch this document predicts rather than an attribute.
-5. **Re-read the V2 module list — and diff it, not just count it.** The first survey guessed new
-   modules were likelier than changed ones. The next five weeks proved otherwise: one module
-   removed, three added, 43 signatures changed, and the instance model redesigned. Diff the function
-   list against the one recorded under [What changed since the first
-   survey](#what-changed-since-the-first-survey), and check which functions are still behind
-   `DUCKDB_V2_API_ALLOW_UNSTABLE`; a function graduating out of it is a change too.
+1. **Re-run `compare_api.py --fetch`** after the bindings' bump — it follows
+   `bindings/scripts/fetch_libduckdb.py` — and diff the V2 function list against the previous
+   release's, not just the count; `--json DIR` writes `v2_functions.json` to diff. `--ref
+   v2.0-cyanoptera` shows what the next patch release will bring before it ships. The V1 drift
+   blocks compare against the bindings' own header, so they should be empty.
+2. **Check the unstable set.** The report lists every V2 function outside
+   `DUCKDB_V2_API_ALLOW_UNSTABLE`. A function graduating out of it is a change too — and the first
+   ones to do so are the first part of V2 the bindings can rely on across releases.
+3. **Re-run the probes** against `fetch_libduckdb_v2.py`'s library, and `chunk_probe.c` and
+   `open_result_probe.c` against the bindings' library as well, since those measure V1.
+4. **Re-check what the team hedged on**: conversion helpers (none in 2.0.1, and no `static inline`
+   functions at all), `duckdb_cpp.hpp` *and* `duckdb_cpp.cpp` in the release tarballs (neither in
+   2.0.1), and V1 deprecation still being a compile switch rather than an attribute.
+
+Still outstanding from the 2.0 checklist, because it belongs to the V2 bindings work rather than to a
+version bump: adding `duckdb_v2.h` to each `fetch_libduckdb_*.py` `files` list. The fetch scripts
+already point at the release, and the three `*Sigs.json` files are clean at 548 of 548.
 
 ## Deprecation is a compile switch, not a warning
 
 Answered from the headers rather than by asking. 2.0's V1 header expresses deprecation as
 *conditional inclusion*, the way `DUCKDB_API_NO_DEPRECATED` always did — so a deprecated V1 will not
-put a warning on any of our 319 call sites:
+put a warning on any of our 323 call sites:
 
 - `DUCKDB_DEPRECATED` (the `__attribute__((deprecated))` macro) is defined in both headers and
   applied to nothing.
@@ -1034,7 +1152,7 @@ put a warning on any of our 319 call sites:
 New in 2.0's V1 header, and already in 1.5.6's: **every** declaration is now wrapped in a
 `DUCKDB_API_VERSION_AT_LEAST(major, minor, patch)` guard, with the targeted version defaulting to
 1.5.6 and settable by defining all three of `DUCKDB_API_VERSION_MAJOR` / `_MINOR` / `_PATCH`. (Even
-on the 2.0 branch the default is still 1.5.6, and the two functions new there sit behind
+in 2.0.1 the default is still 1.5.6, and the two functions 2.0 added sit behind
 `AT_LEAST(1, 5, 6)`, so they compile in by default.) That is
 how a consumer pins an older surface, and it is the likeliest shape for V1's own retirement: a switch
 to flip, not a diagnostic to suppress.
