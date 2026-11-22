@@ -99,12 +99,16 @@ export class DuckDBPreparedStatement {
     ) as number as DuckDBTypeId;
   }
   public columnType(columnIndex: number): DuckDBType {
-    return DuckDBLogicalType.create(
+    const logicalType = DuckDBLogicalType.create(
       duckdb.prepared_statement_column_logical_type(
         this.prepared_statement,
         columnIndex
       )
-    ).asType();
+    );
+    if (logicalType.typeId === DuckDBTypeId.INVALID) {
+      throw new Error('Column type is unavailable until execution. Read the type from the result.');
+    }
+    return logicalType.asType();
   }
   public clearBindings() {
     duckdb.clear_bindings(this.prepared_statement);

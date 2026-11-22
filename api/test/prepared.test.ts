@@ -593,6 +593,15 @@ describe('prepared statements', () => {
       // When any column types are ambiguous, DuckDB returns a column count of 1 with a type of INVALID.
       assert.equal(prepared.columnCount, 1);
       assert.equal(prepared.columnTypeId(0), DuckDBTypeId.INVALID);
+      assert.throws(
+        () => prepared.columnType(0),
+        /Column type is unavailable until execution/,
+      );
+      prepared.bindInteger(1, 1);
+      prepared.bindVarchar(2, 'two');
+      prepared.bindInteger(3, 3);
+      const result = await prepared.run();
+      assert.deepEqual(result.columnType(2), INTEGER);
     });
   });
   test('runAndReadAll with params', async () => {
