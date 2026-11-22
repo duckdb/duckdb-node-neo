@@ -6,6 +6,10 @@ function:
     // DUCKDB_C_API <declaration>
     <a definition/export, or a reason the function is not exposed>
 
+Doc comments (/** ... */) may sit between the marker and the definition/export;
+they are skipped. A "// ADDED" line marks a Node Neo-only helper and ends the
+current block.
+
 The .cpp is the richer source: it records a reason for every unexposed function,
 whereas the .d.ts omits deprecation markers.
 """
@@ -22,6 +26,7 @@ dts_path = os.path.join(
 api_src_dir = os.path.join(root, "api", "src")
 
 marker_rule = re.compile(r"^//\s*DUCKDB_C_API\s+(.*)$")
+added_rule = re.compile(r"^//\s*ADDED\b")
 
 
 def blocks(path):
@@ -41,6 +46,11 @@ def blocks(path):
       name_match = re.search(r"\b(duckdb_[A-Za-z0-9_]+)\s*\(", decl)
       name = name_match.group(1) if name_match else decl
       body = []
+    elif added_rule.match(line.strip()):
+      # Node Neo's own helpers, not part of the preceding block.
+      if name:
+        found.append((name, body))
+      name = None
     elif name is not None:
       body.append(line)
   if name:
@@ -72,6 +82,9 @@ def classify(body, kind):
       doc_symbol = symbol_match.group(1)
       continue
     if s.startswith("//"):
+      continue
+    # Doc comments (/** ... */) may sit between the marker and the declaration.
+    if s.startswith(("/*", "*")):
       continue
 
     # first non-comment line in the block
