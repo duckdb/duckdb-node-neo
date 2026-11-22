@@ -394,8 +394,8 @@ export function createTestAllTypesData(): ColumnNameTypeAndValues[] {
         [],
         [
           '1970-01-01',
-          '5881580-07-11',
-          '5877642-06-24 (BC)',
+          'infinity',
+          '-infinity',
           null,
           '2022-05-12',
         ],
