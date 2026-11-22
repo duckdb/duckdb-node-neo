@@ -40,6 +40,7 @@ import {
   VARIANT,
 } from '../DuckDBType';
 import { DuckDBTypeId } from '../DuckDBTypeId';
+import { typeForValue } from '../typeForValue';
 import {
   DuckDBBitValue,
   DuckDBBlobValue,
@@ -83,6 +84,8 @@ import { DuckDBStructVector } from './DuckDBStructVector';
 import { DuckDBUIntegerVector } from './DuckDBUIntegerVector';
 import { DuckDBUTinyIntVector } from './DuckDBUTinyIntVector';
 import { DuckDBVarCharVector } from './DuckDBVarCharVector';
+import { encodeVariant } from './encodeVariant';
+import { VariantLogicalType } from './VariantLogicalType';
 
 // ---------------------------------------------------------------------------
 // VARIANT
@@ -98,49 +101,8 @@ import { DuckDBVarCharVector } from './DuckDBVarCharVector';
 //
 // Reading reuses the existing DuckDBStructVector / DuckDBListVector /
 // DuckDBBlobVector construction plus the byte-readers above for primitive
-// payloads. Writing is not yet supported.
-
-/**
- * On-disk tag for a single VARIANT node. Mirrors DuckDB's
- * `VariantLogicalType` enum.
- */
-enum VariantLogicalType {
-  VARIANT_NULL = 0,
-  BOOL_TRUE = 1,
-  BOOL_FALSE = 2,
-  INT8 = 3,
-  INT16 = 4,
-  INT32 = 5,
-  INT64 = 6,
-  INT128 = 7,
-  UINT8 = 8,
-  UINT16 = 9,
-  UINT32 = 10,
-  UINT64 = 11,
-  UINT128 = 12,
-  FLOAT = 13,
-  DOUBLE = 14,
-  DECIMAL = 15,
-  VARCHAR = 16,
-  BLOB = 17,
-  UUID = 18,
-  DATE = 19,
-  TIME_MICROS = 20,
-  TIME_NANOS = 21,
-  TIMESTAMP_SEC = 22,
-  TIMESTAMP_MILIS = 23,
-  TIMESTAMP_MICROS = 24,
-  TIMESTAMP_NANOS = 25,
-  TIME_MICROS_TZ = 26,
-  TIMESTAMP_MICROS_TZ = 27,
-  INTERVAL = 28,
-  OBJECT = 29,
-  ARRAY = 30,
-  BIGNUM = 31,
-  BITSTRING = 32,
-  GEOMETRY = 33,
-  TIMESTAMP_NANOS_TZ = 34,
-}
+// payloads. Writing encodes each row with `encodeVariant` into a
+// DuckDBStructValue of that layout and hands it to the STRUCT vector.
 
 /** Physical STRUCT layout of a VARIANT column. Mirrors `LogicalType::VARIANT()`. */
 const VARIANT_PHYSICAL_TYPE = STRUCT({
@@ -156,11 +118,19 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
   private readonly childrenList: DuckDBListVector;
   private readonly valuesList: DuckDBListVector;
   private readonly dataBlob: DuckDBBlobVector;
-  private readonly keysEntry: DuckDBVarCharVector;
-  private readonly keysIdxVec: DuckDBUIntegerVector;
-  private readonly valuesIdxVec: DuckDBUIntegerVector;
-  private readonly typeIdVec: DuckDBUTinyIntVector;
-  private readonly byteOffsetVec: DuckDBUIntegerVector;
+  // The lists' child vectors: flushing a list replaces its child vector, so
+  // these are rebound after every flush.
+  private keysEntry!: DuckDBVarCharVector;
+  private keysIdxVec!: DuckDBUIntegerVector;
+  private valuesIdxVec!: DuckDBUIntegerVector;
+  private typeIdVec!: DuckDBUTinyIntVector;
+  private byteOffsetVec!: DuckDBUIntegerVector;
+  /**
+   * Values written with `setItem`. Reading a written row back from the
+   * vector does not work: the data blob vector reads from a snapshot of the
+   * native vector taken when it was created.
+   */
+  private readonly itemCache: (DuckDBVariantValue | null | undefined)[] = [];
 
   constructor(structVec: DuckDBStructVector) {
     super();
@@ -169,6 +139,10 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
     this.childrenList = structVec.entryVectorAt(1) as DuckDBListVector;
     this.valuesList = structVec.entryVectorAt(2) as DuckDBListVector;
     this.dataBlob = structVec.entryVectorAt(3) as DuckDBBlobVector;
+    this.bindListChildVectors();
+  }
+
+  private bindListChildVectors() {
     this.keysEntry = this.keysList.childVector as DuckDBVarCharVector;
     const childrenInner = this.childrenList.childVector as DuckDBStructVector;
     const valuesInner = this.valuesList.childVector as DuckDBStructVector;
@@ -199,6 +173,10 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
   }
 
   public override getItem(itemIndex: number): DuckDBVariantValue | null {
+    const cachedItem = this.itemCache[itemIndex];
+    if (cachedItem !== undefined) {
+      return cachedItem;
+    }
     // Top-level validity is the canonical SQL-NULL indicator. Child rows
     // may still carry data when the row is SQL-NULL; the inverse — that a
     // non-NULL row has non-NULL children — is the only direction
@@ -229,14 +207,29 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
     itemIndex: number,
     value: DuckDBVariantValue | null
   ): void {
+    let encoded: DuckDBStructValue | null = null;
     if (value !== null) {
-      throw new Error('Setting non-NULL VARIANT values is not yet supported.');
+      try {
+        encoded = encodeVariant(value, VARIANT);
+      } catch (err) {
+        const innerType =
+          value instanceof DuckDBVariantValue
+            ? (value.type ?? typeForValue(value.value))
+            : typeForValue(value);
+        throw new Error(
+          `Failed to write VARIANT value (inner type ${innerType}): ${
+            (err as Error).message
+          }`
+        );
+      }
     }
-    this.structVec.setItem(itemIndex, null);
+    this.structVec.setItem(itemIndex, encoded);
+    this.itemCache[itemIndex] = value;
   }
 
   public override flush(): void {
     this.structVec.flush();
+    this.bindListChildVectors();
   }
 
   public override slice(offset: number, length: number): DuckDBVariantVector {

@@ -1,5 +1,6 @@
 import { assert, beforeAll, describe, test } from 'vitest';
 import {
+  ARRAY,
   BIGINT,
   BIGNUM,
   BIT,
@@ -8,6 +9,7 @@ import {
   DATE,
   DECIMAL,
   DOUBLE,
+  DuckDBConnection,
   DuckDBDataChunk,
   DuckDBListValue,
   DuckDBListVector,
@@ -19,6 +21,7 @@ import {
   DuckDBValue,
   DuckDBVariantValue,
   DuckDBVariantVector,
+  ENUM,
   FLOAT,
   GEOMETRY,
   HUGEINT,
@@ -26,6 +29,7 @@ import {
   INTERVAL,
   JSDuckDBValueConverter,
   LIST,
+  MAP,
   SMALLINT,
   SQLNULL,
   STRUCT,
@@ -37,14 +41,17 @@ import {
   TIMESTAMP_S,
   TIMETZ,
   TINYINT,
+  TUPLE,
   UBIGINT,
   UHUGEINT,
   UINTEGER,
+  UNION,
   USMALLINT,
   UTINYINT,
   UUID,
   VARCHAR,
   VARIANT,
+  arrayValue,
   bitValue,
   blobValue,
   dateValue,
@@ -60,6 +67,7 @@ import {
   timestampNanosValue,
   timestampSecondsValue,
   timestampValue,
+  tupleValue,
   unionValue,
   uuidValue,
   variantValue,
@@ -554,11 +562,38 @@ describe('VARIANT', () => {
       vec.setItem(0, null);
       vec.flush();
       assert.strictEqual(vec.getItem(0), null);
-      // Writing a non-null value remains an error.
-      assert.throws(
-        () => vec.setItem(0, variantValue(1)),
-        /Setting non-NULL VARIANT values is not yet supported/,
+    });
+  });
+
+  test('setItem on a result VARIANT vector writes a value', async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.run(
+        `select 42::INTEGER::VARIANT as v from range(2)`,
       );
+      const chunk = await result.fetchChunk();
+      const vec = chunk!.getColumnVector(0) as DuckDBVariantVector;
+      const value = variantValue(
+        structValue({ a: 'a string longer than the data buffer starts out' }),
+        STRUCT({ a: VARCHAR }),
+      );
+      vec.setItem(0, value);
+      vec.flush();
+      // A written row reads back as what it was given; the others still
+      // decode, though flushing the lists moved their entries.
+      assert.strictEqual(vec.getItem(0), value);
+      assert.deepStrictEqual(vec.getItem(1), variantValue(42, INTEGER));
+      // And DuckDB reads the written row.
+      await connection.run(`create table t (v VARIANT)`);
+      const appender = await connection.createAppender('t');
+      appender.appendDataChunk(chunk!);
+      appender.closeSync();
+      const reader = await connection.runAndReadAll(
+        `select v::JSON::VARCHAR as v from t`,
+      );
+      assert.deepStrictEqual(reader.getRowsJS(), [
+        ['{"a":"a string longer than the data buffer starts out"}'],
+        ['42'],
+      ]);
     });
   });
 
@@ -1009,5 +1044,412 @@ describe('VARIANT', () => {
         /Failed to create VARIANT value.*input is not a number/,
       );
     });
+  });
+
+  // Writing VARIANT values through vectors. Each test checks the written
+  // rows with the decoder and with DuckDB itself, by comparing them against
+  // the same values cast to VARIANT in SQL.
+
+  /** Appends `values` to a new table `name(i INTEGER, v VARIANT)` via a chunk. */
+  async function appendVariantChunk(
+    connection: DuckDBConnection,
+    name: string,
+    values: readonly (DuckDBVariantValue | null)[],
+  ) {
+    await connection.run(`create table ${name} (i INTEGER, v VARIANT)`);
+    const appender = await connection.createAppender(name);
+    const chunk = DuckDBDataChunk.create([INTEGER, VARIANT], values.length);
+    chunk.setRows(values.map((v, i) => [i, v]));
+    appender.appendDataChunk(chunk);
+    appender.closeSync();
+  }
+
+  /**
+   * Asserts that DuckDB sees `actual.v` and `expected.v` as the same VARIANT
+   * in every row, by type, by text, and as JSON.
+   */
+  async function assertSameVariants(
+    connection: DuckDBConnection,
+    actual: string,
+    expected: string,
+  ) {
+    const reader = await connection.runAndReadAll(`
+      select e.i,
+             variant_typeof(a.v) as actual_type,
+             variant_typeof(e.v) as expected_type,
+             a.v::VARCHAR as actual_text,
+             e.v::VARCHAR as expected_text,
+             a.v::JSON::VARCHAR as actual_json,
+             e.v::JSON::VARCHAR as expected_json
+      from ${expected} e left join ${actual} a using (i)
+      order by e.i
+    `);
+    const rows = reader.getRowObjectsJS();
+    assert.isNotEmpty(rows);
+    for (const row of rows) {
+      assert.deepStrictEqual(
+        [row.actual_type, row.actual_text, row.actual_json],
+        [row.expected_type, row.expected_text, row.expected_json],
+        `row ${row.i}`,
+      );
+    }
+  }
+
+  test('vector writes round-trip what a SQL cast to VARIANT produces', async () => {
+    const sources = [
+      `true`,
+      `false`,
+      `(-128)::TINYINT`,
+      `32767::SMALLINT`,
+      `(-2147483648)::INTEGER`,
+      `9223372036854775807::BIGINT`,
+      `170141183460469231731687303715884105727::HUGEINT`,
+      `255::UTINYINT`,
+      `65535::USMALLINT`,
+      `4294967295::UINTEGER`,
+      `18446744073709551615::UBIGINT`,
+      `340282366920938463463374607431768211455::UHUGEINT`,
+      `(1.5)::FLOAT`,
+      `(2.5)::DOUBLE`,
+      `'hello'`,
+      `repeat('long string ', 100)`,
+      `'\\x00\\xFF'::BLOB`,
+      `(123.4)::DECIMAL(4,1)`,
+      `(123.45)::DECIMAL(5,2)`,
+      `(12345678901234.5)::DECIMAL(18,1)`,
+      `(1234567890123456789012345.6789)::DECIMAL(38,4)`,
+      `DATE '2024-01-02'`,
+      `TIME '12:34:56.789'`,
+      `'12:34:56.123456789'::TIME_NS`,
+      `TIME WITH TIME ZONE '12:34:56.789+05:30'`,
+      `TIMESTAMP '2024-01-02 03:04:05.678'`,
+      `TIMESTAMP_S '2024-01-02 03:04:05'`,
+      `TIMESTAMP_MS '2024-01-02 03:04:05.678'`,
+      `TIMESTAMP_NS '2024-01-02 03:04:05.678901234'`,
+      `'2024-01-02 03:04:05.678+00'::TIMESTAMPTZ`,
+      `'2024-01-02 03:04:05.678901234+00'::TIMESTAMPTZ_NS`,
+      `INTERVAL '3 months 4 days 5 minutes'`,
+      `'00112233-4455-6677-8899-aabbccddeeff'::UUID`,
+      `'0101'::BIT`,
+      `'-1234567890123456789012345'::BIGNUM`,
+      `'POINT(1 2)'::GEOMETRY`,
+      `{'a': 1, 'b': [1, 2, 3], 'c': {'d': 'x'}}`,
+      `{'xs': [{'y': 1}, {'y': 2}], 'y': 3}`,
+      `[[1, 2], [], [3]]`,
+      `'[1, "two", null, {"k": [true]}]'::JSON`,
+      `'{"a": 1, "b": null}'::JSON`,
+      `'[1, 2, null]'::JSON`,
+      `'[]'::JSON`,
+      `'{}'::JSON`,
+    ];
+    await withConnection(async (connection) => {
+      await connection.run(`
+        create table src as
+        select * from (values ${sources
+          .map((s, i) => `(${i}, (${s})::VARIANT)`)
+          .join(', ')}) t(i, v)
+      `);
+      const read = await connection.runAndReadAll(
+        `select v from src order by i`,
+      );
+      const decoded = read
+        .getRowObjects()
+        .map((row) => row.v as DuckDBVariantValue);
+      await appendVariantChunk(connection, 'dst', decoded);
+      const reread = await connection.runAndReadAll(
+        `select v from dst order by i`,
+      );
+      assert.deepStrictEqual(
+        reread.getRowObjects().map((row) => row.v),
+        decoded,
+      );
+      await assertSameVariants(connection, 'dst', 'src');
+    });
+  });
+
+  test('vector writes encode nested types the way DuckDB casts them', async () => {
+    const mood = ENUM(['sad', 'ok', 'happy']);
+    const cases: [string, DuckDBVariantValue][] = [
+      [
+        `MAP {'k1': 1, 'k2': NULL}`,
+        variantValue(
+          mapValue([
+            { key: 'k1', value: 1 },
+            { key: 'k2', value: null },
+          ]),
+          MAP(VARCHAR, INTEGER),
+        ),
+      ],
+      [
+        `union_value(n := 42)::UNION(s VARCHAR, n INTEGER)`,
+        variantValue(
+          unionValue('n', 42),
+          UNION({ s: VARCHAR, n: INTEGER }),
+        ),
+      ],
+      [
+        `'happy'::ENUM('sad', 'ok', 'happy')`,
+        variantValue('happy', mood),
+      ],
+      [
+        `[1, 2, 3]::INTEGER[3]`,
+        variantValue(arrayValue([1, 2, 3]), ARRAY(INTEGER, 3)),
+      ],
+      [
+        `row('a', 1)`,
+        variantValue(tupleValue(['a', 1]), TUPLE([VARCHAR, INTEGER])),
+      ],
+      [
+        `{'a': NULL::INTEGER, 'b': [NULL::INTEGER, 1]}`,
+        variantValue(
+          structValue({ a: null, b: listValue([null, 1]) }),
+          STRUCT({ a: INTEGER, b: LIST(INTEGER) }),
+        ),
+      ],
+      [
+        `[1::VARIANT, 'two'::VARIANT, [3]::VARIANT]`,
+        variantValue(
+          listValue([
+            variantValue(1, INTEGER),
+            variantValue('two'),
+            variantValue(listValue([3]), LIST(INTEGER)),
+          ]),
+          LIST(VARIANT),
+        ),
+      ],
+      // Without a type, `typeForValue` picks one, as for `appendVariant`.
+      [`42::INTEGER`, variantValue(42)],
+      [`5000000000::BIGINT`, variantValue(5000000000)],
+      [`'s'`, variantValue('s')],
+      [`{'k': 1.5}`, variantValue(structValue({ k: 1.5 }))],
+    ];
+    await withConnection(async (connection) => {
+      await connection.run(`
+        create table expected as
+        select * from (values ${cases
+          .map(([sql], i) => `(${i}, (${sql})::VARIANT)`)
+          .join(', ')}) t(i, v)
+      `);
+      await appendVariantChunk(
+        connection,
+        'actual',
+        cases.map(([, value]) => value),
+      );
+      await assertSameVariants(connection, 'actual', 'expected');
+    });
+  });
+
+  test('a NULL is a NULL row at the root and VARIANT_NULL inside', async () => {
+    await withConnection(async (connection) => {
+      await appendVariantChunk(connection, 't', [
+        null,
+        variantValue(null),
+        variantValue(variantValue(null)),
+        variantValue(unionValue('n', null), UNION({ n: INTEGER })),
+        variantValue(listValue([null]), LIST(INTEGER)),
+        variantValue(structValue({ a: null }), STRUCT({ a: VARCHAR })),
+      ]);
+      const reader = await connection.runAndReadAll(
+        `select v is null as is_null, v::JSON::VARCHAR as json
+         from t order by i`,
+      );
+      assert.deepStrictEqual(reader.getRowsJS(), [
+        [true, null],
+        [true, null],
+        [true, null],
+        [true, null],
+        [false, '[null]'],
+        [false, '{"a":null}'],
+      ]);
+    });
+  });
+
+  test('vector writes of VARIANT nested in other types', async () => {
+    await withConnection(async (connection) => {
+      await connection.run(`
+        create table t (
+          s STRUCT(v VARIANT),
+          l VARIANT[],
+          m MAP(VARCHAR, VARIANT),
+          u UNION(v VARIANT, n INTEGER),
+          a VARIANT[2]
+        )
+      `);
+      const object = variantValue(
+        structValue({ x: listValue([1, 2]) }),
+        STRUCT({ x: LIST(INTEGER) }),
+      );
+      const appender = await connection.createAppender('t');
+      const chunk = DuckDBDataChunk.create([
+        STRUCT({ v: VARIANT }),
+        LIST(VARIANT),
+        MAP(VARCHAR, VARIANT),
+        UNION({ v: VARIANT, n: INTEGER }),
+        ARRAY(VARIANT, 2),
+      ]);
+      chunk.setRows([
+        [
+          structValue({ v: object }),
+          listValue([variantValue(1, INTEGER), null, object]),
+          mapValue([{ key: 'k', value: variantValue('v', VARCHAR) }]),
+          unionValue('v', object),
+          arrayValue([object, variantValue(true, BOOLEAN)]),
+        ],
+      ]);
+      appender.appendDataChunk(chunk);
+      appender.closeSync();
+      const reader = await connection.runAndReadAll(`
+        select s.v::JSON::VARCHAR as s,
+               l::JSON::VARCHAR as l,
+               m['k']::VARCHAR as m,
+               variant_extract(u.v, 'x')::JSON::VARCHAR as u,
+               a[2]::BOOLEAN as a
+        from t
+      `);
+      assert.deepStrictEqual(reader.getRowObjectsJS(), [
+        {
+          s: '{"x":[1,2]}',
+          l: '[1,null,{"x":[1,2]}]',
+          m: 'v',
+          u: '[1,2]',
+          a: true,
+        },
+      ]);
+    });
+  });
+
+  test('a scalar function and a table function return VARIANT values', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'wrap_variant',
+          parameterTypes: [INTEGER],
+          returnType: VARIANT,
+          mainFunction: (_info, input, output) => {
+            const vector = input.getColumnVector(0);
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex++) {
+              const i = vector.getItem(rowIndex) as number;
+              output.setItem(
+                rowIndex,
+                variantValue(
+                  structValue({ i, tags: listValue(['t'.repeat(i)]) }),
+                  STRUCT({ i: INTEGER, tags: LIST(VARCHAR) }),
+                ),
+              );
+            }
+            output.flush();
+          },
+        }),
+      );
+      connection.registerTableFunction(
+        DuckDBTableFunction.create({
+          name: 'variant_rows',
+          bindFunction: (info) => {
+            info.addResultColumn('v', VARIANT);
+            info.setBindData({});
+          },
+          initFunction: (info) => {
+            info.setInitData({ done: false });
+          },
+          mainFunction: (info, output) => {
+            const initData = info.initData as { done: boolean };
+            if (initData.done) {
+              output.rowCount = 0;
+              return;
+            }
+            initData.done = true;
+            output.rowCount = 2;
+            output.setRows([[variantValue('a', VARCHAR)], [variantValue(2)]]);
+          },
+        }),
+      );
+      const scalar = await connection.runAndReadAll(`
+        select variant_extract(v, 'i')::INTEGER as i,
+               variant_extract(v, 'tags')::JSON::VARCHAR as tags
+        from (select wrap_variant(i::INTEGER) as v from range(1, 4) t(i))
+      `);
+      assert.deepStrictEqual(scalar.getRowsJS(), [
+        [1, '["t"]'],
+        [2, '["tt"]'],
+        [3, '["ttt"]'],
+      ]);
+      const table = await connection.runAndReadAll(
+        `select variant_typeof(v) as t, v::VARCHAR as s from variant_rows()`,
+      );
+      assert.deepStrictEqual(table.getRowsJS(), [
+        ['VARCHAR', 'a'],
+        ['INT32', '2'],
+      ]);
+    });
+  });
+
+  test('vector writes fill a full chunk of differently sized rows', async () => {
+    const values = Array.from({ length: 2048 }, (_, i) =>
+      i % 7 === 0
+        ? null
+        : variantValue(
+            structValue({
+              n: i,
+              xs: listValue(Array.from({ length: i % 5 }, (_, j) => j)),
+              s: 's'.repeat(i % 300),
+            }),
+            STRUCT({ n: INTEGER, xs: LIST(INTEGER), s: VARCHAR }),
+          ),
+    );
+    await withConnection(async (connection) => {
+      await appendVariantChunk(connection, 't', values);
+      const reader = await connection.runAndReadAll(
+        `select v::JSON::VARCHAR as v from t order by i`,
+      );
+      assert.deepStrictEqual(
+        reader.getRowsJS().map(([json]) => json),
+        values.map((_, i) =>
+          i % 7 === 0
+            ? null
+            : // DuckDB writes an object's keys in sorted order.
+              JSON.stringify({
+                n: i,
+                s: 's'.repeat(i % 300),
+                xs: Array.from({ length: i % 5 }, (_, j) => j),
+              }),
+        ),
+      );
+    });
+  });
+
+  test('vector writes refuse a value that does not fit its type', () => {
+    const chunk = DuckDBDataChunk.create([VARIANT], 1);
+    const cases: [DuckDBVariantValue, RegExp][] = [
+      [
+        variantValue('hello', INTEGER),
+        /Failed to write VARIANT value \(inner type INTEGER\): input is not a number/,
+      ],
+      [variantValue(300, TINYINT), /number out of int8 range/],
+      [variantValue(-1, UINTEGER), /number out of uint32 range/],
+      [variantValue(1.5, BIGINT), /number is not an integer/],
+      [
+        variantValue(structValue({ a: 1 }), STRUCT({ a: INTEGER, b: INTEGER })),
+        /STRUCT entry 'b' is missing from input/,
+      ],
+      [
+        variantValue(arrayValue([1]), ARRAY(INTEGER, 2)),
+        /Expected 2 items/,
+      ],
+      [
+        variantValue('grumpy', ENUM(['sad', 'ok'])),
+        /is not a member of/,
+      ],
+      [
+        variantValue(unionValue('x', 1), UNION({ n: INTEGER })),
+        /has no member 'x'/,
+      ],
+      [
+        variantValue(listValue([1, 'two'])),
+        /inner type INTEGER\[\]\): input is not a number/,
+      ],
+    ];
+    for (const [value, error] of cases) {
+      assert.throws(() => chunk.setRows([[value]]), error);
+    }
   });
 });
