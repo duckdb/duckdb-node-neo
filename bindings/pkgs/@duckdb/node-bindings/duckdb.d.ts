@@ -303,8 +303,10 @@ export interface ExtractedStatements {
 
 /**
  * Usable while the database is open, even after the connection it was opened through
- * is disconnected. Use after the database is closed can read freed memory. Closed when
- * collected, if not closed before with file_handle_close_sync.
+ * is disconnected. Must be closed with file_handle_close_sync before its database is
+ * closed: the handle does not keep the database alive, so closing or collecting it
+ * afterwards can crash the process (with file-system logging on, closing writes to the
+ * freed log manager).
  */
 export interface FileHandle {
   __duckdb_type: 'duckdb_file_handle';

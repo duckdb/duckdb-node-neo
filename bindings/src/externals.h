@@ -188,22 +188,17 @@ inline duckdb_extracted_statements GetExtractedStatementsFromExternal(Napi::Env 
 // A file handle can be closed explicitly, after which it must not reach duckdb
 // again: not every file handle implementation tolerates being used after Close.
 // So an explicit close also destroys it, and file_handle is null from then on.
+// The handle does not keep its database alive, so it must be closed before the
+// database is: closing or finalizing it afterwards can crash the process.
 struct duckdb_file_handle_holder {
   duckdb_file_handle file_handle;
 };
 
 inline void DestroyFileHandleOfHolder(duckdb_file_handle_holder *file_handle_holder_ptr) {
   if (file_handle_holder_ptr->file_handle) {
-    // duckdb_destroy_file_handle closes the handle again, without catching what
-    // Close throws. Every caller has already closed it through
-    // duckdb_file_handle_close, which does catch, so this is normally a no-op.
-    // Should it throw anyway, the handle cannot be freed, but leaking it is
-    // better than ending the process, which is what an exception escaping a
-    // finalizer would do.
-    try {
-      duckdb_destroy_file_handle(&file_handle_holder_ptr->file_handle);
-    } catch (...) {
-    }
+    // Every caller has already closed the handle through duckdb_file_handle_close,
+    // so the close duckdb_destroy_file_handle does again is normally a no-op.
+    duckdb_destroy_file_handle(&file_handle_holder_ptr->file_handle);
     file_handle_holder_ptr->file_handle = nullptr;
   }
 }

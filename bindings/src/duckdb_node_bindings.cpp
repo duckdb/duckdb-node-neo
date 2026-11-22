@@ -1727,7 +1727,7 @@ private:
     auto options = GetFileOpenOptionsFromExternal(env, info[2]);
     duckdb_file_handle file_handle;
     if (duckdb_file_system_open(file_system, path.c_str(), options, &file_handle)) {
-      ThrowFileSystemError(env, duckdb_file_system_error_data(file_system), "Failed to open file");
+      ThrowErrorData(env, duckdb_file_system_error_data(file_system), "Failed to open file");
     }
     return CreateExternalForFileHandle(env, file_handle);
   }
@@ -1778,7 +1778,7 @@ private:
     }
     auto bytes_read = duckdb_file_handle_read(file_handle, buffer.Data(), static_cast<int64_t>(buffer.ByteLength()));
     if (bytes_read < 0) {
-      ThrowFileSystemError(env, duckdb_file_handle_error_data(file_handle), "Failed to read file");
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to read file");
     }
     return Napi::Number::New(env, static_cast<double>(bytes_read));
   }
@@ -1796,7 +1796,7 @@ private:
     }
     auto bytes_written = duckdb_file_handle_write(file_handle, data.Data(), static_cast<int64_t>(data.ByteLength()));
     if (bytes_written < 0) {
-      ThrowFileSystemError(env, duckdb_file_handle_error_data(file_handle), "Failed to write file");
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to write file");
     }
     return Napi::Number::New(env, static_cast<double>(bytes_written));
   }
@@ -1808,7 +1808,7 @@ private:
     auto file_handle = GetFileHandleFromExternal(env, info[0]);
     auto position = duckdb_file_handle_tell(file_handle);
     if (position < 0) {
-      ThrowFileSystemError(env, duckdb_file_handle_error_data(file_handle), "Failed to get file position");
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to get file position");
     }
     return Napi::Number::New(env, static_cast<double>(position));
   }
@@ -1820,7 +1820,7 @@ private:
     auto file_handle = GetFileHandleFromExternal(env, info[0]);
     auto size = duckdb_file_handle_size(file_handle);
     if (size < 0) {
-      ThrowFileSystemError(env, duckdb_file_handle_error_data(file_handle), "Failed to get file size");
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to get file size");
     }
     return Napi::Number::New(env, static_cast<double>(size));
   }
@@ -1832,15 +1832,10 @@ private:
     auto file_handle = GetFileHandleFromExternal(env, info[0]);
     // Positions come back from tell and size as numbers, so accept only those a
     // number holds exactly. duckdb rejects a negative one without setting an error.
-    auto position = info[1].As<Napi::Number>().DoubleValue();
-    if (!std::isfinite(position) || position != std::trunc(position)) {
-      throw Napi::Error::New(env, "position is not an integer");
-    }
-    if (position < 0 || position > 9007199254740991.0 /* Number.MAX_SAFE_INTEGER */) {
-      throw Napi::RangeError::New(env, "position out of range");
-    }
+    auto position = GetIntegerInRangeFromNumber(env, info[1].As<Napi::Number>(),
+      0, 9007199254740991.0 /* Number.MAX_SAFE_INTEGER */, "non-negative safe integer", "position");
     if (duckdb_file_handle_seek(file_handle, static_cast<int64_t>(position))) {
-      ThrowFileSystemError(env, duckdb_file_handle_error_data(file_handle), "Failed to seek in file");
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to seek in file");
     }
     return env.Undefined();
   }
@@ -1851,7 +1846,7 @@ private:
     auto env = info.Env();
     auto file_handle = GetFileHandleFromExternal(env, info[0]);
     if (duckdb_file_handle_sync(file_handle)) {
-      ThrowFileSystemError(env, duckdb_file_handle_error_data(file_handle), "Failed to sync file");
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to sync file");
     }
     return env.Undefined();
   }
@@ -1874,7 +1869,7 @@ private:
     }
     DestroyFileHandleOfHolder(file_handle_holder_ptr);
     if (error_data) {
-      ThrowFileSystemError(env, error_data, "Failed to close file");
+      ThrowErrorData(env, error_data, "Failed to close file");
     }
     return env.Undefined();
   }

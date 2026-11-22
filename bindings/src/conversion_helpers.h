@@ -87,14 +87,14 @@ inline void ThrowBindError(Napi::Env env, duckdb_prepared_statement prepared_sta
   throw Napi::Error::New(env, message);
 }
 
-// Errors from file systems and file handles
+// Errors reported as duckdb_error_data
 
-// Call with the error data of a file system or file handle after one of its
-// functions reports failure, to throw duckdb's message. Takes ownership of the
-// error data. Only valid on the failure path: the error stays set after later
-// calls succeed, and some failures (invalid arguments) set none, so callers
-// validate arguments first rather than report a stale message.
-inline void ThrowFileSystemError(Napi::Env env, duckdb_error_data error_data, const char *fallback_message) {
+// Call with the error data of an object after one of its functions reports
+// failure, to throw duckdb's message. Takes ownership of the error data. Only
+// valid on the failure path: the error stays set after later calls succeed, and
+// some failures (invalid arguments) set none, so callers validate arguments
+// first rather than report a stale message.
+inline void ThrowErrorData(Napi::Env env, duckdb_error_data error_data, const char *fallback_message) {
   std::string message = fallback_message;
   if (duckdb_error_data_has_error(error_data)) {
     message = duckdb_error_data_message(error_data);
@@ -112,17 +112,23 @@ inline void ThrowFileSystemError(Napi::Env env, duckdb_error_data error_data, co
 // that doesn't fit exactly. (The BigInt conversions below reject in the same way,
 // via their lossless flags.) The struct-from-object converters pass a value_name so
 // the error names the offending field, as "micros out of int64 range" already does.
-template <typename T>
-inline T GetIntegerFromNumber(Napi::Env env, Napi::Number number, const char *type_name, const char *value_name) {
+inline double GetIntegerInRangeFromNumber(Napi::Env env, Napi::Number number, double min, double max,
+                                          const char *range_name, const char *value_name) {
   auto value = number.DoubleValue();
   if (!std::isfinite(value) || value != std::trunc(value)) {
     throw Napi::Error::New(env, std::string(value_name) + " is not an integer");
   }
-  if (value < static_cast<double>(std::numeric_limits<T>::min()) ||
-      value > static_cast<double>(std::numeric_limits<T>::max())) {
-    throw Napi::Error::New(env, std::string(value_name) + " out of " + type_name + " range");
+  if (value < min || value > max) {
+    throw Napi::Error::New(env, std::string(value_name) + " out of " + range_name + " range");
   }
-  return static_cast<T>(value);
+  return value;
+}
+
+template <typename T>
+inline T GetIntegerFromNumber(Napi::Env env, Napi::Number number, const char *type_name, const char *value_name) {
+  return static_cast<T>(GetIntegerInRangeFromNumber(env, number,
+    static_cast<double>(std::numeric_limits<T>::min()),
+    static_cast<double>(std::numeric_limits<T>::max()), type_name, value_name));
 }
 
 inline int8_t GetInt8FromNumber(Napi::Env env, Napi::Number number, const char *value_name = "number") {
