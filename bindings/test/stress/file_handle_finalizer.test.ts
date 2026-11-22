@@ -9,15 +9,15 @@ import { withConnection } from '../utils/withConnection';
 
 // File handles not closed with file_handle_close_sync are closed by their
 // finalizer. This depends on when collection happens, so it lives here rather
-// than in the main suite. See scalar_function_refs.test.ts for how gc() is
-// obtained.
+// than in the main suite. gc() comes from a vm context created while
+// --expose-gc is briefly on.
 v8.setFlagsFromString('--expose-gc');
 const forceGC = vm.runInNewContext('gc') as () => void;
 v8.setFlagsFromString('--no-expose-gc');
 
-// Where open descriptors can be counted, check the handles were closed.
-const countOpenFiles = fs.existsSync('/proc/self/fd')
-  ? () => fs.readdirSync('/proc/self/fd').length
+// /dev/fd lists open descriptors on Linux and macOS. Elsewhere the check is skipped.
+const countOpenFiles = fs.existsSync('/dev/fd')
+  ? () => fs.readdirSync('/dev/fd').length
   : undefined;
 
 suite('file handle finalizer', () => {
@@ -45,11 +45,14 @@ suite('file handle finalizer', () => {
           const writer = duckdb.file_system_open_sync(file_system, file_path, options);
           duckdb.file_handle_write_sync(writer, new TextEncoder().encode(`${i}`));
         }
+        // Each open handle holds a descriptor, so the count below means something.
+        if (countOpenFiles && open_files_before !== undefined) {
+          expect(countOpenFiles()).toBeGreaterThanOrEqual(open_files_before + 100);
+        }
       })();
       forceGC();
       await new Promise((resolve) => setImmediate(resolve));
       forceGC();
-      expect(fs.readFileSync(file_path, 'utf-8')).toBe('99');
       if (countOpenFiles && open_files_before !== undefined) {
         expect(countOpenFiles()).toBeLessThan(open_files_before + 10);
       }

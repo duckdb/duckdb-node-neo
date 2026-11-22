@@ -2,9 +2,10 @@ import duckdb from '@duckdb/node-bindings';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterAll, beforeAll, expect, suite, test } from 'vitest';
+import { afterEach, beforeEach, expect, suite, test } from 'vitest';
 import { withConnection } from './utils/withConnection';
 import { withDatabase } from './utils/withDatabase';
+import { withFileHandle } from './utils/withFileHandle';
 
 function createOptions(...flags: duckdb.FileFlag[]): duckdb.FileOpenOptions {
   const options = duckdb.create_file_open_options();
@@ -25,11 +26,11 @@ const decoder = new TextDecoder();
 suite('file system', () => {
   let dir: string;
 
-  beforeAll(() => {
+  beforeEach(() => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duckdb-node-file-system-'));
   });
 
-  afterAll(() => {
+  afterEach(() => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
@@ -39,36 +40,33 @@ suite('file system', () => {
       const file_path = path.join(dir, 'round_trip.txt');
       const data = encoder.encode('hello, file system');
 
-      const writer = duckdb.file_system_open_sync(
+      withFileHandle(
         file_system,
         file_path,
         createOptions(duckdb.FileFlag.WRITE, duckdb.FileFlag.CREATE),
+        (writer) => {
+          expect(duckdb.file_handle_write_sync(writer, data)).toBe(data.length);
+          expect(duckdb.file_handle_tell(writer)).toBe(data.length);
+          expect(duckdb.file_handle_size(writer)).toBe(data.length);
+          duckdb.file_handle_sync_sync(writer);
+        },
       );
-      expect(duckdb.file_handle_write_sync(writer, data)).toBe(data.length);
-      expect(duckdb.file_handle_tell(writer)).toBe(data.length);
-      expect(duckdb.file_handle_size(writer)).toBe(data.length);
-      duckdb.file_handle_sync_sync(writer);
-      duckdb.file_handle_close_sync(writer);
 
       expect(fs.readFileSync(file_path, 'utf-8')).toBe('hello, file system');
 
-      const reader = duckdb.file_system_open_sync(
-        file_system,
-        file_path,
-        createOptions(duckdb.FileFlag.READ),
-      );
-      expect(duckdb.file_handle_size(reader)).toBe(data.length);
-      expect(duckdb.file_handle_tell(reader)).toBe(0);
+      withFileHandle(file_system, file_path, createOptions(duckdb.FileFlag.READ), (reader) => {
+        expect(duckdb.file_handle_size(reader)).toBe(data.length);
+        expect(duckdb.file_handle_tell(reader)).toBe(0);
 
-      const buffer = new Uint8Array(64);
-      const bytes_read = duckdb.file_handle_read_sync(reader, buffer);
-      expect(bytes_read).toBe(data.length);
-      expect(decoder.decode(buffer.subarray(0, bytes_read))).toBe('hello, file system');
-      expect(duckdb.file_handle_tell(reader)).toBe(data.length);
+        const buffer = new Uint8Array(64);
+        const bytes_read = duckdb.file_handle_read_sync(reader, buffer);
+        expect(bytes_read).toBe(data.length);
+        expect(decoder.decode(buffer.subarray(0, bytes_read))).toBe('hello, file system');
+        expect(duckdb.file_handle_tell(reader)).toBe(data.length);
 
-      // At the end of the file, a read returns no bytes rather than failing.
-      expect(duckdb.file_handle_read_sync(reader, buffer)).toBe(0);
-      duckdb.file_handle_close_sync(reader);
+        // At the end of the file, a read returns no bytes rather than failing.
+        expect(duckdb.file_handle_read_sync(reader, buffer)).toBe(0);
+      });
     });
   });
 
@@ -78,29 +76,25 @@ suite('file system', () => {
       const file_path = path.join(dir, 'seek.txt');
       fs.writeFileSync(file_path, '0123456789');
 
-      const reader = duckdb.file_system_open_sync(
-        file_system,
-        file_path,
-        createOptions(duckdb.FileFlag.READ),
-      );
-      duckdb.file_handle_seek(reader, 4);
-      expect(duckdb.file_handle_tell(reader)).toBe(4);
+      withFileHandle(file_system, file_path, createOptions(duckdb.FileFlag.READ), (reader) => {
+        duckdb.file_handle_seek(reader, 4);
+        expect(duckdb.file_handle_tell(reader)).toBe(4);
 
-      const buffer = new Uint8Array(3);
-      expect(duckdb.file_handle_read_sync(reader, buffer)).toBe(3);
-      expect(decoder.decode(buffer)).toBe('456');
-      expect(duckdb.file_handle_tell(reader)).toBe(7);
+        const buffer = new Uint8Array(3);
+        expect(duckdb.file_handle_read_sync(reader, buffer)).toBe(3);
+        expect(decoder.decode(buffer)).toBe('456');
+        expect(duckdb.file_handle_tell(reader)).toBe(7);
 
-      // Reads land in the given view only, not elsewhere in its buffer.
-      const backing = new Uint8Array(8).fill(0x2e);
-      duckdb.file_handle_seek(reader, 0);
-      expect(duckdb.file_handle_read_sync(reader, backing.subarray(2, 5))).toBe(3);
-      expect(decoder.decode(backing)).toBe('..012...');
+        // Reads land in the given view only, not elsewhere in its buffer.
+        const backing = new Uint8Array(8).fill(0x2e);
+        duckdb.file_handle_seek(reader, 0);
+        expect(duckdb.file_handle_read_sync(reader, backing.subarray(2, 5))).toBe(3);
+        expect(decoder.decode(backing)).toBe('..012...');
 
-      // An empty buffer reads nothing and leaves the position alone.
-      expect(duckdb.file_handle_read_sync(reader, new Uint8Array(0))).toBe(0);
-      expect(duckdb.file_handle_tell(reader)).toBe(3);
-      duckdb.file_handle_close_sync(reader);
+        // An empty buffer reads nothing and leaves the position alone.
+        expect(duckdb.file_handle_read_sync(reader, new Uint8Array(0))).toBe(0);
+        expect(duckdb.file_handle_tell(reader)).toBe(3);
+      });
     });
   });
 
@@ -110,13 +104,14 @@ suite('file system', () => {
       const file_path = path.join(dir, 'append.txt');
       fs.writeFileSync(file_path, 'abc');
 
-      const writer = duckdb.file_system_open_sync(
+      withFileHandle(
         file_system,
         file_path,
         createOptions(duckdb.FileFlag.WRITE, duckdb.FileFlag.APPEND),
+        (writer) => {
+          expect(duckdb.file_handle_write_sync(writer, encoder.encode('def'))).toBe(3);
+        },
       );
-      expect(duckdb.file_handle_write_sync(writer, encoder.encode('def'))).toBe(3);
-      duckdb.file_handle_close_sync(writer);
 
       expect(fs.readFileSync(file_path, 'utf-8')).toBe('abcdef');
     });
@@ -132,8 +127,7 @@ suite('file system', () => {
         duckdb.FileFlag.CREATE,
         duckdb.FileFlag.CREATE_NEW,
       );
-      const first = duckdb.file_system_open_sync(file_system, file_path, options);
-      duckdb.file_handle_close_sync(first);
+      withFileHandle(file_system, file_path, options, () => {});
 
       expect(() => duckdb.file_system_open_sync(file_system, file_path, options)).toThrow(
         /exists/,
@@ -161,9 +155,9 @@ suite('file system', () => {
 
       const file_path = path.join(dir, 'after_failure.txt');
       fs.writeFileSync(file_path, 'ok');
-      const reader = duckdb.file_system_open_sync(file_system, file_path, read_options);
-      expect(duckdb.file_handle_size(reader)).toBe(2);
-      duckdb.file_handle_close_sync(reader);
+      withFileHandle(file_system, file_path, read_options, (reader) => {
+        expect(duckdb.file_handle_size(reader)).toBe(2);
+      });
     });
   });
 
@@ -173,19 +167,15 @@ suite('file system', () => {
       const file_path = path.join(dir, 'read_only.txt');
       fs.writeFileSync(file_path, 'read only');
 
-      const reader = duckdb.file_system_open_sync(
-        file_system,
-        file_path,
-        createOptions(duckdb.FileFlag.READ),
-      );
-      expect(() => duckdb.file_handle_write_sync(reader, encoder.encode('nope'))).toThrow(
-        /read_only\.txt/,
-      );
-      // The handle stays usable after a failed operation.
-      const buffer = new Uint8Array(4);
-      expect(duckdb.file_handle_read_sync(reader, buffer)).toBe(4);
-      expect(decoder.decode(buffer)).toBe('read');
-      duckdb.file_handle_close_sync(reader);
+      withFileHandle(file_system, file_path, createOptions(duckdb.FileFlag.READ), (reader) => {
+        expect(() => duckdb.file_handle_write_sync(reader, encoder.encode('nope'))).toThrow(
+          /read_only\.txt/,
+        );
+        // The handle stays usable after a failed operation.
+        const buffer = new Uint8Array(4);
+        expect(duckdb.file_handle_read_sync(reader, buffer)).toBe(4);
+        expect(decoder.decode(buffer)).toBe('read');
+      });
     });
   });
 
@@ -195,25 +185,22 @@ suite('file system', () => {
       const file_path = path.join(dir, 'closed.txt');
       fs.writeFileSync(file_path, 'closed');
 
-      const reader = duckdb.file_system_open_sync(
-        file_system,
-        file_path,
-        createOptions(duckdb.FileFlag.READ),
-      );
-      duckdb.file_handle_close_sync(reader);
+      withFileHandle(file_system, file_path, createOptions(duckdb.FileFlag.READ), (reader) => {
+        duckdb.file_handle_close_sync(reader);
 
-      expect(() => duckdb.file_handle_read_sync(reader, new Uint8Array(4))).toThrow(
-        'File handle closed',
-      );
-      expect(() => duckdb.file_handle_write_sync(reader, new Uint8Array(4))).toThrow(
-        'File handle closed',
-      );
-      expect(() => duckdb.file_handle_tell(reader)).toThrow('File handle closed');
-      expect(() => duckdb.file_handle_size(reader)).toThrow('File handle closed');
-      expect(() => duckdb.file_handle_seek(reader, 0)).toThrow('File handle closed');
-      expect(() => duckdb.file_handle_sync_sync(reader)).toThrow('File handle closed');
-      // Closing again is a no-op.
-      duckdb.file_handle_close_sync(reader);
+        expect(() => duckdb.file_handle_read_sync(reader, new Uint8Array(4))).toThrow(
+          'File handle closed',
+        );
+        expect(() => duckdb.file_handle_write_sync(reader, new Uint8Array(4))).toThrow(
+          'File handle closed',
+        );
+        expect(() => duckdb.file_handle_tell(reader)).toThrow('File handle closed');
+        expect(() => duckdb.file_handle_size(reader)).toThrow('File handle closed');
+        expect(() => duckdb.file_handle_seek(reader, 0)).toThrow('File handle closed');
+        expect(() => duckdb.file_handle_sync_sync(reader)).toThrow('File handle closed');
+        // Closing again is a no-op.
+        duckdb.file_handle_close_sync(reader);
+      });
     });
   });
 
@@ -223,19 +210,17 @@ suite('file system', () => {
       const file_path = path.join(dir, 'seek_bounds.txt');
       fs.writeFileSync(file_path, 'seek');
 
-      const reader = duckdb.file_system_open_sync(
-        file_system,
-        file_path,
-        createOptions(duckdb.FileFlag.READ),
-      );
-      expect(() => duckdb.file_handle_seek(reader, -1)).toThrow('position out of range');
-      expect(() => duckdb.file_handle_seek(reader, 1.5)).toThrow('position is not an integer');
-      expect(() => duckdb.file_handle_seek(reader, Number.MAX_SAFE_INTEGER + 1)).toThrow(
-        'position out of range',
-      );
-      expect(() => duckdb.file_handle_seek(reader, NaN)).toThrow('position is not an integer');
-      expect(duckdb.file_handle_tell(reader)).toBe(0);
-      duckdb.file_handle_close_sync(reader);
+      withFileHandle(file_system, file_path, createOptions(duckdb.FileFlag.READ), (reader) => {
+        expect(() => duckdb.file_handle_seek(reader, -1)).toThrow(
+          'position out of non-negative safe integer range',
+        );
+        expect(() => duckdb.file_handle_seek(reader, 1.5)).toThrow('position is not an integer');
+        expect(() => duckdb.file_handle_seek(reader, Number.MAX_SAFE_INTEGER + 1)).toThrow(
+          'position out of non-negative safe integer range',
+        );
+        expect(() => duckdb.file_handle_seek(reader, NaN)).toThrow('position is not an integer');
+        expect(duckdb.file_handle_tell(reader)).toBe(0);
+      });
     });
   });
 
@@ -305,17 +290,18 @@ suite('file system', () => {
       fs.writeFileSync(file_path, 'still here');
 
       const connection = await duckdb.connect(db);
-      const reader = duckdb.file_system_open_sync(
+      withFileHandle(
         getFileSystem(connection),
         file_path,
         createOptions(duckdb.FileFlag.READ),
-      );
-      duckdb.disconnect_sync(connection);
+        (reader) => {
+          duckdb.disconnect_sync(connection);
 
-      const buffer = new Uint8Array(10);
-      expect(duckdb.file_handle_read_sync(reader, buffer)).toBe(10);
-      expect(decoder.decode(buffer)).toBe('still here');
-      duckdb.file_handle_close_sync(reader);
+          const buffer = new Uint8Array(10);
+          expect(duckdb.file_handle_read_sync(reader, buffer)).toBe(10);
+          expect(decoder.decode(buffer)).toBe('still here');
+        },
+      );
     });
   });
 
