@@ -12,6 +12,9 @@ const NANOSECONDS_PER_DAY = 86400000000000n; // 24 * 60 * 60 * 1000000000
 const NEGATIVE_INFINITY_TIMESTAMP = -9223372036854775807n; // -(2^63-1)
 const POSITIVE_INFINITY_TIMESTAMP = 9223372036854775807n; // 2^63-1
 
+const NEGATIVE_INFINITY_DATE = -2147483647; // -(2^31-1)
+const POSITIVE_INFINITY_DATE = 2147483647; // 2^31-1
+
 export function getDuckDBDateStringFromYearMonthDay(
   year: number,
   month: number,
@@ -24,6 +27,12 @@ export function getDuckDBDateStringFromYearMonthDay(
 }
 
 export function getDuckDBDateStringFromDays(days: number): string {
+  if (days === NEGATIVE_INFINITY_DATE) {
+    return '-infinity';
+  }
+  if (days === POSITIVE_INFINITY_DATE) {
+    return 'infinity';
+  }
   const absDays = Math.abs(days);
   const sign = days < 0 ? -1 : 1;
   // 400 years is the shortest interval with a fixed number of days. (Leap years and different length months can result

@@ -317,6 +317,8 @@ describe('types', () => {
     assert.equal(DATE.epoch.toString(), '1970-01-01');
     assert.equal(DATE.max.toString(), '5881580-07-10');
     assert.equal(DATE.min.toString(), '5877642-06-25 (BC)');
+    assert.equal(DATE.posInf.toString(), 'infinity');
+    assert.equal(DATE.negInf.toString(), '-infinity');
     // there is no year zero: the year before 0001 is 0001 (BC)
     assert.equal(new DuckDBDateValue(-719162).toString(), '0001-01-01');
     assert.equal(new DuckDBDateValue(-719163).toString(), '0001-12-31 (BC)');
@@ -586,6 +588,22 @@ describe('types', () => {
     assert.isTrue(TIMESTAMPTZ_NS.min.isFinite);
     assert.isFalse(TIMESTAMPTZ_NS.posInf.isFinite);
     assert.isFalse(TIMESTAMPTZ_NS.negInf.isFinite);
+  });
+  test('date infinities read as DuckDB prints them', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(`
+        select
+          'infinity'::date as pos,
+          '-infinity'::date as neg,
+          'infinity'::date::varchar as pos_text,
+          '-infinity'::date::varchar as neg_text
+      `);
+      const [row] = reader.getRows();
+      assert.deepEqual(row.slice(0, 2), [DATE.posInf, DATE.negInf]);
+      assert.deepEqual(reader.getRowsJson(), [
+        ['infinity', '-infinity', 'infinity', '-infinity'],
+      ]);
+    });
   });
   test('nanosecond timestamp infinities read as DuckDB prints them', async () => {
     await withConnection(async (connection) => {
