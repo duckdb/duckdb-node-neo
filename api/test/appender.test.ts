@@ -892,7 +892,7 @@ describe('appender', () => {
         `select ${columnNameAndTypeObjects
           .map(
             ({ name, type }) =>
-              `cast(null as ${type}) as "${name.replace(`"`, `""`)}"`,
+              `cast(null as ${type}) as "${name.replaceAll(`"`, `""`)}"`,
           )
           .join(', ')}`,
       );
