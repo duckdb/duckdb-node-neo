@@ -50,28 +50,49 @@ function createQueuedStorage(database: duckdb.Database, onEntry: (data: object |
   return { callbackRef, extraDataRef };
 }
 
-test('retains queued callback and extra data through delivery then releases them', async () => {
-  let refs: ReturnType<typeof createQueuedStorage> | undefined;
+test('retains queued callback and extra data after database closure until delivery', async () => {
+  const database = await duckdb.open();
+  const connection = await duckdb.connect(database);
+  let databaseClosed = false;
   let delivered = false;
-  await withDatabase({}, async (database) => {
-    refs = createQueuedStorage(database, data => {
-      expect(data).toEqual({ source: 'queued entry' });
-      delivered = true;
-    });
-    const connection = await duckdb.connect(database);
-    try {
-      await duckdb.query(connection, 'SET enable_logging = true');
-      await duckdb.query(connection, "SET logging_sink = 'queued_refs'");
-      await duckdb.query(connection, "SELECT write_log('queued entry')");
-      await expect.poll(() => delivered).toBe(true);
-    } finally {
-      duckdb.disconnect_sync(connection);
-    }
+  const refs = createQueuedStorage(database, data => {
+    expect(databaseClosed).toBe(true);
+    expect(data).toEqual({ source: 'queued entry' });
+    delivered = true;
   });
+  try {
+    await duckdb.query(connection, 'SET threads = 1');
+    await duckdb.query(connection, 'SET enable_logging = true');
+    await duckdb.query(connection, "SET logging_sink = 'queued_refs'");
+    const prepared = await duckdb.prepare(connection, "SELECT write_log('queued entry')");
+    const pending = duckdb.pending_prepared(prepared);
+    try {
+      // Execute on this thread without yielding, so TSFN delivery cannot run
+      // until after every native owner below has been synchronously destroyed.
+      let state = duckdb.pending_execute_check_state(pending);
+      for (let attempt = 0; !duckdb.pending_execution_is_finished(state) && attempt < 100; attempt++) {
+        state = duckdb.pending_execute_task(pending);
+      }
+      expect(state).toBe(duckdb.PendingState.RESULT_READY);
+      expect(delivered).toBe(false);
+    } finally {
+      duckdb.destroy_pending_sync(pending);
+      duckdb.destroy_prepare_sync(prepared);
+    }
+  } finally {
+    duckdb.disconnect_sync(connection);
+    duckdb.close_sync(database);
+    databaseClosed = true;
+  }
+  expect(delivered).toBe(false);
+  forceGC();
+  expect(refs.callbackRef.deref()).toBeDefined();
+  expect(refs.extraDataRef.deref()).toBeDefined();
+  await expect.poll(() => delivered).toBe(true);
   for (let attempt = 0; attempt < 10; attempt++) {
     await new Promise<void>(resolve => setImmediate(resolve));
     forceGC();
   }
-  expect(refs?.callbackRef.deref()).toBeUndefined();
-  expect(refs?.extraDataRef.deref()).toBeUndefined();
+  expect(refs.callbackRef.deref()).toBeUndefined();
+  expect(refs.extraDataRef.deref()).toBeUndefined();
 });
