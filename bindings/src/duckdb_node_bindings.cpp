@@ -1298,7 +1298,13 @@ private:
     auto env = info.Env();
     auto option = GetConfigOptionFromExternal(env, info[0]);
     auto default_value = GetValueFromExternal(env, info[1]);
-    duckdb_config_option_set_default_value(option, default_value);
+    // With a type already set, the C API casts the value and lets a failed
+    // cast escape as a DuckDB exception.
+    try {
+      duckdb_config_option_set_default_value(option, default_value);
+    } catch (...) {
+      throw Napi::Error::New(env, "Failed to set config option default value: it cannot be cast to the option's type");
+    }
     return env.Undefined();
   }
 
@@ -1335,9 +1341,10 @@ private:
     auto option = GetConfigOptionFromExternal(env, info[1]);
     // The C API reports no reason. It refuses an option without a name, one
     // whose type was neither set nor inferred from a default value, and a name
-    // that is already an option.
+    // that is already a registered option. A built-in setting's name passes:
+    // SET then changes the built-in setting while reads return the new option.
     if (duckdb_register_config_option(connection, option)) {
-      throw Napi::Error::New(env, "Failed to register config option: it needs a name and a type, and the name must not be in use");
+      throw Napi::Error::New(env, "Failed to register config option: it needs a name and a type, and the name must not be a registered option");
     }
     return env.Undefined();
   }

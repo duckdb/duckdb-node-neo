@@ -282,6 +282,13 @@ export interface Config {
  * A custom configuration option being defined. Registering copies its name,
  * type, default value, default scope and description into the database, so
  * the handle can be changed and registered again under another name.
+ *
+ * Whichever of `config_option_set_type` and `config_option_set_default_value`
+ * runs first fixes the option's type, and a default value is cast only at the
+ * moment it is set. So setting the type after the default leaves the default
+ * in its own type, and a reused handle keeps its type: after a VARCHAR
+ * option, a default of `create_int32(42)` makes a VARCHAR option with the
+ * value `'42'`.
  */
 export interface ConfigOption {
   __duckdb_type: 'duckdb_config_option';
@@ -620,7 +627,10 @@ export function config_option_set_name(option: ConfigOption, name: string): void
 // DUCKDB_C_API void duckdb_config_option_set_type(duckdb_config_option option, duckdb_logical_type type);
 export function config_option_set_type(option: ConfigOption, logical_type: LogicalType): void;
 // DUCKDB_C_API void duckdb_config_option_set_default_value(duckdb_config_option option, duckdb_value default_value);
-/** With no type set, the option takes the value's type; otherwise the value is cast to the option's type. */
+/**
+ * With no type set, the option takes the value's type; otherwise the value is cast
+ * to the option's type, and a value that cannot be cast throws.
+ */
 export function config_option_set_default_value(option: ConfigOption, default_value: Value): void;
 // DUCKDB_C_API void duckdb_config_option_set_default_scope(duckdb_config_option option, duckdb_config_option_scope default_scope);
 /** Defaults to SESSION. Throws a RangeError for INVALID or an unknown scope. */
@@ -631,7 +641,10 @@ export function config_option_set_description(option: ConfigOption, description:
 /**
  * Makes the option a setting of the whole database, readable with `current_setting` and
  * changeable with `SET`. Throws when the option has no name, has neither a type nor a
- * default value, or when the name is already a setting.
+ * default value, or when the name is already a registered option. A built-in setting's
+ * name is accepted, and the two then split: `duckdb_settings()` lists both, `SET` changes
+ * the built-in setting, and `current_setting` and `client_context_get_config_option`
+ * return the new option. Pick a name no setting has.
  */
 export function register_config_option(connection: Connection, option: ConfigOption): void;
 // DUCKDB_C_API duckdb_value duckdb_client_context_get_config_option(duckdb_client_context context, const char *name, duckdb_config_option_scope *out_scope);

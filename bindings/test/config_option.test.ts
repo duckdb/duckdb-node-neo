@@ -122,6 +122,108 @@ suite('config option', () => {
     });
   });
 
+  test('refuse a default value that cannot be cast to the type set before it', async () => {
+    await withConnection(async (connection) => {
+      const option = duckdb.create_config_option();
+      duckdb.config_option_set_name(option, 'test_uncastable_option');
+      duckdb.config_option_set_type(option, duckdb.create_logical_type(duckdb.Type.INTEGER));
+      expect(() => duckdb.config_option_set_default_value(option, duckdb.create_varchar('seven'))).toThrow(
+        /cannot be cast to the option's type/,
+      );
+
+      // The handle is still usable with a default that does cast.
+      duckdb.config_option_set_default_value(option, duckdb.create_varchar('7'));
+      duckdb.register_config_option(connection, option);
+      const context = duckdb.connection_get_client_context(connection);
+      const setting = duckdb.client_context_get_config_option(context, 'test_uncastable_option');
+      expect(duckdb.get_int32(setting!.value)).toBe(7);
+    });
+  });
+
+  test('leave the default value in its own type when the type is set after it', async () => {
+    await withConnection(async (connection) => {
+      const option = duckdb.create_config_option();
+      duckdb.config_option_set_name(option, 'test_late_type_option');
+      duckdb.config_option_set_default_value(option, duckdb.create_varchar('7'));
+      duckdb.config_option_set_type(option, duckdb.create_logical_type(duckdb.Type.INTEGER));
+      duckdb.register_config_option(connection, option);
+
+      // The default was set before the type, so it was never cast.
+      const context = duckdb.connection_get_client_context(connection);
+      const before = duckdb.client_context_get_config_option(context, 'test_late_type_option');
+      expect(duckdb.get_type_id(duckdb.get_value_type(before!.value))).toBe(duckdb.Type.VARCHAR);
+      expect(duckdb.get_varchar(before!.value)).toBe('7');
+
+      // SET uses the option's type.
+      await duckdb.query(connection, 'SET test_late_type_option = 8');
+      const after = duckdb.client_context_get_config_option(context, 'test_late_type_option');
+      expect(duckdb.get_type_id(duckdb.get_value_type(after!.value))).toBe(duckdb.Type.INTEGER);
+      expect(duckdb.get_int32(after!.value)).toBe(8);
+      await expectSetting(connection, 'test_late_type_option', {
+        value: '8',
+        input_type: 'INTEGER',
+        scope: 'LOCAL',
+      });
+      await expect(duckdb.query(connection, "SET test_late_type_option = 'nine'")).rejects.toThrow(
+        /Could not convert/,
+      );
+    });
+  });
+
+  test('keep the type on a reused handle', async () => {
+    await withConnection(async (connection) => {
+      const option = duckdb.create_config_option();
+      duckdb.config_option_set_name(option, 'test_text_option');
+      duckdb.config_option_set_type(option, duckdb.create_logical_type(duckdb.Type.VARCHAR));
+      duckdb.config_option_set_default_value(option, duckdb.create_varchar('text'));
+      duckdb.register_config_option(connection, option);
+
+      // The handle still carries VARCHAR, so the second default is cast to it.
+      duckdb.config_option_set_name(option, 'test_reused_option');
+      duckdb.config_option_set_default_value(option, duckdb.create_int32(42));
+      duckdb.register_config_option(connection, option);
+      await expectSetting(connection, 'test_reused_option', {
+        value: '42',
+        input_type: 'VARCHAR',
+        scope: 'GLOBAL',
+      });
+    });
+  });
+
+  test('accept a built-in name, which SET and reads then treat differently', async () => {
+    await withConnection(async (connection) => {
+      const option = duckdb.create_config_option();
+      duckdb.config_option_set_name(option, 'threads');
+      duckdb.config_option_set_default_value(option, duckdb.create_int64(99n));
+      duckdb.register_config_option(connection, option);
+      await duckdb.query(connection, 'SET threads = 3');
+
+      // duckdb_settings() lists both, and SET changed the built-in one.
+      const settings = await duckdb.query(
+        connection,
+        "SELECT value FROM duckdb_settings() WHERE name = 'threads' ORDER BY value",
+      );
+      await expectResult(settings, {
+        chunkCount: 1,
+        rowCount: 2,
+        columns: [{ name: 'value', logicalType: { typeId: duckdb.Type.VARCHAR } }],
+        chunks: [{ rowCount: 2, vectors: [data(16, [true, true], ['3', '99'])] }],
+      });
+
+      // Reads return the new option.
+      const context = duckdb.connection_get_client_context(connection);
+      const setting = duckdb.client_context_get_config_option(context, 'threads');
+      expect(duckdb.get_int64(setting!.value)).toBe(99n);
+      const current = await duckdb.query(connection, "SELECT current_setting('threads')::BIGINT AS threads");
+      await expectResult(current, {
+        chunkCount: 1,
+        rowCount: 1,
+        columns: [{ name: 'threads', logicalType: { typeId: duckdb.Type.BIGINT } }],
+        chunks: [{ rowCount: 1, vectors: [data(8, [true], [99n])] }],
+      });
+    });
+  });
+
   test('read a built-in setting and get null for an unknown name', async () => {
     await withConnection(async (connection) => {
       const context = duckdb.connection_get_client_context(connection);
