@@ -12,12 +12,16 @@ export class DuckDBUBigIntVector extends DuckDBVector<bigint> {
   private readonly items: BigUint64Array;
   private readonly validity: DuckDBValidity;
   private readonly vector: duckdb.Vector;
+  /** This vector's first row in the native vector; nonzero for a slice. */
+  private readonly itemOffset: number;
   constructor(
     items: BigUint64Array,
     validity: DuckDBValidity,
-    vector: duckdb.Vector
+    vector: duckdb.Vector,
+    itemOffset = 0
   ) {
     super();
+    this.itemOffset = itemOffset;
     this.items = items;
     this.validity = validity;
     this.vector = vector;
@@ -58,7 +62,7 @@ export class DuckDBUBigIntVector extends DuckDBVector<bigint> {
   public override flush() {
     duckdb.copy_data_to_vector(
       this.vector,
-      0,
+      this.itemOffset * this.items.BYTES_PER_ELEMENT,
       this.items.buffer as ArrayBuffer,
       this.items.byteOffset,
       this.items.byteLength
@@ -67,9 +71,10 @@ export class DuckDBUBigIntVector extends DuckDBVector<bigint> {
   }
   public override slice(offset: number, length: number): DuckDBUBigIntVector {
     return new DuckDBUBigIntVector(
-      this.items.slice(offset, offset + length),
-      this.validity.slice(offset, length),
-      this.vector
+      this.items.subarray(offset, offset + length),
+      this.validity.slice(offset),
+      this.vector,
+      this.itemOffset + offset
     );
   }
 }

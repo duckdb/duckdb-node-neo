@@ -131,7 +131,7 @@ export class DuckDBStructVector extends DuckDBVector<DuckDBStructValue> {
       this.structType,
       length,
       this.entryVectors.map((entryVector) => entryVector.slice(offset, length)),
-      this.validity.slice(offset, length),
+      this.validity.slice(offset),
       this.vector
     );
   }

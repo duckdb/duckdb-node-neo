@@ -212,7 +212,7 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
         entryDataStartIndex,
         entryDataStartIndex + length * 2
       ),
-      this.validity.slice(offset, length),
+      this.validity.slice(offset),
       this.vector,
       this.childData,
       offset,

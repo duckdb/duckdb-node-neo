@@ -95,7 +95,7 @@ export class DuckDBArrayVector extends DuckDBVector<DuckDBArrayValue> {
   public override slice(offset: number, length: number): DuckDBArrayVector {
     return new DuckDBArrayVector(
       this.arrayType,
-      this.validity.slice(offset, length),
+      this.validity.slice(offset),
       this.vector,
       this.childData.slice(
         offset * this.arrayType.length,
