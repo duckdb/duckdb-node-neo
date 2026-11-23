@@ -142,9 +142,10 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
       let totalLength = 0;
       for (let itemIndex = 0; itemIndex < this._itemCount; itemIndex++) {
         const entryDataStartIndex = itemIndex * 2;
-        this.entryData[entryDataStartIndex] = BigInt(totalLength);
-        // ensure the cache is populated for all items
+        // ensure the cache is populated for all items; this reads the item's
+        // current offset, so it must come before that offset is overwritten
         const item = this.getItem(itemIndex);
+        this.entryData[entryDataStartIndex] = BigInt(totalLength);
         if (item) {
           this.entryData[entryDataStartIndex + 1] = BigInt(item.items.length);
           totalLength += item.items.length;

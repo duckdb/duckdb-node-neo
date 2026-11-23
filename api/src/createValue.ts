@@ -212,7 +212,7 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
         return duckdb.create_struct_value(
           type.toLogicalType().logical_type,
           type.entryNames.map((name, i) => {
-            if (!(name in input.entries)) {
+            if (!Object.hasOwn(input.entries, name)) {
               throw new Error(
                 `STRUCT entry '${name}' is missing from input`
               );

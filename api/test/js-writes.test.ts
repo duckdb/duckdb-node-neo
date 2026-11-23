@@ -131,3 +131,11 @@ test('an Invalid Date is refused by every temporal converter', () => {
   expect(jsToDuckDBValue(new Date(0), DATE)).toBeDefined();
 });
 
+
+test('a STRUCT entry named like an Object member must be in the input', async () => {
+  const connection = await connect();
+  const prepared = await connection.prepare('select ? as s');
+  expect(() =>
+    prepared.bindValue(1, structValue({}), STRUCT({ constructor: INTEGER }))
+  ).toThrowError("STRUCT entry 'constructor' is missing from input");
+});

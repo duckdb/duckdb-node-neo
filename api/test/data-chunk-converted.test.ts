@@ -20,6 +20,8 @@ import {
   TIMESTAMP_MS,
   UUID,
   VARCHAR,
+  VARIANT,
+  listValue,
 } from '../src';
 
 async function connect(): Promise<DuckDBConnection> {
@@ -163,15 +165,59 @@ test('conversion errors name the column', () => {
   ).toThrowError('Failed to set column 1 (UUID)');
 });
 
-test('setting a VARIANT the chunk really has reports the column', async () => {
-  // A chunk from a result legitimately holds a variant vector, which refuses
-  // to be written. No guard of our own is needed: the vector raises.
+test('a VARIANT column takes converted values', async () => {
   const connection = await connect();
-  const result = await connection.run(`select 1 as i, 42::variant as v`);
-  const chunk = await result.fetchChunk();
+  await connection.run(`create table t (i integer, v variant)`);
+  const chunk = DuckDBDataChunk.create([INTEGER, VARIANT]);
+  chunk.setRowsConverted(
+    [
+      [1, 42],
+      [2, 'x'],
+    ],
+    JSToDuckDBValueConverter
+  );
+  const appender = await connection.createAppender('t');
+  appender.appendDataChunk(chunk);
+  appender.closeSync();
+
+  const reader = await connection.runAndReadAll(
+    `select i, variant_typeof(v), v::varchar from t order by i`
+  );
+  expect(reader.getRowsJS()).toEqual([
+    [1, 'INT32', '42'],
+    [2, 'VARCHAR', 'x'],
+  ]);
+});
+
+test('a bad VARIANT value reports the column', () => {
+  const chunk = DuckDBDataChunk.create([INTEGER, VARIANT]);
   expect(() =>
-    chunk!.setRowsConverted([[1, 42]], JSToDuckDBValueConverter)
+    chunk.setRowsConverted([[1, 2n ** 127n]], JSToDuckDBValueConverter)
   ).toThrowError('Failed to set column 1 (VARIANT)');
+});
+
+test('setting some rows of a LIST from a result keeps the others', async () => {
+  // Flushing a list rewrites every row's offset; the rows not set must be
+  // read at their old offsets first.
+  const connection = await connect();
+  const result = await connection.run(
+    `select [i, i + 1] as l from range(3) t(i)`
+  );
+  const chunk = await result.fetchChunk();
+  const vector = chunk!.getColumnVector(0);
+  vector.setItem(0, listValue([10n, 20n, 30n]));
+  vector.flush();
+  await connection.run(`create table t (l bigint[])`);
+  const appender = await connection.createAppender('t');
+  appender.appendDataChunk(chunk!);
+  appender.closeSync();
+
+  const reader = await connection.runAndReadAll(`select l from t`);
+  expect(reader.getRowsJS()).toEqual([
+    [[10n, 20n, 30n]],
+    [[1n, 2n]],
+    [[2n, 3n]],
+  ]);
 });
 
 test('a short columns array is refused rather than left unwritten', () => {

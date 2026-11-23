@@ -1081,12 +1081,12 @@ column data collection:
 So this is not a V2 prerequisite and there is nothing to raise upstream. Losing the per-value
 appender does not cost us VARIANT.
 
-What it does do is move the remaining gap onto our side of the line. `DuckDBVariantVector` can
-write a NULL but not a value — `setItem` throws for anything non-null. Under V1 that barely matters,
-since the per-value path is there to fall back on. Under V2 the collection is the only write path,
-so a VARIANT column in a bulk append needs that vector to learn to write. That is ours to
-implement whenever we want it, not a dependency to wait on — which is why it is not in the
-deferred decisions below.
+What it did do is move the remaining gap onto our side of the line: under V2 the collection is
+the only write path, so a VARIANT column in a bulk append needs `DuckDBVariantVector` to write
+values, not just NULLs. It now does
+([#535](https://github.com/duckdb/duckdb-node-neo/issues/535)): `setItem` encodes each value into
+VARIANT's physical layout in JS, the way DuckDB's own cast to VARIANT does, so nothing here waits
+on the C API.
 
 ### Net versus the V1 appender
 
