@@ -12,11 +12,13 @@ import {
   ARRAY,
   GEOMETRY,
   INTEGER,
+  LIST,
   STRUCT,
   VARCHAR,
   arrayValue,
   bitValue,
   blobValue,
+  listValue,
   structValue,
 } from '../src';
 import { getBigNumFromBytes } from '../src/vectors/dataAccessors';
@@ -230,5 +232,72 @@ test('writes through slices of STRUCT and ARRAY columns land in place', async ()
       [2, 's2', [2, 20]],
       [99, 'new', [7, 8]],
     ]);
+  });
+});
+
+/**
+ * Writes through a slice of a slice and through the parent, on wrappers
+ * re-created after the rows were written, so no row starts out cached.
+ * Rows are [a, a, a, a]; ends as [a, b, b, b].
+ */
+async function assertSliceWrites(
+  connection: DuckDBConnection,
+  type: DuckDBType,
+  a: DuckDBValue,
+  b: DuckDBValue
+) {
+  const chunk = DuckDBDataChunk.create([type]);
+  chunk.setRows([[a], [a], [a], [a]]);
+  chunk.rowCount = 4; // drop the wrappers setRows used
+  const parent = chunk.getColumnVector(0);
+  const outer = parent.slice(1, 3); // rows 1..3
+  const inner = outer.slice(1, 2); // rows 2..3
+  inner.setItem(0, b); // row 2
+  parent.setItem(3, b); // row 3
+  outer.setItem(0, b); // row 1
+  const name = String(type);
+  expect(parent.getItem(2), name).toEqual(b);
+  expect(inner.getItem(1), name).toEqual(b);
+  expect(parent.getItem(1), name).toEqual(b);
+  expect(outer.getItem(1), name).toEqual(b);
+  inner.flush();
+  // Still visible after a flush, which for LIST rebuilds the child vector.
+  expect(inner.getItem(0), name).toEqual(b);
+  expect(outer.getItem(2), name).toEqual(b);
+  parent.flush();
+
+  await connection.run(`create or replace table t (v ${type})`);
+  const appender = await connection.createAppender('t');
+  appender.appendDataChunk(chunk);
+  appender.closeSync();
+  const stored = await connection.runAndReadAll(`select v from t`);
+  expect(
+    stored.getRows().map(([v]) => String(v)),
+    name
+  ).toEqual([a, b, b, b].map(String));
+}
+
+test('a string vector and its slices see each other\'s writes', async () => {
+  await withConnection(async (connection) => {
+    for (const [type, short, long] of await cases(connection)) {
+      await assertSliceWrites(connection, type, short, long);
+    }
+  });
+});
+
+test('a LIST vector and its slices see each other\'s writes', async () => {
+  await withConnection(async (connection) => {
+    await assertSliceWrites(
+      connection,
+      LIST(INTEGER),
+      listValue([1]),
+      listValue([2, 3])
+    );
+    await assertSliceWrites(
+      connection,
+      LIST(VARCHAR),
+      listValue(['a']),
+      listValue(['a string longer than twelve bytes', 'b'])
+    );
   });
 });

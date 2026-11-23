@@ -17,6 +17,8 @@ export class DuckDBBigNumVector extends DuckDBVector<bigint> {
   private readonly vector: duckdb.Vector;
   private readonly itemOffset: number;
   private readonly _itemCount: number;
+  // Indexed from the root vector's first row, so a slice shares these with
+  // its parent: a write through either is visible to both.
   private readonly itemCache: (bigint | null | undefined)[];
   private readonly itemCacheDirty: boolean[];
   constructor(
@@ -24,7 +26,9 @@ export class DuckDBBigNumVector extends DuckDBVector<bigint> {
     validity: DuckDBValidity,
     vector: duckdb.Vector,
     itemOffset: number,
-    itemCount: number
+    itemCount: number,
+    itemCache: (bigint | null | undefined)[] = [],
+    itemCacheDirty: boolean[] = []
   ) {
     super();
     this.dataView = dataView;
@@ -32,8 +36,8 @@ export class DuckDBBigNumVector extends DuckDBVector<bigint> {
     this.vector = vector;
     this.itemOffset = itemOffset;
     this._itemCount = itemCount;
-    this.itemCache = [];
-    this.itemCacheDirty = [];
+    this.itemCache = itemCache;
+    this.itemCacheDirty = itemCacheDirty;
   }
   static fromRawVector(
     vector: duckdb.Vector,
@@ -55,7 +59,7 @@ export class DuckDBBigNumVector extends DuckDBVector<bigint> {
     return this._itemCount;
   }
   public override getItem(itemIndex: number): bigint | null {
-    const cachedItem = this.itemCache[itemIndex];
+    const cachedItem = this.itemCache[this.itemOffset + itemIndex];
     if (cachedItem !== undefined) {
       return cachedItem;
     }
@@ -66,14 +70,14 @@ export class DuckDBBigNumVector extends DuckDBVector<bigint> {
     return bytes ? getBigNumFromBytes(bytes) : null;
   }
   public override setItem(itemIndex: number, value: bigint | null) {
-    this.itemCache[itemIndex] = value;
+    this.itemCache[this.itemOffset + itemIndex] = value;
     this.validity.setItemValid(itemIndex, value != null);
-    this.itemCacheDirty[itemIndex] = true;
+    this.itemCacheDirty[this.itemOffset + itemIndex] = true;
   }
   public override flush() {
     for (let itemIndex = 0; itemIndex < this._itemCount; itemIndex++) {
-      if (this.itemCacheDirty[itemIndex]) {
-        const cachedItem = this.itemCache[itemIndex];
+      if (this.itemCacheDirty[this.itemOffset + itemIndex]) {
+        const cachedItem = this.itemCache[this.itemOffset + itemIndex];
         if (cachedItem !== undefined && cachedItem !== null) {
           duckdb.vector_assign_string_element_len(
             this.vector,
@@ -81,7 +85,7 @@ export class DuckDBBigNumVector extends DuckDBVector<bigint> {
             getBytesFromBigNum(cachedItem)
           );
         }
-        this.itemCacheDirty[itemIndex] = false;
+        this.itemCacheDirty[this.itemOffset + itemIndex] = false;
       }
     }
     this.validity.flush(this.vector);
@@ -95,8 +99,10 @@ export class DuckDBBigNumVector extends DuckDBVector<bigint> {
       ),
       this.validity.slice(offset),
       this.vector,
-      offset,
-      length
+      this.itemOffset + offset,
+      length,
+      this.itemCache,
+      this.itemCacheDirty
     );
   }
 }

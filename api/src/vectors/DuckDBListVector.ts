@@ -84,7 +84,14 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
   public override get itemCount(): number {
     return this._itemCount;
   }
+  // A slice reads and writes through its parent, which holds the cache and,
+  // after a flush, the current entries and child vector; so a write through
+  // either is visible to both.
+
   public getItemVector(itemIndex: number): DuckDBVector | null {
+    if (this.parentList) {
+      return this.parentList.getItemVector(this.itemOffset + itemIndex);
+    }
     if (!this.validity.itemValid(itemIndex)) {
       return null;
     }
@@ -99,17 +106,29 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
    * the flat backing storage without allocating a per-row sliced vector.
    */
   public getEntryOffset(itemIndex: number): number {
+    if (this.parentList) {
+      return this.parentList.getEntryOffset(this.itemOffset + itemIndex);
+    }
     return Number(this.entryData[itemIndex * 2]);
   }
   /** Returns the number of elements this row contributes to `childVector`. */
   public getEntryLength(itemIndex: number): number {
+    if (this.parentList) {
+      return this.parentList.getEntryLength(this.itemOffset + itemIndex);
+    }
     return Number(this.entryData[itemIndex * 2 + 1]);
   }
   /** The (flat) child vector backing all rows' list elements. */
   public get childVector(): DuckDBVector {
+    if (this.parentList) {
+      return this.parentList.childVector;
+    }
     return this.childData;
   }
   public override getItem(itemIndex: number): DuckDBListValue | null {
+    if (this.parentList) {
+      return this.parentList.getItem(this.itemOffset + itemIndex);
+    }
     const cachedItem = this.itemCache[itemIndex];
     if (cachedItem !== undefined) {
       return cachedItem;
@@ -123,19 +142,16 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
     return item;
   }
   public setItem(itemIndex: number, value: DuckDBListValue | null) {
-    this.itemCache[itemIndex] = value;
     if (this.parentList) {
       this.parentList.setItem(this.itemOffset + itemIndex, value);
     } else {
+      this.itemCache[itemIndex] = value;
       this.validity.setItemValid(itemIndex, value != null);
     }
   }
   public flush() {
     if (this.parentList) {
       this.parentList.flush();
-      for (let i = 0; i < this.itemCount; i++) {
-        this.itemCache[i] = undefined;
-      }
     } else {
       // update entryData offset & lengths
       // calculate new child vector size (sum of all item lengths)
@@ -208,7 +224,7 @@ export class DuckDBListVector extends DuckDBVector<DuckDBListValue> {
     return new DuckDBListVector(
       this,
       this.listType,
-      this.entryData.slice(
+      this.entryData.subarray(
         entryDataStartIndex,
         entryDataStartIndex + length * 2
       ),
