@@ -18,6 +18,8 @@ export class DuckDBGeometryVector extends DuckDBVector<DuckDBGeometryValue> {
   private readonly vector: duckdb.Vector;
   private readonly itemOffset: number;
   private readonly _itemCount: number;
+  // Indexed from the root vector's first row, so a slice shares these with
+  // its parent: a write through either is visible to both.
   private readonly itemCache: (DuckDBGeometryValue | null | undefined)[];
   private readonly itemCacheDirty: boolean[];
   constructor(
@@ -25,7 +27,9 @@ export class DuckDBGeometryVector extends DuckDBVector<DuckDBGeometryValue> {
     validity: DuckDBValidity,
     vector: duckdb.Vector,
     itemOffset: number,
-    itemCount: number
+    itemCount: number,
+    itemCache: (DuckDBGeometryValue | null | undefined)[] = [],
+    itemCacheDirty: boolean[] = []
   ) {
     super();
     this.dataView = dataView;
@@ -33,8 +37,8 @@ export class DuckDBGeometryVector extends DuckDBVector<DuckDBGeometryValue> {
     this.vector = vector;
     this.itemOffset = itemOffset;
     this._itemCount = itemCount;
-    this.itemCache = [];
-    this.itemCacheDirty = [];
+    this.itemCache = itemCache;
+    this.itemCacheDirty = itemCacheDirty;
   }
   static fromRawVector(
     vector: duckdb.Vector,
@@ -56,7 +60,7 @@ export class DuckDBGeometryVector extends DuckDBVector<DuckDBGeometryValue> {
     return this._itemCount;
   }
   public override getItem(itemIndex: number): DuckDBGeometryValue | null {
-    const cachedItem = this.itemCache[itemIndex];
+    const cachedItem = this.itemCache[this.itemOffset + itemIndex];
     if (cachedItem !== undefined) {
       return cachedItem;
     }
@@ -65,14 +69,14 @@ export class DuckDBGeometryVector extends DuckDBVector<DuckDBGeometryValue> {
       : null;
   }
   public override setItem(itemIndex: number, value: DuckDBGeometryValue | null) {
-    this.itemCache[itemIndex] = value;
+    this.itemCache[this.itemOffset + itemIndex] = value;
     this.validity.setItemValid(itemIndex, value != null);
-    this.itemCacheDirty[itemIndex] = true;
+    this.itemCacheDirty[this.itemOffset + itemIndex] = true;
   }
   public override flush() {
     for (let itemIndex = 0; itemIndex < this._itemCount; itemIndex++) {
-      if (this.itemCacheDirty[itemIndex]) {
-        const cachedItem = this.itemCache[itemIndex];
+      if (this.itemCacheDirty[this.itemOffset + itemIndex]) {
+        const cachedItem = this.itemCache[this.itemOffset + itemIndex];
         if (cachedItem !== undefined && cachedItem !== null) {
           duckdb.vector_assign_string_element_len(
             this.vector,
@@ -80,7 +84,7 @@ export class DuckDBGeometryVector extends DuckDBVector<DuckDBGeometryValue> {
             cachedItem.bytes
           );
         }
-        this.itemCacheDirty[itemIndex] = false;
+        this.itemCacheDirty[this.itemOffset + itemIndex] = false;
       }
     }
     this.validity.flush(this.vector);
@@ -94,8 +98,10 @@ export class DuckDBGeometryVector extends DuckDBVector<DuckDBGeometryValue> {
       ),
       this.validity.slice(offset),
       this.vector,
-      offset,
-      length
+      this.itemOffset + offset,
+      length,
+      this.itemCache,
+      this.itemCacheDirty
     );
   }
 }
