@@ -1,5 +1,7 @@
 import { assert, describe, test } from 'vitest';
-import { DuckDBConnection, DuckDBInstance } from '../src';
+import { DuckDBConnection, DuckDBInstance, INTEGER, VARCHAR } from '../src';
+import { DuckDBScalarFunction } from '../src/DuckDBScalarFunction';
+import { DuckDBTableFunction } from '../src/DuckDBTableFunction';
 import { withConnection } from './util/testHelpers';
 
 // The `using` declaration needs TypeScript 5.2 and a runtime with
@@ -105,6 +107,74 @@ describe('Symbol.dispose', () => {
       assert.deepEqual(reader.getRows(), [[0]]);
     });
   });
+  test('closing inside the scope leaves nothing for dispose to do', async () => {
+    await withConnection(async (connection) => {
+      await connection.run('create table target(i integer)');
+      {
+        using appender = await connection.createAppender('target');
+        appender.appendInteger(5);
+        appender.endRow();
+        appender.closeSync();
+      }
+      {
+        using result = await connection.stream(streamingSql);
+        result.closeSync();
+      }
+      {
+        using prepared = await connection.prepare('select 1');
+        prepared.destroySync();
+      }
+      const reader = await connection.runAndReadAll('select i from target');
+      assert.deepEqual(reader.getRows(), [[5]]);
+    });
+  });
+  test('scalar and table functions: destroyed on leaving the scope', async () => {
+    await withConnection(async (connection) => {
+      let scalar;
+      let table;
+      {
+        using scalarFunction = DuckDBScalarFunction.create({
+          name: 'seven',
+          mainFunction: (_info, input, output) => {
+            for (let row = 0; row < input.rowCount; row++) {
+              output.setItem(row, 7);
+            }
+            output.flush();
+          },
+          returnType: INTEGER,
+        });
+        using tableFunction = DuckDBTableFunction.create({
+          name: 'one_row',
+          bindFunction: (info) => {
+            info.addResultColumn('v', VARCHAR);
+          },
+          initFunction: (info) => {
+            info.setInitData({ done: false });
+          },
+          mainFunction: (info, output) => {
+            const initData = info.initData as { done: boolean };
+            if (initData.done) {
+              output.rowCount = 0;
+              return;
+            }
+            output.rowCount = 1;
+            const column = output.getColumnVector(0);
+            column.setItem(0, 'row');
+            column.flush();
+            initData.done = true;
+          },
+        });
+        connection.registerScalarFunction(scalarFunction);
+        connection.registerTableFunction(tableFunction);
+        scalar = scalarFunction;
+        table = tableFunction;
+      }
+      const reader = await connection.runAndReadAll('select seven() as s, v from one_row()');
+      assert.deepEqual(reader.getRows(), [[7, 'row']]);
+      assert.throws(() => connection.registerScalarFunction(scalar), /Failed to register scalar function/);
+      assert.throws(() => connection.registerTableFunction(table), /Failed to register table function/);
+    });
+  });
   test('connection and instance: closed on leaving the scope', async () => {
     let connection;
     {
@@ -118,12 +188,16 @@ describe('Symbol.dispose', () => {
   test('DisposableStack closes several objects in reverse order', async () => {
     await withConnection(async (connection) => {
       await connection.run('create table target(i integer)');
+      const order: string[] = [];
       const stack = new DisposableStack();
       const appender = stack.use(await connection.createAppender('target'));
+      stack.defer(() => order.push('appender'));
       const prepared = stack.use(await connection.prepare('select 1'));
+      stack.defer(() => order.push('prepared'));
       appender.appendInteger(3);
       appender.endRow();
       stack.dispose();
+      assert.deepEqual(order, ['prepared', 'appender']);
       assert.throws(() => prepared.bindInteger(1, 8), /Failed to bind/);
       const reader = await connection.runAndReadAll('select i from target');
       assert.deepEqual(reader.getRows(), [[3]]);

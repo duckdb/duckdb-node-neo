@@ -274,9 +274,22 @@ const rows = reader.getRows(); // rows already read stay available
 Column names and types also stay available after closing; reading more
 rows throws.
 
+The same applies to appenders: from DuckDB 2.0, an appender can't flush
+while its connection has such a result. Appenders flush on `flushSync()`
+and `closeSync()`, and automatically about every 204,800 rows, so with a
+streaming result open, appending fails at the next flush, and the rows
+appended since the last successful flush are lost. Read the result to the
+end or close it before appending, or append on a separate connection.
+Close appenders explicitly too: one that is flushed when it's garbage
+collected can't report a failure.
+
+### Close with `using`
+
 Every class with a `closeSync`, `disconnectSync`, or `destroySync` method
-also implements `Symbol.dispose`, so a `using` declaration closes it on
-every way out of the scope, including a thrown error:
+implements `Symbol.dispose`: instances, connections, prepared statements,
+results, result readers, pending results, appenders, and scalar and table
+functions. A `using` declaration closes the object on every way out of the
+scope, including a thrown error:
 
 ```ts
 {
@@ -286,20 +299,31 @@ every way out of the scope, including a thrown error:
 } // result is closed here
 ```
 
-`using` needs TypeScript 5.2 or a runtime with native support, and
+`using` needs TypeScript 5.2 or a runtime with native support;
 `Symbol.dispose` exists from Node 20. `DisposableStack` closes several
-objects at once, in reverse order. Disposing an appender flushes it, as
-`closeSync()` does; call `clear()` first to discard unflushed rows
-instead.
+objects at once and is built in from Node 24; earlier versions need a
+polyfill. Closing explicitly inside the scope is fine; the dispose at the
+end then does nothing.
 
-The same applies to appenders: from DuckDB 2.0, an appender can't flush
-while its connection has such a result. Appenders flush on `flushSync()`
-and `closeSync()`, and automatically about every 204,800 rows, so with a
-streaming result open, appending fails at the next flush, and the rows
-appended since the last successful flush are lost. Read the result to the
-end or close it before appending, or append on a separate connection.
-Close appenders explicitly too: one that is flushed when it's garbage
-collected can't report a failure.
+Disposing an appender flushes it, as `closeSync()` does, also when the
+scope exits because of an error, so the rows appended before the error end
+up in the table. For all-or-nothing, clear before rethrowing:
+
+```ts
+using appender = await connection.createAppender('t');
+try {
+  // append rows...
+} catch (err) {
+  appender.clear();
+  throw err;
+}
+```
+
+Disposal runs in reverse declaration order. Declare an appender before any
+streaming result on the same connection, or the appender is disposed while
+the result still blocks the connection, and on DuckDB 2.0 that flush fails
+and its rows are lost. Appending on a separate connection avoids the
+question.
 
 ### Inspect Result Metadata
 
