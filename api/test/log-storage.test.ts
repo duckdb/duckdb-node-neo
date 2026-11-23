@@ -1,4 +1,4 @@
-import { assert, test } from 'vitest';
+import { assert, expect, test } from 'vitest';
 import {
   DuckDBInstance,
   DuckDBLogStorage,
@@ -33,9 +33,10 @@ test('custom log storage receives log entries after its handle is destroyed', as
   storage.destroySync();
 
   await connection.run('SET enable_logging = true');
-  await connection.run("SET logging_storage = 'node_api_test'");
+  await connection.run("SET logging_sink = 'node_api_test'");
   await connection.run("SELECT write_log('api log entry')");
 
+  await expect.poll(() => entries.some(({ message }) => message.includes('api log entry'))).toBe(true);
   const entry = entries.find(({ message }) => message.includes('api log entry'));
   assert.isDefined(entry);
   assert.strictEqual(entry.extraData, extraData);

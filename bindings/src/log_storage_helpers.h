@@ -1,7 +1,6 @@
 #pragma once
 
 #include "conversion_helpers.h"
-#include "duckdb_thread_callback.h"
 #include "napi_ref_reaper.h"
 #include "type_tags.h"
 #include <atomic>
@@ -9,6 +8,7 @@
 #include <string>
 
 struct LogStorageWriteLogEntryPayload {
+  std::shared_ptr<ManagedObjectReference> callback_ref;
   std::shared_ptr<ManagedObjectReference> user_extra_data_ref;
   duckdb_timestamp timestamp;
   std::string level;
@@ -16,47 +16,54 @@ struct LogStorageWriteLogEntryPayload {
   std::string message;
 };
 
-struct LogStorageWriteLogEntryCallbackTraits {
-  // DuckDBThreadCallback's payload slot is raw storage, so keep the value passed
-  // through it trivial. Invoke below owns the copied strings until dispatch has
-  // completed.
-  using Payload = LogStorageWriteLogEntryPayload *;
-
-  static const char *ResourceName() {
-    return "LogStorageWriteLogEntry";
+// The log manager holds its mutex during the native callback. JS must always
+// run later, even when the entry originated on the JS thread.
+inline void DispatchLogStorageEntry(Napi::Env env, Napi::Function callback, std::nullptr_t *,
+                                    LogStorageWriteLogEntryPayload *entry) {
+  std::unique_ptr<LogStorageWriteLogEntryPayload> payload(entry);
+  // Node drains queued payloads with a null env during teardown.
+  if (env == nullptr || callback == nullptr) {
+    return;
   }
-
-  static void Call(Napi::Env env, Napi::Function callback, const Payload &payload) {
-    Napi::Value user_extra_data = env.Undefined();
-    if (payload->user_extra_data_ref) {
-      user_extra_data = payload->user_extra_data_ref->ref.Value();
+  try {
+    callback.Call(env.Undefined(), {
+      payload->user_extra_data_ref ? payload->user_extra_data_ref->ref.Value() : env.Undefined(),
+      MakeTimestampObject(env, payload->timestamp),
+      Napi::String::New(env, payload->level),
+      Napi::String::New(env, payload->log_type),
+      Napi::String::New(env, payload->message)
+    });
+  } catch (const Napi::Error &) {
+    // Preserve the V1 logger's swallowed-exception behavior: there is no C
+    // error channel, and a failed logger must not poison later JS delivery.
+    if (env.IsExceptionPending()) {
+      env.GetAndClearPendingException();
     }
-    callback.Call(
-      env.Undefined(),
-      {
-        user_extra_data,
-        MakeTimestampObject(env, payload->timestamp),
-        Napi::String::New(env, payload->level),
-        Napi::String::New(env, payload->log_type),
-        Napi::String::New(env, payload->message)
-      }
-    );
   }
-
-  // The logging C API has no error channel. Exceptions from a JS logger must
-  // not escape across the C callback boundary.
-  static void SetError(const Payload &, const char *) {}
-};
+}
 
 struct LogStorageInternalExtraData {
   std::atomic<size_t> reference_count {1};
   std::shared_ptr<NapiRefReaper> ref_reaper;
-  DuckDBThreadCallback<LogStorageWriteLogEntryCallbackTraits> write_log_entry_callback;
+  using TSFN = Napi::TypedThreadSafeFunction<std::nullptr_t, LogStorageWriteLogEntryPayload,
+                                             DispatchLogStorageEntry>;
+  std::unique_ptr<TSFN> write_log_entry_callback;
   std::shared_ptr<ManagedObjectReference> write_log_entry_ref;
   std::shared_ptr<ManagedObjectReference> user_extra_data_ref;
 
   explicit LogStorageInternalExtraData(const std::shared_ptr<NapiRefReaper> &ref_reaper_in)
-    : ref_reaper(ref_reaper_in), write_log_entry_callback(ref_reaper_in) {}
+    : ref_reaper(ref_reaper_in) {}
+
+  ~LogStorageInternalExtraData() {
+    ReleaseCallback();
+  }
+
+  void ReleaseCallback() {
+    if (write_log_entry_callback && ref_reaper->EnvIsAlive()) {
+      write_log_entry_callback->Release();
+    }
+    write_log_entry_callback.reset();
+  }
 
   void AddReference() {
     reference_count.fetch_add(1, std::memory_order_relaxed);
@@ -69,7 +76,10 @@ struct LogStorageInternalExtraData {
   }
 
   void SetWriteLogEntry(Napi::Env env, Napi::Function callback) {
-    write_log_entry_callback.Set(env, callback);
+    ReleaseCallback();
+    write_log_entry_callback = std::make_unique<TSFN>(
+      TSFN::New(env, callback, "LogStorageWriteLogEntry", 0, 1));
+    write_log_entry_callback->Unref(env);
     write_log_entry_ref = MakeManagedObjectReference(ref_reaper, callback);
   }
 
@@ -80,20 +90,15 @@ struct LogStorageInternalExtraData {
   }
 
   void Invoke(LogStorageWriteLogEntryPayload payload) {
-    if (ref_reaper->OnJSThread()) {
-      if (!write_log_entry_ref) {
-        return;
-      }
-      try {
-        auto callback = write_log_entry_ref->ref.Value().As<Napi::Function>();
-        auto payload_pointer = &payload;
-        LogStorageWriteLogEntryCallbackTraits::Call(callback.Env(), callback, payload_pointer);
-      } catch (const Napi::Error &) {
-        // The C callback has nowhere to report an error.
-      }
+    if (!write_log_entry_callback) {
       return;
     }
-    write_log_entry_callback.Invoke(&payload);
+    auto entry = std::make_unique<LogStorageWriteLogEntryPayload>(std::move(payload));
+    // The queue owns the copied strings and managed references until delivery
+    // or teardown. A queue failure leaves ownership here for immediate cleanup.
+    if (write_log_entry_callback->NonBlockingCall(entry.get()) == napi_ok) {
+      entry.release();
+    }
   }
 };
 
@@ -105,6 +110,7 @@ inline void LogStorageWriteLogEntry(void *extra_data, duckdb_timestamp *timestam
                                     const char *log_type, const char *message) {
   auto internal_extra_data = reinterpret_cast<LogStorageInternalExtraData *>(extra_data);
   internal_extra_data->Invoke({
+    internal_extra_data->write_log_entry_ref,
     internal_extra_data->user_extra_data_ref,
     *timestamp,
     level,
