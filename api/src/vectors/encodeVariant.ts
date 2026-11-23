@@ -237,8 +237,10 @@ class VariantRowEncoder {
         return index;
       }
       case DuckDBTypeId.DECIMAL: {
+        // The value's own width and scale, not the type's: `value` is scaled
+        // by them, and a VARIANT DECIMAL stores them alongside it.
         const decimal = asInstance(value, DuckDBDecimalValue);
-        const { width, scale } = type;
+        const { width, scale } = decimal;
         const index = this.addNode(VariantLogicalType.DECIMAL);
         data.writeVarint(width);
         data.writeVarint(scale);
@@ -414,7 +416,7 @@ class VariantRowEncoder {
         }
         const { entries } = asInstance(value, DuckDBStructValue);
         for (const name of entryNames) {
-          if (!(name in entries)) {
+          if (!Object.hasOwn(entries, name)) {
             throw new Error(`STRUCT entry '${name}' is missing from input`);
           }
         }

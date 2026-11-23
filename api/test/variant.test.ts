@@ -1417,6 +1417,121 @@ describe('VARIANT', () => {
     });
   });
 
+  test('a DECIMAL keeps its own width and scale, as appendVariant does', async () => {
+    // The type says DECIMAL(10, 4), but the value is 123.45 at scale 2.
+    const value = variantValue(decimalValue(12345n, 5, 2), DECIMAL(10, 4));
+    await withConnection(async (connection) => {
+      await appendVariantChunk(connection, 'actual', [value]);
+      await connection.run(`create table expected (i INTEGER, v VARIANT)`);
+      const appender = await connection.createAppender('expected');
+      appender.appendInteger(0);
+      appender.appendVariant(value);
+      appender.endRow();
+      appender.closeSync();
+      await assertSameVariants(connection, 'actual', 'expected');
+      const reader = await connection.runAndReadAll(
+        `select variant_typeof(v), v::VARCHAR from actual`,
+      );
+      assert.deepStrictEqual(reader.getRowsJS(), [['DECIMAL(5, 2)', '123.45']]);
+    });
+  });
+
+  test('a slice of a written VARIANT vector reads the written values', () => {
+    const chunk = DuckDBDataChunk.create([VARIANT], 3);
+    const values = [
+      variantValue('a string longer than twelve bytes', VARCHAR),
+      variantValue(2, INTEGER),
+      null,
+    ];
+    chunk.setRows(values.map((value) => [value]));
+    const vector = chunk.getColumnVector(0);
+    assert.deepStrictEqual(vector.slice(0, 3).toArray(), values);
+    assert.deepStrictEqual(vector.slice(1, 2).toArray(), values.slice(1));
+  });
+
+  test('a slice and its parent see each other\'s VARIANT writes', async () => {
+    await withConnection(async (connection) => {
+      const result = await connection.run(
+        `select (i::INTEGER)::VARIANT as v from range(4) t(i)`,
+      );
+      const chunk = await result.fetchChunk();
+      const parent = chunk!.getColumnVector(0) as DuckDBVariantVector;
+      const slice = parent.slice(2, 2);
+      const throughSlice = variantValue('through the slice, long', VARCHAR);
+      const throughParent = variantValue(true, BOOLEAN);
+      slice.setItem(0, throughSlice);
+      parent.setItem(3, throughParent);
+      slice.flush();
+      assert.strictEqual(parent.getItem(2), throughSlice);
+      assert.strictEqual(slice.getItem(1), throughParent);
+      await connection.run(`create table t (v VARIANT)`);
+      const appender = await connection.createAppender('t');
+      appender.appendDataChunk(chunk!);
+      appender.closeSync();
+      const reader = await connection.runAndReadAll(`select v::VARCHAR from t`);
+      assert.deepStrictEqual(reader.getRowsJS(), [
+        ['0'],
+        ['1'],
+        ['through the slice, long'],
+        ['true'],
+      ]);
+    });
+  });
+
+  test('VARIANT rows a function leaves unset are NULL', async () => {
+    await withConnection(async (connection) => {
+      connection.registerScalarFunction(
+        DuckDBScalarFunction.create({
+          name: 'even_only',
+          parameterTypes: [INTEGER],
+          returnType: VARIANT,
+          mainFunction: (_info, input, output) => {
+            for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex += 2) {
+              output.setItem(rowIndex, variantValue(rowIndex, INTEGER));
+            }
+            output.flush();
+          },
+        }),
+      );
+      connection.registerTableFunction(
+        DuckDBTableFunction.create({
+          name: 'first_only',
+          bindFunction: (info) => {
+            info.addResultColumn('v', VARIANT);
+            info.setBindData({});
+          },
+          initFunction: (info) => {
+            info.setInitData({ done: false });
+          },
+          mainFunction: (info, output) => {
+            const initData = info.initData as { done: boolean };
+            if (initData.done) {
+              output.rowCount = 0;
+              return;
+            }
+            initData.done = true;
+            output.rowCount = 3;
+            const vector = output.getColumnVector(0);
+            vector.setItem(0, variantValue('set', VARCHAR));
+            vector.flush();
+          },
+        }),
+      );
+      const scalar = await connection.runAndReadAll(`
+        select count(*) filter (where v is null) as nulls,
+               count(*) filter (where v::INTEGER % 2 = 0) as evens
+        from (select even_only(i::INTEGER) as v from range(5000) t(i))
+      `);
+      assert.deepStrictEqual(scalar.getRowObjectsJS(), [
+        { nulls: 2500n, evens: 2500n },
+      ]);
+      const table = await connection.runAndReadAll(
+        `select v::VARCHAR from first_only()`,
+      );
+      assert.deepStrictEqual(table.getRowsJS(), [['set'], [null], [null]]);
+    });
+  });
+
   test('vector writes refuse a value that does not fit its type', () => {
     const chunk = DuckDBDataChunk.create([VARIANT], 1);
     const cases: [DuckDBVariantValue, RegExp][] = [
@@ -1430,6 +1545,11 @@ describe('VARIANT', () => {
       [
         variantValue(structValue({ a: 1 }), STRUCT({ a: INTEGER, b: INTEGER })),
         /STRUCT entry 'b' is missing from input/,
+      ],
+      [
+        // Named like an Object.prototype member, which must not count.
+        variantValue(structValue({}), STRUCT({ constructor: INTEGER })),
+        /STRUCT entry 'constructor' is missing from input/,
       ],
       [
         variantValue(arrayValue([1]), ARRAY(INTEGER, 2)),

@@ -126,15 +126,24 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
   private typeIdVec!: DuckDBUTinyIntVector;
   private byteOffsetVec!: DuckDBUIntegerVector;
   /**
-   * Values written with `setItem`. Reading a written row back from the
-   * vector does not work: the data blob vector reads from a snapshot of the
-   * native vector taken when it was created.
+   * Values written with `setItem`, indexed from `cacheOffset`. Reading a
+   * written row back from the vector does not work: the data blob vector
+   * reads from a snapshot of the native vector taken when it was created.
+   * A slice shares its parent's array, so a write through either is visible
+   * to both.
    */
-  private readonly itemCache: (DuckDBVariantValue | null | undefined)[] = [];
+  private readonly itemCache: (DuckDBVariantValue | null | undefined)[];
+  private readonly cacheOffset: number;
 
-  constructor(structVec: DuckDBStructVector) {
+  constructor(
+    structVec: DuckDBStructVector,
+    itemCache: (DuckDBVariantValue | null | undefined)[] = [],
+    cacheOffset = 0
+  ) {
     super();
     this.structVec = structVec;
+    this.itemCache = itemCache;
+    this.cacheOffset = cacheOffset;
     this.keysList = structVec.entryVectorAt(0) as DuckDBListVector;
     this.childrenList = structVec.entryVectorAt(1) as DuckDBListVector;
     this.valuesList = structVec.entryVectorAt(2) as DuckDBListVector;
@@ -172,8 +181,12 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
     return this.structVec.itemCount;
   }
 
+  /**
+   * Returns the row's value. A row written with `setItem` returns the value
+   * it was given; any other row is decoded from the vector.
+   */
   public override getItem(itemIndex: number): DuckDBVariantValue | null {
-    const cachedItem = this.itemCache[itemIndex];
+    const cachedItem = this.itemCache[this.cacheOffset + itemIndex];
     if (cachedItem !== undefined) {
       return cachedItem;
     }
@@ -203,6 +216,16 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
     return new DuckDBVariantValue(root.value, root.type);
   }
 
+  /**
+   * Encodes `value` into VARIANT's physical layout (see `encodeVariant`);
+   * `flush` writes it to the native vector.
+   *
+   * `getItem` then returns `value` as given, not as DuckDB reads it back: a
+   * value without a `type` stays without one (`variantValue(42)`, though
+   * DuckDB stores an INTEGER), and nested values keep their input shape (a
+   * MAP stays a MAP, though DuckDB stores an array of `{key, value}`
+   * objects).
+   */
   public override setItem(
     itemIndex: number,
     value: DuckDBVariantValue | null
@@ -224,16 +247,52 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
       }
     }
     this.structVec.setItem(itemIndex, encoded);
-    this.itemCache[itemIndex] = value;
+    this.itemCache[this.cacheOffset + itemIndex] = value;
   }
 
+  /**
+   * Writes the values set with `setItem` to the native vector.
+   *
+   * A non-NULL row that was not set and whose layout is malformed — as in a
+   * fresh output vector, whose memory is uninitialized — is written as NULL.
+   * Rows read from a result are well-formed, so they are kept.
+   */
   public override flush(): void {
+    const itemCount = this.itemCount;
+    for (let itemIndex = 0; itemIndex < itemCount; itemIndex++) {
+      if (
+        this.itemCache[this.cacheOffset + itemIndex] === undefined &&
+        this.structVec.isItemValid(itemIndex) &&
+        !this.isRowWellFormed(itemIndex)
+      ) {
+        this.setItem(itemIndex, null);
+      }
+    }
     this.structVec.flush();
     this.bindListChildVectors();
   }
 
+  /**
+   * Whether the row's keys, children and values entries lie within their
+   * lists, and it has a root value. Does not read the row's data blob,
+   * which in uninitialized memory may hold an invalid pointer.
+   */
+  private isRowWellFormed(itemIndex: number): boolean {
+    for (const list of [this.keysList, this.childrenList, this.valuesList]) {
+      const end = list.getEntryOffset(itemIndex) + list.getEntryLength(itemIndex);
+      if (end > list.childVector.itemCount) {
+        return false;
+      }
+    }
+    return this.valuesList.getEntryLength(itemIndex) > 0;
+  }
+
   public override slice(offset: number, length: number): DuckDBVariantVector {
-    return new DuckDBVariantVector(this.structVec.slice(offset, length));
+    return new DuckDBVariantVector(
+      this.structVec.slice(offset, length),
+      this.itemCache,
+      this.cacheOffset + offset
+    );
   }
 
   /**
