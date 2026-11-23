@@ -597,9 +597,18 @@ describe('prepared statements', () => {
         () => prepared.columnType(0),
         /Column type is unavailable until execution/,
       );
+      assert.throws(
+        () => prepared.columnType(1),
+        /Failed to get prepared statement column logical type/,
+      );
+      assert.throws(
+        () => prepared.parameterType(3),
+        /Parameter type is unavailable until a value is bound/,
+      );
       prepared.bindInteger(1, 1);
       prepared.bindVarchar(2, 'two');
       prepared.bindInteger(3, 3);
+      assert.deepEqual(prepared.parameterType(3), INTEGER);
       const result = await prepared.run();
       assert.deepEqual(result.columnType(2), INTEGER);
     });

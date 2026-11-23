@@ -79,6 +79,9 @@ export class DuckDBPreparedStatement {
     ) as number as DuckDBTypeId;
   }
   public parameterType(parameterIndex: number): DuckDBType {
+    if (this.parameterTypeId(parameterIndex) === DuckDBTypeId.INVALID) {
+      throw new Error('Parameter type is unavailable until a value is bound.');
+    }
     return DuckDBLogicalType.create(
       duckdb.param_logical_type(this.prepared_statement, parameterIndex)
     ).asType();
