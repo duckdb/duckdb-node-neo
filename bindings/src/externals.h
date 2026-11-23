@@ -196,8 +196,9 @@ struct duckdb_file_handle_holder {
 
 inline void DestroyFileHandleOfHolder(duckdb_file_handle_holder *file_handle_holder_ptr) {
   if (file_handle_holder_ptr->file_handle) {
-    // Every caller has already closed the handle through duckdb_file_handle_close,
-    // so the close duckdb_destroy_file_handle does again is normally a no-op.
+    // Every caller has already closed the handle through duckdb_file_handle_close.
+    // duckdb_destroy_file_handle closes it again, which does nothing for a closed
+    // local file.
     duckdb_destroy_file_handle(&file_handle_holder_ptr->file_handle);
     file_handle_holder_ptr->file_handle = nullptr;
   }

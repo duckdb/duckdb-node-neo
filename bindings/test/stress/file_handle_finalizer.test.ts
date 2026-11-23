@@ -45,7 +45,7 @@ suite('file handle finalizer', () => {
           const writer = duckdb.file_system_open_sync(file_system, file_path, options);
           duckdb.file_handle_write_sync(writer, new TextEncoder().encode(`${i}`));
         }
-        // Each open handle holds a descriptor, so the count below means something.
+        // Check the open handles hold descriptors, so the check after collection isn't vacuous.
         if (countOpenFiles && open_files_before !== undefined) {
           expect(countOpenFiles()).toBeGreaterThanOrEqual(open_files_before + 100);
         }

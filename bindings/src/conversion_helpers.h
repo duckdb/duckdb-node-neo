@@ -89,11 +89,11 @@ inline void ThrowBindError(Napi::Env env, duckdb_prepared_statement prepared_sta
 
 // Errors reported as duckdb_error_data
 
-// Call with the error data of an object after one of its functions reports
-// failure, to throw duckdb's message. Takes ownership of the error data. Only
-// valid on the failure path: the error stays set after later calls succeed, and
-// some failures (invalid arguments) set none, so callers validate arguments
-// first rather than report a stale message.
+// Throws duckdb's message from the error data, or fallback_message if there is
+// none. Takes ownership of the error data. Error data read from an object (a
+// file system or file handle) is only valid on the failure path: it stays set
+// after later calls succeed, and some failures (invalid arguments) set none, so
+// callers validate arguments first rather than report a stale message.
 inline void ThrowErrorData(Napi::Env env, duckdb_error_data error_data, const char *fallback_message) {
   std::string message = fallback_message;
   if (duckdb_error_data_has_error(error_data)) {
