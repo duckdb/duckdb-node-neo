@@ -470,6 +470,8 @@ describe('types', () => {
     assert.equal(TIMESTAMP_MS.epoch.toString(), '1970-01-01 00:00:00');
     assert.equal(TIMESTAMP_MS.max.toString(), '294247-01-10 04:00:54.775');
     assert.equal(TIMESTAMP_MS.min.toString(), '290309-12-22 (BC) 00:00:00');
+    assert.equal(TIMESTAMP_MS.posInf.toString(), 'infinity');
+    assert.equal(TIMESTAMP_MS.negInf.toString(), '-infinity');
 
     // timestamp nanoseconds
     assert.equal(TIMESTAMP_NS.epoch.toString(), '1970-01-01 00:00:00');
@@ -482,6 +484,8 @@ describe('types', () => {
     assert.equal(TIMESTAMP_S.epoch.toString(), '1970-01-01 00:00:00');
     assert.equal(TIMESTAMP_S.max.toString(), '294247-01-10 04:00:54');
     assert.equal(TIMESTAMP_S.min.toString(), '290309-12-22 (BC) 00:00:00');
+    assert.equal(TIMESTAMP_S.posInf.toString(), 'infinity');
+    assert.equal(TIMESTAMP_S.negInf.toString(), '-infinity');
 
     // timestamp tz
     assert.equal(TIMESTAMPTZ.epoch.toString(), '1969-12-31 18:30:00-05:30');
@@ -602,6 +606,36 @@ describe('types', () => {
       assert.deepEqual(row.slice(0, 2), [DATE.posInf, DATE.negInf]);
       assert.deepEqual(reader.getRowsJson(), [
         ['infinity', '-infinity', 'infinity', '-infinity'],
+      ]);
+    });
+  });
+  test('second and millisecond timestamp infinities read as DuckDB prints them', async () => {
+    await withConnection(async (connection) => {
+      const reader = await connection.runAndReadAll(`
+        select
+          'infinity'::timestamp_s as s_pos,
+          '-infinity'::timestamp_s as s_neg,
+          'infinity'::timestamp_ms as ms_pos,
+          '-infinity'::timestamp_ms as ms_neg,
+          'infinity'::timestamp_s::varchar as s_pos_text,
+          '-infinity'::timestamp_ms::varchar as ms_neg_text
+      `);
+      const [row] = reader.getRows();
+      assert.deepEqual(row.slice(0, 4), [
+        TIMESTAMP_S.posInf,
+        TIMESTAMP_S.negInf,
+        TIMESTAMP_MS.posInf,
+        TIMESTAMP_MS.negInf,
+      ]);
+      assert.deepEqual(reader.getRowsJson(), [
+        [
+          'infinity',
+          '-infinity',
+          'infinity',
+          '-infinity',
+          'infinity',
+          '-infinity',
+        ],
       ]);
     });
   });
