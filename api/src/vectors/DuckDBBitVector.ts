@@ -56,6 +56,10 @@ export class DuckDBBitVector extends DuckDBVector<DuckDBBitValue> {
     return this._itemCount;
   }
   public override getItem(itemIndex: number): DuckDBBitValue | null {
+    const cachedItem = this.itemCache[itemIndex];
+    if (cachedItem !== undefined) {
+      return cachedItem;
+    }
     if (!this.validity.itemValid(itemIndex)) {
       return null;
     }

@@ -56,6 +56,10 @@ export class DuckDBGeometryVector extends DuckDBVector<DuckDBGeometryValue> {
     return this._itemCount;
   }
   public override getItem(itemIndex: number): DuckDBGeometryValue | null {
+    const cachedItem = this.itemCache[itemIndex];
+    if (cachedItem !== undefined) {
+      return cachedItem;
+    }
     return this.validity.itemValid(itemIndex)
       ? new DuckDBGeometryValue(getBuffer(this.dataView, itemIndex * 16))
       : null;

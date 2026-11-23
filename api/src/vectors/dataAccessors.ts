@@ -87,6 +87,12 @@ export function getBuffer(dataView: DataView, offset: number): Buffer {
 }
 
 export function getBigNumFromBytes(bytes: Uint8Array): bigint {
+  // A 3-byte header, then at least one byte of magnitude.
+  if (bytes.byteLength < 4) {
+    throw new Error(
+      `Malformed BIGNUM: ${bytes.byteLength} bytes, expected at least 4`
+    );
+  }
   const firstByte = bytes[0];
   const positive = (firstByte & 0x80) > 0;
   const uint64Mask = positive ? 0n : 0xffffffffffffffffn;
