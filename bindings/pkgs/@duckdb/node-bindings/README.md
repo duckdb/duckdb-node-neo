@@ -17,7 +17,7 @@ See [@duckdb/node-api](https://www.npmjs.com/package/@duckdb/node-api) for a hig
 
 ## Custom log storage
 
-Register a V1 log storage callback with `create_log_storage`,
+Register a custom log storage callback with `create_log_storage`,
 `log_storage_set_name`, `log_storage_set_write_log_entry`, and
 `register_log_storage`. Select it with `SET logging_sink = 'your_storage_name'`
 and enable logging with `SET enable_logging = true`.
