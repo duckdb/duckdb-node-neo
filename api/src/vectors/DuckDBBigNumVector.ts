@@ -55,6 +55,10 @@ export class DuckDBBigNumVector extends DuckDBVector<bigint> {
     return this._itemCount;
   }
   public override getItem(itemIndex: number): bigint | null {
+    const cachedItem = this.itemCache[itemIndex];
+    if (cachedItem !== undefined) {
+      return cachedItem;
+    }
     if (!this.validity.itemValid(itemIndex)) {
       return null;
     }

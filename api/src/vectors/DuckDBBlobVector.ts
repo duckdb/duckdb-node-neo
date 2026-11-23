@@ -57,6 +57,10 @@ export class DuckDBBlobVector extends DuckDBVector<DuckDBBlobValue> {
     return this._itemCount;
   }
   public override getItem(itemIndex: number): DuckDBBlobValue | null {
+    const cachedItem = this.itemCache[itemIndex];
+    if (cachedItem !== undefined) {
+      return cachedItem;
+    }
     return this.validity.itemValid(itemIndex)
       ? new DuckDBBlobValue(getBuffer(this.dataView, itemIndex * 16))
       : null;
@@ -71,6 +75,10 @@ export class DuckDBBlobVector extends DuckDBVector<DuckDBBlobValue> {
    * result as read-only either way.
    */
   public getItemBytes(itemIndex: number): Uint8Array | null {
+    const cachedItem = this.itemCache[itemIndex];
+    if (cachedItem !== undefined) {
+      return cachedItem?.bytes ?? null;
+    }
     return this.validity.itemValid(itemIndex)
       ? getStringBytes(this.dataView, itemIndex * 16)
       : null;
