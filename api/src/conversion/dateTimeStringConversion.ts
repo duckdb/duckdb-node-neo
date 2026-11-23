@@ -242,8 +242,6 @@ export function getDuckDBTimestampStringFromMicroseconds(
   microseconds: bigint,
   timezoneOffsetInMinutes?: number
 ): string {
-  // Note that -infinity and infinity are only representable in TIMESTAMP (and TIMESTAMPTZ), not the other timestamp
-  // variants. This is by-design and matches DuckDB.
   if (microseconds === NEGATIVE_INFINITY_TIMESTAMP) {
     return '-infinity';
   }
@@ -271,6 +269,13 @@ export function getDuckDBTimestampStringFromMicroseconds(
 }
 
 export function getDuckDBTimestampStringFromSeconds(seconds: bigint): string {
+  // TIMESTAMP_S uses the same infinity values as TIMESTAMP; check them before scaling.
+  if (seconds === NEGATIVE_INFINITY_TIMESTAMP) {
+    return '-infinity';
+  }
+  if (seconds === POSITIVE_INFINITY_TIMESTAMP) {
+    return 'infinity';
+  }
   return getDuckDBTimestampStringFromMicroseconds(
     seconds * MICROSECONDS_PER_SECOND
   );
@@ -279,6 +284,13 @@ export function getDuckDBTimestampStringFromSeconds(seconds: bigint): string {
 export function getDuckDBTimestampStringFromMilliseconds(
   milliseconds: bigint
 ): string {
+  // TIMESTAMP_MS uses the same infinity values as TIMESTAMP; check them before scaling.
+  if (milliseconds === NEGATIVE_INFINITY_TIMESTAMP) {
+    return '-infinity';
+  }
+  if (milliseconds === POSITIVE_INFINITY_TIMESTAMP) {
+    return 'infinity';
+  }
   return getDuckDBTimestampStringFromMicroseconds(
     milliseconds * MICROSECONDS_PER_MILLISECOND
   );
