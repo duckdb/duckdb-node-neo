@@ -14,14 +14,18 @@ export class DuckDBBooleanVector extends DuckDBVector<boolean> {
   private readonly dataView: DataView;
   private readonly validity: DuckDBValidity;
   private readonly vector: duckdb.Vector;
+  /** This vector's first row in the native vector; nonzero for a slice. */
+  private readonly itemOffset: number;
   private readonly _itemCount: number;
   constructor(
     dataView: DataView,
     validity: DuckDBValidity,
     vector: duckdb.Vector,
-    itemCount: number
+    itemCount: number,
+    itemOffset = 0
   ) {
     super();
+    this.itemOffset = itemOffset;
     this.dataView = dataView;
     this.validity = validity;
     this.vector = vector;
@@ -62,7 +66,7 @@ export class DuckDBBooleanVector extends DuckDBVector<boolean> {
   public override flush() {
     duckdb.copy_data_to_vector(
       this.vector,
-      0,
+      this.itemOffset * duckdb.sizeof_bool,
       this.dataView.buffer as ArrayBuffer,
       this.dataView.byteOffset,
       this.dataView.byteLength
@@ -76,9 +80,10 @@ export class DuckDBBooleanVector extends DuckDBVector<boolean> {
         this.dataView.byteOffset + offset * duckdb.sizeof_bool,
         length * duckdb.sizeof_bool
       ),
-      this.validity.slice(offset, length),
+      this.validity.slice(offset),
       this.vector,
-      length
+      length,
+      this.itemOffset + offset
     );
   }
 }

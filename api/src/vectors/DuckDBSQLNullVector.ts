@@ -45,7 +45,7 @@ export class DuckDBSQLNullVector extends DuckDBVector<null> {
   }
   public override slice(offset: number, length: number): DuckDBSQLNullVector {
     return new DuckDBSQLNullVector(
-      this.validity.slice(offset, length),
+      this.validity.slice(offset),
       this.vector,
       length
     );

@@ -118,7 +118,7 @@ export class DuckDBTupleVector extends DuckDBVector<DuckDBTupleValue> {
       this.tupleType,
       length,
       this.entryVectors.map((entryVector) => entryVector.slice(offset, length)),
-      this.validity.slice(offset, length),
+      this.validity.slice(offset),
       this.vector
     );
   }

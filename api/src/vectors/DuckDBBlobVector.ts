@@ -111,7 +111,7 @@ export class DuckDBBlobVector extends DuckDBVector<DuckDBBlobValue> {
         this.dataView.byteOffset + offset * 16,
         length * 16
       ),
-      this.validity.slice(offset, length),
+      this.validity.slice(offset),
       this.vector,
       offset,
       length
