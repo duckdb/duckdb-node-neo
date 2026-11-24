@@ -83,6 +83,9 @@ export class DuckDBPreparedStatement {
     ) as number as DuckDBTypeId;
   }
   public parameterType(parameterIndex: number): DuckDBType {
+    if (this.parameterTypeId(parameterIndex) === DuckDBTypeId.INVALID) {
+      throw new Error('Parameter type is unavailable until a value is bound.');
+    }
     return DuckDBLogicalType.create(
       duckdb.param_logical_type(this.prepared_statement, parameterIndex)
     ).asType();
@@ -103,12 +106,16 @@ export class DuckDBPreparedStatement {
     ) as number as DuckDBTypeId;
   }
   public columnType(columnIndex: number): DuckDBType {
-    return DuckDBLogicalType.create(
+    const logicalType = DuckDBLogicalType.create(
       duckdb.prepared_statement_column_logical_type(
         this.prepared_statement,
         columnIndex
       )
-    ).asType();
+    );
+    if (logicalType.typeId === DuckDBTypeId.INVALID) {
+      throw new Error('Column type is unavailable until execution. Read the type from the result.');
+    }
+    return logicalType.asType();
   }
   public clearBindings() {
     duckdb.clear_bindings(this.prepared_statement);
