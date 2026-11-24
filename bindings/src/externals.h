@@ -189,7 +189,7 @@ inline duckdb_extracted_statements GetExtractedStatementsFromExternal(Napi::Env 
 // again: not every file handle implementation tolerates being used after Close.
 // So an explicit close also destroys it, and file_handle is null from then on.
 // The handle does not keep its database alive, so it must be closed before the
-// database is: closing or finalizing it afterwards can crash the process.
+// database is: using, closing or finalizing it afterwards can crash the process.
 struct duckdb_file_handle_holder {
   duckdb_file_handle file_handle;
 };
