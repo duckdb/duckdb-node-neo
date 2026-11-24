@@ -147,6 +147,17 @@ suite('enums', () => {
     expect(duckdb.Type[duckdb.Type.BIGNUM]).toBe('BIGNUM');
     expect(duckdb.Type[duckdb.Type.SQLNULL]).toBe('SQLNULL');
   });
+  test('ConfigOptionScope', () => {
+    expect(duckdb.ConfigOptionScope.INVALID).toBe(0);
+    expect(duckdb.ConfigOptionScope.LOCAL).toBe(1);
+    expect(duckdb.ConfigOptionScope.SESSION).toBe(2);
+    expect(duckdb.ConfigOptionScope.GLOBAL).toBe(3);
+
+    expect(duckdb.ConfigOptionScope[duckdb.ConfigOptionScope.INVALID]).toBe('INVALID');
+    expect(duckdb.ConfigOptionScope[duckdb.ConfigOptionScope.LOCAL]).toBe('LOCAL');
+    expect(duckdb.ConfigOptionScope[duckdb.ConfigOptionScope.SESSION]).toBe('SESSION');
+    expect(duckdb.ConfigOptionScope[duckdb.ConfigOptionScope.GLOBAL]).toBe('GLOBAL');
+  });
   test('CatalogEntryType', () => {
     expect(duckdb.CatalogEntryType.INVALID).toBe(0);
     expect(duckdb.CatalogEntryType.TABLE).toBe(1);

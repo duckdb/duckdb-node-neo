@@ -128,6 +128,52 @@ connection.closeSync();
 const result = await connection.run('from test_all_types()');
 ```
 
+### Look Up Catalog Entries
+
+```ts
+import { CatalogEntryType, DuckDBInstance } from '@duckdb/node-api';
+
+const instance = await DuckDBInstance.create();
+const connection = await instance.connect();
+try {
+  await connection.run('begin');
+  await connection.run('create view example as select 42 as i');
+
+  const catalog = connection.clientContext.getCatalog('memory')!;
+  console.log(catalog.typeName); // duckdb (backend type)
+  console.log(connection.clientContext.getCatalog('missing')); // null
+  console.log(
+    catalog.getEntry(CatalogEntryType.TABLE, 'main', 'missing')
+  ); // null
+
+  const entry = catalog.getEntry(
+    CatalogEntryType.TABLE, 'main', 'example'
+  )!;
+  await connection.run('rollback');
+
+  // Snapshotted metadata remains readable after disconnect, too.
+  console.log(entry.name); // example
+  console.log(CatalogEntryType[entry.type]); // VIEW (actual entry type)
+} finally {
+  connection.disconnectSync();
+  instance.closeSync();
+}
+```
+
+`getCatalog` requires an active transaction and returns `null` otherwise.
+Use `getEntry` only within the transaction in which the catalog was
+acquired, while its database remains attached and its connection remains
+open. Retaining a catalog does not extend these lifetimes.
+
+When using a client context from a registered function's callback, perform
+catalog lookups synchronously in that callback. Store entry snapshots in
+bind data for use in later callbacks.
+
+Catalog `typeName` and entry `name` and `type` are snapshots. They remain
+readable after `COMMIT`, `ROLLBACK`, `DETACH`, or disconnect, but do not
+track later changes. Acquire a new catalog in a valid transaction and
+connection for current metadata.
+
 ### Parameterize SQL
 
 ```ts
@@ -282,6 +328,48 @@ appended since the last successful flush are lost. Read the result to the
 end or close it before appending, or append on a separate connection.
 Close appenders explicitly too: one that is flushed when it's garbage
 collected can't report a failure.
+
+### Close with `using`
+
+Every class with a `closeSync`, `disconnectSync`, or `destroySync` method
+implements `Symbol.dispose`: instances, connections, prepared statements,
+results, result readers, pending results, appenders, and scalar and table
+functions. A `using` declaration closes the object on every way out of the
+scope, including a thrown error:
+
+```ts
+{
+  using result = await connection.stream('from range(10_000)');
+  const chunk = await result.fetchChunk();
+  // ...
+} // result is closed here
+```
+
+`using` needs TypeScript 5.2 or a runtime with native support;
+`Symbol.dispose` exists from Node 20. `DisposableStack` closes several
+objects at once and is built in from Node 24; earlier versions need a
+polyfill. Closing explicitly inside the scope is fine; the dispose at the
+end then does nothing.
+
+Disposing an appender flushes it, as `closeSync()` does, also when the
+scope exits because of an error, so the rows appended before the error end
+up in the table. For all-or-nothing, clear before rethrowing:
+
+```ts
+using appender = await connection.createAppender('t');
+try {
+  // append rows...
+} catch (err) {
+  appender.clear();
+  throw err;
+}
+```
+
+Disposal runs in reverse declaration order. Declare an appender before any
+streaming result on the same connection, or the appender is disposed while
+the result still blocks the connection, and on DuckDB 2.0 that flush fails
+and its rows are lost. Appending on a separate connection avoids the
+question.
 
 ### Inspect Result Metadata
 

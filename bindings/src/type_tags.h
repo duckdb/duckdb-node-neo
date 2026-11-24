@@ -39,6 +39,10 @@ inline constexpr napi_type_tag ConfigTypeTag = {
   0x5963FBB9648B4D2A, 0xB41ADE86056218D1
 };
 
+inline constexpr napi_type_tag ConfigOptionTypeTag = {
+  0x1B3E7E02BF6642FA, 0x8063E5555189AA1E
+};
+
 inline constexpr napi_type_tag ConnectionTypeTag = {
   0x922B9BF54AB04DFC, 0x8A258578D371DB71
 };

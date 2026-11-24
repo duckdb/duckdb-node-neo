@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Fetch the DuckDB 2.0 preview shared library + headers for a platform.
+"""Fetch the DuckDB shared library + all headers for a platform, for the probes here.
 
-The 2.0 preview is not a GitHub release, so bindings/scripts/fetch_libduckdb_*.py
-cannot reach it. Preview artifacts live under artifacts.duckdb.org keyed by the
-release branch, and ship as tarballs rather than the release zips:
+bindings/scripts/fetch_libduckdb_*.py extract only duckdb.h and the library, but the
+probes in this directory also need duckdb_v2.h. This pulls the same release tarball
+(same version, read from bindings/scripts/fetch_libduckdb.py) and unpacks all of it
+into libduckdb-v2/:
 
-    https://artifacts.duckdb.org/v2.0-cyanoptera/duckdb-shared-libs-<suffix>.tar.gz
+    <base_url>/duckdb-shared-libs-<suffix>.tar.gz
 
 Each tarball contains libduckdb.{dylib,so,dll}, duckdb.h, duckdb_v2.h,
-duckdb_extension.h and duckdb_extension_v2.h.
+duckdb_extension.h, duckdb_extension_v2.h and duckdb_static_extension.h.
 
     python3 tools/capi-v2/fetch_libduckdb_v2.py                  # host platform
     python3 tools/capi-v2/fetch_libduckdb_v2.py linux-amd64      # a named one
@@ -20,11 +21,17 @@ import sys
 import tarfile
 import urllib.request
 
-BRANCH = "v2.0-cyanoptera"
-URL = "https://artifacts.duckdb.org/{branch}/duckdb-shared-libs-{suffix}.tar.gz"
+here = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(here, "..", "..", "bindings", "scripts"))
 
-# The suffixes published for the preview, one per platform Node Neo targets.
+from fetch_libduckdb import base_url  # noqa: E402
+
+URL = "{base_url}/duckdb-shared-libs-{suffix}.tar.gz"
+
+# The suffixes the release publishes for the platforms Node Neo targets.
 SUFFIXES = [
+    "osx-arm64",
+    "osx-amd64",
     "osx-universal",
     "linux-amd64",
     "linux-arm64",
@@ -34,14 +41,14 @@ SUFFIXES = [
     "windows-arm64",
 ]
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "libduckdb-v2")
+OUT = os.path.join(here, "libduckdb-v2")
 
 
 def host_suffix():
     system, machine = platform.system(), platform.machine().lower()
-    if system == "Darwin":
-        return "osx-universal"
     arch = "arm64" if machine in ("arm64", "aarch64") else "amd64"
+    if system == "Darwin":
+        return f"osx-{arch}"
     if system == "Linux":
         return f"linux-{arch}"
     if system == "Windows":
@@ -54,20 +61,21 @@ def main():
     if suffix not in SUFFIXES:
         sys.exit(f"unknown suffix {suffix!r}; expected one of: {', '.join(SUFFIXES)}")
 
-    url = URL.format(branch=BRANCH, suffix=suffix)
+    url = URL.format(base_url=base_url, suffix=suffix)
     os.makedirs(OUT, exist_ok=True)
     archive = os.path.join(OUT, f"duckdb-shared-libs-{suffix}.tar.gz")
 
     print(f"fetching: {url}")
-    # artifacts.duckdb.org rejects urllib's default User-Agent with a 403.
-    request = urllib.request.Request(url, headers={"User-Agent": "duckdb-node-neo/capi-v2-survey"})
-    with urllib.request.urlopen(request) as response, open(archive, "wb") as f:
+    with urllib.request.urlopen(url) as response, open(archive, "wb") as f:
         while chunk := response.read(1 << 20):
             f.write(chunk)
     with tarfile.open(archive) as tar:
         for member in tar.getmembers():
             print(f"extracting: {member.name}")
-        tar.extractall(OUT)
+        if hasattr(tarfile, "data_filter"):
+            tar.extractall(OUT, filter="data")
+        else:
+            tar.extractall(OUT)
     print(f"\n{OUT}")
 
 

@@ -9,7 +9,8 @@
  *   cc -std=c11 -I libduckdb-v2 coexist_probe.c -L libduckdb-v2 -lduckdb \
  *      -Wl,-rpath,@loader_path/libduckdb-v2 -o coexist_probe && ./coexist_probe
  *
- * Measured against the 2.0 preview (2026-10-10):
+ * Measured against the 2.0 preview (2026-10-10), and unchanged against 2.0.1
+ * (2026-11-21):
  *
  *   v1 open:                           ok
  *   v1 open again:                     ok (no conflict reported)
@@ -26,6 +27,9 @@
  */
 
 #include "duckdb.h"
+/* Every V2 function is marked unstable in 2.0, and the header declares none of
+ * them unless the consumer opts in. */
+#define DUCKDB_V2_API_ALLOW_UNSTABLE 1
 #include "duckdb_v2.h"
 
 #include <stdio.h>
@@ -42,7 +46,7 @@ static duckdb_v2_str str(const char *s) {
 static DUCKDB_V2_ERROR attach(const char *label, duckdb_v2_instance_handle instance, const char *path) {
 	duckdb_v2_error_info_handle err = NULL;
 	duckdb_v2_str view = str(path);
-	DUCKDB_V2_ERROR error = duckdb_v2_instance_attach(instance, &view, NULL, NULL, true, &err);
+	DUCKDB_V2_ERROR error = duckdb_v2_instance_attach(instance, NULL, &view, NULL, true, &err);
 	duckdb_v2_str text = {NULL, 0};
 	if (err) {
 		duckdb_v2_error_info_get_text(err, &text);

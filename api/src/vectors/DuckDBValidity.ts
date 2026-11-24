@@ -20,18 +20,22 @@ import duckdb from '@duckdb/node-bindings';
 //   }
 // }
 
+/**
+ * A validity bit mask, shared by a vector and its slices so that a NULL set
+ * through either is visible to both. `data` is null while every row is valid.
+ */
+interface ValidityMask {
+  data: BigUint64Array | null;
+  /** Row count of the vector the mask covers, slices included. */
+  readonly itemCount: number;
+}
+
 export class DuckDBValidity {
-  private data: BigUint64Array | null;
+  private readonly mask: ValidityMask;
   private readonly offset: number;
-  private readonly itemCount: number;
-  private constructor(
-    data: BigUint64Array | null,
-    offset: number,
-    itemCount: number
-  ) {
-    this.data = data;
+  private constructor(mask: ValidityMask, offset: number) {
+    this.mask = mask;
     this.offset = offset;
-    this.itemCount = itemCount;
   }
   public static fromVector(
     vector: duckdb.Vector,
@@ -39,66 +43,67 @@ export class DuckDBValidity {
   ): DuckDBValidity {
     const uint64Count = Math.ceil(itemCount / 64);
     const bytes = duckdb.vector_get_validity(vector, uint64Count * 8);
-    if (!bytes) {
-      return new DuckDBValidity(null, 0, itemCount);
-    }
-    const bigints = new BigUint64Array(
-      bytes.buffer,
-      bytes.byteOffset,
-      uint64Count
-    );
-    return new DuckDBValidity(bigints, 0, itemCount);
+    const data = bytes
+      ? new BigUint64Array(bytes.buffer, bytes.byteOffset, uint64Count)
+      : null;
+    return new DuckDBValidity({ data, itemCount }, 0);
   }
   public itemValid(itemIndex: number): boolean {
-    if (!this.data) {
+    const { data } = this.mask;
+    if (!data) {
       return true;
     }
     const bit = this.offset + itemIndex;
     return (
-      (this.data[Math.floor(bit / 64)] & (BigInt(1) << BigInt(bit % 64))) !==
+      (data[Math.floor(bit / 64)] & (BigInt(1) << BigInt(bit % 64))) !==
       BigInt(0)
     );
   }
   public setItemValid(itemIndex: number, valid: boolean) {
-    if (!this.data && !valid) {
-      // An item is being set to invalid and we don't have a data buffer, so create it. If an item is being set to valid
-      // and we don't have a data buffer, then there's nothing to do; a null data buffer indicates all items are valid.
-      const uint64Count = Math.ceil(this.itemCount / 64);
+    if (!this.mask.data && !valid) {
+      // An item is being set to invalid and we don't have a data buffer, so create it, sized for the whole mask rather
+      // than this slice of it. If an item is being set to valid and we don't have a data buffer, then there's nothing to
+      // do; a null data buffer indicates all items are valid.
+      const uint64Count = Math.ceil(this.mask.itemCount / 64);
       const buffer = new ArrayBuffer(uint64Count * 8);
-      this.data = new BigUint64Array(buffer, 0, uint64Count);
+      this.mask.data = new BigUint64Array(buffer, 0, uint64Count);
       // Initialize to all items to valid.
-      for (let i = 0; i < this.data.length; i++) {
-        this.data[i] = 0xffffffffffffffffn;
-      }
+      this.mask.data.fill(0xffffffffffffffffn);
     }
-    if (this.data) {
+    const { data } = this.mask;
+    if (data) {
       const bit = this.offset + itemIndex;
       const uint64Index = Math.floor(bit / 64);
       const uint64WithBitSet = BigInt(1) << BigInt(bit % 64);
       if (valid) {
-        if ((this.data[uint64Index] & uint64WithBitSet) === 0n) {
-          this.data[uint64Index] |= uint64WithBitSet;
+        if ((data[uint64Index] & uint64WithBitSet) === 0n) {
+          data[uint64Index] |= uint64WithBitSet;
         }
       } else {
-        if ((this.data[uint64Index] & uint64WithBitSet) !== 0n) {
-          this.data[uint64Index] &= ~uint64WithBitSet;
+        if ((data[uint64Index] & uint64WithBitSet) !== 0n) {
+          data[uint64Index] &= ~uint64WithBitSet;
         }
       }
     }
   }
+  /**
+   * Writes the whole mask, not just this slice's rows: rows are bits, so a
+   * slice's rows need not start or end on a byte boundary.
+   */
   public flush(vector: duckdb.Vector) {
-    if (this.data) {
+    const { data } = this.mask;
+    if (data) {
       duckdb.vector_ensure_validity_writable(vector);
       duckdb.copy_data_to_vector_validity(
         vector,
         0,
-        this.data.buffer as ArrayBuffer,
-        this.data.byteOffset,
-        this.data.byteLength
+        data.buffer as ArrayBuffer,
+        data.byteOffset,
+        data.byteLength
       );
     }
   }
-  public slice(offset: number, itemCount: number): DuckDBValidity {
-    return new DuckDBValidity(this.data, this.offset + offset, itemCount);
+  public slice(offset: number): DuckDBValidity {
+    return new DuckDBValidity(this.mask, this.offset + offset);
   }
 }

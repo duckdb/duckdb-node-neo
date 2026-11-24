@@ -62,6 +62,17 @@ export class DuckDBAppender {
   public closeSync() {
     duckdb.appender_close_sync(this.appender);
   }
+  /**
+   * Same as closeSync, so `using` flushes and closes the appender. That holds
+   * when the scope exits because of an error too: the rows appended before
+   * the error end up in the table. For all-or-nothing, catch the error, call
+   * `clear()`, and rethrow. A flush that itself fails while the scope is
+   * unwinding from an error arrives together with that error as a
+   * `SuppressedError`.
+   */
+  public [Symbol.dispose]() {
+    this.closeSync();
+  }
   public flushSync() {
     duckdb.appender_flush_sync(this.appender);
   }

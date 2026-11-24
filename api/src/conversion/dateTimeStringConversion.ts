@@ -12,6 +12,9 @@ const NANOSECONDS_PER_DAY = 86400000000000n; // 24 * 60 * 60 * 1000000000
 const NEGATIVE_INFINITY_TIMESTAMP = -9223372036854775807n; // -(2^63-1)
 const POSITIVE_INFINITY_TIMESTAMP = 9223372036854775807n; // 2^63-1
 
+const NEGATIVE_INFINITY_DATE = -2147483647; // -(2^31-1)
+const POSITIVE_INFINITY_DATE = 2147483647; // 2^31-1
+
 export function getDuckDBDateStringFromYearMonthDay(
   year: number,
   month: number,
@@ -24,6 +27,12 @@ export function getDuckDBDateStringFromYearMonthDay(
 }
 
 export function getDuckDBDateStringFromDays(days: number): string {
+  if (days === NEGATIVE_INFINITY_DATE) {
+    return '-infinity';
+  }
+  if (days === POSITIVE_INFINITY_DATE) {
+    return 'infinity';
+  }
   const absDays = Math.abs(days);
   const sign = days < 0 ? -1 : 1;
   // 400 years is the shortest interval with a fixed number of days. (Leap years and different length months can result
@@ -233,8 +242,6 @@ export function getDuckDBTimestampStringFromMicroseconds(
   microseconds: bigint,
   timezoneOffsetInMinutes?: number
 ): string {
-  // Note that -infinity and infinity are only representable in TIMESTAMP (and TIMESTAMPTZ), not the other timestamp
-  // variants. This is by-design and matches DuckDB.
   if (microseconds === NEGATIVE_INFINITY_TIMESTAMP) {
     return '-infinity';
   }
@@ -262,6 +269,13 @@ export function getDuckDBTimestampStringFromMicroseconds(
 }
 
 export function getDuckDBTimestampStringFromSeconds(seconds: bigint): string {
+  // TIMESTAMP_S uses the same infinity values as TIMESTAMP; check them before scaling.
+  if (seconds === NEGATIVE_INFINITY_TIMESTAMP) {
+    return '-infinity';
+  }
+  if (seconds === POSITIVE_INFINITY_TIMESTAMP) {
+    return 'infinity';
+  }
   return getDuckDBTimestampStringFromMicroseconds(
     seconds * MICROSECONDS_PER_SECOND
   );
@@ -270,6 +284,13 @@ export function getDuckDBTimestampStringFromSeconds(seconds: bigint): string {
 export function getDuckDBTimestampStringFromMilliseconds(
   milliseconds: bigint
 ): string {
+  // TIMESTAMP_MS uses the same infinity values as TIMESTAMP; check them before scaling.
+  if (milliseconds === NEGATIVE_INFINITY_TIMESTAMP) {
+    return '-infinity';
+  }
+  if (milliseconds === POSITIVE_INFINITY_TIMESTAMP) {
+    return 'infinity';
+  }
   return getDuckDBTimestampStringFromMicroseconds(
     milliseconds * MICROSECONDS_PER_MILLISECOND
   );

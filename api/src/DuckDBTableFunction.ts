@@ -87,6 +87,11 @@ export class DuckDBTableFunction {
     duckdb.destroy_table_function_sync(this.table_function);
   }
 
+  /** Same as destroySync; lets `using` destroy the function after it is registered. */
+  public [Symbol.dispose]() {
+    this.destroySync();
+  }
+
   public setName(name: string) {
     duckdb.table_function_set_name(this.table_function, name);
   }

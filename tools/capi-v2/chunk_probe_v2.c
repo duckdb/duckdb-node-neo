@@ -3,20 +3,23 @@
  * chunk_probe.c establishes that duckdb_create_data_chunk returns null for a
  * VARIANT logical type, on the library we ship and on the 2.0 preview alike.
  * This asks the same of V2 -- of duckdb_v2_data_chunk_create, and of
- * duckdb_v2_column_data_collection_create_with_connection, which is the one
+ * duckdb_v2_column_data_collection_create, which is the one
  * that matters, since the collection is what bulk append fills when there is
  * no appender.
  *
  * The VARIANT logical type is borrowed from a result schema rather than
- * constructed: V2 builds types through a context, and a context is only handed
- * out inside callback scopes, never to an external caller.
+ * constructed. When this was written, V2 built types only through a context,
+ * which is handed out only inside callbacks; since duckdb/duckdb#26820 a
+ * factory from a connection or instance builds them too, but the borrowed type
+ * keeps this probe about chunks rather than type construction.
  *
  *   python3 tools/capi-v2/fetch_libduckdb_v2.py
  *   cd tools/capi-v2 && cc -std=c11 -I libduckdb-v2 chunk_probe_v2.c \
  *      -L libduckdb-v2 -lduckdb -Wl,-rpath,@loader_path/libduckdb-v2 \
  *      -o chunk_probe_v2 && ./chunk_probe_v2
  *
- * Measured against the 2.0 preview (2026-09-12):
+ * Measured against the 2.0 preview (2026-09-12), and unchanged against 2.0.1
+ * (2026-11-21, through a factory from the connection):
  *
  *   borrowed column 1 type: VARIANT
  *
@@ -27,12 +30,15 @@
  *   column data collection:
  *   [INTEGER, VARIANT]   -> code=0 collection=non-NULL
  *
- * So the V1 refusal is not inherited. Note also that V2 reports failure through
+ * So V2 never had the V1 refusal. Note also that V2 reports failure through
  * a return code plus an error handle rather than a sentinel, so a refusal here
  * could not go unnoticed the way V1's null does.
  */
 #include <stdio.h>
 #include <string.h>
+/* Every V2 function is marked unstable in 2.0, and the header declares none of
+ * them unless the consumer opts in. */
+#define DUCKDB_V2_API_ALLOW_UNSTABLE 1
 #include <duckdb_v2.h>
 
 static duckdb_v2_str str(const char *s) {
@@ -51,11 +57,11 @@ static duckdb_v2_str str(const char *s) {
     }                                                                          \
   } while (0)
 
-static void try_chunk(const char *label, duckdb_v2_logical_type_handle *types,
-                      idx_t n) {
+static void try_chunk(duckdb_v2_factory_handle factory, const char *label,
+                      duckdb_v2_logical_type_handle *types, idx_t n) {
   duckdb_v2_data_chunk_handle chunk = NULL;
   duckdb_v2_error_info_handle err = NULL;
-  DUCKDB_V2_ERROR e = duckdb_v2_data_chunk_create(types, n, &chunk, &err);
+  DUCKDB_V2_ERROR e = duckdb_v2_data_chunk_create(factory, types, n, &chunk, &err);
   printf("%-22s -> code=%d", label, (int)e);
   if (e == DUCKDB_V2_ERROR_NONE) {
     idx_t cols = 0;
@@ -82,13 +88,15 @@ int main(void) {
   duckdb_v2_sql_statement_handle st = NULL;
   duckdb_v2_result_handle res = NULL;
   duckdb_v2_schema_handle schema = NULL;
+  duckdb_v2_factory_handle factory = NULL;
 
   duckdb_v2_str memory = str(":memory:");
   CHECK(duckdb_v2_environment_create(&env, &err));
   CHECK(duckdb_v2_instance_create(env, &instance, &err));
-  CHECK(duckdb_v2_instance_attach(instance, &memory, NULL, NULL, true, &err));
+  CHECK(duckdb_v2_instance_attach(instance, NULL, &memory, NULL, true, &err));
   CHECK(duckdb_v2_connection_create(instance, &conn, &err));
-  CHECK(duckdb_v2_parse_sql(conn, "select 1 as i, 42::variant as v", &it, &err));
+  CHECK(duckdb_v2_connection_get_factory(conn, &factory, &err));
+  CHECK(duckdb_v2_parse_sql(conn, "select 1 as i, 42::variant as v", true, &it, &err));
   CHECK(duckdb_v2_statement_iterator_next(it, &st, &err));
   CHECK(duckdb_v2_statement_execute(conn, st, NULL, NULL, 0, &res, &err));
   CHECK(duckdb_v2_result_get_schema(res, &schema, &err));
@@ -106,16 +114,16 @@ int main(void) {
   duckdb_v2_logical_type_handle bad[1] = { t_var };
   duckdb_v2_logical_type_handle mix[2] = { t_int, t_var };
 
-  try_chunk("[INTEGER]",          ok,  1);
-  try_chunk("[VARIANT]",          bad, 1);
-  try_chunk("[INTEGER, VARIANT]", mix, 2);
+  try_chunk(factory, "[INTEGER]",          ok,  1);
+  try_chunk(factory, "[VARIANT]",          bad, 1);
+  try_chunk(factory, "[INTEGER, VARIANT]", mix, 2);
 
   /* The collection is what bulk append actually fills in V2. */
   printf("\ncolumn data collection:\n");
   duckdb_v2_column_data_collection_handle coll = NULL;
   duckdb_v2_error_info_handle cerr = NULL;
-  DUCKDB_V2_ERROR ce = duckdb_v2_column_data_collection_create_with_connection(
-      conn, mix, 2, &coll, &cerr);
+  DUCKDB_V2_ERROR ce = duckdb_v2_column_data_collection_create(
+      factory, mix, 2, &coll, &cerr);
   printf("%-22s -> code=%d", "[INTEGER, VARIANT]", (int)ce);
   if (ce == DUCKDB_V2_ERROR_NONE) {
     printf(" collection=%s", coll ? "non-NULL" : "NULL");
