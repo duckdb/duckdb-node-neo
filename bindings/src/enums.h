@@ -25,6 +25,15 @@ inline Napi::Object CreateCatalogEntryTypeEnum(Napi::Env env) {
   return catalogEntryTypeEnum;
 }
 
+inline Napi::Object CreateConfigOptionScopeEnum(Napi::Env env) {
+  auto configOptionScopeEnum = Napi::Object::New(env);
+  DefineEnumMember(configOptionScopeEnum, "INVALID", DUCKDB_CONFIG_OPTION_SCOPE_INVALID);
+  DefineEnumMember(configOptionScopeEnum, "LOCAL", DUCKDB_CONFIG_OPTION_SCOPE_LOCAL);
+  DefineEnumMember(configOptionScopeEnum, "SESSION", DUCKDB_CONFIG_OPTION_SCOPE_SESSION);
+  DefineEnumMember(configOptionScopeEnum, "GLOBAL", DUCKDB_CONFIG_OPTION_SCOPE_GLOBAL);
+  return configOptionScopeEnum;
+}
+
 inline Napi::Object CreatePendingStateEnum(Napi::Env env) {
   auto pendingStateEnum = Napi::Object::New(env);
   DefineEnumMember(pendingStateEnum, "RESULT_READY", 0);

@@ -15,6 +15,13 @@ export enum CatalogEntryType {
   DATABASE = 9,
 }
 
+export enum ConfigOptionScope {
+  INVALID = 0,
+  LOCAL = 1,
+  SESSION = 2,
+  GLOBAL = 3,
+}
+
 export enum PendingState {
   RESULT_READY = 0,
   RESULT_NOT_READY = 1,
@@ -271,6 +278,22 @@ export interface Config {
   __duckdb_type: 'duckdb_config';
 }
 
+/**
+ * A custom configuration option being defined. Registering copies its name,
+ * type, default value, default scope and description into the database, so
+ * the handle can be changed and registered again under another name.
+ *
+ * Whichever of `config_option_set_type` and `config_option_set_default_value`
+ * runs first fixes the option's type, and a default value is cast only at the
+ * moment it is set. So setting the type after the default leaves the default
+ * in its own type, and a reused handle keeps its type: after a VARCHAR
+ * option, a default of `create_int32(42)` makes a VARCHAR option with the
+ * value `'42'`.
+ */
+export interface ConfigOption {
+  __duckdb_type: 'duckdb_config_option';
+}
+
 export interface Connection {
   __duckdb_type: 'duckdb_connection';
 }
@@ -332,6 +355,11 @@ export interface Value {
 export interface ConfigFlag {
   name: string;
   description: string;
+}
+
+export interface ConfigOptionValue {
+  value: Value;
+  scope: ConfigOptionScope;
 }
 
 export interface ExtractedStatementsAndCount {
@@ -592,14 +620,36 @@ export function catalog_entry_get_name(entry: CatalogEntry): string;
 // DUCKDB_C_API void duckdb_destroy_catalog_entry(duckdb_catalog_entry *entry);
 
 // DUCKDB_C_API duckdb_config_option duckdb_create_config_option(void);
+export function create_config_option(): ConfigOption;
 // DUCKDB_C_API void duckdb_destroy_config_option(duckdb_config_option *option);
 // DUCKDB_C_API void duckdb_config_option_set_name(duckdb_config_option option, const char *name);
+export function config_option_set_name(option: ConfigOption, name: string): void;
 // DUCKDB_C_API void duckdb_config_option_set_type(duckdb_config_option option, duckdb_logical_type type);
+export function config_option_set_type(option: ConfigOption, logical_type: LogicalType): void;
 // DUCKDB_C_API void duckdb_config_option_set_default_value(duckdb_config_option option, duckdb_value default_value);
+/**
+ * With no type set, the option takes the value's type; otherwise the value is cast
+ * to the option's type, and a value that cannot be cast throws.
+ */
+export function config_option_set_default_value(option: ConfigOption, default_value: Value): void;
 // DUCKDB_C_API void duckdb_config_option_set_default_scope(duckdb_config_option option, duckdb_config_option_scope default_scope);
+/** Defaults to SESSION. Throws a RangeError for INVALID or an unknown scope. */
+export function config_option_set_default_scope(option: ConfigOption, default_scope: ConfigOptionScope): void;
 // DUCKDB_C_API void duckdb_config_option_set_description(duckdb_config_option option, const char *description);
+export function config_option_set_description(option: ConfigOption, description: string): void;
 // DUCKDB_C_API duckdb_state duckdb_register_config_option(duckdb_connection connection, duckdb_config_option option);
+/**
+ * Makes the option a setting of the whole database, readable with `current_setting` and
+ * changeable with `SET`. Throws when the option has no name, has neither a type nor a
+ * default value, or when the name is already a registered option. A built-in setting's
+ * name is accepted, and the two then split: `duckdb_settings()` lists both, `SET` changes
+ * the built-in setting, and `current_setting` and `client_context_get_config_option`
+ * return the new option. Pick a name no setting has.
+ */
+export function register_config_option(connection: Connection, option: ConfigOption): void;
 // DUCKDB_C_API duckdb_value duckdb_client_context_get_config_option(duckdb_client_context context, const char *name, duckdb_config_option_scope *out_scope);
+/** Reads any setting, registered here or built in. Returns null for a name that is not a setting. */
+export function client_context_get_config_option(context: ClientContext, name: string): ConfigOptionValue | null;
 
 // DUCKDB_C_API duckdb_profiling_info duckdb_get_profiling_info(duckdb_connection connection);
 // DUCKDB_C_API duckdb_value duckdb_profiling_info_get_value(duckdb_profiling_info info, const char *key);
