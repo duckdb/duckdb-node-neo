@@ -82,6 +82,11 @@ export class DuckDBScalarFunction {
     duckdb.destroy_scalar_function_sync(this.scalar_function);
   }
 
+  /** Same as destroySync; lets `using` destroy the function after it is registered. */
+  public [Symbol.dispose]() {
+    this.destroySync();
+  }
+
   public setName(name: string) {
     duckdb.scalar_function_set_name(this.scalar_function, name);
   }

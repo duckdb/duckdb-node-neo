@@ -39,6 +39,10 @@ inline constexpr napi_type_tag ConfigTypeTag = {
   0x5963FBB9648B4D2A, 0xB41ADE86056218D1
 };
 
+inline constexpr napi_type_tag ConfigOptionTypeTag = {
+  0x1B3E7E02BF6642FA, 0x8063E5555189AA1E
+};
+
 inline constexpr napi_type_tag ConnectionTypeTag = {
   0x922B9BF54AB04DFC, 0x8A258578D371DB71
 };
@@ -53,6 +57,18 @@ inline constexpr napi_type_tag DatabaseTypeTag = {
 
 inline constexpr napi_type_tag ExtractedStatementsTypeTag = {
   0x59288E1C60C44EEB, 0xBFA35376EE0F04DD
+};
+
+inline constexpr napi_type_tag FileHandleTypeTag = {
+  0x30FA87A5D304413C, 0x985A0FD790B109D2
+};
+
+inline constexpr napi_type_tag FileOpenOptionsTypeTag = {
+  0x84D4C5DEFD1A4F40, 0xB02E962185C1B682
+};
+
+inline constexpr napi_type_tag FileSystemTypeTag = {
+  0x8C6A10106F1145B2, 0x9206300D32145CC7
 };
 
 inline constexpr napi_type_tag InstanceCacheTypeTag = {

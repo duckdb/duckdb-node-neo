@@ -48,6 +48,11 @@ export class DuckDBResultReader {
     this.result.closeSync();
   }
 
+  /** Same as closeSync; lets `using` close the result being read. */
+  public [Symbol.dispose]() {
+    this.closeSync();
+  }
+
   public get returnType(): ResultReturnType {
     return this.result.returnType;
   }

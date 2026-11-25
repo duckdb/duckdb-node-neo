@@ -31,6 +31,8 @@ public:
       InstanceValue("sizeof_bool", Napi::Number::New(env, sizeof(bool))),
 
       InstanceValue("CatalogEntryType", CreateCatalogEntryTypeEnum(env)),
+      InstanceValue("ConfigOptionScope", CreateConfigOptionScopeEnum(env)),
+      InstanceValue("FileFlag", CreateFileFlagEnum(env)),
       InstanceValue("PendingState", CreatePendingStateEnum(env)),
       InstanceValue("ResultType", CreateResultTypeEnum(env)),
       InstanceValue("StatementType", CreateStatementTypeEnum(env)),
@@ -94,6 +96,15 @@ public:
       InstanceMethod("catalog_entry_get_type", &DuckDBNodeAddon::catalog_entry_get_type),
       InstanceMethod("catalog_entry_get_name", &DuckDBNodeAddon::catalog_entry_get_name),
 
+      InstanceMethod("create_config_option", &DuckDBNodeAddon::create_config_option),
+      InstanceMethod("config_option_set_name", &DuckDBNodeAddon::config_option_set_name),
+      InstanceMethod("config_option_set_type", &DuckDBNodeAddon::config_option_set_type),
+      InstanceMethod("config_option_set_default_value", &DuckDBNodeAddon::config_option_set_default_value),
+      InstanceMethod("config_option_set_default_scope", &DuckDBNodeAddon::config_option_set_default_scope),
+      InstanceMethod("config_option_set_description", &DuckDBNodeAddon::config_option_set_description),
+      InstanceMethod("register_config_option", &DuckDBNodeAddon::register_config_option),
+      InstanceMethod("client_context_get_config_option", &DuckDBNodeAddon::client_context_get_config_option),
+
       InstanceMethod("connect", &DuckDBNodeAddon::connect),
       InstanceMethod("interrupt", &DuckDBNodeAddon::interrupt),
       InstanceMethod("query_progress", &DuckDBNodeAddon::query_progress),
@@ -118,6 +129,18 @@ public:
       InstanceMethod("config_count", &DuckDBNodeAddon::config_count),
       InstanceMethod("get_config_flag", &DuckDBNodeAddon::get_config_flag),
       InstanceMethod("set_config", &DuckDBNodeAddon::set_config),
+
+      InstanceMethod("client_context_get_file_system", &DuckDBNodeAddon::client_context_get_file_system),
+      InstanceMethod("file_system_open_sync", &DuckDBNodeAddon::file_system_open_sync),
+      InstanceMethod("create_file_open_options", &DuckDBNodeAddon::create_file_open_options),
+      InstanceMethod("file_open_options_set_flag", &DuckDBNodeAddon::file_open_options_set_flag),
+      InstanceMethod("file_handle_read_sync", &DuckDBNodeAddon::file_handle_read_sync),
+      InstanceMethod("file_handle_write_sync", &DuckDBNodeAddon::file_handle_write_sync),
+      InstanceMethod("file_handle_tell", &DuckDBNodeAddon::file_handle_tell),
+      InstanceMethod("file_handle_size", &DuckDBNodeAddon::file_handle_size),
+      InstanceMethod("file_handle_seek", &DuckDBNodeAddon::file_handle_seek),
+      InstanceMethod("file_handle_sync_sync", &DuckDBNodeAddon::file_handle_sync_sync),
+      InstanceMethod("file_handle_close_sync", &DuckDBNodeAddon::file_handle_close_sync),
 
       InstanceMethod("create_log_storage", &DuckDBNodeAddon::create_log_storage),
       InstanceMethod("destroy_log_storage_sync", &DuckDBNodeAddon::destroy_log_storage_sync),
@@ -1261,31 +1284,108 @@ private:
   // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API duckdb_config_option duckdb_create_config_option(void);
-  // TODO config option
+  // function create_config_option(): ConfigOption
+  Napi::Value create_config_option(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    return CreateExternalForConfigOption(env, duckdb_create_config_option());
+  }
 
   // DUCKDB_C_API void duckdb_destroy_config_option(duckdb_config_option *option);
-  // TODO config option
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API void duckdb_config_option_set_name(duckdb_config_option option, const char *name);
-  // TODO config option
+  // function config_option_set_name(option: ConfigOption, name: string): void
+  Napi::Value config_option_set_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto option = GetConfigOptionFromExternal(env, info[0]);
+    std::string name = info[1].As<Napi::String>();
+    duckdb_config_option_set_name(option, name.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_config_option_set_type(duckdb_config_option option, duckdb_logical_type type);
-  // TODO config option
+  // function config_option_set_type(option: ConfigOption, logical_type: LogicalType): void
+  Napi::Value config_option_set_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto option = GetConfigOptionFromExternal(env, info[0]);
+    auto logical_type = GetLogicalTypeFromExternal(env, info[1]);
+    duckdb_config_option_set_type(option, logical_type);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_config_option_set_default_value(duckdb_config_option option, duckdb_value default_value);
-  // TODO config option
+  // function config_option_set_default_value(option: ConfigOption, default_value: Value): void
+  Napi::Value config_option_set_default_value(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto option = GetConfigOptionFromExternal(env, info[0]);
+    auto default_value = GetValueFromExternal(env, info[1]);
+    // With a type already set, the C API casts the value and lets a failed
+    // cast escape as a DuckDB exception.
+    try {
+      duckdb_config_option_set_default_value(option, default_value);
+    } catch (...) {
+      throw Napi::Error::New(env, "Failed to set config option default value: it cannot be cast to the option's type");
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_config_option_set_default_scope(duckdb_config_option option, duckdb_config_option_scope default_scope);
-  // TODO config option
+  // function config_option_set_default_scope(option: ConfigOption, default_scope: ConfigOptionScope): void
+  Napi::Value config_option_set_default_scope(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto option = GetConfigOptionFromExternal(env, info[0]);
+    auto default_scope = GetUInt32FromNumber(env, info[1].As<Napi::Number>(), "default_scope");
+    // The C API ignores a scope it does not know, which would leave the default
+    // (SESSION) in place without a word; refuse instead.
+    if (default_scope < DUCKDB_CONFIG_OPTION_SCOPE_LOCAL || default_scope > DUCKDB_CONFIG_OPTION_SCOPE_GLOBAL) {
+      throw Napi::RangeError::New(env, "Invalid config option scope");
+    }
+    duckdb_config_option_set_default_scope(option, static_cast<duckdb_config_option_scope>(default_scope));
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_config_option_set_description(duckdb_config_option option, const char *description);
-  // TODO config option
+  // function config_option_set_description(option: ConfigOption, description: string): void
+  Napi::Value config_option_set_description(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto option = GetConfigOptionFromExternal(env, info[0]);
+    std::string description = info[1].As<Napi::String>();
+    duckdb_config_option_set_description(option, description.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_register_config_option(duckdb_connection connection, duckdb_config_option option);
-  // TODO config option
+  // function register_config_option(connection: Connection, option: ConfigOption): void
+  Napi::Value register_config_option(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto option = GetConfigOptionFromExternal(env, info[1]);
+    // The C API reports no reason. It refuses an option without a name, one
+    // whose type was neither set nor inferred from a default value, and a name
+    // that is already a registered option. A built-in setting's name passes:
+    // SET then changes the built-in setting while reads return the new option.
+    if (duckdb_register_config_option(connection, option)) {
+      throw Napi::Error::New(env, "Failed to register config option: it needs a name and a type, and the name must not be a registered option");
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_value duckdb_client_context_get_config_option(duckdb_client_context context, const char *name, duckdb_config_option_scope *out_scope);
-  // TODO config option
+  // function client_context_get_config_option(context: ClientContext, name: string): ConfigOptionValue | null
+  Napi::Value client_context_get_config_option(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto context = GetClientContextFromExternal(env, info[0]);
+    std::string name = info[1].As<Napi::String>();
+    duckdb_config_option_scope scope;
+    auto value = duckdb_client_context_get_config_option(context, name.c_str(), &scope);
+    if (!value) {
+      return env.Null();
+    }
+    auto config_option_value = Napi::Object::New(env);
+    config_option_value.Set("value", CreateExternalForValue(env, value));
+    config_option_value.Set("scope", Napi::Number::New(env, scope));
+    return config_option_value;
+  }
 
   // DUCKDB_C_API duckdb_profiling_info duckdb_get_profiling_info(duckdb_connection connection);
   // TODO profiling info
@@ -1688,53 +1788,186 @@ private:
   // DUCKDB_C_API duckdb_error_data duckdb_expression_fold(duckdb_client_context context, duckdb_expression expr, duckdb_value *out_value);
   // TODO expression
 
+  // File system and file handle functions run on the calling thread, so they block
+  // it for as long as the file system takes; hence the _sync suffix on those that
+  // do I/O.
+
   // DUCKDB_C_API duckdb_file_system duckdb_client_context_get_file_system(duckdb_client_context context);
-  // TODO file system
+  // function client_context_get_file_system(context: ClientContext): FileSystem
+  Napi::Value client_context_get_file_system(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto context = GetClientContextFromExternal(env, info[0]);
+    auto file_system = duckdb_client_context_get_file_system(context);
+    if (!file_system) {
+      throw Napi::Error::New(env, "Failed to get file system");
+    }
+    return CreateExternalForFileSystem(env, file_system);
+  }
 
   // DUCKDB_C_API void duckdb_destroy_file_system(duckdb_file_system *file_system);
-  // TODO file system
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API duckdb_error_data duckdb_file_system_error_data(duckdb_file_system file_system);
-  // TODO file system
+  // not exposed: file_system_open_sync throws the error
 
   // DUCKDB_C_API duckdb_state duckdb_file_system_open(duckdb_file_system file_system, const char *path, duckdb_file_open_options options, duckdb_file_handle *out_file);
-  // TODO file system
+  // function file_system_open_sync(file_system: FileSystem, path: string, options: FileOpenOptions): FileHandle
+  Napi::Value file_system_open_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto file_system = GetFileSystemFromExternal(env, info[0]);
+    std::string path = info[1].As<Napi::String>();
+    if (path.find('\0') != std::string::npos) {
+      throw Napi::Error::New(env, "File path must not contain null bytes");
+    }
+    auto options = GetFileOpenOptionsFromExternal(env, info[2]);
+    duckdb_file_handle file_handle;
+    if (duckdb_file_system_open(file_system, path.c_str(), options, &file_handle)) {
+      ThrowErrorData(env, duckdb_file_system_error_data(file_system), "Failed to open file");
+    }
+    return CreateExternalForFileHandle(env, file_handle);
+  }
 
   // DUCKDB_C_API duckdb_file_open_options duckdb_create_file_open_options(void);
-  // TODO file system
+  // function create_file_open_options(): FileOpenOptions
+  Napi::Value create_file_open_options(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    return CreateExternalForFileOpenOptions(env, duckdb_create_file_open_options());
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_file_open_options_set_flag(duckdb_file_open_options options, duckdb_file_flag flag, bool value);
-  // TODO file system
+  // function file_open_options_set_flag(options: FileOpenOptions, flag: FileFlag, value: boolean): void
+  Napi::Value file_open_options_set_flag(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto options = GetFileOpenOptionsFromExternal(env, info[0]);
+    auto flag = GetUInt32FromNumber(env, info[1].As<Napi::Number>(), "flag");
+    auto value = info[2].As<Napi::Boolean>().Value();
+    // duckdb only ever adds a flag, whatever the value, so false would leave it set.
+    if (!value) {
+      throw Napi::Error::New(env, "File flags cannot be cleared");
+    }
+    if (duckdb_file_open_options_set_flag(options, static_cast<duckdb_file_flag>(flag), value)) {
+      throw Napi::RangeError::New(env, "Invalid file flag");
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_destroy_file_open_options(duckdb_file_open_options *options);
-  // TODO file system
+  // not exposed: destroyed in finalizer
 
   // DUCKDB_C_API void duckdb_destroy_file_handle(duckdb_file_handle *file_handle);
-  // TODO file system
+  // not exposed: destroyed by file_handle_close_sync or in finalizer
 
   // DUCKDB_C_API duckdb_error_data duckdb_file_handle_error_data(duckdb_file_handle file_handle);
-  // TODO file system
+  // not exposed: file handle functions throw the error
 
   // DUCKDB_C_API int64_t duckdb_file_handle_read(duckdb_file_handle file_handle, void *buffer, int64_t size);
-  // TODO file system
+  // function file_handle_read_sync(file_handle: FileHandle, buffer: Uint8Array): number
+  Napi::Value file_handle_read_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto file_handle = GetFileHandleFromExternal(env, info[0]);
+    auto buffer = info[1].As<Napi::Uint8Array>();
+    // duckdb rejects a null buffer without setting an error, and an empty
+    // Uint8Array may have one, so don't pass it on.
+    if (buffer.ByteLength() == 0) {
+      return Napi::Number::New(env, 0);
+    }
+    auto bytes_read = duckdb_file_handle_read(file_handle, buffer.Data(), static_cast<int64_t>(buffer.ByteLength()));
+    if (bytes_read < 0) {
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to read file");
+    }
+    return Napi::Number::New(env, static_cast<double>(bytes_read));
+  }
 
   // DUCKDB_C_API int64_t duckdb_file_handle_write(duckdb_file_handle file_handle, const void *buffer, int64_t size);
-  // TODO file system
+  // function file_handle_write_sync(file_handle: FileHandle, data: Uint8Array): number
+  Napi::Value file_handle_write_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto file_handle = GetFileHandleFromExternal(env, info[0]);
+    auto data = info[1].As<Napi::Uint8Array>();
+    // As for reads: an empty Uint8Array may have a null buffer, which duckdb
+    // rejects without setting an error.
+    if (data.ByteLength() == 0) {
+      return Napi::Number::New(env, 0);
+    }
+    auto bytes_written = duckdb_file_handle_write(file_handle, data.Data(), static_cast<int64_t>(data.ByteLength()));
+    if (bytes_written < 0) {
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to write file");
+    }
+    return Napi::Number::New(env, static_cast<double>(bytes_written));
+  }
 
   // DUCKDB_C_API int64_t duckdb_file_handle_tell(duckdb_file_handle file_handle);
-  // TODO file system
+  // function file_handle_tell(file_handle: FileHandle): number
+  Napi::Value file_handle_tell(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto file_handle = GetFileHandleFromExternal(env, info[0]);
+    auto position = duckdb_file_handle_tell(file_handle);
+    if (position < 0) {
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to get file position");
+    }
+    return Napi::Number::New(env, static_cast<double>(position));
+  }
 
   // DUCKDB_C_API int64_t duckdb_file_handle_size(duckdb_file_handle file_handle);
-  // TODO file system
+  // function file_handle_size(file_handle: FileHandle): number
+  Napi::Value file_handle_size(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto file_handle = GetFileHandleFromExternal(env, info[0]);
+    auto size = duckdb_file_handle_size(file_handle);
+    if (size < 0) {
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to get file size");
+    }
+    return Napi::Number::New(env, static_cast<double>(size));
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_file_handle_seek(duckdb_file_handle file_handle, int64_t position);
-  // TODO file system
+  // function file_handle_seek(file_handle: FileHandle, position: number): void
+  Napi::Value file_handle_seek(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto file_handle = GetFileHandleFromExternal(env, info[0]);
+    // Positions come back from tell and size as numbers, so accept only those a
+    // number holds exactly. duckdb rejects a negative one without setting an error.
+    auto position = GetIntegerInRangeFromNumber(env, info[1].As<Napi::Number>(),
+      0, 9007199254740991.0 /* Number.MAX_SAFE_INTEGER */, "non-negative safe integer", "position");
+    if (duckdb_file_handle_seek(file_handle, static_cast<int64_t>(position))) {
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to seek in file");
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_file_handle_sync(duckdb_file_handle file_handle);
-  // TODO file system
+  // function file_handle_sync_sync(file_handle: FileHandle): void
+  Napi::Value file_handle_sync_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto file_handle = GetFileHandleFromExternal(env, info[0]);
+    if (duckdb_file_handle_sync(file_handle)) {
+      ThrowErrorData(env, duckdb_file_handle_error_data(file_handle), "Failed to sync file");
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_file_handle_close(duckdb_file_handle file_handle);
-  // TODO file system
+  // function file_handle_close_sync(file_handle: FileHandle): void
+  Napi::Value file_handle_close_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto file_handle_holder_ptr = GetFileHandleHolderFromExternal(env, info[0]);
+    auto file_handle = file_handle_holder_ptr->file_handle;
+    // Closing again is a no-op.
+    if (!file_handle) {
+      return env.Undefined();
+    }
+    // The handle is destroyed whether or not the close succeeds, so read the
+    // error first. It is not usable after a failed close either.
+    duckdb_error_data error_data = nullptr;
+    if (duckdb_file_handle_close(file_handle)) {
+      error_data = duckdb_file_handle_error_data(file_handle);
+    }
+    DestroyFileHandleOfHolder(file_handle_holder_ptr);
+    if (error_data) {
+      ThrowErrorData(env, error_data, "Failed to close file");
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_log_storage duckdb_create_log_storage(void);
   // function create_log_storage(): LogStorage
@@ -4894,10 +5127,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 548 DUCKDB_C_API
-    323 function
-     26 not exposed
+    342 function
+     32 not exposed
      41 deprecated
-    158 TODO
+    133 TODO
        12 aggregate function
         4 aggregate function set
         1 appender create query
@@ -4906,11 +5139,9 @@ NODE_API_ADDON(DuckDBNodeAddon)
         1 appender default
         8 arrow
        12 cast function
-        9 config option
         5 profiling info
        36 copy function
         4 expression
-       16 file system
         6 log storage
         1 register logical type
         5 error data

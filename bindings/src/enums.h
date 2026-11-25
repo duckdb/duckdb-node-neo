@@ -25,6 +25,26 @@ inline Napi::Object CreateCatalogEntryTypeEnum(Napi::Env env) {
   return catalogEntryTypeEnum;
 }
 
+inline Napi::Object CreateConfigOptionScopeEnum(Napi::Env env) {
+  auto configOptionScopeEnum = Napi::Object::New(env);
+  DefineEnumMember(configOptionScopeEnum, "INVALID", DUCKDB_CONFIG_OPTION_SCOPE_INVALID);
+  DefineEnumMember(configOptionScopeEnum, "LOCAL", DUCKDB_CONFIG_OPTION_SCOPE_LOCAL);
+  DefineEnumMember(configOptionScopeEnum, "SESSION", DUCKDB_CONFIG_OPTION_SCOPE_SESSION);
+  DefineEnumMember(configOptionScopeEnum, "GLOBAL", DUCKDB_CONFIG_OPTION_SCOPE_GLOBAL);
+  return configOptionScopeEnum;
+}
+
+inline Napi::Object CreateFileFlagEnum(Napi::Env env) {
+  auto fileFlagEnum = Napi::Object::New(env);
+  DefineEnumMember(fileFlagEnum, "INVALID", DUCKDB_FILE_FLAG_INVALID);
+  DefineEnumMember(fileFlagEnum, "READ", DUCKDB_FILE_FLAG_READ);
+  DefineEnumMember(fileFlagEnum, "WRITE", DUCKDB_FILE_FLAG_WRITE);
+  DefineEnumMember(fileFlagEnum, "CREATE", DUCKDB_FILE_FLAG_CREATE);
+  DefineEnumMember(fileFlagEnum, "CREATE_NEW", DUCKDB_FILE_FLAG_CREATE_NEW);
+  DefineEnumMember(fileFlagEnum, "APPEND", DUCKDB_FILE_FLAG_APPEND);
+  return fileFlagEnum;
+}
+
 inline Napi::Object CreatePendingStateEnum(Napi::Env env) {
   auto pendingStateEnum = Napi::Object::New(env);
   DefineEnumMember(pendingStateEnum, "RESULT_READY", 0);

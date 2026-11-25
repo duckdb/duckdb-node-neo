@@ -37,4 +37,8 @@ export class DuckDBInstance {
   public closeSync() {
     duckdb.close_sync(this.db);
   }
+  /** Same as closeSync; lets `using` close the instance. */
+  public [Symbol.dispose]() {
+    this.closeSync();
+  }
 }

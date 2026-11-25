@@ -74,6 +74,11 @@ export class DuckDBResult {
     duckdb.destroy_result_sync(this.result);
   }
 
+  /** Same as closeSync; lets `using` close the result. */
+  public [Symbol.dispose]() {
+    this.closeSync();
+  }
+
   public get returnType(): ResultReturnType {
     if (this.closedMetadata) {
       return this.closedMetadata.returnType;

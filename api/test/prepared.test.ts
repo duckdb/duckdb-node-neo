@@ -593,6 +593,24 @@ describe('prepared statements', () => {
       // When any column types are ambiguous, DuckDB returns a column count of 1 with a type of INVALID.
       assert.equal(prepared.columnCount, 1);
       assert.equal(prepared.columnTypeId(0), DuckDBTypeId.INVALID);
+      assert.throws(
+        () => prepared.columnType(0),
+        /Column type is unavailable until execution/,
+      );
+      assert.throws(
+        () => prepared.columnType(1),
+        /Failed to get prepared statement column logical type/,
+      );
+      assert.throws(
+        () => prepared.parameterType(3),
+        /Parameter type is unavailable until a value is bound/,
+      );
+      prepared.bindInteger(1, 1);
+      prepared.bindVarchar(2, 'two');
+      prepared.bindInteger(3, 3);
+      assert.deepEqual(prepared.parameterType(3), INTEGER);
+      const result = await prepared.run();
+      assert.deepEqual(result.columnType(2), INTEGER);
     });
   });
   test('runAndReadAll with params', async () => {

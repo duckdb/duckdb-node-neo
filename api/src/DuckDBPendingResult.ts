@@ -37,6 +37,10 @@ export class DuckDBPendingResult {
   public closeSync() {
     duckdb.destroy_pending_sync(this.pending_result);
   }
+  /** Same as closeSync; lets `using` close the pending result. */
+  public [Symbol.dispose]() {
+    this.closeSync();
+  }
   public runTask(): DuckDBPendingResultState {
     const pending_state = duckdb.pending_execute_task(this.pending_result);
     switch (pending_state) {

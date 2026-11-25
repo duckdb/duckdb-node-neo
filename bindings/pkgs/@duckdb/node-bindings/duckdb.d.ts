@@ -15,6 +15,23 @@ export enum CatalogEntryType {
   DATABASE = 9,
 }
 
+export enum ConfigOptionScope {
+  INVALID = 0,
+  LOCAL = 1,
+  SESSION = 2,
+  GLOBAL = 3,
+}
+
+export enum FileFlag {
+  INVALID = 0,
+  READ = 1,
+  WRITE = 2,
+  CREATE = 3,
+  /** Together with CREATE: fail if the file exists. */
+  CREATE_NEW = 4,
+  APPEND = 5,
+}
+
 export enum PendingState {
   RESULT_READY = 0,
   RESULT_NOT_READY = 1,
@@ -271,6 +288,22 @@ export interface Config {
   __duckdb_type: 'duckdb_config';
 }
 
+/**
+ * A custom configuration option being defined. Registering copies its name,
+ * type, default value, default scope and description into the database, so
+ * the handle can be changed and registered again under another name.
+ *
+ * Whichever of `config_option_set_type` and `config_option_set_default_value`
+ * runs first fixes the option's type, and a default value is cast only at the
+ * moment it is set. So setting the type after the default leaves the default
+ * in its own type, and a reused handle keeps its type: after a VARCHAR
+ * option, a default of `create_int32(42)` makes a VARCHAR option with the
+ * value `'42'`.
+ */
+export interface ConfigOption {
+  __duckdb_type: 'duckdb_config_option';
+}
+
 export interface Connection {
   __duckdb_type: 'duckdb_connection';
 }
@@ -289,6 +322,29 @@ export interface DataChunk {
 
 export interface ExtractedStatements {
   __duckdb_type: 'duckdb_extracted_statements';
+}
+
+/**
+ * Usable while the database is open, even after the connection it was opened through
+ * is disconnected. Must be closed with file_handle_close_sync before its database is
+ * closed: the handle does not keep the database alive, so using, closing or collecting
+ * it afterwards can crash the process.
+ */
+export interface FileHandle {
+  __duckdb_type: 'duckdb_file_handle';
+}
+
+export interface FileOpenOptions {
+  __duckdb_type: 'duckdb_file_open_options';
+}
+
+/**
+ * Belongs to the connection of the client context it came from. Use after that
+ * connection is disconnected can read freed memory; retaining this handle does not
+ * extend its lifetime.
+ */
+export interface FileSystem {
+  __duckdb_type: 'duckdb_file_system';
 }
 
 export interface InstanceCache {
@@ -336,6 +392,11 @@ export interface Value {
 export interface ConfigFlag {
   name: string;
   description: string;
+}
+
+export interface ConfigOptionValue {
+  value: Value;
+  scope: ConfigOptionScope;
 }
 
 export interface ExtractedStatementsAndCount {
@@ -604,14 +665,36 @@ export function catalog_entry_get_name(entry: CatalogEntry): string;
 // DUCKDB_C_API void duckdb_destroy_catalog_entry(duckdb_catalog_entry *entry);
 
 // DUCKDB_C_API duckdb_config_option duckdb_create_config_option(void);
+export function create_config_option(): ConfigOption;
 // DUCKDB_C_API void duckdb_destroy_config_option(duckdb_config_option *option);
 // DUCKDB_C_API void duckdb_config_option_set_name(duckdb_config_option option, const char *name);
+export function config_option_set_name(option: ConfigOption, name: string): void;
 // DUCKDB_C_API void duckdb_config_option_set_type(duckdb_config_option option, duckdb_logical_type type);
+export function config_option_set_type(option: ConfigOption, logical_type: LogicalType): void;
 // DUCKDB_C_API void duckdb_config_option_set_default_value(duckdb_config_option option, duckdb_value default_value);
+/**
+ * With no type set, the option takes the value's type; otherwise the value is cast
+ * to the option's type, and a value that cannot be cast throws.
+ */
+export function config_option_set_default_value(option: ConfigOption, default_value: Value): void;
 // DUCKDB_C_API void duckdb_config_option_set_default_scope(duckdb_config_option option, duckdb_config_option_scope default_scope);
+/** Defaults to SESSION. Throws a RangeError for INVALID or an unknown scope. */
+export function config_option_set_default_scope(option: ConfigOption, default_scope: ConfigOptionScope): void;
 // DUCKDB_C_API void duckdb_config_option_set_description(duckdb_config_option option, const char *description);
+export function config_option_set_description(option: ConfigOption, description: string): void;
 // DUCKDB_C_API duckdb_state duckdb_register_config_option(duckdb_connection connection, duckdb_config_option option);
+/**
+ * Makes the option a setting of the whole database, readable with `current_setting` and
+ * changeable with `SET`. Throws when the option has no name, has neither a type nor a
+ * default value, or when the name is already a registered option. A built-in setting's
+ * name is accepted, and the two then split: `duckdb_settings()` lists both, `SET` changes
+ * the built-in setting, and `current_setting` and `client_context_get_config_option`
+ * return the new option. Pick a name no setting has.
+ */
+export function register_config_option(connection: Connection, option: ConfigOption): void;
 // DUCKDB_C_API duckdb_value duckdb_client_context_get_config_option(duckdb_client_context context, const char *name, duckdb_config_option_scope *out_scope);
+/** Reads any setting, registered here or built in. Returns null for a name that is not a setting. */
+export function client_context_get_config_option(context: ClientContext, name: string): ConfigOptionValue | null;
 
 // DUCKDB_C_API duckdb_profiling_info duckdb_get_profiling_info(duckdb_connection connection);
 // DUCKDB_C_API duckdb_value duckdb_profiling_info_get_value(duckdb_profiling_info info, const char *key);
@@ -744,21 +827,56 @@ export function set_config(config: Config, name: string, option: string): void;
 // DUCKDB_C_API duckdb_error_data duckdb_expression_fold(duckdb_client_context context, duckdb_expression expr, duckdb_value *out_value);
 
 // DUCKDB_C_API duckdb_file_system duckdb_client_context_get_file_system(duckdb_client_context context);
+export function client_context_get_file_system(context: ClientContext): FileSystem;
+
 // DUCKDB_C_API void duckdb_destroy_file_system(duckdb_file_system *file_system);
+// not exposed: destroyed in finalizer
+
 // DUCKDB_C_API duckdb_error_data duckdb_file_system_error_data(duckdb_file_system file_system);
+// not exposed: file_system_open_sync throws the error
+
 // DUCKDB_C_API duckdb_state duckdb_file_system_open(duckdb_file_system file_system, const char *path, duckdb_file_open_options options, duckdb_file_handle *out_file);
+export function file_system_open_sync(file_system: FileSystem, path: string, options: FileOpenOptions): FileHandle;
+
 // DUCKDB_C_API duckdb_file_open_options duckdb_create_file_open_options(void);
+export function create_file_open_options(): FileOpenOptions;
+
 // DUCKDB_C_API duckdb_state duckdb_file_open_options_set_flag(duckdb_file_open_options options, duckdb_file_flag flag, bool value);
+/** Flags can only be set, so value must be true. */
+export function file_open_options_set_flag(options: FileOpenOptions, flag: FileFlag, value: boolean): void;
+
 // DUCKDB_C_API void duckdb_destroy_file_open_options(duckdb_file_open_options *options);
+// not exposed: destroyed in finalizer
+
 // DUCKDB_C_API void duckdb_destroy_file_handle(duckdb_file_handle *file_handle);
+// not exposed: destroyed by file_handle_close_sync or in finalizer
+
 // DUCKDB_C_API duckdb_error_data duckdb_file_handle_error_data(duckdb_file_handle file_handle);
+// not exposed: file handle functions throw the error
+
 // DUCKDB_C_API int64_t duckdb_file_handle_read(duckdb_file_handle file_handle, void *buffer, int64_t size);
+/** Reads up to buffer.byteLength bytes into buffer, and returns the number read: 0 at the end of the file. */
+export function file_handle_read_sync(file_handle: FileHandle, buffer: Uint8Array): number;
+
 // DUCKDB_C_API int64_t duckdb_file_handle_write(duckdb_file_handle file_handle, const void *buffer, int64_t size);
+/** Returns the number of bytes written. */
+export function file_handle_write_sync(file_handle: FileHandle, data: Uint8Array): number;
+
 // DUCKDB_C_API int64_t duckdb_file_handle_tell(duckdb_file_handle file_handle);
+export function file_handle_tell(file_handle: FileHandle): number;
+
 // DUCKDB_C_API int64_t duckdb_file_handle_size(duckdb_file_handle file_handle);
+export function file_handle_size(file_handle: FileHandle): number;
+
 // DUCKDB_C_API duckdb_state duckdb_file_handle_seek(duckdb_file_handle file_handle, int64_t position);
+export function file_handle_seek(file_handle: FileHandle, position: number): void;
+
 // DUCKDB_C_API duckdb_state duckdb_file_handle_sync(duckdb_file_handle file_handle);
+export function file_handle_sync_sync(file_handle: FileHandle): void;
+
 // DUCKDB_C_API duckdb_state duckdb_file_handle_close(duckdb_file_handle file_handle);
+/** Closes and releases the handle. Other functions throw if given it afterwards; closing again is a no-op. */
+export function file_handle_close_sync(file_handle: FileHandle): void;
 
 // DUCKDB_C_API duckdb_log_storage duckdb_create_log_storage(void);
 export function create_log_storage(): LogStorage;

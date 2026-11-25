@@ -95,6 +95,20 @@ inline duckdb_config GetConfigFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_config>(env, ConfigTypeTag, value, "Invalid config argument");
 }
 
+// Registering copies the option's fields into the database, so the handle is
+// the caller's to keep or drop either way.
+inline void FinalizeConfigOption(Napi::BasicEnv, duckdb_config_option option) {
+  duckdb_destroy_config_option(&option);
+}
+
+inline Napi::External<_duckdb_config_option> CreateExternalForConfigOption(Napi::Env env, duckdb_config_option option) {
+  return CreateExternal<_duckdb_config_option>(env, ConfigOptionTypeTag, option, FinalizeConfigOption);
+}
+
+inline duckdb_config_option GetConfigOptionFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_config_option>(env, ConfigOptionTypeTag, value, "Invalid config option argument");
+}
+
 typedef struct {
   duckdb_connection connection;
 } duckdb_connection_holder;
@@ -183,6 +197,76 @@ inline Napi::External<_duckdb_extracted_statements> CreateExternalForExtractedSt
 
 inline duckdb_extracted_statements GetExtractedStatementsFromExternal(Napi::Env env, Napi::Value value) {
   return GetDataFromExternal<_duckdb_extracted_statements>(env, ExtractedStatementsTypeTag, value, "Invalid extracted statements argument");
+}
+
+// A file handle can be closed explicitly, after which it must not reach duckdb
+// again: not every file handle implementation tolerates being used after Close.
+// So an explicit close also destroys it, and file_handle is null from then on.
+// The handle does not keep its database alive, so it must be closed before the
+// database is: using, closing or finalizing it afterwards can crash the process.
+struct duckdb_file_handle_holder {
+  duckdb_file_handle file_handle;
+};
+
+inline void DestroyFileHandleOfHolder(duckdb_file_handle_holder *file_handle_holder_ptr) {
+  if (file_handle_holder_ptr->file_handle) {
+    // Every caller has already closed the handle through duckdb_file_handle_close.
+    // duckdb_destroy_file_handle closes it again, which does nothing for a closed
+    // local file.
+    duckdb_destroy_file_handle(&file_handle_holder_ptr->file_handle);
+    file_handle_holder_ptr->file_handle = nullptr;
+  }
+}
+
+inline void FinalizeFileHandleHolder(Napi::BasicEnv, duckdb_file_handle_holder *file_handle_holder_ptr) {
+  if (file_handle_holder_ptr->file_handle) {
+    // Nothing can be reported from here, so a failure to close is dropped.
+    duckdb_file_handle_close(file_handle_holder_ptr->file_handle);
+    DestroyFileHandleOfHolder(file_handle_holder_ptr);
+  }
+  delete file_handle_holder_ptr;
+}
+
+inline Napi::External<duckdb_file_handle_holder> CreateExternalForFileHandle(Napi::Env env, duckdb_file_handle file_handle) {
+  auto file_handle_holder_ptr = new duckdb_file_handle_holder { file_handle };
+  return CreateExternal<duckdb_file_handle_holder>(env, FileHandleTypeTag, file_handle_holder_ptr, FinalizeFileHandleHolder);
+}
+
+inline duckdb_file_handle_holder *GetFileHandleHolderFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<duckdb_file_handle_holder>(env, FileHandleTypeTag, value, "Invalid file handle argument");
+}
+
+// Throws if the file handle has been closed.
+inline duckdb_file_handle GetFileHandleFromExternal(Napi::Env env, Napi::Value value) {
+  auto file_handle_holder_ptr = GetFileHandleHolderFromExternal(env, value);
+  if (!file_handle_holder_ptr->file_handle) {
+    throw Napi::Error::New(env, "File handle closed");
+  }
+  return file_handle_holder_ptr->file_handle;
+}
+
+inline void FinalizeFileOpenOptions(Napi::BasicEnv, duckdb_file_open_options options) {
+  duckdb_destroy_file_open_options(&options);
+}
+
+inline Napi::External<_duckdb_file_open_options> CreateExternalForFileOpenOptions(Napi::Env env, duckdb_file_open_options options) {
+  return CreateExternal<_duckdb_file_open_options>(env, FileOpenOptionsTypeTag, options, FinalizeFileOpenOptions);
+}
+
+inline duckdb_file_open_options GetFileOpenOptionsFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_file_open_options>(env, FileOpenOptionsTypeTag, value, "Invalid file open options argument");
+}
+
+inline void FinalizeFileSystem(Napi::BasicEnv, duckdb_file_system file_system) {
+  duckdb_destroy_file_system(&file_system);
+}
+
+inline Napi::External<_duckdb_file_system> CreateExternalForFileSystem(Napi::Env env, duckdb_file_system file_system) {
+  return CreateExternal<_duckdb_file_system>(env, FileSystemTypeTag, file_system, FinalizeFileSystem);
+}
+
+inline duckdb_file_system GetFileSystemFromExternal(Napi::Env env, Napi::Value value) {
+  return GetDataFromExternal<_duckdb_file_system>(env, FileSystemTypeTag, value, "Invalid file system argument");
 }
 
 inline void FinalizeInstanceCache(Napi::BasicEnv, duckdb_instance_cache instance_cache) {
