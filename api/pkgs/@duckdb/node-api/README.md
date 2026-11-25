@@ -1587,14 +1587,19 @@ const rows = chunk.convertRows(converter);
 
 ## Custom log storage
 
-Create a `DuckDBLogStorage` with a `name` and `writeLogEntry` callback, register it
-with `instance.registerLogStorage(storage)`, and select it with
+Create a `DuckDBLogStorage` with a `name` and `writeLogEntry` callback,
+register it with `instance.registerLogStorage(storage)`, and select it with
 `SET logging_sink = 'your_storage_name'` after enabling logging with
 `SET enable_logging = true`.
 
 Callbacks run later on the JavaScript event loop, including logs from
 synchronous database operations. Wait for delivery when observing entries;
-completion of a database operation does not guarantee its logs have arrived.
-Queued entries retain the callback and extra data after storage or database
-closure, but are discarded during Node environment shutdown. Exceptions thrown
-by log callbacks are swallowed; handle errors inside the callback if needed.
+completion of a database operation does not guarantee its logs have
+arrived. Queued entries retain the callback and extra data after storage or
+database closure, but are discarded during Node environment shutdown.
+Exceptions thrown by log callbacks are swallowed; handle errors inside the
+callback if needed.
+
+The callback must not perform database work that itself generates logs. For
+example, appending each entry to a table generates new log entries and
+causes an endless loop of callbacks.

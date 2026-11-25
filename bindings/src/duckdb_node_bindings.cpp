@@ -5127,10 +5127,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 548 DUCKDB_C_API
-    342 function
+    348 function
      32 not exposed
      41 deprecated
-    133 TODO
+    127 TODO
        12 aggregate function
         4 aggregate function set
         1 appender create query
@@ -5142,7 +5142,6 @@ NODE_API_ADDON(DuckDBNodeAddon)
         5 profiling info
        36 copy function
         4 expression
-        6 log storage
         1 register logical type
         5 error data
         2 utf8
