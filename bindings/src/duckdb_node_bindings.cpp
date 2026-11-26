@@ -16,6 +16,7 @@
 #include "log_storage_helpers.h"
 #include "napi_ref_reaper.h"
 #include "scalar_function_helpers.h"
+#include "copy_function_helpers.h"
 #include "table_function_helpers.h"
 #include "promise_workers.h"
 #include "enums.h"
@@ -112,6 +113,40 @@ public:
       InstanceMethod("connection_get_client_context", &DuckDBNodeAddon::connection_get_client_context),
       InstanceMethod("client_context_get_connection_id", &DuckDBNodeAddon::client_context_get_connection_id),
       InstanceMethod("get_table_names", &DuckDBNodeAddon::get_table_names),
+
+      InstanceMethod("create_copy_function", &DuckDBNodeAddon::create_copy_function),
+      InstanceMethod("copy_function_set_name", &DuckDBNodeAddon::copy_function_set_name),
+      InstanceMethod("copy_function_set_extra_info", &DuckDBNodeAddon::copy_function_set_extra_info),
+      InstanceMethod("register_copy_function", &DuckDBNodeAddon::register_copy_function),
+      InstanceMethod("destroy_copy_function_sync", &DuckDBNodeAddon::destroy_copy_function_sync),
+      InstanceMethod("copy_function_set_bind", &DuckDBNodeAddon::copy_function_set_bind),
+      InstanceMethod("copy_function_bind_set_error", &DuckDBNodeAddon::copy_function_bind_set_error),
+      InstanceMethod("copy_function_bind_get_extra_info", &DuckDBNodeAddon::copy_function_bind_get_extra_info),
+      InstanceMethod("copy_function_bind_get_client_context", &DuckDBNodeAddon::copy_function_bind_get_client_context),
+      InstanceMethod("copy_function_bind_get_column_count", &DuckDBNodeAddon::copy_function_bind_get_column_count),
+      InstanceMethod("copy_function_bind_get_column_type", &DuckDBNodeAddon::copy_function_bind_get_column_type),
+      InstanceMethod("copy_function_bind_get_options", &DuckDBNodeAddon::copy_function_bind_get_options),
+      InstanceMethod("copy_function_bind_set_bind_data", &DuckDBNodeAddon::copy_function_bind_set_bind_data),
+      InstanceMethod("copy_function_set_global_init", &DuckDBNodeAddon::copy_function_set_global_init),
+      InstanceMethod("copy_function_global_init_set_error", &DuckDBNodeAddon::copy_function_global_init_set_error),
+      InstanceMethod("copy_function_global_init_get_extra_info", &DuckDBNodeAddon::copy_function_global_init_get_extra_info),
+      InstanceMethod("copy_function_global_init_get_client_context", &DuckDBNodeAddon::copy_function_global_init_get_client_context),
+      InstanceMethod("copy_function_global_init_get_bind_data", &DuckDBNodeAddon::copy_function_global_init_get_bind_data),
+      InstanceMethod("copy_function_global_init_get_file_path", &DuckDBNodeAddon::copy_function_global_init_get_file_path),
+      InstanceMethod("copy_function_global_init_set_global_state", &DuckDBNodeAddon::copy_function_global_init_set_global_state),
+      InstanceMethod("copy_function_set_sink", &DuckDBNodeAddon::copy_function_set_sink),
+      InstanceMethod("copy_function_sink_set_error", &DuckDBNodeAddon::copy_function_sink_set_error),
+      InstanceMethod("copy_function_sink_get_extra_info", &DuckDBNodeAddon::copy_function_sink_get_extra_info),
+      InstanceMethod("copy_function_sink_get_client_context", &DuckDBNodeAddon::copy_function_sink_get_client_context),
+      InstanceMethod("copy_function_sink_get_bind_data", &DuckDBNodeAddon::copy_function_sink_get_bind_data),
+      InstanceMethod("copy_function_sink_get_global_state", &DuckDBNodeAddon::copy_function_sink_get_global_state),
+      InstanceMethod("copy_function_set_finalize", &DuckDBNodeAddon::copy_function_set_finalize),
+      InstanceMethod("copy_function_finalize_set_error", &DuckDBNodeAddon::copy_function_finalize_set_error),
+      InstanceMethod("copy_function_finalize_get_extra_info", &DuckDBNodeAddon::copy_function_finalize_get_extra_info),
+      InstanceMethod("copy_function_finalize_get_client_context", &DuckDBNodeAddon::copy_function_finalize_get_client_context),
+      InstanceMethod("copy_function_finalize_get_bind_data", &DuckDBNodeAddon::copy_function_finalize_get_bind_data),
+      InstanceMethod("copy_function_finalize_get_global_state", &DuckDBNodeAddon::copy_function_finalize_get_global_state),
+      InstanceMethod("copy_function_set_copy_from_function", &DuckDBNodeAddon::copy_function_set_copy_from_function),
 
       InstanceMethod("create_data_chunk", &DuckDBNodeAddon::create_data_chunk),
       InstanceMethod("data_chunk_reset", &DuckDBNodeAddon::data_chunk_reset),
@@ -306,6 +341,9 @@ public:
       InstanceMethod("function_get_init_data", &DuckDBNodeAddon::function_get_init_data),
       InstanceMethod("function_get_local_init_data", &DuckDBNodeAddon::function_get_local_init_data),
       InstanceMethod("function_set_error", &DuckDBNodeAddon::function_set_error),
+      InstanceMethod("table_function_bind_get_result_column_count", &DuckDBNodeAddon::table_function_bind_get_result_column_count),
+      InstanceMethod("table_function_bind_get_result_column_name", &DuckDBNodeAddon::table_function_bind_get_result_column_name),
+      InstanceMethod("table_function_bind_get_result_column_type", &DuckDBNodeAddon::table_function_bind_get_result_column_type),
 
       InstanceMethod("create_varchar", &DuckDBNodeAddon::create_varchar),
       InstanceMethod("create_bool", &DuckDBNodeAddon::create_bool),
@@ -1487,103 +1525,381 @@ private:
   }
 
   // DUCKDB_C_API duckdb_copy_function duckdb_create_copy_function(void);
-  // TODO copy function
+  // function create_copy_function(): CopyFunction
+  Napi::Value create_copy_function(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto copy_function = duckdb_create_copy_function();
+    return CreateExternalForCopyFunction(env, copy_function);
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_set_name(duckdb_copy_function copy_function, const char *name);
-  // TODO copy function
+  // function copy_function_set_name(copy_function: CopyFunction, name: string): void
+  Napi::Value copy_function_set_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto copy_function = GetCopyFunctionFromExternal(env, info[0]);
+    std::string name = info[1].As<Napi::String>();
+    duckdb_copy_function_set_name(copy_function, name.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_set_extra_info(duckdb_copy_function copy_function, void *extra_info, duckdb_delete_callback_t destructor);
-  // TODO copy function
+  // function copy_function_set_extra_info(copy_function: CopyFunction, extra_info: object): void
+  Napi::Value copy_function_set_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetLiveCopyFunctionHolderFromExternal(env, info[0]);
+    auto user_extra_info = info[1].As<Napi::Object>();
+    holder->EnsureInternalExtraInfo(ref_reaper);
+    holder->internal_extra_info->SetUserExtraInfo(ref_reaper, user_extra_info);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_state duckdb_register_copy_function(duckdb_connection connection, duckdb_copy_function copy_function);
-  // TODO copy function
+  // function register_copy_function(connection: Connection, copy_function: CopyFunction): void
+  Napi::Value register_copy_function(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto connection = GetConnectionFromExternal(env, info[0]);
+    auto copy_function = GetCopyFunctionFromExternal(env, info[1]);
+    if (duckdb_register_copy_function(connection, copy_function)) {
+      throw Napi::Error::New(env, "Failed to register copy function");
+    }
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_destroy_copy_function(duckdb_copy_function *copy_function);
-  // TODO copy function
+  // function destroy_copy_function_sync(copy_function: CopyFunction): void
+  Napi::Value destroy_copy_function_sync(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetCopyFunctionHolderFromExternal(env, info[0]);
+    // duckdb_destroy_copy_function is a no-op if already destroyed. It runs the
+    // delete callback for the extra info, so the holder must forget it.
+    duckdb_destroy_copy_function(&holder->copy_function);
+    holder->internal_extra_info = nullptr;
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_set_bind(duckdb_copy_function copy_function, duckdb_copy_function_bind_t bind);
-  // TODO copy function
+  // function copy_function_set_bind(copy_function: CopyFunction, func: CopyFunctionBindFunction): void
+  Napi::Value copy_function_set_bind(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetLiveCopyFunctionHolderFromExternal(env, info[0]);
+    auto func = info[1].As<Napi::Function>();
+    holder->EnsureInternalExtraInfo(ref_reaper);
+    holder->internal_extra_info->SetBindFunction(env, func);
+    duckdb_copy_function_set_bind(holder->copy_function, &CopyFunctionBindFunction);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_bind_set_error(duckdb_copy_function_bind_info info, const char *error);
-  // TODO copy function
+  // function copy_function_bind_set_error(bind_info: CopyFunctionBindInfo, error: string): void
+  Napi::Value copy_function_bind_set_error(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetCopyFunctionBindInfoFromExternal(env, info[0]);
+    std::string error = info[1].As<Napi::String>();
+    duckdb_copy_function_bind_set_error(bind_info, error.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void *duckdb_copy_function_bind_get_extra_info(duckdb_copy_function_bind_info info);
-  // TODO copy function
+  // function copy_function_bind_get_extra_info(bind_info: CopyFunctionBindInfo): object | undefined
+  Napi::Value copy_function_bind_get_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetCopyFunctionBindInfoFromExternal(env, info[0]);
+    auto internal_extra_info = GetCopyFunctionInternalExtraInfoFromBindInfo(bind_info);
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
+      return env.Undefined();
+    }
+    return internal_extra_info->user_extra_info_ref->ref.Value();
+  }
 
   // DUCKDB_C_API duckdb_client_context duckdb_copy_function_bind_get_client_context(duckdb_copy_function_bind_info info);
-  // TODO copy function
+  // function copy_function_bind_get_client_context(bind_info: CopyFunctionBindInfo): ClientContext
+  Napi::Value copy_function_bind_get_client_context(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetCopyFunctionBindInfoFromExternal(env, info[0]);
+    auto client_context = duckdb_copy_function_bind_get_client_context(bind_info);
+    if (!client_context) {
+      throw Napi::Error::New(env, "Failed to get client context");
+    }
+    return CreateExternalForClientContext(env, client_context);
+  }
 
   // DUCKDB_C_API idx_t duckdb_copy_function_bind_get_column_count(duckdb_copy_function_bind_info info);
-  // TODO copy function
+  // function copy_function_bind_get_column_count(bind_info: CopyFunctionBindInfo): number
+  Napi::Value copy_function_bind_get_column_count(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetCopyFunctionBindInfoFromExternal(env, info[0]);
+    auto column_count = duckdb_copy_function_bind_get_column_count(bind_info);
+    return Napi::Number::New(env, column_count);
+  }
 
   // DUCKDB_C_API duckdb_logical_type duckdb_copy_function_bind_get_column_type(duckdb_copy_function_bind_info info, idx_t col_idx);
-  // TODO copy function
+  // function copy_function_bind_get_column_type(bind_info: CopyFunctionBindInfo, column_index: number): LogicalType
+  Napi::Value copy_function_bind_get_column_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetCopyFunctionBindInfoFromExternal(env, info[0]);
+    auto column_index = info[1].As<Napi::Number>().Uint32Value();
+    auto logical_type = duckdb_copy_function_bind_get_column_type(bind_info, column_index);
+    if (!logical_type) {
+      throw Napi::Error::New(env, "Failed to get column type");
+    }
+    return CreateExternalForLogicalType(env, logical_type);
+  }
 
   // DUCKDB_C_API duckdb_value duckdb_copy_function_bind_get_options(duckdb_copy_function_bind_info info);
-  // TODO copy function
+  // function copy_function_bind_get_options(bind_info: CopyFunctionBindInfo): Value
+  Napi::Value copy_function_bind_get_options(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetCopyFunctionBindInfoFromExternal(env, info[0]);
+    auto value = duckdb_copy_function_bind_get_options(bind_info);
+    if (!value) {
+      throw Napi::Error::New(env, "Failed to get options");
+    }
+    return CreateExternalForValue(env, value);
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_bind_set_bind_data(duckdb_copy_function_bind_info info, void *bind_data, duckdb_delete_callback_t destructor);
-  // TODO copy function
+  // function copy_function_bind_set_bind_data(bind_info: CopyFunctionBindInfo, bind_data: object): void
+  Napi::Value copy_function_bind_set_bind_data(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetCopyFunctionBindInfoFromExternal(env, info[0]);
+    auto user_bind_data = info[1].As<Napi::Object>();
+    auto internal_bind_data = new CopyFunctionInternalBindData();
+    internal_bind_data->SetUserBindData(ref_reaper, user_bind_data);
+    duckdb_copy_function_bind_set_bind_data(bind_info, internal_bind_data, reinterpret_cast<duckdb_delete_callback_t>(DeleteCopyFunctionInternalBindData));
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_set_global_init(duckdb_copy_function copy_function, duckdb_copy_function_global_init_t init);
-  // TODO copy function
+  // function copy_function_set_global_init(copy_function: CopyFunction, func: CopyFunctionGlobalInitFunction): void
+  Napi::Value copy_function_set_global_init(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetLiveCopyFunctionHolderFromExternal(env, info[0]);
+    auto func = info[1].As<Napi::Function>();
+    holder->EnsureInternalExtraInfo(ref_reaper);
+    holder->internal_extra_info->SetGlobalInitFunction(env, func);
+    duckdb_copy_function_set_global_init(holder->copy_function, &CopyFunctionGlobalInitFunction);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_global_init_set_error(duckdb_copy_function_global_init_info info, const char *error);
-  // TODO copy function
+  // function copy_function_global_init_set_error(init_info: CopyFunctionGlobalInitInfo, error: string): void
+  Napi::Value copy_function_global_init_set_error(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetCopyFunctionGlobalInitInfoFromExternal(env, info[0]);
+    std::string error = info[1].As<Napi::String>();
+    duckdb_copy_function_global_init_set_error(init_info, error.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void *duckdb_copy_function_global_init_get_extra_info(duckdb_copy_function_global_init_info info);
-  // TODO copy function
+  // function copy_function_global_init_get_extra_info(init_info: CopyFunctionGlobalInitInfo): object | undefined
+  Napi::Value copy_function_global_init_get_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetCopyFunctionGlobalInitInfoFromExternal(env, info[0]);
+    auto internal_extra_info = GetCopyFunctionInternalExtraInfoFromGlobalInitInfo(init_info);
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
+      return env.Undefined();
+    }
+    return internal_extra_info->user_extra_info_ref->ref.Value();
+  }
 
   // DUCKDB_C_API duckdb_client_context duckdb_copy_function_global_init_get_client_context(duckdb_copy_function_global_init_info info);
-  // TODO copy function
+  // function copy_function_global_init_get_client_context(init_info: CopyFunctionGlobalInitInfo): ClientContext
+  Napi::Value copy_function_global_init_get_client_context(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetCopyFunctionGlobalInitInfoFromExternal(env, info[0]);
+    auto client_context = duckdb_copy_function_global_init_get_client_context(init_info);
+    if (!client_context) {
+      throw Napi::Error::New(env, "Failed to get client context");
+    }
+    return CreateExternalForClientContext(env, client_context);
+  }
 
   // DUCKDB_C_API void *duckdb_copy_function_global_init_get_bind_data(duckdb_copy_function_global_init_info info);
-  // TODO copy function
+  // function copy_function_global_init_get_bind_data(init_info: CopyFunctionGlobalInitInfo): object | undefined
+  Napi::Value copy_function_global_init_get_bind_data(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetCopyFunctionGlobalInitInfoFromExternal(env, info[0]);
+    auto internal_data = reinterpret_cast<CopyFunctionInternalBindData*>(duckdb_copy_function_global_init_get_bind_data(init_info));
+    if (!internal_data || !internal_data->user_bind_data_ref) {
+      return env.Undefined();
+    }
+    return internal_data->user_bind_data_ref->ref.Value();
+  }
 
   // DUCKDB_C_API const char *duckdb_copy_function_global_init_get_file_path(duckdb_copy_function_global_init_info info);
-  // TODO copy function
+  // function copy_function_global_init_get_file_path(init_info: CopyFunctionGlobalInitInfo): string
+  Napi::Value copy_function_global_init_get_file_path(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetCopyFunctionGlobalInitInfoFromExternal(env, info[0]);
+    auto file_path = duckdb_copy_function_global_init_get_file_path(init_info);
+    if (!file_path) {
+      throw Napi::Error::New(env, "Failed to get file path");
+    }
+    return Napi::String::New(env, file_path);
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_global_init_set_global_state(duckdb_copy_function_global_init_info info, void *global_state, duckdb_delete_callback_t destructor);
-  // TODO copy function
+  // function copy_function_global_init_set_global_state(init_info: CopyFunctionGlobalInitInfo, global_state: object): void
+  Napi::Value copy_function_global_init_set_global_state(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto init_info = GetCopyFunctionGlobalInitInfoFromExternal(env, info[0]);
+    auto user_global_state = info[1].As<Napi::Object>();
+    auto internal_global_state = new CopyFunctionInternalGlobalState();
+    internal_global_state->SetUserGlobalState(ref_reaper, user_global_state);
+    duckdb_copy_function_global_init_set_global_state(init_info, internal_global_state, reinterpret_cast<duckdb_delete_callback_t>(DeleteCopyFunctionInternalGlobalState));
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_set_sink(duckdb_copy_function copy_function, duckdb_copy_function_sink_t function);
-  // TODO copy function
+  // function copy_function_set_sink(copy_function: CopyFunction, func: CopyFunctionSinkFunction): void
+  Napi::Value copy_function_set_sink(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetLiveCopyFunctionHolderFromExternal(env, info[0]);
+    auto func = info[1].As<Napi::Function>();
+    holder->EnsureInternalExtraInfo(ref_reaper);
+    holder->internal_extra_info->SetSinkFunction(env, func);
+    duckdb_copy_function_set_sink(holder->copy_function, &CopyFunctionSinkFunction);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_sink_set_error(duckdb_copy_function_sink_info info, const char *error);
-  // TODO copy function
+  // function copy_function_sink_set_error(sink_info: CopyFunctionSinkInfo, error: string): void
+  Napi::Value copy_function_sink_set_error(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto sink_info = GetCopyFunctionSinkInfoFromExternal(env, info[0]);
+    std::string error = info[1].As<Napi::String>();
+    duckdb_copy_function_sink_set_error(sink_info, error.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void *duckdb_copy_function_sink_get_extra_info(duckdb_copy_function_sink_info info);
-  // TODO copy function
+  // function copy_function_sink_get_extra_info(sink_info: CopyFunctionSinkInfo): object | undefined
+  Napi::Value copy_function_sink_get_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto sink_info = GetCopyFunctionSinkInfoFromExternal(env, info[0]);
+    auto internal_extra_info = GetCopyFunctionInternalExtraInfoFromSinkInfo(sink_info);
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
+      return env.Undefined();
+    }
+    return internal_extra_info->user_extra_info_ref->ref.Value();
+  }
 
   // DUCKDB_C_API duckdb_client_context duckdb_copy_function_sink_get_client_context(duckdb_copy_function_sink_info info);
-  // TODO copy function
+  // function copy_function_sink_get_client_context(sink_info: CopyFunctionSinkInfo): ClientContext
+  Napi::Value copy_function_sink_get_client_context(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto sink_info = GetCopyFunctionSinkInfoFromExternal(env, info[0]);
+    auto client_context = duckdb_copy_function_sink_get_client_context(sink_info);
+    if (!client_context) {
+      throw Napi::Error::New(env, "Failed to get client context");
+    }
+    return CreateExternalForClientContext(env, client_context);
+  }
 
   // DUCKDB_C_API void *duckdb_copy_function_sink_get_bind_data(duckdb_copy_function_sink_info info);
-  // TODO copy function
+  // function copy_function_sink_get_bind_data(sink_info: CopyFunctionSinkInfo): object | undefined
+  Napi::Value copy_function_sink_get_bind_data(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto sink_info = GetCopyFunctionSinkInfoFromExternal(env, info[0]);
+    auto internal_data = reinterpret_cast<CopyFunctionInternalBindData*>(duckdb_copy_function_sink_get_bind_data(sink_info));
+    if (!internal_data || !internal_data->user_bind_data_ref) {
+      return env.Undefined();
+    }
+    return internal_data->user_bind_data_ref->ref.Value();
+  }
 
   // DUCKDB_C_API void *duckdb_copy_function_sink_get_global_state(duckdb_copy_function_sink_info info);
-  // TODO copy function
+  // function copy_function_sink_get_global_state(sink_info: CopyFunctionSinkInfo): object | undefined
+  Napi::Value copy_function_sink_get_global_state(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto sink_info = GetCopyFunctionSinkInfoFromExternal(env, info[0]);
+    auto internal_data = reinterpret_cast<CopyFunctionInternalGlobalState*>(duckdb_copy_function_sink_get_global_state(sink_info));
+    if (!internal_data || !internal_data->user_global_state_ref) {
+      return env.Undefined();
+    }
+    return internal_data->user_global_state_ref->ref.Value();
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_set_finalize(duckdb_copy_function copy_function, duckdb_copy_function_finalize_t finalize);
-  // TODO copy function
+  // function copy_function_set_finalize(copy_function: CopyFunction, func: CopyFunctionFinalizeFunction): void
+  Napi::Value copy_function_set_finalize(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto holder = GetLiveCopyFunctionHolderFromExternal(env, info[0]);
+    auto func = info[1].As<Napi::Function>();
+    holder->EnsureInternalExtraInfo(ref_reaper);
+    holder->internal_extra_info->SetFinalizeFunction(env, func);
+    duckdb_copy_function_set_finalize(holder->copy_function, &CopyFunctionFinalizeFunction);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_finalize_set_error(duckdb_copy_function_finalize_info info, const char *error);
-  // TODO copy function
+  // function copy_function_finalize_set_error(finalize_info: CopyFunctionFinalizeInfo, error: string): void
+  Napi::Value copy_function_finalize_set_error(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto finalize_info = GetCopyFunctionFinalizeInfoFromExternal(env, info[0]);
+    std::string error = info[1].As<Napi::String>();
+    duckdb_copy_function_finalize_set_error(finalize_info, error.c_str());
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API void *duckdb_copy_function_finalize_get_extra_info(duckdb_copy_function_finalize_info info);
-  // TODO copy function
+  // function copy_function_finalize_get_extra_info(finalize_info: CopyFunctionFinalizeInfo): object | undefined
+  Napi::Value copy_function_finalize_get_extra_info(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto finalize_info = GetCopyFunctionFinalizeInfoFromExternal(env, info[0]);
+    auto internal_extra_info = GetCopyFunctionInternalExtraInfoFromFinalizeInfo(finalize_info);
+    if (!internal_extra_info || !internal_extra_info->user_extra_info_ref) {
+      return env.Undefined();
+    }
+    return internal_extra_info->user_extra_info_ref->ref.Value();
+  }
 
   // DUCKDB_C_API duckdb_client_context duckdb_copy_function_finalize_get_client_context(duckdb_copy_function_finalize_info info);
-  // TODO copy function
+  // function copy_function_finalize_get_client_context(finalize_info: CopyFunctionFinalizeInfo): ClientContext
+  Napi::Value copy_function_finalize_get_client_context(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto finalize_info = GetCopyFunctionFinalizeInfoFromExternal(env, info[0]);
+    auto client_context = duckdb_copy_function_finalize_get_client_context(finalize_info);
+    if (!client_context) {
+      throw Napi::Error::New(env, "Failed to get client context");
+    }
+    return CreateExternalForClientContext(env, client_context);
+  }
 
   // DUCKDB_C_API void *duckdb_copy_function_finalize_get_bind_data(duckdb_copy_function_finalize_info info);
-  // TODO copy function
+  // function copy_function_finalize_get_bind_data(finalize_info: CopyFunctionFinalizeInfo): object | undefined
+  Napi::Value copy_function_finalize_get_bind_data(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto finalize_info = GetCopyFunctionFinalizeInfoFromExternal(env, info[0]);
+    auto internal_data = reinterpret_cast<CopyFunctionInternalBindData*>(duckdb_copy_function_finalize_get_bind_data(finalize_info));
+    if (!internal_data || !internal_data->user_bind_data_ref) {
+      return env.Undefined();
+    }
+    return internal_data->user_bind_data_ref->ref.Value();
+  }
 
   // DUCKDB_C_API void *duckdb_copy_function_finalize_get_global_state(duckdb_copy_function_finalize_info info);
-  // TODO copy function
+  // function copy_function_finalize_get_global_state(finalize_info: CopyFunctionFinalizeInfo): object | undefined
+  Napi::Value copy_function_finalize_get_global_state(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto finalize_info = GetCopyFunctionFinalizeInfoFromExternal(env, info[0]);
+    auto internal_data = reinterpret_cast<CopyFunctionInternalGlobalState*>(duckdb_copy_function_finalize_get_global_state(finalize_info));
+    if (!internal_data || !internal_data->user_global_state_ref) {
+      return env.Undefined();
+    }
+    return internal_data->user_global_state_ref->ref.Value();
+  }
 
   // DUCKDB_C_API void duckdb_copy_function_set_copy_from_function(duckdb_copy_function copy_function, duckdb_table_function table_function);
-  // TODO copy function
+  // function copy_function_set_copy_from_function(copy_function: CopyFunction, table_function: TableFunction): void
+  Napi::Value copy_function_set_copy_from_function(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto copy_function = GetCopyFunctionFromExternal(env, info[0]);
+    auto table_function = GetTableFunctionFromExternal(env, info[1]);
+    duckdb_copy_function_set_copy_from_function(copy_function, table_function);
+    return env.Undefined();
+  }
 
   // DUCKDB_C_API duckdb_data_chunk duckdb_create_data_chunk(duckdb_logical_type *types, idx_t column_count);
   // function create_data_chunk(logical_types: readonly LogicalType[]): DataChunk
@@ -3931,13 +4247,39 @@ private:
   }
 
   // DUCKDB_C_API idx_t duckdb_table_function_bind_get_result_column_count(duckdb_bind_info info);
-  // TODO copy function
+  // function table_function_bind_get_result_column_count(bind_info: TableFunctionBindInfo): number
+  Napi::Value table_function_bind_get_result_column_count(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetTableFunctionBindInfoFromExternal(env, info[0]);
+    auto column_count = duckdb_table_function_bind_get_result_column_count(bind_info);
+    return Napi::Number::New(env, column_count);
+  }
 
   // DUCKDB_C_API const char *duckdb_table_function_bind_get_result_column_name(duckdb_bind_info info, idx_t col_idx);
-  // TODO copy function
+  // function table_function_bind_get_result_column_name(bind_info: TableFunctionBindInfo, column_index: number): string
+  Napi::Value table_function_bind_get_result_column_name(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetTableFunctionBindInfoFromExternal(env, info[0]);
+    auto column_index = info[1].As<Napi::Number>().Uint32Value();
+    auto column_name = duckdb_table_function_bind_get_result_column_name(bind_info, column_index);
+    if (!column_name) {
+      throw Napi::Error::New(env, "Failed to get result column name");
+    }
+    return Napi::String::New(env, column_name);
+  }
 
   // DUCKDB_C_API duckdb_logical_type duckdb_table_function_bind_get_result_column_type(duckdb_bind_info info, idx_t col_idx);
-  // TODO copy function
+  // function table_function_bind_get_result_column_type(bind_info: TableFunctionBindInfo, column_index: number): LogicalType
+  Napi::Value table_function_bind_get_result_column_type(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    auto bind_info = GetTableFunctionBindInfoFromExternal(env, info[0]);
+    auto column_index = info[1].As<Napi::Number>().Uint32Value();
+    auto logical_type = duckdb_table_function_bind_get_result_column_type(bind_info, column_index);
+    if (!logical_type) {
+      throw Napi::Error::New(env, "Failed to get result column type");
+    }
+    return CreateExternalForLogicalType(env, logical_type);
+  }
 
   // DUCKDB_C_API void duckdb_execute_tasks(duckdb_database database, idx_t max_tasks);
   // TODO tasks
@@ -5127,10 +5469,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 548 DUCKDB_C_API
-    348 function
+    384 function
      32 not exposed
      41 deprecated
-    127 TODO
+     91 TODO
        12 aggregate function
         4 aggregate function set
         1 appender create query
@@ -5140,7 +5482,6 @@ NODE_API_ADDON(DuckDBNodeAddon)
         8 arrow
        12 cast function
         5 profiling info
-       36 copy function
         4 expression
         1 register logical type
         5 error data

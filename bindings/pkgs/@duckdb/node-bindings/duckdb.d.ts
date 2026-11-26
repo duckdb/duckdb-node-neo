@@ -252,6 +252,22 @@ export interface TableFunctionInfo {
   __duckdb_function_kind: 'table_function';
 }
 
+export interface CopyFunctionBindInfo {
+  __duckdb_type: 'duckdb_copy_function_bind_info';
+}
+
+export interface CopyFunctionGlobalInitInfo {
+  __duckdb_type: 'duckdb_copy_function_global_init_info';
+}
+
+export interface CopyFunctionSinkInfo {
+  __duckdb_type: 'duckdb_copy_function_sink_info';
+}
+
+export interface CopyFunctionFinalizeInfo {
+  __duckdb_type: 'duckdb_copy_function_finalize_info';
+}
+
 /** @deprecated Renamed to ScalarFunctionBindInfo. */
 export type BindInfo = ScalarFunctionBindInfo;
 
@@ -306,6 +322,23 @@ export interface ConfigOption {
 
 export interface Connection {
   __duckdb_type: 'duckdb_connection';
+}
+
+/**
+ * A file format for `COPY ... TO`, `COPY ... FROM`, or both, being defined.
+ * Registering copies its name and callbacks into the database, so the handle
+ * can be destroyed afterwards; the setters throw once it is.
+ *
+ * For `COPY ... TO`, bind runs once per statement and sees the columns and
+ * options. Global init then runs once per output file and sets up the state
+ * its sink and finalize share; sink runs once per chunk of rows, and finalize
+ * once the file's rows are in, also when there were none. A plain COPY writes
+ * one file; `PARTITION_BY` writes one per partition.
+ *
+ * For `COPY ... FROM`, see `copy_function_set_copy_from_function`.
+ */
+export interface CopyFunction {
+  __duckdb_type: 'duckdb_copy_function';
 }
 
 // export interface CreateTypeInfo {
@@ -411,6 +444,11 @@ export type ScalarFunctionMainFunction = (info: ScalarFunctionInfo, input: DataC
 export type TableFunctionBindFunction = (info: TableFunctionBindInfo) => void;
 export type TableFunctionInitFunction = (info: TableFunctionInitInfo) => void;
 export type TableFunctionMainFunction = (info: TableFunctionInfo, output: DataChunk) => void;
+
+export type CopyFunctionBindFunction = (info: CopyFunctionBindInfo) => void;
+export type CopyFunctionGlobalInitFunction = (info: CopyFunctionGlobalInitInfo) => void;
+export type CopyFunctionSinkFunction = (info: CopyFunctionSinkInfo, input: DataChunk) => void;
+export type CopyFunctionFinalizeFunction = (info: CopyFunctionFinalizeInfo) => void;
 
 export type WriteLogEntryFunction = (
   extraData: object | undefined,
@@ -731,38 +769,133 @@ export function client_context_get_connection_id(client_context: ClientContext):
 export function get_table_names(connection: Connection, query: string, qualified: boolean): Value;
 
 // DUCKDB_C_API duckdb_copy_function duckdb_create_copy_function(void);
+export function create_copy_function(): CopyFunction;
+
 // DUCKDB_C_API void duckdb_copy_function_set_name(duckdb_copy_function copy_function, const char *name);
+export function copy_function_set_name(copy_function: CopyFunction, name: string): void;
+
 // DUCKDB_C_API void duckdb_copy_function_set_extra_info(duckdb_copy_function copy_function, void *extra_info, duckdb_delete_callback_t destructor);
+export function copy_function_set_extra_info(copy_function: CopyFunction, extra_info: object): void;
+
 // DUCKDB_C_API duckdb_state duckdb_register_copy_function(duckdb_connection connection, duckdb_copy_function copy_function);
+/**
+ * Throws when the function has no name, or has neither a sink nor a COPY FROM
+ * table function. Bind, global init and finalize are optional.
+ */
+export function register_copy_function(connection: Connection, copy_function: CopyFunction): void;
+
 // DUCKDB_C_API void duckdb_destroy_copy_function(duckdb_copy_function *copy_function);
+export function destroy_copy_function_sync(copy_function: CopyFunction): void;
+
 // DUCKDB_C_API void duckdb_copy_function_set_bind(duckdb_copy_function copy_function, duckdb_copy_function_bind_t bind);
+export function copy_function_set_bind(copy_function: CopyFunction, func: CopyFunctionBindFunction): void;
+
 // DUCKDB_C_API void duckdb_copy_function_bind_set_error(duckdb_copy_function_bind_info info, const char *error);
+export function copy_function_bind_set_error(bind_info: CopyFunctionBindInfo, error: string): void;
+
 // DUCKDB_C_API void *duckdb_copy_function_bind_get_extra_info(duckdb_copy_function_bind_info info);
+export function copy_function_bind_get_extra_info(bind_info: CopyFunctionBindInfo): object | undefined;
+
 // DUCKDB_C_API duckdb_client_context duckdb_copy_function_bind_get_client_context(duckdb_copy_function_bind_info info);
+export function copy_function_bind_get_client_context(bind_info: CopyFunctionBindInfo): ClientContext;
+
 // DUCKDB_C_API idx_t duckdb_copy_function_bind_get_column_count(duckdb_copy_function_bind_info info);
+export function copy_function_bind_get_column_count(bind_info: CopyFunctionBindInfo): number;
+
 // DUCKDB_C_API duckdb_logical_type duckdb_copy_function_bind_get_column_type(duckdb_copy_function_bind_info info, idx_t col_idx);
+export function copy_function_bind_get_column_type(bind_info: CopyFunctionBindInfo, column_index: number): LogicalType;
+
 // DUCKDB_C_API duckdb_value duckdb_copy_function_bind_get_options(duckdb_copy_function_bind_info info);
+/**
+ * A STRUCT with one entry per option, keyed by the option name in upper case.
+ * Values in parentheses are a LIST when they share a type and an unnamed STRUCT
+ * when they do not; a single value in parentheses is just that value. With no
+ * options the value is NULL.
+ */
+export function copy_function_bind_get_options(bind_info: CopyFunctionBindInfo): Value;
+
 // DUCKDB_C_API void duckdb_copy_function_bind_set_bind_data(duckdb_copy_function_bind_info info, void *bind_data, duckdb_delete_callback_t destructor);
+export function copy_function_bind_set_bind_data(bind_info: CopyFunctionBindInfo, bind_data: object): void;
+
 // DUCKDB_C_API void duckdb_copy_function_set_global_init(duckdb_copy_function copy_function, duckdb_copy_function_global_init_t init);
+export function copy_function_set_global_init(copy_function: CopyFunction, func: CopyFunctionGlobalInitFunction): void;
+
 // DUCKDB_C_API void duckdb_copy_function_global_init_set_error(duckdb_copy_function_global_init_info info, const char *error);
+export function copy_function_global_init_set_error(init_info: CopyFunctionGlobalInitInfo, error: string): void;
+
 // DUCKDB_C_API void *duckdb_copy_function_global_init_get_extra_info(duckdb_copy_function_global_init_info info);
+export function copy_function_global_init_get_extra_info(init_info: CopyFunctionGlobalInitInfo): object | undefined;
+
 // DUCKDB_C_API duckdb_client_context duckdb_copy_function_global_init_get_client_context(duckdb_copy_function_global_init_info info);
+export function copy_function_global_init_get_client_context(init_info: CopyFunctionGlobalInitInfo): ClientContext;
+
 // DUCKDB_C_API void *duckdb_copy_function_global_init_get_bind_data(duckdb_copy_function_global_init_info info);
+export function copy_function_global_init_get_bind_data(init_info: CopyFunctionGlobalInitInfo): object | undefined;
+
 // DUCKDB_C_API const char *duckdb_copy_function_global_init_get_file_path(duckdb_copy_function_global_init_info info);
+/**
+ * The path to write. It is the path in the statement when that file does not
+ * exist yet. When it does, DuckDB gives a temporary name in the same directory
+ * and renames the file after finalize, so writing anywhere else fails the COPY.
+ * With `PARTITION_BY` it is a generated path inside the partition's directory.
+ */
+export function copy_function_global_init_get_file_path(init_info: CopyFunctionGlobalInitInfo): string;
+
 // DUCKDB_C_API void duckdb_copy_function_global_init_set_global_state(duckdb_copy_function_global_init_info info, void *global_state, duckdb_delete_callback_t destructor);
+export function copy_function_global_init_set_global_state(init_info: CopyFunctionGlobalInitInfo, global_state: object): void;
+
 // DUCKDB_C_API void duckdb_copy_function_set_sink(duckdb_copy_function copy_function, duckdb_copy_function_sink_t function);
+/**
+ * The chunk belongs to DuckDB and is only valid during the call.
+ */
+export function copy_function_set_sink(copy_function: CopyFunction, func: CopyFunctionSinkFunction): void;
+
 // DUCKDB_C_API void duckdb_copy_function_sink_set_error(duckdb_copy_function_sink_info info, const char *error);
+export function copy_function_sink_set_error(sink_info: CopyFunctionSinkInfo, error: string): void;
+
 // DUCKDB_C_API void *duckdb_copy_function_sink_get_extra_info(duckdb_copy_function_sink_info info);
+export function copy_function_sink_get_extra_info(sink_info: CopyFunctionSinkInfo): object | undefined;
+
 // DUCKDB_C_API duckdb_client_context duckdb_copy_function_sink_get_client_context(duckdb_copy_function_sink_info info);
+export function copy_function_sink_get_client_context(sink_info: CopyFunctionSinkInfo): ClientContext;
+
 // DUCKDB_C_API void *duckdb_copy_function_sink_get_bind_data(duckdb_copy_function_sink_info info);
+export function copy_function_sink_get_bind_data(sink_info: CopyFunctionSinkInfo): object | undefined;
+
 // DUCKDB_C_API void *duckdb_copy_function_sink_get_global_state(duckdb_copy_function_sink_info info);
+export function copy_function_sink_get_global_state(sink_info: CopyFunctionSinkInfo): object | undefined;
+
 // DUCKDB_C_API void duckdb_copy_function_set_finalize(duckdb_copy_function copy_function, duckdb_copy_function_finalize_t finalize);
+export function copy_function_set_finalize(copy_function: CopyFunction, func: CopyFunctionFinalizeFunction): void;
+
 // DUCKDB_C_API void duckdb_copy_function_finalize_set_error(duckdb_copy_function_finalize_info info, const char *error);
+export function copy_function_finalize_set_error(finalize_info: CopyFunctionFinalizeInfo, error: string): void;
+
 // DUCKDB_C_API void *duckdb_copy_function_finalize_get_extra_info(duckdb_copy_function_finalize_info info);
+export function copy_function_finalize_get_extra_info(finalize_info: CopyFunctionFinalizeInfo): object | undefined;
+
 // DUCKDB_C_API duckdb_client_context duckdb_copy_function_finalize_get_client_context(duckdb_copy_function_finalize_info info);
+export function copy_function_finalize_get_client_context(finalize_info: CopyFunctionFinalizeInfo): ClientContext;
+
 // DUCKDB_C_API void *duckdb_copy_function_finalize_get_bind_data(duckdb_copy_function_finalize_info info);
+export function copy_function_finalize_get_bind_data(finalize_info: CopyFunctionFinalizeInfo): object | undefined;
+
 // DUCKDB_C_API void *duckdb_copy_function_finalize_get_global_state(duckdb_copy_function_finalize_info info);
+export function copy_function_finalize_get_global_state(finalize_info: CopyFunctionFinalizeInfo): object | undefined;
+
 // DUCKDB_C_API void duckdb_copy_function_set_copy_from_function(duckdb_copy_function copy_function, duckdb_table_function table_function);
+/**
+ * Makes `COPY ... FROM` with this format run the table function. It gets the file
+ * path as its one VARCHAR parameter and the COPY options as named parameters.
+ * Since the target table already exists, its bind reads the columns with
+ * `table_function_bind_get_result_column_count` and the name and type getters
+ * instead of adding result columns.
+ *
+ * The table function is copied as it is at this call, so set its name,
+ * parameters, bind, init and main function first. With any of those missing the
+ * call does nothing, and registering the copy function then fails.
+ */
+export function copy_function_set_copy_from_function(copy_function: CopyFunction, table_function: TableFunction): void;
 
 // DUCKDB_C_API duckdb_data_chunk duckdb_create_data_chunk(duckdb_logical_type *types, idx_t column_count);
 export function create_data_chunk(logical_types: readonly LogicalType[]): DataChunk;
@@ -1432,8 +1565,13 @@ export function function_get_local_init_data(function_info: TableFunctionInfo): 
 export function function_set_error(function_info: TableFunctionInfo, error: string): void;
 
 // DUCKDB_C_API idx_t duckdb_table_function_bind_get_result_column_count(duckdb_bind_info info);
+export function table_function_bind_get_result_column_count(bind_info: TableFunctionBindInfo): number;
+
 // DUCKDB_C_API const char *duckdb_table_function_bind_get_result_column_name(duckdb_bind_info info, idx_t col_idx);
+export function table_function_bind_get_result_column_name(bind_info: TableFunctionBindInfo, column_index: number): string;
+
 // DUCKDB_C_API duckdb_logical_type duckdb_table_function_bind_get_result_column_type(duckdb_bind_info info, idx_t col_idx);
+export function table_function_bind_get_result_column_type(bind_info: TableFunctionBindInfo, column_index: number): LogicalType;
 
 // DUCKDB_C_API void duckdb_execute_tasks(duckdb_database database, idx_t max_tasks);
 // DUCKDB_C_API duckdb_task_state duckdb_create_task_state(duckdb_database database);

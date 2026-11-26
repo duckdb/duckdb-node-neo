@@ -47,6 +47,26 @@ inline constexpr napi_type_tag ConnectionTypeTag = {
   0x922B9BF54AB04DFC, 0x8A258578D371DB71
 };
 
+inline constexpr napi_type_tag CopyFunctionBindInfoTypeTag = {
+  0xF9694A62B1ED4DB4, 0xB6500015EABF41C4
+};
+
+inline constexpr napi_type_tag CopyFunctionFinalizeInfoTypeTag = {
+  0x0CF9944EEC6B4D58, 0x87E607700C909C6A
+};
+
+inline constexpr napi_type_tag CopyFunctionGlobalInitInfoTypeTag = {
+  0xAE691DD7295643F6, 0xB89F53A804BF6702
+};
+
+inline constexpr napi_type_tag CopyFunctionSinkInfoTypeTag = {
+  0x967D12423FFE448E, 0x96E2B50929382DA6
+};
+
+inline constexpr napi_type_tag CopyFunctionTypeTag = {
+  0x23D4E0DCD9C24CA5, 0xA87ADB0E9602E1AF
+};
+
 inline constexpr napi_type_tag DataChunkTypeTag = {
   0x2C7537AB063A4296, 0xB1E70F08B0BBD1A3
 };
