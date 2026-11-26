@@ -1546,7 +1546,7 @@ private:
   // function copy_function_set_extra_info(copy_function: CopyFunction, extra_info: object): void
   Napi::Value copy_function_set_extra_info(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto holder = GetCopyFunctionHolderFromExternal(env, info[0]);
+    auto holder = GetLiveCopyFunctionHolderFromExternal(env, info[0]);
     auto user_extra_info = info[1].As<Napi::Object>();
     holder->EnsureInternalExtraInfo(ref_reaper);
     holder->internal_extra_info->SetUserExtraInfo(ref_reaper, user_extra_info);
@@ -1570,8 +1570,10 @@ private:
   Napi::Value destroy_copy_function_sync(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto holder = GetCopyFunctionHolderFromExternal(env, info[0]);
-    // duckdb_destroy_copy_function is a no-op if already destroyed
+    // duckdb_destroy_copy_function is a no-op if already destroyed. It runs the
+    // delete callback for the extra info, so the holder must forget it.
     duckdb_destroy_copy_function(&holder->copy_function);
+    holder->internal_extra_info = nullptr;
     return env.Undefined();
   }
 
@@ -1579,7 +1581,7 @@ private:
   // function copy_function_set_bind(copy_function: CopyFunction, func: CopyFunctionBindFunction): void
   Napi::Value copy_function_set_bind(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto holder = GetCopyFunctionHolderFromExternal(env, info[0]);
+    auto holder = GetLiveCopyFunctionHolderFromExternal(env, info[0]);
     auto func = info[1].As<Napi::Function>();
     holder->EnsureInternalExtraInfo(ref_reaper);
     holder->internal_extra_info->SetBindFunction(env, func);
@@ -1671,7 +1673,7 @@ private:
   // function copy_function_set_global_init(copy_function: CopyFunction, func: CopyFunctionGlobalInitFunction): void
   Napi::Value copy_function_set_global_init(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto holder = GetCopyFunctionHolderFromExternal(env, info[0]);
+    auto holder = GetLiveCopyFunctionHolderFromExternal(env, info[0]);
     auto func = info[1].As<Napi::Function>();
     holder->EnsureInternalExtraInfo(ref_reaper);
     holder->internal_extra_info->SetGlobalInitFunction(env, func);
@@ -1753,7 +1755,7 @@ private:
   // function copy_function_set_sink(copy_function: CopyFunction, func: CopyFunctionSinkFunction): void
   Napi::Value copy_function_set_sink(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto holder = GetCopyFunctionHolderFromExternal(env, info[0]);
+    auto holder = GetLiveCopyFunctionHolderFromExternal(env, info[0]);
     auto func = info[1].As<Napi::Function>();
     holder->EnsureInternalExtraInfo(ref_reaper);
     holder->internal_extra_info->SetSinkFunction(env, func);
@@ -1823,7 +1825,7 @@ private:
   // function copy_function_set_finalize(copy_function: CopyFunction, func: CopyFunctionFinalizeFunction): void
   Napi::Value copy_function_set_finalize(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto holder = GetCopyFunctionHolderFromExternal(env, info[0]);
+    auto holder = GetLiveCopyFunctionHolderFromExternal(env, info[0]);
     auto func = info[1].As<Napi::Function>();
     holder->EnsureInternalExtraInfo(ref_reaper);
     holder->internal_extra_info->SetFinalizeFunction(env, func);
@@ -5467,10 +5469,10 @@ NODE_API_ADDON(DuckDBNodeAddon)
 /*
 
 548 DUCKDB_C_API
-    348 function
+    384 function
      32 not exposed
      41 deprecated
-    127 TODO
+     91 TODO
        12 aggregate function
         4 aggregate function set
         1 appender create query
@@ -5480,7 +5482,6 @@ NODE_API_ADDON(DuckDBNodeAddon)
         8 arrow
        12 cast function
         5 profiling info
-       36 copy function
         4 expression
         1 register logical type
         5 error data

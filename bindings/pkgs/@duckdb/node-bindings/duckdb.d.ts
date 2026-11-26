@@ -252,9 +252,6 @@ export interface TableFunctionInfo {
   __duckdb_function_kind: 'table_function';
 }
 
-// Each copy function callback has its own info type in the C API, so these need
-// no __duckdb_function_kind to keep them apart.
-
 export interface CopyFunctionBindInfo {
   __duckdb_type: 'duckdb_copy_function_bind_info';
 }
@@ -328,13 +325,17 @@ export interface Connection {
 }
 
 /**
- * A `COPY ... TO` format being defined. Registering copies its name and
- * callbacks into the database, so the handle can be destroyed afterwards.
+ * A file format for `COPY ... TO`, `COPY ... FROM`, or both, being defined.
+ * Registering copies its name and callbacks into the database, so the handle
+ * can be destroyed afterwards; the setters throw once it is.
  *
- * Bind runs once per COPY and sees the columns and options; global init sees
- * the file path and sets up the state the sink and finalize share; sink runs
- * once per chunk of rows; finalize runs once at the end, also when there were
- * no rows.
+ * For `COPY ... TO`, bind runs once per statement and sees the columns and
+ * options. Global init then runs once per output file and sets up the state
+ * its sink and finalize share; sink runs once per chunk of rows, and finalize
+ * once the file's rows are in, also when there were none. A plain COPY writes
+ * one file; `PARTITION_BY` writes one per partition.
+ *
+ * For `COPY ... FROM`, see `copy_function_set_copy_from_function`.
  */
 export interface CopyFunction {
   __duckdb_type: 'duckdb_copy_function';
@@ -778,8 +779,8 @@ export function copy_function_set_extra_info(copy_function: CopyFunction, extra_
 
 // DUCKDB_C_API duckdb_state duckdb_register_copy_function(duckdb_connection connection, duckdb_copy_function copy_function);
 /**
- * Throws when the function has no name or no sink. Bind, global init and
- * finalize are optional.
+ * Throws when the function has no name, or has neither a sink nor a COPY FROM
+ * table function. Bind, global init and finalize are optional.
  */
 export function register_copy_function(connection: Connection, copy_function: CopyFunction): void;
 
@@ -807,7 +808,9 @@ export function copy_function_bind_get_column_type(bind_info: CopyFunctionBindIn
 // DUCKDB_C_API duckdb_value duckdb_copy_function_bind_get_options(duckdb_copy_function_bind_info info);
 /**
  * A STRUCT with one entry per option, keyed by the option name in upper case.
- * An option given in parentheses is a LIST. With no options the value is NULL.
+ * Values in parentheses are a LIST when they share a type and an unnamed STRUCT
+ * when they do not; a single value in parentheses is just that value. With no
+ * options the value is NULL.
  */
 export function copy_function_bind_get_options(bind_info: CopyFunctionBindInfo): Value;
 
@@ -831,7 +834,10 @@ export function copy_function_global_init_get_bind_data(init_info: CopyFunctionG
 
 // DUCKDB_C_API const char *duckdb_copy_function_global_init_get_file_path(duckdb_copy_function_global_init_info info);
 /**
- * The path in the COPY statement, as written.
+ * The path to write. It is the path in the statement when that file does not
+ * exist yet. When it does, DuckDB gives a temporary name in the same directory
+ * and renames the file after finalize, so writing anywhere else fails the COPY.
+ * With `PARTITION_BY` it is a generated path inside the partition's directory.
  */
 export function copy_function_global_init_get_file_path(init_info: CopyFunctionGlobalInitInfo): string;
 
@@ -880,11 +886,14 @@ export function copy_function_finalize_get_global_state(finalize_info: CopyFunct
 // DUCKDB_C_API void duckdb_copy_function_set_copy_from_function(duckdb_copy_function copy_function, duckdb_table_function table_function);
 /**
  * Makes `COPY ... FROM` with this format run the table function. It gets the file
- * path as its one VARCHAR parameter and the COPY options as named parameters,
- * and must have a bind, an init and a main function. Since the target table
- * already exists, its bind reads the columns with
+ * path as its one VARCHAR parameter and the COPY options as named parameters.
+ * Since the target table already exists, its bind reads the columns with
  * `table_function_bind_get_result_column_count` and the name and type getters
  * instead of adding result columns.
+ *
+ * The table function is copied as it is at this call, so set its name,
+ * parameters, bind, init and main function first. With any of those missing the
+ * call does nothing, and registering the copy function then fails.
  */
 export function copy_function_set_copy_from_function(copy_function: CopyFunction, table_function: TableFunction): void;
 

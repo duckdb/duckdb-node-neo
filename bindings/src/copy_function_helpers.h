@@ -13,9 +13,11 @@
 // family-specific state and so does not belong in externals.h. This mirrors
 // table_function_helpers.h.
 //
-// A copy function runs `COPY ... TO` in four callbacks: bind sees the columns
-// and options, global init sees the file path and sets up global state, sink
-// receives each chunk of rows, and finalize runs once all rows are in.
+// A copy function defines a format for `COPY ... TO`, through four callbacks:
+// bind sees the columns and options, global init sees the path of one output
+// file and sets up its global state, sink receives each chunk of rows, and
+// finalize runs once that file's rows are in. It can also define the format for
+// `COPY ... FROM`, by naming a table function that reads it.
 
 // Info externals
 //
@@ -223,8 +225,19 @@ inline CopyFunctionHolder *GetCopyFunctionHolderFromExternal(Napi::Env env, Napi
   return GetDataFromExternal<CopyFunctionHolder>(env, CopyFunctionTypeTag, value, "Invalid copy function argument");
 }
 
+// For everything but destroy. Destroying frees DuckDB's function object and,
+// through its delete callback, the internal extra info, so a setter on a
+// destroyed handle would write into freed memory.
+inline CopyFunctionHolder *GetLiveCopyFunctionHolderFromExternal(Napi::Env env, Napi::Value value) {
+  auto holder = GetCopyFunctionHolderFromExternal(env, value);
+  if (!holder->copy_function) {
+    throw Napi::Error::New(env, "Copy function has been destroyed");
+  }
+  return holder;
+}
+
 inline duckdb_copy_function GetCopyFunctionFromExternal(Napi::Env env, Napi::Value value) {
-  return GetCopyFunctionHolderFromExternal(env, value)->copy_function;
+  return GetLiveCopyFunctionHolderFromExternal(env, value)->copy_function;
 }
 
 // Bind data and global state

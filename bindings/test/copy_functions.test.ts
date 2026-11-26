@@ -1,7 +1,7 @@
 import duckdb from '@duckdb/node-bindings';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join, relative } from 'node:path';
 import { expect, suite, test } from 'vitest';
 import { data } from './utils/expectedVectors';
 import { expectResult } from './utils/expectResult';
@@ -15,6 +15,19 @@ function readInt32s(vector: duckdb.Vector, count: number): number[] {
     values.push(view.getInt32(4 * i, true));
   }
   return values;
+}
+
+// A table function with everything a COPY FROM reader needs set.
+function createReader(name: string): duckdb.TableFunction {
+  const table_function = duckdb.create_table_function();
+  duckdb.table_function_set_name(table_function, name);
+  duckdb.table_function_add_parameter(table_function, duckdb.create_logical_type(duckdb.Type.VARCHAR));
+  duckdb.table_function_set_bind(table_function, () => {});
+  duckdb.table_function_set_init(table_function, () => {});
+  duckdb.table_function_set_function(table_function, (_info, output) => {
+    duckdb.data_chunk_set_size(output, 0);
+  });
+  return table_function;
 }
 
 async function withTempDir(fn: (dir: string) => Promise<void>) {
@@ -43,11 +56,19 @@ suite('copy functions', () => {
   });
   test('destroy', () => {
     const copy_function = duckdb.create_copy_function();
+    duckdb.copy_function_set_bind(copy_function, () => {});
     duckdb.destroy_copy_function_sync(copy_function);
     // Destroying twice is a no-op, not a crash.
     duckdb.destroy_copy_function_sync(copy_function);
+    // Destroying freed the extra info along with the function, so the setters
+    // refuse the handle instead of writing into freed memory.
+    const destroyed = 'Copy function has been destroyed';
+    expect(() => duckdb.copy_function_set_bind(copy_function, () => {})).toThrowError(destroyed);
+    expect(() => duckdb.copy_function_set_sink(copy_function, () => {})).toThrowError(destroyed);
+    expect(() => duckdb.copy_function_set_name(copy_function, 'my_format')).toThrowError(destroyed);
+    expect(() => duckdb.copy_function_set_extra_info(copy_function, {})).toThrowError(destroyed);
   });
-  test('register needs a name and a sink', async () => {
+  test('register needs a name, and a sink or a COPY FROM table function', async () => {
     await withConnection(async (connection) => {
       const failure = 'Failed to register copy function';
 
@@ -55,18 +76,50 @@ suite('copy functions', () => {
       duckdb.copy_function_set_sink(unnamed, () => {});
       expect(() => duckdb.register_copy_function(connection, unnamed)).toThrowError(failure);
 
-      const no_sink = duckdb.create_copy_function();
-      duckdb.copy_function_set_name(no_sink, 'my_format');
-      duckdb.copy_function_set_bind(no_sink, () => {});
-      duckdb.copy_function_set_global_init(no_sink, () => {});
-      duckdb.copy_function_set_finalize(no_sink, () => {});
-      expect(() => duckdb.register_copy_function(connection, no_sink)).toThrowError(failure);
+      // Bind, global init and finalize on their own are not enough.
+      const neither = duckdb.create_copy_function();
+      duckdb.copy_function_set_name(neither, 'my_format');
+      duckdb.copy_function_set_bind(neither, () => {});
+      duckdb.copy_function_set_global_init(neither, () => {});
+      duckdb.copy_function_set_finalize(neither, () => {});
+      expect(() => duckdb.register_copy_function(connection, neither)).toThrowError(failure);
 
-      // Bind, global init and finalize are optional.
-      const minimal = duckdb.create_copy_function();
-      duckdb.copy_function_set_name(minimal, 'my_format');
-      duckdb.copy_function_set_sink(minimal, () => {});
-      duckdb.register_copy_function(connection, minimal);
+      // A sink on its own is.
+      const sink_only = duckdb.create_copy_function();
+      duckdb.copy_function_set_name(sink_only, 'my_format');
+      duckdb.copy_function_set_sink(sink_only, () => {});
+      duckdb.register_copy_function(connection, sink_only);
+
+      // So is a COPY FROM table function on its own.
+      const from_only = duckdb.create_copy_function();
+      duckdb.copy_function_set_name(from_only, 'my_format_from');
+      duckdb.copy_function_set_copy_from_function(from_only, createReader('my_reader'));
+      duckdb.register_copy_function(connection, from_only);
+    });
+  });
+  test('a COPY FROM table function is copied as it is at the call', async () => {
+    await withConnection(async (connection) => {
+      const reader = duckdb.create_table_function();
+      duckdb.table_function_set_name(reader, 'my_reader');
+      duckdb.table_function_add_parameter(reader, duckdb.create_logical_type(duckdb.Type.VARCHAR));
+      const copy_function = duckdb.create_copy_function();
+      duckdb.copy_function_set_name(copy_function, 'my_format');
+
+      // Without bind, init and main the call does nothing, and completing the
+      // table function afterwards does not change that.
+      duckdb.copy_function_set_copy_from_function(copy_function, reader);
+      duckdb.table_function_set_bind(reader, () => {});
+      duckdb.table_function_set_init(reader, () => {});
+      duckdb.table_function_set_function(reader, (_info, output) => {
+        duckdb.data_chunk_set_size(output, 0);
+      });
+      expect(() => duckdb.register_copy_function(connection, copy_function)).toThrowError(
+        'Failed to register copy function',
+      );
+
+      // Set again now that it is complete.
+      duckdb.copy_function_set_copy_from_function(copy_function, reader);
+      duckdb.register_copy_function(connection, copy_function);
     });
   });
   test('a table function external is not a copy function', () => {
@@ -199,6 +252,88 @@ suite('copy functions', () => {
     });
   });
 
+  test('an existing target file is replaced through a temporary path', async () => {
+    await withTempDir(async (dir) => {
+      await withConnection(async (connection) => {
+        let initPath = '';
+        registerWriter(connection, {
+          globalInitFunction: (info) => {
+            initPath = duckdb.copy_function_global_init_get_file_path(info);
+            duckdb.copy_function_global_init_set_global_state(info, {
+              'path': initPath,
+              'values': [] as number[],
+              'sink_calls': 0,
+            });
+          },
+        });
+        const path = join(dir, 'out.my_format');
+        writeFileSync(path, 'old');
+        await duckdb.query(
+          connection,
+          `COPY (SELECT range::INTEGER AS i FROM range(3)) TO '${path}' (FORMAT my_format)`,
+        );
+        // The writer got a temporary name next to the target, and DuckDB renamed
+        // the file into place after finalize.
+        expect(dirname(initPath)).toBe(dir);
+        expect(basename(initPath)).not.toBe('out.my_format');
+        expect(basename(initPath)).toMatch(/out\.my_format$/);
+        expect(readdirSync(dir)).toEqual(['out.my_format']);
+        expect(readFileSync(path, 'utf8')).toBe('1:0,1,2');
+      });
+    });
+  });
+
+  test('PARTITION_BY runs global init and finalize once per partition', async () => {
+    await withTempDir(async (dir) => {
+      await withConnection(async (connection) => {
+        const events: string[] = [];
+        registerWriter(connection, {
+          bindFunction: (info) => {
+            events.push('bind');
+            duckdb.copy_function_bind_set_bind_data(info, {
+              'column_count': duckdb.copy_function_bind_get_column_count(info),
+            });
+          },
+          globalInitFunction: (info) => {
+            const path = duckdb.copy_function_global_init_get_file_path(info);
+            events.push(`init ${dirname(relative(dir, path))}`);
+            duckdb.copy_function_global_init_set_global_state(info, {
+              'path': path,
+              'values': [] as number[],
+              'sink_calls': 0,
+            });
+          },
+          finalizeFunction: (info) => {
+            const state = duckdb.copy_function_finalize_get_global_state(info) as {
+              path: string;
+              values: number[];
+            };
+            events.push(`finalize ${dirname(relative(dir, state.path))}`);
+            writeFileSync(state.path, state.values.sort((a, b) => a - b).join(','));
+          },
+        });
+        const root = join(dir, 'out');
+        await duckdb.query(
+          connection,
+          `COPY (SELECT range % 2 AS k, range::INTEGER AS i FROM range(6)) TO '${root}' (FORMAT my_format, PARTITION_BY (k))`,
+        );
+        // One bind, then an init and a finalize for each partition's file. The
+        // partition column itself is not written.
+        expect(events.sort()).toEqual([
+          'bind',
+          'finalize out/k=0',
+          'finalize out/k=1',
+          'init out/k=0',
+          'init out/k=1',
+        ]);
+        const [file0] = readdirSync(join(root, 'k=0'));
+        const [file1] = readdirSync(join(root, 'k=1'));
+        expect(readFileSync(join(root, 'k=0', file0), 'utf8')).toBe('0,2,4');
+        expect(readFileSync(join(root, 'k=1', file1), 'utf8')).toBe('1,3,5');
+      });
+    });
+  });
+
   test('bind sees the columns and the options', async () => {
     await withTempDir(async (dir) => {
       await withConnection(async (connection) => {
@@ -237,6 +372,16 @@ suite('copy functions', () => {
                   seen.options[name] = items.join('|');
                   break;
                 }
+                case duckdb.Type.STRUCT: {
+                  // Values of different types come as an unnamed STRUCT.
+                  const valueType = duckdb.get_value_type(value);
+                  const members: string[] = [];
+                  for (let j = 0; j < duckdb.struct_type_child_count(valueType); j++) {
+                    members.push(`${duckdb.struct_type_child_name(valueType, j)}:${duckdb.Type[duckdb.get_type_id(duckdb.struct_type_child_type(valueType, j))]}`);
+                  }
+                  seen.options[name] = `struct(${members.join(',')})`;
+                  break;
+                }
               }
             }
           },
@@ -244,10 +389,16 @@ suite('copy functions', () => {
         const path = join(dir, 'out.my_format');
         await duckdb.query(
           connection,
-          `COPY (SELECT 1::INTEGER AS i, 'a' AS s, true AS b) TO '${path}' (FORMAT my_format, token 'abc', count 7, flags ('x', 'y'))`,
+          `COPY (SELECT 1::INTEGER AS i, 'a' AS s, true AS b) TO '${path}' (FORMAT my_format, token 'abc', count 7, flags ('x', 'y'), single ('z'), mixed (1, 'a'))`,
         );
         expect(seen.columns).toEqual(['INTEGER', 'VARCHAR', 'BOOLEAN']);
-        expect(seen.options).toEqual({ TOKEN: 'abc', COUNT: '7', FLAGS: 'x|y' });
+        expect(seen.options).toEqual({
+          TOKEN: 'abc',
+          COUNT: '7',
+          FLAGS: 'x|y',
+          SINGLE: 'z',
+          MIXED: 'struct(:INTEGER,:VARCHAR)',
+        });
       });
     });
   });
@@ -315,7 +466,7 @@ suite('copy functions', () => {
     await withTempDir(async (dir) => {
       await withConnection(async (connection) => {
         const expected = duckdb.client_context_get_connection_id(duckdb.connection_get_client_context(connection));
-        const ids: bigint[] = [];
+        const ids: number[] = [];
         const copy_function = duckdb.create_copy_function();
         duckdb.copy_function_set_name(copy_function, 'my_format');
         duckdb.copy_function_set_bind(copy_function, (info) => {
